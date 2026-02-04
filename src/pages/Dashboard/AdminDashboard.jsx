@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import FoodMenuDashboard from '../FoodMenu/FoodMenuDashboard';
+import Bookings from '../../components/Bookings';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -462,6 +463,11 @@ const AdminDashboard = () => {
                                 </div>
                             )}
                         </div>
+                    )}
+
+                    {/* Bookings View */}
+                    {activeMenu === 'bookings' && (
+                        <Bookings />
                     )}
 
                     {/* Food Menu View */}
