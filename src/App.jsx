@@ -11,6 +11,8 @@ import Ratings from './components/Ratings'
 import DemoForm from './components/DemoForm'
 import Footer from './components/Footer'
 import Login from './pages/Login/Login'
+import AdminDashboard from './pages/Dashboard/AdminDashboard'
+import Rooms from './pages/Rooms/Rooms'
 import './index.css'
 
 // Home Page Component
@@ -38,6 +40,15 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/rooms" element={<Rooms />} />
+        <Route path="/admin/bookings" element={<Rooms />} />
+        <Route path="/admin/food-menu" element={<Rooms />} />
+        <Route path="/admin/add-booking" element={<Rooms />} />
+        <Route path="/admin/customers" element={<Rooms />} />
+        <Route path="/admin/settings" element={<Rooms />} />
+        <Route path="/admin/cashier-report" element={<Rooms />} />
+        <Route path="/admin/food-payment-report" element={<Rooms />} />
       </Routes>
     </Router>
   )

@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import './Login.css';
 
 const Login = () => {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('admin');
     const [loading, setLoading] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
@@ -70,11 +72,29 @@ const Login = () => {
         // Simulate login request
         setTimeout(() => {
             setLoading(false);
-            console.log('Login attempt with:', activeTab === 'admin'
-                ? { email: formData.admin_email, password: formData.admin_password }
-                : { staffId: formData.staff_id, password: formData.staff_password }
-            );
-            alert(`${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} login submitted!`);
+
+            if (activeTab === 'admin') {
+                // Store auth token and user data
+                localStorage.setItem('authToken', 'dummy-token-admin');
+                localStorage.setItem('userData', JSON.stringify({
+                    name: 'Himanshu Yadav',
+                    email: formData.admin_email || 'admin@bireena.com',
+                    role: 'Administrator',
+                    password: formData.admin_password // Store for change password verification
+                }));
+            } else {
+                localStorage.setItem('authToken', 'dummy-token-staff');
+                localStorage.setItem('userData', JSON.stringify({
+                    name: 'Staff Member',
+                    email: 'staff@bireena.com',
+                    role: 'Staff',
+                    staffId: formData.staff_id,
+                    password: formData.staff_password
+                }));
+            }
+
+            // Redirect to admin dashboard
+            navigate('/admin/dashboard');
         }, 2000);
     };
 
