@@ -1,3 +1,4 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import TrustedBy from './components/TrustedBy'
@@ -9,9 +10,11 @@ import Testimonials from './components/Testimonials'
 import Ratings from './components/Ratings'
 import DemoForm from './components/DemoForm'
 import Footer from './components/Footer'
+import Login from './pages/Login/Login'
 import './index.css'
 
-function App() {
+// Home Page Component
+function HomePage() {
   return (
     <div className="App">
       <Navbar />
@@ -26,6 +29,17 @@ function App() {
       <DemoForm />
       <Footer />
     </div>
+  )
+}
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<Login />} />
+      </Routes>
+    </Router>
   )
 }
 
