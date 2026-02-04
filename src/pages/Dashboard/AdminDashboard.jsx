@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -23,6 +23,46 @@ const AdminDashboard = () => {
     const [passwordError, setPasswordError] = useState('');
     const [passwordSuccess, setPasswordSuccess] = useState('');
 
+    // Rooms management states
+    const [rooms, setRooms] = useState([]);
+    const [filteredRooms, setFilteredRooms] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedType, setSelectedType] = useState('All Types');
+    const [selectedStatus, setSelectedStatus] = useState('All Status');
+    const [showAddRoomModal, setShowAddRoomModal] = useState(false);
+    const [showEditRoomModal, setShowEditRoomModal] = useState(false);
+    const [currentRoom, setCurrentRoom] = useState(null);
+    const [roomFormData, setRoomFormData] = useState({
+        roomNumber: '',
+        roomType: '',
+        price: '',
+        capacity: ''
+    });
+    const [roomErrorMessage, setRoomErrorMessage] = useState('');
+
+    // Room type categories
+    const roomTypeCategories = {
+        'Club Rooms': [
+            'Club AC Single Room',
+            'Club AC Double Room',
+            'Club Non-AC Single Room',
+            'Club Non-AC Double Room'
+        ],
+        'Deluxe Rooms': [
+            'Deluxe AC Single Room',
+            'Deluxe AC Double Room',
+            'Deluxe Non-AC Single Room',
+            'Deluxe Non-AC Double Room'
+        ],
+        'Suite Rooms': [
+            'Suite Single Room',
+            'Suite Double Room',
+            'Family Suite'
+        ]
+    };
+
+    const statusOptions = ['All Status', 'Available', 'Booked', 'Occupied', 'Under Maintenance'];
+
     // Load user data from localStorage
     useEffect(() => {
         const storedUserData = localStorage.getItem('userData');
@@ -30,6 +70,46 @@ const AdminDashboard = () => {
             setUserData(JSON.parse(storedUserData));
         }
     }, []);
+
+    // Load rooms from localStorage
+    useEffect(() => {
+        const storedRooms = localStorage.getItem('hotelRooms');
+        if (storedRooms) {
+            setRooms(JSON.parse(storedRooms));
+        } else {
+            // Initialize with sample data
+            const sampleRooms = [
+                { id: 1, roomNumber: '01', roomType: 'Club AC Single Room', capacity: 1, price: 1500, status: 'Booked' },
+                { id: 2, roomNumber: '02', roomType: 'Club AC Double Room', capacity: 2, price: 2500, status: 'Occupied' },
+                { id: 3, roomNumber: '1011', roomType: 'Family Suite', capacity: 4, price: 5000, status: 'Available' },
+                { id: 4, roomNumber: '1002', roomType: 'Family Suite', capacity: 4, price: 5000, status: 'Occupied' }
+            ];
+            setRooms(sampleRooms);
+            localStorage.setItem('hotelRooms', JSON.stringify(sampleRooms));
+        }
+    }, []);
+
+    // Filter rooms based on search and filters
+    useEffect(() => {
+        let filtered = [...rooms];
+
+        if (searchQuery) {
+            filtered = filtered.filter(room =>
+                room.roomNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                room.roomType.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+
+        if (selectedType !== 'All Types') {
+            filtered = filtered.filter(room => room.roomType === selectedType);
+        }
+
+        if (selectedStatus !== 'All Status') {
+            filtered = filtered.filter(room => room.status === selectedStatus);
+        }
+
+        setFilteredRooms(filtered);
+    }, [rooms, searchQuery, selectedType, selectedStatus]);
 
     // Function to get user initials
     const getUserInitials = (name) => {
@@ -118,38 +198,111 @@ const AdminDashboard = () => {
 
     const handleMenuClick = (menuId) => {
         setActiveMenu(menuId);
-        // Navigate to respective pages
-        switch (menuId) {
-            case 'dashboard':
-                // Already on dashboard
-                break;
-            case 'rooms':
-                navigate('/admin/rooms');
-                break;
-            case 'bookings':
-                navigate('/admin/bookings');
-                break;
-            case 'food-menu':
-                navigate('/admin/food-menu');
-                break;
-            case 'add-booking':
-                navigate('/admin/add-booking');
-                break;
-            case 'customers':
-                navigate('/admin/customers');
-                break;
-            case 'settings':
-                navigate('/admin/settings');
-                break;
-            case 'cashier-report':
-                navigate('/admin/cashier-report');
-                break;
-            case 'food-payment-report':
-                navigate('/admin/food-payment-report');
-                break;
-            default:
-                console.log(`Navigating to: ${menuId}`);
+        // Reset search and filters when switching menus
+        if (menuId === 'rooms') {
+            setSearchQuery('');
+            setSelectedType('All Types');
+            setSelectedStatus('All Status');
         }
+    };
+
+    // Room management functions
+    const getAllRoomTypes = () => {
+        const types = ['All Types'];
+        Object.values(roomTypeCategories).forEach(category => {
+            types.push(...category);
+        });
+        return types;
+    };
+
+    const handleAddRoom = () => {
+        setRoomFormData({ roomNumber: '', roomType: '', price: '', capacity: '' });
+        setRoomErrorMessage('');
+        setShowAddRoomModal(true);
+    };
+
+    const handleEditRoom = (room) => {
+        setCurrentRoom(room);
+        setRoomFormData({
+            roomNumber: room.roomNumber,
+            roomType: room.roomType,
+            price: room.price.toString(),
+            capacity: room.capacity.toString()
+        });
+        setRoomErrorMessage('');
+        setShowEditRoomModal(true);
+    };
+
+    const handleRoomSubmit = (e) => {
+        e.preventDefault();
+        setRoomErrorMessage('');
+
+        if (!roomFormData.roomNumber || !roomFormData.roomType || !roomFormData.price || !roomFormData.capacity) {
+            setRoomErrorMessage('All fields are required');
+            return;
+        }
+
+        const existingRoom = rooms.find(r =>
+            r.roomNumber === roomFormData.roomNumber &&
+            (!currentRoom || r.id !== currentRoom.id)
+        );
+
+        if (existingRoom) {
+            setRoomErrorMessage('Room number already exists');
+            return;
+        }
+
+        if (showAddRoomModal) {
+            const newRoom = {
+                id: Date.now(),
+                roomNumber: roomFormData.roomNumber,
+                roomType: roomFormData.roomType,
+                capacity: parseInt(roomFormData.capacity),
+                price: parseInt(roomFormData.price),
+                status: 'Available'
+            };
+            const updatedRooms = [...rooms, newRoom];
+            setRooms(updatedRooms);
+            localStorage.setItem('hotelRooms', JSON.stringify(updatedRooms));
+            setShowAddRoomModal(false);
+        } else if (showEditRoomModal) {
+            const updatedRooms = rooms.map(room =>
+                room.id === currentRoom.id
+                    ? {
+                        ...room,
+                        roomNumber: roomFormData.roomNumber,
+                        roomType: roomFormData.roomType,
+                        capacity: parseInt(roomFormData.capacity),
+                        price: parseInt(roomFormData.price)
+                    }
+                    : room
+            );
+            setRooms(updatedRooms);
+            localStorage.setItem('hotelRooms', JSON.stringify(updatedRooms));
+            setShowEditRoomModal(false);
+        }
+
+        setRoomFormData({ roomNumber: '', roomType: '', price: '', capacity: '' });
+        setCurrentRoom(null);
+    };
+
+    const getStatusClass = (status) => {
+        switch (status) {
+            case 'Available':
+                return 'status-available';
+            case 'Booked':
+                return 'status-booked';
+            case 'Occupied':
+                return 'status-occupied';
+            case 'Under Maintenance':
+                return 'status-maintenance';
+            default:
+                return '';
+        }
+    };
+
+    const getRoomTypeShort = (roomType) => {
+        return roomType.replace('Room', '').trim();
     };
 
     return (
@@ -201,6 +354,10 @@ const AdminDashboard = () => {
                                         <span className="dropdown-icon">👤</span>
                                         My Profile
                                     </button>
+                                    <button className="dropdown-item" onClick={handleChangePassword}>
+                                        <span className="dropdown-icon">🔒</span>
+                                        Change Password
+                                    </button>
                                     <button className="dropdown-item logout" onClick={handleLogout}>
                                         <span className="dropdown-icon">🚪</span>
                                         Logout
@@ -213,50 +370,98 @@ const AdminDashboard = () => {
 
                 {/* Dashboard Content */}
                 <div className="dashboard-content">
-                    <motion.div
-                        className="admin-profile-section"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                    >
-                        <div className="profile-header">
+                    {/* Dashboard View */}
+                    {activeMenu === 'dashboard' && (
+                        <div className="welcome-section">
                             <h1>Welcome to Admin Dashboard</h1>
-                            <p>Manage your hotel operations from here</p>
+                            <p>Select a menu item from the sidebar to get started</p>
                         </div>
+                    )}
 
-                        <div className="profile-card">
-                            <div className="profile-card-header">
-                                <h2>My Profile</h2>
+                    {/* Rooms View */}
+                    {activeMenu === 'rooms' && (
+                        <div className="rooms-section">
+                            {/* Rooms Header */}
+                            <div className="section-header">
+                                <h2>🛏️ Rooms Management</h2>
                             </div>
 
-                            <div className="profile-content">
-                                <div className="profile-avatar-section">
-                                    <div className="profile-avatar-large">
-                                        {getUserInitials(userData.name)}
-                                    </div>
+                            {/* Search and Filters */}
+                            <div className="rooms-controls">
+                                <div className="search-box">
+                                    <span className="search-icon">🔍</span>
+                                    <input
+                                        type="text"
+                                        placeholder="Search room..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
                                 </div>
-
-                                <div className="profile-details">
-                                    <div className="detail-row">
-                                        <span className="detail-label">Email:</span>
-                                        <span className="detail-value">{userData.email}</span>
-                                    </div>
-
-                                    <div className="detail-row">
-                                        <span className="detail-label">Role:</span>
-                                        <span className="detail-value role-badge">{userData.role}</span>
-                                    </div>
-                                </div>
-
-                                <div className="profile-actions">
-                                    <button className="btn btn-primary" onClick={handleViewProfile}>
-                                        <span className="btn-icon">👤</span>
-                                        View Profile
-                                    </button>
-                                </div>
+                                <select
+                                    className="filter-select"
+                                    value={selectedType}
+                                    onChange={(e) => setSelectedType(e.target.value)}
+                                >
+                                    {getAllRoomTypes().map(type => (
+                                        <option key={type} value={type}>{type}</option>
+                                    ))}
+                                </select>
+                                <select
+                                    className="filter-select"
+                                    value={selectedStatus}
+                                    onChange={(e) => setSelectedStatus(e.target.value)}
+                                >
+                                    {statusOptions.map(status => (
+                                        <option key={status} value={status}>{status}</option>
+                                    ))}
+                                </select>
+                                <button className="add-room-btn" onClick={handleAddRoom}>
+                                    + Add Room
+                                </button>
                             </div>
+
+                            {/* Rooms Grid */}
+                            <div className="rooms-grid">
+                                <AnimatePresence>
+                                    {filteredRooms.map((room) => (
+                                        <motion.div
+                                            key={room.id}
+                                            className={`room-card ${getStatusClass(room.status)}`}
+                                            initial={{ opacity: 0, scale: 0.9 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.9 }}
+                                            transition={{ duration: 0.3 }}
+                                        >
+                                            <div className="room-card-header">
+                                                <h3>Room {room.roomNumber}</h3>
+                                            </div>
+                                            <div className="room-card-body">
+                                                <p className="room-type">{getRoomTypeShort(room.roomType)}</p>
+                                                <p className="room-capacity">Capacity: {room.capacity} persons</p>
+                                                <p className="room-price">₹{room.price}/night</p>
+                                            </div>
+                                            <div className="room-card-footer">
+                                                <span className={`room-status ${getStatusClass(room.status)}`}>
+                                                    {room.status}
+                                                </span>
+                                                {room.status === 'Available' && (
+                                                    <button className="edit-btn" onClick={() => handleEditRoom(room)}>
+                                                        ✏️ Edit
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                </AnimatePresence>
+                            </div>
+
+                            {filteredRooms.length === 0 && (
+                                <div className="no-rooms">
+                                    <p>No rooms found</p>
+                                </div>
+                            )}
                         </div>
-                    </motion.div>
+                    )}
 
                     {/* View Profile Modal */}
                     {showViewProfile && (
@@ -374,6 +579,182 @@ const AdminDashboard = () => {
                                         </button>
                                         <button type="submit" className="btn btn-primary">
                                             Update Password
+                                        </button>
+                                    </div>
+                                </form>
+                            </motion.div>
+                        </div>
+                    )}
+
+                    {/* Add Room Modal */}
+                    {showAddRoomModal && (
+                        <div className="modal-overlay" onClick={() => setShowAddRoomModal(false)}>
+                            <motion.div
+                                className="modal-content room-modal"
+                                onClick={(e) => e.stopPropagation()}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <div className="modal-header">
+                                    <h2>Add New Room</h2>
+                                    <button className="modal-close" onClick={() => setShowAddRoomModal(false)}>
+                                        ✕
+                                    </button>
+                                </div>
+
+                                {roomErrorMessage && (
+                                    <div className="error-alert">
+                                        ⚠️ {roomErrorMessage}
+                                    </div>
+                                )}
+
+                                <form onSubmit={handleRoomSubmit}>
+                                    <div className="form-group">
+                                        <label>ROOM NUMBER *</label>
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            placeholder="e.g., 101, 102"
+                                            value={roomFormData.roomNumber}
+                                            onChange={(e) => setRoomFormData({ ...roomFormData, roomNumber: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>ROOM TYPE *</label>
+                                        <select
+                                            className="form-input"
+                                            value={roomFormData.roomType}
+                                            onChange={(e) => setRoomFormData({ ...roomFormData, roomType: e.target.value })}
+                                        >
+                                            <option value="">-- Select Room Type --</option>
+                                            {Object.entries(roomTypeCategories).map(([category, types]) => (
+                                                <optgroup key={category} label={category}>
+                                                    {types.map(type => (
+                                                        <option key={type} value={type}>{type}</option>
+                                                    ))}
+                                                </optgroup>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>PRICE PER NIGHT (₹) *</label>
+                                        <input
+                                            type="number"
+                                            className="form-input"
+                                            placeholder="0"
+                                            value={roomFormData.price}
+                                            onChange={(e) => setRoomFormData({ ...roomFormData, price: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>ROOM CAPACITY *</label>
+                                        <input
+                                            type="number"
+                                            className="form-input"
+                                            placeholder="1"
+                                            value={roomFormData.capacity}
+                                            onChange={(e) => setRoomFormData({ ...roomFormData, capacity: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <div className="modal-actions">
+                                        <button type="button" className="btn-cancel" onClick={() => setShowAddRoomModal(false)}>
+                                            Cancel
+                                        </button>
+                                        <button type="submit" className="btn-submit">
+                                            Add Room
+                                        </button>
+                                    </div>
+                                </form>
+                            </motion.div>
+                        </div>
+                    )}
+
+                    {/* Edit Room Modal */}
+                    {showEditRoomModal && (
+                        <div className="modal-overlay" onClick={() => setShowEditRoomModal(false)}>
+                            <motion.div
+                                className="modal-content room-modal"
+                                onClick={(e) => e.stopPropagation()}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <div className="modal-header">
+                                    <h2>Edit Room</h2>
+                                    <button className="modal-close" onClick={() => setShowEditRoomModal(false)}>
+                                        ✕
+                                    </button>
+                                </div>
+
+                                {roomErrorMessage && (
+                                    <div className="error-alert">
+                                        ⚠️ {roomErrorMessage}
+                                    </div>
+                                )}
+
+                                <form onSubmit={handleRoomSubmit}>
+                                    <div className="form-group">
+                                        <label>ROOM NUMBER *</label>
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            placeholder="e.g., 101, 102"
+                                            value={roomFormData.roomNumber}
+                                            onChange={(e) => setRoomFormData({ ...roomFormData, roomNumber: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>ROOM TYPE *</label>
+                                        <select
+                                            className="form-input"
+                                            value={roomFormData.roomType}
+                                            onChange={(e) => setRoomFormData({ ...roomFormData, roomType: e.target.value })}
+                                        >
+                                            <option value="">-- Select Room Type --</option>
+                                            {Object.entries(roomTypeCategories).map(([category, types]) => (
+                                                <optgroup key={category} label={category}>
+                                                    {types.map(type => (
+                                                        <option key={type} value={type}>{type}</option>
+                                                    ))}
+                                                </optgroup>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>PRICE PER NIGHT (₹) *</label>
+                                        <input
+                                            type="number"
+                                            className="form-input"
+                                            placeholder="0"
+                                            value={roomFormData.price}
+                                            onChange={(e) => setRoomFormData({ ...roomFormData, price: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>ROOM CAPACITY *</label>
+                                        <input
+                                            type="number"
+                                            className="form-input"
+                                            placeholder="1"
+                                            value={roomFormData.capacity}
+                                            onChange={(e) => setRoomFormData({ ...roomFormData, capacity: e.target.value })}
+                                        />
+                                    </div>
+
+                                    <div className="modal-actions">
+                                        <button type="button" className="btn-cancel" onClick={() => setShowEditRoomModal(false)}>
+                                            Cancel
+                                        </button>
+                                        <button type="submit" className="btn-submit">
+                                            Update Room
                                         </button>
                                     </div>
                                 </form>
