@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 function Navbar() {
     const [sidebarActive, setSidebarActive] = useState(false);
@@ -45,7 +46,9 @@ function Navbar() {
         <>
             <header className="navbar">
                 <div className="container nav-flex">
-                    <div className="logo">BIREENA ATITHI</div>
+                    <Link to="/" className="logo" style={{ textDecoration: 'none', color: 'inherit' }}>
+                        BIREENA ATITHI
+                    </Link>
 
                     <button
                         className="hamburger"
@@ -185,7 +188,7 @@ function Navbar() {
                                 </div>
                             </div>
 
-                            <a className="demo-btn nav-demo-btn" href="/demo">Book a free demo</a>
+                            <Link to="/login" className="demo-btn nav-demo-btn" style={{ textDecoration: 'none', color: 'inherit' }}>Book a free demo</Link>
                         </div>
                     </nav>
                 </div>
