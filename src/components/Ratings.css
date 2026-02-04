@@ -1,0 +1,58 @@
+.ratings-section {
+    padding: 80px 20px;
+    background: white;
+}
+
+.ratings-grid {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+}
+
+.rating-card {
+    background: #f9fafb;
+    border-radius: 16px;
+    padding: 2.5rem;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.rating-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    background: #fef2f4;
+}
+
+.rating-text {
+    font-size: 1rem;
+    color: #1f2937;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+    font-weight: 500;
+}
+
+.rating-logo {
+    height: 50px;
+    width: auto;
+    margin-bottom: 1.5rem;
+    object-fit: contain;
+}
+
+.stars-wrapper {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .ratings-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .rating-card {
+        padding: 2rem;
+    }
+}
