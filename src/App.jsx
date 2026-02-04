@@ -13,6 +13,7 @@ import Footer from './components/Footer'
 import Login from './pages/Login/Login'
 import AdminDashboard from './pages/Dashboard/AdminDashboard'
 import Rooms from './pages/Rooms/Rooms'
+import FoodMenu from './pages/FoodMenu/FoodMenu'
 import './index.css'
 
 // Home Page Component
@@ -43,7 +44,7 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/rooms" element={<Rooms />} />
         <Route path="/admin/bookings" element={<Rooms />} />
-        <Route path="/admin/food-menu" element={<Rooms />} />
+        <Route path="/admin/food-menu" element={<FoodMenu />} />
         <Route path="/admin/add-booking" element={<Rooms />} />
         <Route path="/admin/customers" element={<Rooms />} />
         <Route path="/admin/settings" element={<Rooms />} />
