@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import FoodMenuDashboard from '../FoodMenu/FoodMenuDashboard';
 import FoodPaymentReport from '../FoodPaymentReport/FoodPaymentReport';
 import Bookings from '../../components/Bookings';
+import AddBooking from '../../components/AddBooking';
 import Settings from '../Settings/Settings';
 import './AdminDashboard.css';
 
@@ -470,6 +471,11 @@ const AdminDashboard = () => {
                     {/* Bookings View */}
                     {activeMenu === 'bookings' && (
                         <Bookings />
+                    )}
+
+                    {/* Add Booking View */}
+                    {activeMenu === 'add-booking' && (
+                        <AddBooking />
                     )}
 
                     {/* Food Menu View */}
