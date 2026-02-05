@@ -6,6 +6,8 @@ import FoodPaymentReport from '../FoodPaymentReport/FoodPaymentReport';
 import Bookings from '../../components/Bookings';
 import AddBooking from '../../components/AddBooking';
 import Settings from '../Settings/Settings';
+import Customers from '../Customers/Customers';
+import DashboardHome from '../DashboardHome/DashboardHome';
 import MyProfile from '../Profile/MyProfile';
 import './AdminDashboard.css';
 
@@ -378,10 +380,7 @@ const AdminDashboard = () => {
                 <div className="dashboard-content">
                     {/* Dashboard View */}
                     {activeMenu === 'dashboard' && (
-                        <div className="welcome-section">
-                            <h1>Welcome to Admin Dashboard</h1>
-                            <p>Select a menu item from the sidebar to get started</p>
-                        </div>
+                        <DashboardHome />
                     )}
 
                     {/* Rooms View */}
@@ -492,6 +491,11 @@ const AdminDashboard = () => {
                     {/* Settings View */}
                     {activeMenu === 'settings' && (
                         <Settings />
+                    )}
+
+                    {/* Customers View */}
+                    {activeMenu === 'customers' && (
+                        <Customers />
                     )}
 
                     {/* My Profile View */}
