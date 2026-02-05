@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import FoodMenuDashboard from '../FoodMenu/FoodMenuDashboard';
 import FoodPaymentReport from '../FoodPaymentReport/FoodPaymentReport';
 import Bookings from '../../components/Bookings';
+import Settings from '../Settings/Settings';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -479,6 +480,11 @@ const AdminDashboard = () => {
                     {/* Food Payment Report View */}
                     {activeMenu === 'food-payment-report' && (
                         <FoodPaymentReport />
+                    )}
+
+                    {/* Settings View */}
+                    {activeMenu === 'settings' && (
+                        <Settings />
                     )}
 
                     {/* View Profile Modal */}
