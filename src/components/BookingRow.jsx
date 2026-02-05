@@ -2,7 +2,7 @@ import StatusBadge from './StatusBadge';
 
 const BookingRow = ({ booking, onEdit, onDelete }) => {
     return (
-        <tr key={booking.id}>
+        <tr key={booking._id || booking.id}>
             {/* CELL 1: Booking ID - text-left */}
             <td className="text-left booking-id">
                 {booking.bookingId}
@@ -25,7 +25,7 @@ const BookingRow = ({ booking, onEdit, onDelete }) => {
 
             {/* CELL 5: Check-in Date - text-center */}
             <td className="text-center check-in-date">
-                {booking.checkInDate}
+                {booking.checkInDate ? new Date(booking.checkInDate).toLocaleDateString('en-IN') : '—'}
             </td>
 
             {/* CELL 6: Status Badge - text-center */}
@@ -52,7 +52,7 @@ const BookingRow = ({ booking, onEdit, onDelete }) => {
                 )}
                 <button
                     className="action-btn delete-btn"
-                    onClick={() => onDelete(booking.id)}
+                    onClick={() => onDelete(booking._id || booking.id)}
                     title="Delete"
                 >
                     ✕

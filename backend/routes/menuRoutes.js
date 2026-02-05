@@ -6,7 +6,8 @@ const {
     updateMenuItem,
     deleteMenuItem,
     getMenuItemById,
-    toggleMenuItemStatus
+    toggleMenuItemStatus,
+    migrateCategoriesCategories
 } = require('../controllers/menuController');
 
 // Routes
@@ -16,5 +17,6 @@ router.post('/add', addMenuItem);
 router.put('/update/:id', updateMenuItem);
 router.delete('/delete/:id', deleteMenuItem);
 router.patch('/toggle-status/:id', toggleMenuItemStatus);
+router.post('/migrate-categories', migrateCategoriesCategories);
 
 module.exports = router;

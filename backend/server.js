@@ -9,6 +9,7 @@ dotenv.config();
 // Import routes
 const menuRoutes = require('./routes/menuRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
+const roomRoutes = require('./routes/roomRoutes');
 
 // Initialize express app
 const app = express();
@@ -38,6 +39,7 @@ connectDB();
 // Routes
 app.use('/api/menu', menuRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/rooms', roomRoutes);
 
 // Root route
 app.get('/', (req, res) => {

@@ -18,42 +18,42 @@ const sampleMenuItems = [
     },
     {
         itemName: "paneer Masala",
-        category: "chicken",
+        category: "Chicken",
         price: 80.00,
         description: "tasty",
         status: "Active"
     },
     {
         itemName: "Paner Masta",
-        category: "chicken",
+        category: "Chicken",
         price: 50.00,
         description: "chicken",
         status: "Active"
     },
     {
         itemName: "romalli",
-        category: "nithai",
+        category: "Mithai",
         price: 300.00,
         description: "---",
         status: "Active"
     },
     {
         itemName: "makalii",
-        category: "milk",
+        category: "Milk",
         price: 500.00,
         description: "---",
         status: "Active"
     },
     {
         itemName: "chicken full plate",
-        category: "veg",
+        category: "Vegetarian",
         price: 200.00,
         description: "veg",
         status: "Active"
     },
     {
         itemName: "Butter Chicken",
-        category: "chicken",
+        category: "Chicken",
         price: 280.00,
         description: "Creamy tomato-based chicken curry",
         status: "Active"
@@ -67,7 +67,7 @@ const sampleMenuItems = [
     },
     {
         itemName: "Masala Dosa",
-        category: "veg",
+        category: "Vegetarian",
         price: 80.00,
         description: "South Indian crispy dosa with potato filling",
         status: "Active"
@@ -95,7 +95,7 @@ const sampleMenuItems = [
     },
     {
         itemName: "Biryani",
-        category: "chicken",
+        category: "Chicken",
         price: 220.00,
         description: "Fragrant rice with spiced chicken",
         status: "Active"

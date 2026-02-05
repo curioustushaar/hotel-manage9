@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import './AddBooking.css';
 
 const AddBooking = () => {
@@ -10,7 +10,7 @@ const AddBooking = () => {
     const [idProofNumber, setIdProofNumber] = useState('');
 
     // Room Details State
-    const [roomType, setRoomType] = useState('Single');
+    const [roomType, setRoomType] = useState('');
     const [roomNumber, setRoomNumber] = useState('');
     const [numberOfGuests, setNumberOfGuests] = useState('1');
 
@@ -21,21 +21,93 @@ const AddBooking = () => {
     // Pricing State
     const [advancePaid, setAdvancePaid] = useState('0');
 
-    // Room price mapping (sample)
-    const roomPrices = useMemo(() => ({
-        'Single': 1500,
-        'Double': 2500,
-        'Deluxe': 4000,
-        'Suite': 6000
-    }), []);
+    // Validation State
+    const [errors, setErrors] = useState({});
 
-    // Room numbers (sample)
-    const availableRooms = {
-        'Single': ['101', '102', '103', '104', '105'],
-        'Double': ['201', '202', '203', '204'],
-        'Deluxe': ['301', '302', '303'],
-        'Suite': ['401', '402']
+    // Available rooms from database
+    const [availableRooms, setAvailableRooms] = useState({});
+    const [allRooms, setAllRooms] = useState([]);
+
+    // Get today's date in YYYY-MM-DD format for min date restrictions
+    const getTodayDate = () => {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     };
+
+    // Get minimum checkout date (check-in date + 1 day)
+    const getMinCheckoutDate = () => {
+        if (!checkInDate) return getTodayDate();
+        const checkIn = new Date(checkInDate);
+        checkIn.setDate(checkIn.getDate() + 1);
+        const year = checkIn.getFullYear();
+        const month = String(checkIn.getMonth() + 1).padStart(2, '0');
+        const day = String(checkIn.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const todayDate = getTodayDate();
+    const minCheckoutDate = getMinCheckoutDate();
+
+    // Fetch available rooms from database
+    useEffect(() => {
+        fetchAvailableRooms();
+    }, []);
+
+    // Clear checkout date if it becomes invalid when check-in date changes
+    useEffect(() => {
+        if (checkInDate && checkOutDate) {
+            const checkIn = new Date(checkInDate);
+            const checkOut = new Date(checkOutDate);
+            if (checkOut <= checkIn) {
+                setCheckOutDate('');
+            }
+        }
+    }, [checkInDate]);
+
+    const fetchAvailableRooms = async () => {
+        try {
+            const response = await fetch('http://localhost:5000/api/rooms/list');
+            const data = await response.json();
+            
+            if (data.success) {
+                setAllRooms(data.data);
+                // Group rooms by type and filter only Available ones
+                const roomsByType = {};
+                data.data.forEach(room => {
+                    if (room.status === 'Available') {
+                        const type = room.roomType;
+                        if (!roomsByType[type]) {
+                            roomsByType[type] = [];
+                        }
+                        roomsByType[type].push(room.roomNumber);
+                    }
+                });
+                setAvailableRooms(roomsByType);
+                
+                // Set default room type to first available type
+                const firstRoomType = Object.keys(roomsByType)[0];
+                if (firstRoomType && !roomType) {
+                    setRoomType(firstRoomType);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching rooms:', error);
+        }
+    };
+
+    // Room price mapping - get from selected room
+    const roomPrices = useMemo(() => {
+        const prices = {};
+        allRooms.forEach(room => {
+            if (!prices[room.roomType]) {
+                prices[room.roomType] = room.price;
+            }
+        });
+        return prices;
+    }, [allRooms]);
 
     // Memoized calculations - avoid cascading renders
     const numberOfNights = useMemo(() => {
@@ -61,10 +133,111 @@ const AddBooking = () => {
         setRoomNumber(''); // Reset room number when room type changes
     }, []);
 
+    // Validation functions
+    const validateMobileNumber = (mobile) => {
+        const mobileRegex = /^[6-9]\d{9}$/;
+        return mobileRegex.test(mobile);
+    };
+
+    const validateIdProof = (type, number) => {
+        switch (type) {
+            case 'Aadhaar':
+                return /^\d{12}$/.test(number);
+            case 'PAN Card':
+                return /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(number);
+            case 'Passport':
+                return /^[A-Z]{1}[0-9]{7}$/.test(number);
+            case 'Driving License':
+                return /^[A-Z]{2}[0-9]{13}$/.test(number);
+            default:
+                return true;
+        }
+    };
+
+    const validateForm = () => {
+        const newErrors = {};
+
+        if (!guestName.trim()) {
+            newErrors.guestName = 'Guest name is required';
+        }
+
+        if (!mobileNumber) {
+            newErrors.mobileNumber = 'Mobile number is required';
+        } else if (!validateMobileNumber(mobileNumber)) {
+            newErrors.mobileNumber = 'Invalid mobile number (10 digits, starting with 6-9)';
+        }
+
+        if (!roomType) {
+            newErrors.roomType = 'Room type is required';
+        }
+
+        if (!roomNumber) {
+            newErrors.roomNumber = 'Room number is required';
+        }
+
+        if (!checkInDate) {
+            newErrors.checkInDate = 'Check-in date is required';
+        }
+
+        if (!checkOutDate) {
+            newErrors.checkOutDate = 'Check-out date is required';
+        }
+
+        if (checkInDate && checkOutDate && new Date(checkInDate) >= new Date(checkOutDate)) {
+            newErrors.checkOutDate = 'Check-out date must be after check-in date';
+        }
+
+        if (idProofNumber && !validateIdProof(idProofType, idProofNumber)) {
+            const formats = {
+                'Aadhaar': '12 digits',
+                'PAN Card': 'ABCDE1234F format',
+                'Passport': 'A1234567 format',
+                'Driving License': 'AB1234567890123 format'
+            };
+            newErrors.idProofNumber = `Invalid ${idProofType} format (${formats[idProofType]})`;
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleMobileNumberChange = (e) => {
+        const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+        setMobileNumber(value);
+        if (errors.mobileNumber) {
+            setErrors({ ...errors, mobileNumber: null });
+        }
+    };
+
+    const handleIdProofNumberChange = (e) => {
+        let value = e.target.value.toUpperCase();
+        
+        // Apply format-specific restrictions
+        switch (idProofType) {
+            case 'Aadhaar':
+                value = value.replace(/\D/g, '').slice(0, 12);
+                break;
+            case 'PAN Card':
+                value = value.replace(/[^A-Z0-9]/g, '').slice(0, 10);
+                break;
+            case 'Passport':
+                value = value.replace(/[^A-Z0-9]/g, '').slice(0, 8);
+                break;
+            case 'Driving License':
+                value = value.replace(/[^A-Z0-9]/g, '').slice(0, 15);
+                break;
+        }
+        
+        setIdProofNumber(value);
+        if (errors.idProofNumber) {
+            setErrors({ ...errors, idProofNumber: null });
+        }
+    };
+
     const handleSaveBooking = useCallback(async () => {
         // Validation
-        if (!guestName || !mobileNumber || !roomNumber || !checkInDate || !checkOutDate) {
-            alert('Please fill in all required fields');
+        if (!validateForm()) {
+            alert('Please fix all errors before saving');
             return;
         }
 
@@ -101,18 +274,22 @@ const AddBooking = () => {
                 alert('Booking saved successfully!');
                 console.log('Booking saved:', data.data);
                 
-                // Reset form
+                // Reset form first
                 setGuestName('');
                 setMobileNumber('');
                 setEmail('');
                 setIdProofType('Aadhaar');
                 setIdProofNumber('');
-                setRoomType('Single');
+                setRoomType('');
                 setRoomNumber('');
                 setNumberOfGuests('1');
                 setCheckInDate('');
                 setCheckOutDate('');
                 setAdvancePaid('0');
+                setErrors({});
+                
+                // Refresh available rooms list
+                await fetchAvailableRooms();
             } else {
                 alert(`Error: ${data.message}`);
             }
@@ -120,12 +297,12 @@ const AddBooking = () => {
             console.error('Error saving booking:', error);
             alert('Failed to save booking. Please check if the server is running.');
         }
-    }, [guestName, mobileNumber, email, idProofType, idProofNumber, roomType, roomNumber, numberOfGuests, checkInDate, checkOutDate, numberOfNights, pricePerNight, totalAmount, advancePaid]);
+    }, [guestName, mobileNumber, email, idProofType, idProofNumber, roomType, roomNumber, numberOfGuests, checkInDate, checkOutDate, numberOfNights, pricePerNight, totalAmount, advancePaid, fetchAvailableRooms, availableRooms]);
 
     const handleSaveAndCheckIn = useCallback(async () => {
-        // Similar to save but with check-in status
-        if (!guestName || !mobileNumber || !roomNumber || !checkInDate || !checkOutDate) {
-            alert('Please fill in all required fields');
+        // Validation
+        if (!validateForm()) {
+            alert('Please fix all errors before check-in');
             return;
         }
 
@@ -162,18 +339,22 @@ const AddBooking = () => {
                 alert('Booking saved and guest checked in successfully!');
                 console.log('Booking saved with check-in:', data.data);
                 
-                // Reset form
+                // Reset form first
                 setGuestName('');
                 setMobileNumber('');
                 setEmail('');
                 setIdProofType('Aadhaar');
                 setIdProofNumber('');
-                setRoomType('Single');
+                setRoomType('');
                 setRoomNumber('');
                 setNumberOfGuests('1');
                 setCheckInDate('');
                 setCheckOutDate('');
                 setAdvancePaid('0');
+                setErrors({});
+                
+                // Refresh available rooms list
+                await fetchAvailableRooms();
             } else {
                 alert(`Error: ${data.message}`);
             }
@@ -181,7 +362,7 @@ const AddBooking = () => {
             console.error('Error saving booking:', error);
             alert('Failed to save booking. Please check if the server is running.');
         }
-    }, [guestName, mobileNumber, email, idProofType, idProofNumber, roomType, roomNumber, numberOfGuests, checkInDate, checkOutDate, numberOfNights, pricePerNight, totalAmount, advancePaid]);
+    }, [guestName, mobileNumber, email, idProofType, idProofNumber, roomType, roomNumber, numberOfGuests, checkInDate, checkOutDate, numberOfNights, pricePerNight, totalAmount, advancePaid, fetchAvailableRooms, availableRooms]);
 
     const handleCancel = useCallback(() => {
         if (window.confirm('Are you sure you want to cancel? All data will be lost.')) {
@@ -191,14 +372,14 @@ const AddBooking = () => {
             setEmail('');
             setIdProofType('Aadhaar');
             setIdProofNumber('');
-            setRoomType('Single');
+            setRoomType(Object.keys(availableRooms)[0] || '');
             setRoomNumber('');
             setNumberOfGuests('1');
             setCheckInDate('');
             setCheckOutDate('');
             setAdvancePaid('0');
         }
-    }, []);
+    }, [availableRooms]);
 
     return (
         <div className="add-booking-container">
@@ -225,11 +406,14 @@ const AddBooking = () => {
                                 <input
                                     type="text"
                                     id="guestName"
-                                    className="form-input"
+                                    className={`form-input ${errors.guestName ? 'input-error' : ''}`}
                                     placeholder="Enter guest's full name"
                                     value={guestName}
                                     onChange={(e) => setGuestName(e.target.value)}
                                 />
+                                {errors.guestName && (
+                                    <span className="error-message">{errors.guestName}</span>
+                                )}
                             </div>
 
                             {/* Mobile Number */}
@@ -240,11 +424,15 @@ const AddBooking = () => {
                                 <input
                                     type="tel"
                                     id="mobileNumber"
-                                    className="form-input"
+                                    className={`form-input ${errors.mobileNumber ? 'input-error' : ''}`}
                                     placeholder="10-digit mobile number"
                                     value={mobileNumber}
-                                    onChange={(e) => setMobileNumber(e.target.value)}
+                                    onChange={handleMobileNumberChange}
+                                    maxLength="10"
                                 />
+                                {errors.mobileNumber && (
+                                    <span className="error-message">{errors.mobileNumber}</span>
+                                )}
                             </div>
 
                             {/* Email */}
@@ -288,11 +476,14 @@ const AddBooking = () => {
                                 <input
                                     type="text"
                                     id="idProofNumber"
-                                    className="form-input"
+                                    className={`form-input ${errors.idProofNumber ? 'input-error' : ''}`}
                                     placeholder="Enter ID proof number"
                                     value={idProofNumber}
-                                    onChange={(e) => setIdProofNumber(e.target.value)}
+                                    onChange={handleIdProofNumberChange}
                                 />
+                                {errors.idProofNumber && (
+                                    <span className="error-message">{errors.idProofNumber}</span>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -312,15 +503,20 @@ const AddBooking = () => {
                                 </label>
                                 <select
                                     id="roomType"
-                                    className="form-input"
+                                    className={`form-input ${errors.roomType ? 'input-error' : ''}`}
                                     value={roomType}
                                     onChange={handleRoomTypeChange}
                                 >
-                                    <option value="Single">Single</option>
-                                    <option value="Double">Double</option>
-                                    <option value="Deluxe">Deluxe</option>
-                                    <option value="Suite">Suite</option>
+                                    <option key="empty-type" value="">-- Select Room Type --</option>
+                                    {Object.keys(availableRooms).map((type) => (
+                                        <option key={`type-${type}`} value={type}>
+                                            {type}
+                                        </option>
+                                    ))}
                                 </select>
+                                {errors.roomType && (
+                                    <span className="error-message">{errors.roomType}</span>
+                                )}
                             </div>
 
                             {/* Room Number */}
@@ -330,17 +526,27 @@ const AddBooking = () => {
                                 </label>
                                 <select
                                     id="roomNumber"
-                                    className="form-input"
+                                    className={`form-input ${errors.roomNumber ? 'input-error' : ''}`}
                                     value={roomNumber}
                                     onChange={(e) => setRoomNumber(e.target.value)}
+                                    disabled={!roomType || !availableRooms[roomType]?.length}
                                 >
-                                    <option value="">-- Select Room --</option>
+                                    <option key="empty-room" value="">
+                                        {!roomType 
+                                            ? '-- Select Room Type First --' 
+                                            : availableRooms[roomType]?.length 
+                                                ? '-- Select Room --' 
+                                                : '-- No Available Rooms --'}
+                                    </option>
                                     {availableRooms[roomType]?.map((room) => (
-                                        <option key={room} value={room}>
+                                        <option key={`room-${room}`} value={room}>
                                             {room}
                                         </option>
                                     ))}
                                 </select>
+                                {errors.roomNumber && (
+                                    <span className="error-message">{errors.roomNumber}</span>
+                                )}
                             </div>
 
                             {/* Number of Guests */}
@@ -377,10 +583,14 @@ const AddBooking = () => {
                                 <input
                                     type="date"
                                     id="checkInDate"
-                                    className="form-input"
+                                    className={`form-input ${errors.checkInDate ? 'input-error' : ''}`}
                                     value={checkInDate}
                                     onChange={(e) => setCheckInDate(e.target.value)}
+                                    min={todayDate}
                                 />
+                                {errors.checkInDate && (
+                                    <span className="error-message">{errors.checkInDate}</span>
+                                )}
                             </div>
 
                             {/* Check-out Date */}
@@ -391,10 +601,14 @@ const AddBooking = () => {
                                 <input
                                     type="date"
                                     id="checkOutDate"
-                                    className="form-input"
+                                    className={`form-input ${errors.checkOutDate ? 'input-error' : ''}`}
                                     value={checkOutDate}
                                     onChange={(e) => setCheckOutDate(e.target.value)}
+                                    min={minCheckoutDate}
                                 />
+                                {errors.checkOutDate && (
+                                    <span className="error-message">{errors.checkOutDate}</span>
+                                )}
                             </div>
 
                             {/* Number of Nights */}
