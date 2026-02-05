@@ -12,8 +12,6 @@ import DemoForm from './components/DemoForm'
 import Footer from './components/Footer'
 import Login from './pages/Login/Login'
 import AdminDashboard from './pages/Dashboard/AdminDashboard'
-import Rooms from './pages/Rooms/Rooms'
-import FoodMenu from './pages/FoodMenu/FoodMenu'
 import './index.css'
 
 // Home Page Component
@@ -42,14 +40,15 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/rooms" element={<Rooms />} />
-        <Route path="/admin/bookings" element={<Rooms />} />
-        <Route path="/admin/food-menu" element={<FoodMenu />} />
-        <Route path="/admin/add-booking" element={<Rooms />} />
-        <Route path="/admin/customers" element={<Rooms />} />
-        <Route path="/admin/settings" element={<Rooms />} />
-        <Route path="/admin/cashier-report" element={<Rooms />} />
-        <Route path="/admin/food-payment-report" element={<Rooms />} />
+        <Route path="/admin/rooms" element={<AdminDashboard />} />
+        <Route path="/admin/bookings" element={<AdminDashboard />} />
+        <Route path="/admin/food-menu" element={<AdminDashboard />} />
+        <Route path="/admin/add-booking" element={<AdminDashboard />} />
+        <Route path="/admin/customers" element={<AdminDashboard />} />
+        <Route path="/admin/settings" element={<AdminDashboard />} />
+        <Route path="/admin/my-profile" element={<AdminDashboard />} />
+        <Route path="/admin/cashier-report" element={<AdminDashboard />} />
+        <Route path="/admin/food-payment-report" element={<AdminDashboard />} />
       </Routes>
     </Router>
   )

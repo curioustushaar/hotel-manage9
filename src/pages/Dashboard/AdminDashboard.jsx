@@ -4,9 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import FoodMenuDashboard from '../FoodMenu/FoodMenuDashboard';
 import FoodPaymentReport from '../FoodPaymentReport/FoodPaymentReport';
 import Bookings from '../../components/Bookings';
+import AddBooking from '../../components/AddBooking';
 import Settings from '../Settings/Settings';
 import Customers from '../Customers/Customers';
 import DashboardHome from '../DashboardHome/DashboardHome';
+import MyProfile from '../Profile/MyProfile';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -135,7 +137,7 @@ const AdminDashboard = () => {
     };
 
     const handleViewProfile = () => {
-        setShowViewProfile(true);
+        setActiveMenu('my-profile');
         setShowProfileDropdown(false);
     };
 
@@ -471,6 +473,11 @@ const AdminDashboard = () => {
                         <Bookings />
                     )}
 
+                    {/* Add Booking View */}
+                    {activeMenu === 'add-booking' && (
+                        <AddBooking />
+                    )}
+
                     {/* Food Menu View */}
                     {activeMenu === 'food-menu' && (
                         <FoodMenuDashboard />
@@ -489,6 +496,11 @@ const AdminDashboard = () => {
                     {/* Customers View */}
                     {activeMenu === 'customers' && (
                         <Customers />
+                    )}
+
+                    {/* My Profile View */}
+                    {activeMenu === 'my-profile' && (
+                        <MyProfile />
                     )}
 
                     {/* View Profile Modal */}
