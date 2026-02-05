@@ -61,7 +61,7 @@ const AddBooking = () => {
         setRoomNumber(''); // Reset room number when room type changes
     }, []);
 
-    const handleSaveBooking = useCallback(() => {
+    const handleSaveBooking = useCallback(async () => {
         // Validation
         if (!guestName || !mobileNumber || !roomNumber || !checkInDate || !checkOutDate) {
             alert('Please fill in all required fields');
@@ -76,22 +76,53 @@ const AddBooking = () => {
             idProofNumber,
             roomType,
             roomNumber,
-            numberOfGuests,
+            numberOfGuests: parseInt(numberOfGuests),
             checkInDate,
             checkOutDate,
             numberOfNights,
             pricePerNight,
             totalAmount,
-            advancePaid,
+            advancePaid: parseFloat(advancePaid) || 0,
             status: 'Upcoming'
         };
 
-        console.log('Booking Data:', bookingData);
-        alert('Booking saved successfully!');
-        // Here you would typically call an API to save the booking
+        try {
+            const response = await fetch('http://localhost:5000/api/bookings/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bookingData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert('Booking saved successfully!');
+                console.log('Booking saved:', data.data);
+                
+                // Reset form
+                setGuestName('');
+                setMobileNumber('');
+                setEmail('');
+                setIdProofType('Aadhaar');
+                setIdProofNumber('');
+                setRoomType('Single');
+                setRoomNumber('');
+                setNumberOfGuests('1');
+                setCheckInDate('');
+                setCheckOutDate('');
+                setAdvancePaid('0');
+            } else {
+                alert(`Error: ${data.message}`);
+            }
+        } catch (error) {
+            console.error('Error saving booking:', error);
+            alert('Failed to save booking. Please check if the server is running.');
+        }
     }, [guestName, mobileNumber, email, idProofType, idProofNumber, roomType, roomNumber, numberOfGuests, checkInDate, checkOutDate, numberOfNights, pricePerNight, totalAmount, advancePaid]);
 
-    const handleSaveAndCheckIn = useCallback(() => {
+    const handleSaveAndCheckIn = useCallback(async () => {
         // Similar to save but with check-in status
         if (!guestName || !mobileNumber || !roomNumber || !checkInDate || !checkOutDate) {
             alert('Please fill in all required fields');
@@ -106,18 +137,50 @@ const AddBooking = () => {
             idProofNumber,
             roomType,
             roomNumber,
-            numberOfGuests,
+            numberOfGuests: parseInt(numberOfGuests),
             checkInDate,
             checkOutDate,
             numberOfNights,
             pricePerNight,
             totalAmount,
-            advancePaid,
+            advancePaid: parseFloat(advancePaid) || 0,
             status: 'Checked-in'
         };
 
-        console.log('Booking Data (Check-in):', bookingData);
-        alert('Booking saved and guest checked in!');
+        try {
+            const response = await fetch('http://localhost:5000/api/bookings/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bookingData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert('Booking saved and guest checked in successfully!');
+                console.log('Booking saved with check-in:', data.data);
+                
+                // Reset form
+                setGuestName('');
+                setMobileNumber('');
+                setEmail('');
+                setIdProofType('Aadhaar');
+                setIdProofNumber('');
+                setRoomType('Single');
+                setRoomNumber('');
+                setNumberOfGuests('1');
+                setCheckInDate('');
+                setCheckOutDate('');
+                setAdvancePaid('0');
+            } else {
+                alert(`Error: ${data.message}`);
+            }
+        } catch (error) {
+            console.error('Error saving booking:', error);
+            alert('Failed to save booking. Please check if the server is running.');
+        }
     }, [guestName, mobileNumber, email, idProofType, idProofNumber, roomType, roomNumber, numberOfGuests, checkInDate, checkOutDate, numberOfNights, pricePerNight, totalAmount, advancePaid]);
 
     const handleCancel = useCallback(() => {
