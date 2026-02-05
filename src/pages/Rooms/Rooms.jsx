@@ -13,12 +13,17 @@ const Rooms = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [currentRoom, setCurrentRoom] = useState(null);
-    const [formData, setFormData] = useState({
-        roomNumber: '',
-        roomType: '',
-        price: '',
-        capacity: ''
-    });
+    // Load draft form data from localStorage
+    const loadDraftData = () => {
+        try {
+            const draft = localStorage.getItem('roomFormDraft');
+            return draft ? JSON.parse(draft) : { roomNumber: '', roomType: '', price: '', capacity: '' };
+        } catch {
+            return { roomNumber: '', roomType: '', price: '', capacity: '' };
+        }
+    };
+
+    const [formData, setFormData] = useState(loadDraftData());
     const [errorMessage, setErrorMessage] = useState('');
 
     // Room type categories
@@ -44,23 +49,54 @@ const Rooms = () => {
 
     const statusOptions = ['All Status', 'Available', 'Booked', 'Occupied', 'Under Maintenance'];
 
-    // Load rooms from localStorage
+    // Load rooms from MongoDB API
     useEffect(() => {
-        const storedRooms = localStorage.getItem('hotelRooms');
-        if (storedRooms) {
-            setRooms(JSON.parse(storedRooms));
-        } else {
-            // Initialize with sample data
-            const sampleRooms = [
-                { id: 1, roomNumber: '01', roomType: 'Club AC Single Room', capacity: 1, price: 1500, status: 'Booked' },
-                { id: 2, roomNumber: '02', roomType: 'Club AC Double Room', capacity: 2, price: 2500, status: 'Occupied' },
-                { id: 3, roomNumber: '1011', roomType: 'Family Suite', capacity: 4, price: 5000, status: 'Available' },
-                { id: 4, roomNumber: '1002', roomType: 'Family Suite', capacity: 4, price: 5000, status: 'Occupied' }
-            ];
-            setRooms(sampleRooms);
-            localStorage.setItem('hotelRooms', JSON.stringify(sampleRooms));
-        }
+        fetchRoomsFromAPI();
     }, []);
+
+    // Auto-refresh rooms data every 5 seconds to show real-time updates
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchRoomsFromAPI();
+        }, 5000); // Refresh every 5 seconds
+
+        return () => clearInterval(interval);
+    }, []);
+
+    // Refresh when page becomes visible (user switches back to tab)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                fetchRoomsFromAPI();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, []);
+
+    const fetchRoomsFromAPI = async () => {
+        try {
+            // Clear old localStorage data first
+            localStorage.removeItem('hotelRooms');
+            
+            const response = await fetch('http://localhost:5000/api/rooms/list');
+            const data = await response.json();
+            if (data.success) {
+                setRooms(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching rooms from database:', error);
+            setRooms([]);
+        }
+    };
+
+    // Save draft form data to localStorage whenever it changes
+    useEffect(() => {
+        if (showAddModal) {
+            localStorage.setItem('roomFormDraft', JSON.stringify(formData));
+        }
+    }, [formData, showAddModal]);
 
     // Filter rooms based on search and filters
     useEffect(() => {
@@ -97,7 +133,9 @@ const Rooms = () => {
     };
 
     const handleAddRoom = () => {
-        setFormData({ roomNumber: '', roomType: '', price: '', capacity: '' });
+        // Load saved draft from localStorage to preserve user's work
+        const draft = loadDraftData();
+        setFormData(draft);
         setErrorMessage('');
         setShowAddModal(true);
     };
@@ -114,7 +152,7 @@ const Rooms = () => {
         setShowEditModal(true);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setErrorMessage('');
 
@@ -124,51 +162,67 @@ const Rooms = () => {
             return;
         }
 
-        // Check if room number already exists (for add or edit)
-        const existingRoom = rooms.find(r =>
-            r.roomNumber === formData.roomNumber &&
-            (!currentRoom || r.id !== currentRoom.id)
-        );
+        try {
+            if (showAddModal) {
+                // Add new room via API
+                const newRoom = {
+                    roomNumber: formData.roomNumber,
+                    roomType: formData.roomType,
+                    capacity: parseInt(formData.capacity),
+                    price: parseInt(formData.price),
+                    status: 'Available'
+                };
 
-        if (existingRoom) {
-            setErrorMessage('Room number already exists');
-            return;
+                const response = await fetch('http://localhost:5000/api/rooms/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newRoom)
+                });
+
+                const data = await response.json();
+                
+                if (!data.success) {
+                    setErrorMessage(data.message || 'Failed to add room');
+                    return;
+                }
+
+                await fetchRoomsFromAPI();
+                setShowAddModal(false);
+            } else if (showEditModal) {
+                // Edit existing room via API
+                const updatedRoom = {
+                    roomNumber: formData.roomNumber,
+                    roomType: formData.roomType,
+                    capacity: parseInt(formData.capacity),
+                    price: parseInt(formData.price)
+                };
+
+                const response = await fetch(`http://localhost:5000/api/rooms/update/${currentRoom._id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedRoom)
+                });
+
+                const data = await response.json();
+                
+                if (!data.success) {
+                    setErrorMessage(data.message || 'Failed to update room');
+                    return;
+                }
+
+                await fetchRoomsFromAPI();
+                setShowEditModal(false);
+            }
+
+            // Clear form data and draft only after successful submission
+            const emptyForm = { roomNumber: '', roomType: '', price: '', capacity: '' };
+            setFormData(emptyForm);
+            localStorage.setItem('roomFormDraft', JSON.stringify(emptyForm));
+            setCurrentRoom(null);
+        } catch (error) {
+            console.error('Error submitting room:', error);
+            setErrorMessage('Failed to save room. Please try again.');
         }
-
-        if (showAddModal) {
-            // Add new room
-            const newRoom = {
-                id: Date.now(),
-                roomNumber: formData.roomNumber,
-                roomType: formData.roomType,
-                capacity: parseInt(formData.capacity),
-                price: parseInt(formData.price),
-                status: 'Available'
-            };
-            const updatedRooms = [...rooms, newRoom];
-            setRooms(updatedRooms);
-            localStorage.setItem('hotelRooms', JSON.stringify(updatedRooms));
-            setShowAddModal(false);
-        } else if (showEditModal) {
-            // Edit existing room
-            const updatedRooms = rooms.map(room =>
-                room.id === currentRoom.id
-                    ? {
-                        ...room,
-                        roomNumber: formData.roomNumber,
-                        roomType: formData.roomType,
-                        capacity: parseInt(formData.capacity),
-                        price: parseInt(formData.price)
-                    }
-                    : room
-            );
-            setRooms(updatedRooms);
-            localStorage.setItem('hotelRooms', JSON.stringify(updatedRooms));
-            setShowEditModal(false);
-        }
-
-        setFormData({ roomNumber: '', roomType: '', price: '', capacity: '' });
-        setCurrentRoom(null);
     };
 
     const getStatusClass = (status) => {
@@ -279,10 +333,9 @@ const Rooms = () => {
 
             {/* Add Room Modal */}
             {showAddModal && (
-                <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
+                <div className="modal-overlay">
                     <motion.div
                         className="modal-content room-modal"
-                        onClick={(e) => e.stopPropagation()}
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.3 }}
@@ -367,10 +420,9 @@ const Rooms = () => {
 
             {/* Edit Room Modal */}
             {showEditModal && (
-                <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+                <div className="modal-overlay">
                     <motion.div
                         className="modal-content room-modal"
-                        onClick={(e) => e.stopPropagation()}
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.3 }}

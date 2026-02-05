@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './FoodMenu.css';
 
+// Food Menu Management - Updated with Icons
 const FoodMenu = () => {
     const [showAddForm, setShowAddForm] = useState(false);
     const [menuItems, setMenuItems] = useState([]);
@@ -10,7 +11,17 @@ const FoodMenu = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 7;
 
-    const categories = ['All Categories', 'Cake', 'chicken', 'nithai', 'milk', 'veg', 'Beverages', 'Desserts', 'Starters'];
+    const categories = [
+        { value: 'All Categories', label: '🍽️ All Categories', icon: '🍽️' },
+        { value: 'Cake', label: '🎂 Cake', icon: '🎂' },
+        { value: 'Chicken', label: '🍗 Chicken', icon: '🍗' },
+        { value: 'Mithai', label: '🍬 Mithai', icon: '🍬' },
+        { value: 'Milk', label: '🥛 Milk', icon: '🥛' },
+        { value: 'Vegetarian', label: '🥗 Vegetarian', icon: '🥗' },
+        { value: 'Beverages', label: '🥤 Beverages', icon: '🥤' },
+        { value: 'Desserts', label: '🍨 Desserts', icon: '🍨' },
+        { value: 'Starters', label: '🍴 Starters', icon: '🍴' }
+    ];
 
     // Fetch menu items on component mount
     useEffect(() => {
@@ -184,7 +195,7 @@ const FoodMenu = () => {
                                 className="category-filter"
                             >
                                 {categories.map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
+                                    <option key={cat.value} value={cat.value}>{cat.label}</option>
                                 ))}
                             </select>
                         </div>
@@ -314,7 +325,16 @@ const AddItemForm = ({ onSubmit, onCancel }) => {
         status: 'Active'
     });
 
-    const categories = ['Cake', 'chicken', 'nithai', 'milk', 'veg', 'Beverages', 'Desserts', 'Starters'];
+    const categories = [
+        { value: 'Cake', label: '🎂 Cake', icon: '🎂' },
+        { value: 'Chicken', label: '🍗 Chicken', icon: '🍗' },
+        { value: 'Mithai', label: '🍬 Mithai', icon: '🍬' },
+        { value: 'Milk', label: '🥛 Milk', icon: '🥛' },
+        { value: 'Vegetarian', label: '🥗 Vegetarian', icon: '🥗' },
+        { value: 'Beverages', label: '🥤 Beverages', icon: '🥤' },
+        { value: 'Desserts', label: '🍨 Desserts', icon: '🍨' },
+        { value: 'Starters', label: '🍴 Starters', icon: '🍴' }
+    ];
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -360,7 +380,7 @@ const AddItemForm = ({ onSubmit, onCancel }) => {
                         >
                             <option value="">🎁 Select category</option>
                             {categories.map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
+                                <option key={cat.value} value={cat.value}>{cat.label}</option>
                             ))}
                         </select>
                     </div>
@@ -409,7 +429,16 @@ const EditItemModal = ({ item, onSave, onCancel }) => {
         status: item.status
     });
 
-    const categories = ['Cake', 'chicken', 'nithai', 'milk', 'veg', 'Beverages', 'Desserts', 'Starters'];
+    const categories = [
+        { value: 'Cake', label: '🎂 Cake', icon: '🎂' },
+        { value: 'Chicken', label: '🍗 Chicken', icon: '🍗' },
+        { value: 'Mithai', label: '🍬 Mithai', icon: '🍬' },
+        { value: 'Milk', label: '🥛 Milk', icon: '🥛' },
+        { value: 'Vegetarian', label: '🥗 Vegetarian', icon: '🥗' },
+        { value: 'Beverages', label: '🥤 Beverages', icon: '🥤' },
+        { value: 'Desserts', label: '🍨 Desserts', icon: '🍨' },
+        { value: 'Starters', label: '🍴 Starters', icon: '🍴' }
+    ];
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -444,7 +473,7 @@ const EditItemModal = ({ item, onSave, onCancel }) => {
                             required
                         >
                             {categories.map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
+                                <option key={cat.value} value={cat.value}>{cat.label}</option>
                             ))}
                         </select>
                     </div>

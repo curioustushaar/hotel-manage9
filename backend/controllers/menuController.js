@@ -204,11 +204,48 @@ const toggleMenuItemStatus = async (req, res) => {
     }
 };
 
+// @desc    Migrate old categories to new ones
+// @route   POST /api/menu/migrate-categories
+// @access  Private/Admin
+const migrateCategoriesCategories = async (req, res) => {
+    try {
+        const categoryMapping = {
+            'chicken': 'Chicken',
+            'nithai': 'Mithai',
+            'milk': 'Milk',
+            'veg': 'Vegetarian'
+        };
+
+        let updatedCount = 0;
+
+        for (const [oldCategory, newCategory] of Object.entries(categoryMapping)) {
+            const result = await MenuItem.updateMany(
+                { category: oldCategory },
+                { $set: { category: newCategory } }
+            );
+            updatedCount += result.modifiedCount;
+        }
+
+        res.status(200).json({
+            success: true,
+            message: `Categories migrated successfully. ${updatedCount} items updated.`,
+            updatedCount
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error migrating categories',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     getMenuItems,
     addMenuItem,
     updateMenuItem,
     deleteMenuItem,
     getMenuItemById,
-    toggleMenuItemStatus
+    toggleMenuItemStatus,
+    migrateCategoriesCategories
 };

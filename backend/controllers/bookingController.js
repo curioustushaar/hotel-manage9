@@ -77,6 +77,20 @@ exports.addBooking = async (req, res) => {
         const booking = new Booking(bookingData);
         await booking.save();
 
+        // Update room status based on booking status
+        const Room = require('../models/roomModel');
+        const room = await Room.findOne({ roomNumber: bookingData.roomNumber });
+        
+        if (room) {
+            // Set room status based on booking status
+            if (bookingData.status === 'Checked-in') {
+                room.status = 'Occupied';
+            } else if (bookingData.status === 'Upcoming') {
+                room.status = 'Booked';
+            }
+            await room.save();
+        }
+
         res.status(201).json({
             success: true,
             message: 'Booking created successfully',
@@ -102,9 +116,39 @@ exports.updateBooking = async (req, res) => {
             });
         }
 
+        const oldStatus = booking.status;
+        const oldRoomNumber = booking.roomNumber;
+
         // Update only provided fields
         Object.assign(booking, req.body);
         await booking.save();
+
+        // Update room status if booking status changed
+        const Room = require('../models/roomModel');
+        
+        // If room number changed, update old room to Available
+        if (req.body.roomNumber && req.body.roomNumber !== oldRoomNumber) {
+            const oldRoom = await Room.findOne({ roomNumber: oldRoomNumber });
+            if (oldRoom) {
+                oldRoom.status = 'Available';
+                await oldRoom.save();
+            }
+        }
+        
+        // Update current room status based on booking status
+        const currentRoomNumber = req.body.roomNumber || oldRoomNumber;
+        const room = await Room.findOne({ roomNumber: currentRoomNumber });
+        
+        if (room) {
+            if (booking.status === 'Checked-in') {
+                room.status = 'Occupied';
+            } else if (booking.status === 'Upcoming') {
+                room.status = 'Booked';
+            } else if (booking.status === 'Checked-out' || booking.status === 'Cancelled') {
+                room.status = 'Available';
+            }
+            await room.save();
+        }
 
         res.status(200).json({
             success: true,
@@ -123,7 +167,7 @@ exports.updateBooking = async (req, res) => {
 // Delete booking
 exports.deleteBooking = async (req, res) => {
     try {
-        const booking = await Booking.findByIdAndDelete(req.params.id);
+        const booking = await Booking.findById(req.params.id);
         if (!booking) {
             return res.status(404).json({
                 success: false,
@@ -131,10 +175,22 @@ exports.deleteBooking = async (req, res) => {
             });
         }
 
+        const roomNumber = booking.roomNumber;
+        await Booking.findByIdAndDelete(req.params.id);
+
+        // Update room status to Available when booking is deleted
+        const Room = require('../models/roomModel');
+        const room = await Room.findOne({ roomNumber: roomNumber });
+        
+        if (room) {
+            room.status = 'Available';
+            await room.save();
+        }
+
         res.status(200).json({
             success: true,
             message: 'Booking deleted successfully',
-            data: booking
+            data: {}
         });
     } catch (error) {
         res.status(500).json({

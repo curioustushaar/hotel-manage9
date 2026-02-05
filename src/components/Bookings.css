@@ -6,7 +6,7 @@
 .section-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 2rem;
     flex-wrap: wrap;
     gap: 1rem;
@@ -21,7 +21,7 @@
     font-size: 1.8rem;
     font-weight: 700;
     color: #333;
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.25rem 0;
     letter-spacing: -0.5px;
 }
 
@@ -31,6 +31,32 @@
     margin: 0;
     font-weight: 400;
     letter-spacing: 0.2px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.export-csv-btn {
+    background-color: #10b981;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.4rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+}
+
+.export-csv-btn:hover {
+    background-color: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
 }
 
 .add-booking-btn {
@@ -150,7 +176,7 @@
 
 .bookings-table thead {
     background-color: #f8f9fa;
-    border-bottom: 2px solid #ddd;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .bookings-table th {
@@ -162,6 +188,7 @@
     letter-spacing: 0.3px;
     font-size: 0.9rem;
     word-break: break-word;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .bookings-table th.text-left {

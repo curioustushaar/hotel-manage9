@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import BookingRow from './BookingRow';
 import './Bookings.css';
 
 const Bookings = () => {
+    const navigate = useNavigate();
     const [bookings, setBookings] = useState([]);
     const [filteredBookings, setFilteredBookings] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -24,73 +26,26 @@ const Bookings = () => {
 
     const statusOptions = ['All', 'Upcoming', 'Checked-in', 'Checked-out', 'Cancelled'];
 
-    // Load bookings from localStorage
+    // Load bookings from MongoDB API
     useEffect(() => {
-        const storedBookings = localStorage.getItem('hotelBookings');
-        if (storedBookings) {
-            setBookings(JSON.parse(storedBookings));
-        } else {
-            // Initialize with sample data - EXACT STRUCTURE
-            const sampleBookings = [
-                {
-                    id: 1,
-                    bookingId: 'BKG001',
-                    guestName: 'John Smith',
-                    roomNumber: '101',
-                    roomType: 'Deluxe King',
-                    checkInDate: '2026-02-10',
-                    status: 'Upcoming'
-                },
-                {
-                    id: 2,
-                    bookingId: 'BKG002',
-                    guestName: 'Jane Doe',
-                    roomNumber: '102',
-                    roomType: 'Standard Single',
-                    checkInDate: '2026-02-05',
-                    status: 'Checked-in'
-                },
-                {
-                    id: 3,
-                    bookingId: 'BKG003',
-                    guestName: 'Robert Williams',
-                    roomNumber: '205',
-                    roomType: 'Standard Double',
-                    checkInDate: '2026-02-08',
-                    status: 'Checked-out'
-                },
-                {
-                    id: 4,
-                    bookingId: 'BKG004',
-                    guestName: 'Emily Davis',
-                    roomNumber: '103',
-                    roomType: 'Deluxe King',
-                    checkInDate: '2026-02-08',
-                    status: 'Checked-out'
-                },
-                {
-                    id: 5,
-                    bookingId: 'BKG005',
-                    guestName: 'Robert Johnson',
-                    roomNumber: '310',
-                    roomType: 'Executive Suite',
-                    checkInDate: '2026-02-01',
-                    status: 'Checked-out'
-                },
-                {
-                    id: 6,
-                    bookingId: 'BKG006',
-                    guestName: 'Michael Brown',
-                    roomNumber: '401',
-                    roomType: 'Family Room',
-                    checkInDate: '2026-02-22',
-                    status: 'Cancelled'
-                }
-            ];
-            setBookings(sampleBookings);
-            localStorage.setItem('hotelBookings', JSON.stringify(sampleBookings));
-        }
+        fetchBookingsFromAPI();
     }, []);
+
+    const fetchBookingsFromAPI = async () => {
+        try {
+            // Clear old localStorage data
+            localStorage.removeItem('hotelBookings');
+            
+            const response = await fetch('http://localhost:5000/api/bookings/list');
+            const data = await response.json();
+            if (data.success) {
+                setBookings(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching bookings from database:', error);
+            setBookings([]);
+        }
+    };
 
     // Filter bookings based on search and status
     useEffect(() => {
@@ -111,17 +66,7 @@ const Bookings = () => {
     }, [searchQuery, selectedStatus, bookings]);
 
     const handleAddBooking = () => {
-        setBookingFormData({
-            bookingId: '',
-            guestName: '',
-            roomNumber: '',
-            roomType: '',
-            checkInDate: '',
-            checkOutDate: '',
-            status: 'Upcoming'
-        });
-        setBookingErrorMessage('');
-        setShowAddBookingModal(true);
+        navigate('/admin/add-booking');
     };
 
     const handleEditBooking = (booking) => {
@@ -139,67 +84,154 @@ const Bookings = () => {
         setShowEditBookingModal(true);
     };
 
-    const handleDeleteBooking = (id) => {
+    const handleDeleteBooking = async (id) => {
         if (confirm('Are you sure you want to delete this booking?')) {
-            const updatedBookings = bookings.filter(booking => booking.id !== id);
-            setBookings(updatedBookings);
-            localStorage.setItem('hotelBookings', JSON.stringify(updatedBookings));
+            try {
+                const response = await fetch(`http://localhost:5000/api/bookings/delete/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    await fetchBookingsFromAPI();
+                } else {
+                    alert(data.message || 'Failed to delete booking');
+                }
+            } catch (error) {
+                console.error('Error deleting booking:', error);
+                alert('Failed to delete booking. Please try again.');
+            }
         }
     };
 
-    const handleBookingSubmit = (e) => {
+    const handleBookingSubmit = async (e) => {
         e.preventDefault();
+        setBookingErrorMessage('');
 
-        if (!bookingFormData.bookingId || !bookingFormData.guestName || !bookingFormData.roomNumber || !bookingFormData.checkInDate) {
-            setBookingErrorMessage('All fields are required');
+        if (!bookingFormData.guestName || !bookingFormData.roomNumber || !bookingFormData.checkInDate) {
+            setBookingErrorMessage('All required fields must be filled');
             return;
         }
 
-        if (showAddBookingModal) {
-            const newBooking = {
-                id: Date.now(),
-                bookingId: bookingFormData.bookingId,
-                guestName: bookingFormData.guestName,
-                roomNumber: bookingFormData.roomNumber,
-                roomType: bookingFormData.roomType,
-                checkInDate: bookingFormData.checkInDate,
-                checkOutDate: bookingFormData.checkOutDate,
-                status: bookingFormData.status
-            };
-            const updatedBookings = [...bookings, newBooking];
-            setBookings(updatedBookings);
-            localStorage.setItem('hotelBookings', JSON.stringify(updatedBookings));
-            setShowAddBookingModal(false);
-        } else if (showEditBookingModal) {
-            const updatedBookings = bookings.map(booking =>
-                booking.id === currentBooking.id
-                    ? {
-                        ...booking,
-                        bookingId: bookingFormData.bookingId,
-                        guestName: bookingFormData.guestName,
-                        roomNumber: bookingFormData.roomNumber,
-                        roomType: bookingFormData.roomType,
-                        checkInDate: bookingFormData.checkInDate,
-                        checkOutDate: bookingFormData.checkOutDate,
-                        status: bookingFormData.status
-                    }
-                    : booking
-            );
-            setBookings(updatedBookings);
-            localStorage.setItem('hotelBookings', JSON.stringify(updatedBookings));
-            setShowEditBookingModal(false);
+        try {
+            if (showAddBookingModal) {
+                // Generate unique booking ID
+                const bookingId = 'BKG' + Date.now().toString().slice(-6);
+                
+                const newBooking = {
+                    bookingId: bookingId,
+                    guestName: bookingFormData.guestName,
+                    mobileNumber: '9999999999', // Placeholder - should be added to form
+                    roomNumber: bookingFormData.roomNumber,
+                    roomType: bookingFormData.roomType || 'Single',
+                    checkInDate: bookingFormData.checkInDate,
+                    checkOutDate: bookingFormData.checkOutDate || bookingFormData.checkInDate,
+                    numberOfGuests: 1,
+                    numberOfNights: 1,
+                    pricePerNight: 1500,
+                    totalAmount: 1500,
+                    advancePaid: 0,
+                    status: bookingFormData.status || 'Upcoming'
+                };
+
+                const response = await fetch('http://localhost:5000/api/bookings/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newBooking)
+                });
+
+                const data = await response.json();
+                
+                if (!data.success) {
+                    setBookingErrorMessage(data.message || 'Failed to add booking');
+                    return;
+                }
+
+                await fetchBookingsFromAPI();
+                setShowAddBookingModal(false);
+            } else if (showEditBookingModal) {
+                const updatedBooking = {
+                    guestName: bookingFormData.guestName,
+                    roomNumber: bookingFormData.roomNumber,
+                    roomType: bookingFormData.roomType,
+                    checkInDate: bookingFormData.checkInDate,
+                    checkOutDate: bookingFormData.checkOutDate,
+                    status: bookingFormData.status
+                };
+
+                const response = await fetch(`http://localhost:5000/api/bookings/update/${currentBooking._id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedBooking)
+                });
+
+                const data = await response.json();
+                
+                if (!data.success) {
+                    setBookingErrorMessage(data.message || 'Failed to update booking');
+                    return;
+                }
+
+                await fetchBookingsFromAPI();
+                setShowEditBookingModal(false);
+            }
+
+            setBookingFormData({
+                bookingId: '',
+                guestName: '',
+                roomNumber: '',
+                roomType: '',
+                checkInDate: '',
+                checkOutDate: '',
+                status: 'Upcoming'
+            });
+            setCurrentBooking(null);
+        } catch (error) {
+            console.error('Error submitting booking:', error);
+            setBookingErrorMessage('Failed to save booking. Please try again.');
+        }
+    };
+
+    const handleExportCSV = () => {
+        if (filteredBookings.length === 0) {
+            alert('No bookings to export');
+            return;
         }
 
-        setBookingFormData({
-            bookingId: '',
-            guestName: '',
-            roomNumber: '',
-            roomType: '',
-            checkInDate: '',
-            checkOutDate: '',
-            status: 'Upcoming'
-        });
-        setCurrentBooking(null);
+        // CSV Headers
+        const headers = ['Booking ID', 'Guest Name', 'Mobile', 'Room No', 'Room Type', 'Check-in Date', 'Check-out Date', 'Status', 'Total Amount', 'Advance Paid'];
+        
+        // CSV Rows
+        const rows = filteredBookings.map(booking => [
+            booking._id || booking.id || '',
+            booking.guestName || '',
+            booking.mobileNumber || '',
+            booking.roomNumber || '',
+            booking.roomType || '',
+            booking.checkInDate ? new Date(booking.checkInDate).toLocaleDateString() : '',
+            booking.checkOutDate ? new Date(booking.checkOutDate).toLocaleDateString() : '',
+            booking.status || '',
+            booking.totalAmount || '0',
+            booking.advancePaid || '0'
+        ]);
+
+        // Create CSV content
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+
+        // Create download link
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `bookings_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     const getStatusClass = (status) => {
@@ -225,9 +257,14 @@ const Bookings = () => {
                     <h2>📅 Bookings</h2>
                     <p>Manage all hotel reservations</p>
                 </div>
-                <button className="add-booking-btn" onClick={handleAddBooking}>
-                    + Add Booking
-                </button>
+                <div className="header-actions">
+                    <button className="export-csv-btn" onClick={handleExportCSV}>
+                        📥 Export CSV
+                    </button>
+                    <button className="add-booking-btn" onClick={handleAddBooking}>
+                        + Add Booking
+                    </button>
+                </div>
             </div>
 
             {/* Search and Filters */}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import FoodMenuDashboard from '../FoodMenu/FoodMenuDashboard';
 import FoodPaymentReport from '../FoodPaymentReport/FoodPaymentReport';
@@ -13,6 +13,7 @@ import './AdminDashboard.css';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [activeMenu, setActiveMenu] = useState('dashboard');
     const [showViewProfile, setShowViewProfile] = useState(false);
@@ -79,23 +80,67 @@ const AdminDashboard = () => {
         }
     }, []);
 
-    // Load rooms from localStorage
+    // Set active menu based on URL path
     useEffect(() => {
-        const storedRooms = localStorage.getItem('hotelRooms');
-        if (storedRooms) {
-            setRooms(JSON.parse(storedRooms));
-        } else {
-            // Initialize with sample data
-            const sampleRooms = [
-                { id: 1, roomNumber: '01', roomType: 'Club AC Single Room', capacity: 1, price: 1500, status: 'Booked' },
-                { id: 2, roomNumber: '02', roomType: 'Club AC Double Room', capacity: 2, price: 2500, status: 'Occupied' },
-                { id: 3, roomNumber: '1011', roomType: 'Family Suite', capacity: 4, price: 5000, status: 'Available' },
-                { id: 4, roomNumber: '1002', roomType: 'Family Suite', capacity: 4, price: 5000, status: 'Occupied' }
-            ];
-            setRooms(sampleRooms);
-            localStorage.setItem('hotelRooms', JSON.stringify(sampleRooms));
+        const path = location.pathname;
+        if (path.includes('/add-booking')) {
+            setActiveMenu('add-booking');
+        } else if (path.includes('/rooms')) {
+            setActiveMenu('rooms');
+        } else if (path.includes('/bookings')) {
+            setActiveMenu('bookings');
+        } else if (path.includes('/food-menu')) {
+            setActiveMenu('food-menu');
+        } else if (path.includes('/customers')) {
+            setActiveMenu('customers');
+        } else if (path.includes('/settings')) {
+            setActiveMenu('settings');
+        } else if (path.includes('/dashboard')) {
+            setActiveMenu('dashboard');
         }
+    }, [location]);
+
+    // Load rooms from MongoDB API
+    useEffect(() => {
+        fetchRoomsFromAPI();
     }, []);
+
+    // Auto-refresh rooms data every 5 seconds to show real-time updates
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchRoomsFromAPI();
+        }, 5000); // Refresh every 5 seconds
+
+        return () => clearInterval(interval);
+    }, []);
+
+    // Refresh when page becomes visible (user switches back to tab)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                fetchRoomsFromAPI();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, []);
+
+    const fetchRoomsFromAPI = async () => {
+        try {
+            // Clear old localStorage data
+            localStorage.removeItem('hotelRooms');
+            
+            const response = await fetch('http://localhost:5000/api/rooms/list');
+            const data = await response.json();
+            if (data.success) {
+                setRooms(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching rooms from database:', error);
+            setRooms([]);
+        }
+    };
 
     // Filter rooms based on search and filters
     useEffect(() => {
@@ -241,7 +286,7 @@ const AdminDashboard = () => {
         setShowEditRoomModal(true);
     };
 
-    const handleRoomSubmit = (e) => {
+    const handleRoomSubmit = async (e) => {
         e.preventDefault();
         setRoomErrorMessage('');
 
@@ -250,48 +295,62 @@ const AdminDashboard = () => {
             return;
         }
 
-        const existingRoom = rooms.find(r =>
-            r.roomNumber === roomFormData.roomNumber &&
-            (!currentRoom || r.id !== currentRoom.id)
-        );
+        try {
+            if (showAddRoomModal) {
+                const newRoom = {
+                    roomNumber: roomFormData.roomNumber,
+                    roomType: roomFormData.roomType,
+                    capacity: parseInt(roomFormData.capacity),
+                    price: parseInt(roomFormData.price),
+                    status: 'Available'
+                };
 
-        if (existingRoom) {
-            setRoomErrorMessage('Room number already exists');
-            return;
+                const response = await fetch('http://localhost:5000/api/rooms/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newRoom)
+                });
+
+                const data = await response.json();
+                
+                if (!data.success) {
+                    setRoomErrorMessage(data.message || 'Failed to add room');
+                    return;
+                }
+
+                await fetchRoomsFromAPI();
+                setShowAddRoomModal(false);
+            } else if (showEditRoomModal) {
+                const updatedRoom = {
+                    roomNumber: roomFormData.roomNumber,
+                    roomType: roomFormData.roomType,
+                    capacity: parseInt(roomFormData.capacity),
+                    price: parseInt(roomFormData.price)
+                };
+
+                const response = await fetch(`http://localhost:5000/api/rooms/update/${currentRoom._id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedRoom)
+                });
+
+                const data = await response.json();
+                
+                if (!data.success) {
+                    setRoomErrorMessage(data.message || 'Failed to update room');
+                    return;
+                }
+
+                await fetchRoomsFromAPI();
+                setShowEditRoomModal(false);
+            }
+
+            setRoomFormData({ roomNumber: '', roomType: '', price: '', capacity: '' });
+            setCurrentRoom(null);
+        } catch (error) {
+            console.error('Error submitting room:', error);
+            setRoomErrorMessage('Failed to save room. Please try again.');
         }
-
-        if (showAddRoomModal) {
-            const newRoom = {
-                id: Date.now(),
-                roomNumber: roomFormData.roomNumber,
-                roomType: roomFormData.roomType,
-                capacity: parseInt(roomFormData.capacity),
-                price: parseInt(roomFormData.price),
-                status: 'Available'
-            };
-            const updatedRooms = [...rooms, newRoom];
-            setRooms(updatedRooms);
-            localStorage.setItem('hotelRooms', JSON.stringify(updatedRooms));
-            setShowAddRoomModal(false);
-        } else if (showEditRoomModal) {
-            const updatedRooms = rooms.map(room =>
-                room.id === currentRoom.id
-                    ? {
-                        ...room,
-                        roomNumber: roomFormData.roomNumber,
-                        roomType: roomFormData.roomType,
-                        capacity: parseInt(roomFormData.capacity),
-                        price: parseInt(roomFormData.price)
-                    }
-                    : room
-            );
-            setRooms(updatedRooms);
-            localStorage.setItem('hotelRooms', JSON.stringify(updatedRooms));
-            setShowEditRoomModal(false);
-        }
-
-        setRoomFormData({ roomNumber: '', roomType: '', price: '', capacity: '' });
-        setCurrentRoom(null);
     };
 
     const getStatusClass = (status) => {

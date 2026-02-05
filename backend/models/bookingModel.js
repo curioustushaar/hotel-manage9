@@ -31,7 +31,6 @@ const bookingSchema = new mongoose.Schema(
         // Room Details
         roomType: {
             type: String,
-            enum: ['Single', 'Double', 'Deluxe', 'Suite'],
             required: [true, 'Room type is required']
         },
         roomNumber: {
