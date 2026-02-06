@@ -14,8 +14,10 @@ import './InvoiceView.css';
 const ReservationStayManagement = () => {
     const [view, setView] = useState('dashboard'); // 'dashboard', 'form', or 'details'
     const [selectedReservation, setSelectedReservation] = useState(null);
+    const [sectionTab, setSectionTab] = useState('stay-overview'); // 'stay-overview', 'reservation', 'housekeeping', 'room-service'
     const [activeTab, setActiveTab] = useState('all'); // 'all', 'reserved', 'in-house', 'checked-out'
-
+    const [currentRoomIndex, setCurrentRoomIndex] = useState(0); // Track which room is being edited
+    
     // Reservation/Booking Data
     const [reservations, setReservations] = useState(getDummyReservations());
     const [isEditingMode, setIsEditingMode] = useState(false);
@@ -35,19 +37,17 @@ const ReservationStayManagement = () => {
     const [checkOutDate, setCheckOutDate] = useState('');
     const [checkOutTime, setCheckOutTime] = useState('11:00');
     const [flexibleCheckout, setFlexibleCheckout] = useState(false);
-    const [fixedCheckout, setFixedCheckout] = useState(false);
 
+    // Form State - Room Details
     const [rooms, setRooms] = useState([{
         id: 1,
         categoryId: 'deluxe-ac-double',
-        mealPlan: 'CP',
+        mealPlan: 'Veg',
         adultsCount: 1,
         childrenCount: 0,
         ratePerNight: 3000,
-        discount: 0,
-        roomNumber: ''
+        discount: 0
     }]);
-    const [currentRoomIndex, setCurrentRoomIndex] = useState(0);
 
     // Form State - Guest Information
     const [selectedGuest, setSelectedGuest] = useState(null);
@@ -130,7 +130,7 @@ const ReservationStayManagement = () => {
         }
 
         setInvoiceGenerationInProgress(true);
-
+        
         try {
             const billingDataForInvoice = {
                 roomCharges: reservation.roomCharges,
@@ -145,12 +145,12 @@ const ReservationStayManagement = () => {
 
             const invoice = InvoiceGenerator.generateInvoice(reservation, billingDataForInvoice);
             await InvoiceGenerator.saveInvoice(invoice);
-
+            
             setInvoices([...invoices, invoice]);
             setCurrentInvoice(invoice);
             setShowInvoiceModal(true);
 
-            setReservations(reservations.map(r =>
+            setReservations(reservations.map(r => 
                 r.id === reservation.id ? {
                     ...r,
                     status: 'CHECKED_OUT',
@@ -188,9 +188,7 @@ const ReservationStayManagement = () => {
         setCheckOutDate('');
         setCheckOutTime('11:00');
         setFlexibleCheckout(false);
-        setFixedCheckout(false);
-        setRooms([{ id: 1, categoryId: 'deluxe-ac-double', mealPlan: 'CP', adultsCount: 1, childrenCount: 0, ratePerNight: 3000, discount: 0, roomNumber: '' }]);
-        setCurrentRoomIndex(0);
+        setRooms([{ id: 1, categoryId: 'deluxe-ac-double', mealPlan: 'Veg', adultsCount: 1, childrenCount: 0, ratePerNight: 3000, discount: 0 }]);
         setSelectedGuest(null);
         setPaidAmount(0);
         setPaymentMode('Cash');
@@ -200,43 +198,8 @@ const ReservationStayManagement = () => {
         setCurrentInvoice(null);
     }, []);
 
-    // Handle Number of Rooms Change
-    const handleNumberOfRoomsChange = (count) => {
-        const newCount = Math.max(1, Math.min(50, parseInt(count) || 1));
-
-        setRooms(prevRooms => {
-            const currentCount = prevRooms.length;
-            if (newCount > currentCount) {
-                // Add rooms
-                const roomsToAdd = newCount - currentCount;
-                const newRooms = [...prevRooms];
-                for (let i = 0; i < roomsToAdd; i++) {
-                    newRooms.push({
-                        id: currentCount + i + 1,
-                        categoryId: 'deluxe-ac-double',
-                        mealPlan: 'CP',
-                        adultsCount: 1,
-                        childrenCount: 0,
-                        ratePerNight: 3000,
-                        discount: 0,
-                        roomNumber: ''
-                    });
-                }
-                return newRooms;
-            } else if (newCount < currentCount) {
-                // If we are deleting rooms and the current index is now out of bounds, step back
-                if (currentRoomIndex >= newCount) {
-                    setCurrentRoomIndex(newCount - 1);
-                }
-                // Remove rooms from the end
-                return prevRooms.slice(0, newCount);
-            }
-            return prevRooms;
-        });
-    };
-
-    // Handle Save Reservation (Generic for both Save and Check-In)
-    const handleSaveReservation = (e, status = null) => {
+    // Handle Save Reservation
+    const handleSaveReservation = (e) => {
         e.preventDefault();
 
         if (!selectedGuest) {
@@ -249,7 +212,10 @@ const ReservationStayManagement = () => {
             return;
         }
 
-        const finalStatus = status || (isEditingMode ? reservations.find(r => r.id === editingReservationId)?.status : 'RESERVED');
+        if (new Date(checkOutDate) <= new Date(checkInDate)) {
+            alert('Check-out date must be after check-in date');
+            return;
+        }
 
         const newReservation = {
             id: isEditingMode ? editingReservationId : 'RES-' + Date.now(),
@@ -268,10 +234,9 @@ const ReservationStayManagement = () => {
             checkOutDate,
             checkOutTime,
             flexibleCheckout,
-            fixedCheckout, // Add fixedCheckout
             rooms: JSON.parse(JSON.stringify(rooms)),
             nights,
-            status: finalStatus,
+            status: isEditingMode ? reservations.find(r => r.id === editingReservationId)?.status : 'RESERVED',
             ...billingData,
             createdAt: isEditingMode ? reservations.find(r => r.id === editingReservationId)?.createdAt : new Date().toISOString(),
             updatedAt: new Date().toISOString()
@@ -285,10 +250,7 @@ const ReservationStayManagement = () => {
 
         resetForm();
         setView('dashboard');
-
-        let successMsg = isEditingMode ? 'Reservation updated successfully!' : 'Reservation created successfully!';
-        if (finalStatus === 'IN_HOUSE') successMsg = 'Guest Checked-In Successfully!';
-        alert(successMsg);
+        alert(isEditingMode ? 'Reservation updated successfully!' : 'Reservation created successfully!');
     };
 
     // Handle View Reservation Details
@@ -318,7 +280,6 @@ const ReservationStayManagement = () => {
         setCheckOutDate(reservation.checkOutDate);
         setCheckOutTime(reservation.checkOutTime);
         setFlexibleCheckout(reservation.flexibleCheckout);
-        setFixedCheckout(reservation.fixedCheckout || false);
         setRooms(JSON.parse(JSON.stringify(reservation.rooms)));
         setSelectedGuest({
             id: reservation.guestId,
@@ -348,365 +309,576 @@ const ReservationStayManagement = () => {
         });
     }, [reservations, activeTab]);
 
+    if (view === 'details' && selectedReservation) {
+        return (
+            <ReservationDetailsView
+                reservation={selectedReservation}
+                onClose={handleCloseDetailsView}
+                onUpdateStatus={handleUpdateReservationStatus}
+                onEdit={(reservation) => {
+                    handleEditReservation(reservation);
+                    setView('form');
+                }}
+                onGenerateInvoice={handleGenerateInvoice}
+            />
+        );
+    }
 
+    if (view === 'form') {
+        return (
+            <div className="reservation-management-container">
+                <div className="form-container">
+                    <div className="form-main">
+                        <button className="back-btn" onClick={() => { resetForm(); setView('dashboard'); }}>
+                            ← Back to Dashboard
+                        </button>
+                        <h1>{isEditingMode ? 'Edit Reservation' : 'Create New Reservation'}</h1>
 
-    // State for main tabs
-    const [activeMainTab, setActiveMainTab] = useState('stay-overview');
+                        <form onSubmit={handleSaveReservation} className="reservation-form-view">
+                            {/* Reservation Details Section */}
+                            <div className="form-section">
+                                <h3 className="section-title">📋 Reservation Details</h3>
+                                <div className="form-grid-2">
+                                    <div className="form-row">
+                                        <label>Reservation Type</label>
+                                        <select value={reservationType} onChange={(e) => setReservationType(e.target.value)}>
+                                            <option value="Confirm">Confirm</option>
+                                            <option value="Provisional">Provisional</option>
+                                            <option value="Tentative">Tentative</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-row">
+                                        <label>Booking Source</label>
+                                        <select value={bookingSource} onChange={(e) => setBookingSource(e.target.value)}>
+                                            <option value="Direct">Direct</option>
+                                            <option value="OTA">OTA</option>
+                                            <option value="Travel Agent">Travel Agent</option>
+                                            <option value="Corporate">Corporate</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-row">
+                                        <label>Business Source</label>
+                                        <select value={businessSource} onChange={(e) => setBusinessSource(e.target.value)}>
+                                            <option value="Walk-In">Walk-In</option>
+                                            <option value="Phone">Phone</option>
+                                            <option value="Email">Email</option>
+                                            <option value="Website">Website</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-row">
+                                        <label>Reference Number</label>
+                                        <input type="text" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} placeholder="Booking reference..." />
+                                    </div>
+                                    <div className="form-row">
+                                        <label>Arrival From</label>
+                                        <input type="text" value={arrivalFrom} onChange={(e) => setArrivalFrom(e.target.value)} />
+                                    </div>
+                                    <div className="form-row">
+                                        <label>Purpose of Visit</label>
+                                        <input type="text" value={purposeOfVisit} onChange={(e) => setPurposeOfVisit(e.target.value)} />
+                                    </div>
+                                </div>
+                            </div>
 
-    // ... existing reservation data state ...
+                            {/* Guest Selection Section */}
+                            <div className="form-section">
+                                <h3 className="section-title">👤 Guest Information</h3>
+                                {selectedGuest ? (
+                                    <div className="guest-selection">
+                                        <div className="selected-guest-card">
+                                            <div className="guest-info">
+                                                <p className="guest-name">{selectedGuest.fullName || selectedGuest.name}</p>
+                                                <p className="guest-details">{selectedGuest.mobile || selectedGuest.phone} | {selectedGuest.email}</p>
+                                            </div>
+                                            <button type="button" className="btn btn-sm btn-outline" onClick={() => setShowGuestModal(true)}>
+                                                Change
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="no-guest-selected">
+                                        <p>No guest selected</p>
+                                        <button type="button" className="btn btn-primary" onClick={() => setShowGuestModal(true)}>
+                                            + Select or Create Guest
+                                        </button>
+                                    </div>
+                                )}
+                                <GuestModal isOpen={showGuestModal} onClose={() => setShowGuestModal(false)} onSelectGuest={setSelectedGuest} guests={guests} />
+                            </div>
 
-    // Update view when main tab changes
-    const handleMainTabChange = (tabId) => {
-        setActiveMainTab(tabId);
-        if (tabId === 'stay-overview') {
-            setView('dashboard');
-        } else if (tabId === 'reservation') {
-            setView('form');
-            resetForm(); // Ensure form is fresh
-        } else {
-            setView('dashboard'); // Fallback or handle unique views
-        }
-    };
+                            {/* Stay Details Section */}
+                            <div className="form-section">
+                                <h3 className="section-title">🏨  Stay Details</h3>
+                                <div className="form-grid-2">
+                                    <div className="form-row">
+                                        <label>Check-In Date</label>
+                                        <input type="date" value={checkInDate} onChange={(e) => setCheckInDate(e.target.value)} required />
+                                    </div>
+                                    <div className="form-row">
+                                        <label>Check-In Time</label>
+                                        <input type="time" value={checkInTime} onChange={(e) => setCheckInTime(e.target.value)} />
+                                    </div>
+                                    <div className="form-row">
+                                        <label>Check-Out Date</label>
+                                        <input type="date" value={checkOutDate} onChange={(e) => setCheckOutDate(e.target.value)} required />
+                                    </div>
+                                    <div className="form-row">
+                                        <label>Check-Out Time</label>
+                                        <input type="time" value={checkOutTime} onChange={(e) => setCheckOutTime(e.target.value)} />
+                                    </div>
+                                </div>
+                                <label className="checkbox-label">
+                                    <input type="checkbox" checked={flexibleCheckout} onChange={(e) => setFlexibleCheckout(e.target.checked)} />
+                                    Flexible Checkout
+                                </label>
+                            </div>
 
-    // ... existing code ...
+                            {/* Rooms Section */}
+                            <div className="form-section">
+                                <h3 className="section-title">🛏️ Room Details ({nights} nights)</h3>
+                                <div className="rooms-list">
+                                    {rooms.map((room, index) => (
+                                        <RoomRow
+                                            key={index}
+                                            room={room}
+                                            index={index}
+                                            roomCategories={roomCategories}
+                                            onUpdate={(idx, updatedRoom) => {
+                                                const newRooms = [...rooms];
+                                                newRooms[idx] = updatedRoom;
+                                                setRooms(newRooms);
+                                            }}
+                                            onRemove={(idx) => setRooms(rooms.filter((_, i) => i !== idx))}
+                                        />
+                                    ))}
+                                </div>
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary btn-add-room"
+                                    onClick={() => setRooms([...rooms, {
+                                        id: rooms.length + 1,
+                                        categoryId: 'deluxe-ac-double',
+                                        mealPlan: 'CP',
+                                        adultsCount: 1,
+                                        childrenCount: 0,
+                                        ratePerNight: 3000,
+                                        discount: 0
+                                    }])}
+                                >
+                                    + Add Room
+                                </button>
+                            </div>
 
+                            {/* Form Actions */}
+                            <div className="form-actions">
+                                <button type="button" className="btn btn-outline" onClick={() => { resetForm(); setView('dashboard'); }}>
+                                    Cancel
+                                </button>
+                                <button type="submit" className="btn btn-primary">
+                                    {isEditingMode ? 'Update Reservation' : 'Create Reservation'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    {/* Billing Summary Panel */}
+                    <BillingSummary
+                        roomCharges={billingData.roomCharges}
+                        discount={billingData.totalDiscount}
+                        tax={billingData.taxAmount}
+                        totalAmount={billingData.totalAmount}
+                        paidAmount={paidAmount}
+                        balanceDue={billingData.balanceDue}
+                        paymentMode={paymentMode}
+                        onPaymentModeChange={setPaymentMode}
+                        onPaidAmountChange={setPaidAmount}
+                        onTaxExemptChange={setTaxExempt}
+                        taxExempt={taxExempt}
+                    />
+                </div>
+
+                {/* Invoice Modal */}
+                <AnimatePresence>
+                    {showInvoiceModal && currentInvoice && (
+                        <div className="invoice-modal-overlay">
+                            <div className="invoice-modal-content">
+                                <InvoiceView
+                                    invoice={currentInvoice}
+                                    onClose={() => setShowInvoiceModal(false)}
+                                    onPrint={() => console.log('Print invoice')}
+                                    isModal={true}
+                                />
+                            </div>
+                        </div>
+                    )}
+                </AnimatePresence>
+            </div>
+        );
+    }
+
+    // Dashboard View
     return (
         <div className="reservation-management-container">
-            {/* Header with Sub-Navigation */}
-            <div className="reservation-header-container">
-                <div className="header-title-section">
+            {/* Header */}
+            <div className="reservation-header">
+                <div className="header-title">
                     <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#1a1a1a', margin: '0 0 0.5rem 0' }}>
                         🏨 Reservations & Stay Management
                     </h2>
                     <p>Manage guest reservations, check-ins, check-outs, and billing</p>
                 </div>
-
-                {/* Right-aligned Sub-Navigation Tabs */}
-                <div className="main-tabs-container">
-                    <button
-                        className={`main-tab-btn ${activeMainTab === 'stay-overview' ? 'active' : ''}`}
-                        onClick={() => handleMainTabChange('stay-overview')}
-                    >
-                        Stay Overview
-                    </button>
-                    <button
-                        className={`main-tab-btn ${activeMainTab === 'reservation' ? 'active' : ''}`}
-                        onClick={() => handleMainTabChange('reservation')}
-                    >
-                        Reservation
-                    </button>
-                    <button
-                        className={`main-tab-btn ${activeMainTab === 'housekeeping' ? 'active' : ''}`}
-                        onClick={() => handleMainTabChange('housekeeping')}
-                    >
-                        Housekeeping View
-                    </button>
-                    <button
-                        className={`main-tab-btn ${activeMainTab === 'room-service' ? 'active' : ''}`}
-                        onClick={() => handleMainTabChange('room-service')}
-                    >
-                        Room Service
-                    </button>
+                <div className="header-actions">
+                    {/* New Reservation button hidden as per requirements */}
                 </div>
             </div>
 
-            {/* Content Area Based on Active Main Tab */}
-            <div className="reservation-content">
-                {activeMainTab === 'stay-overview' && (
-                    view === 'details' && selectedReservation ? (
-                        <ReservationDetailsView
-                            reservation={selectedReservation}
-                            onClose={handleCloseDetailsView}
-                            onUpdateStatus={handleUpdateReservationStatus}
-                            onEdit={(reservation) => {
-                                handleEditReservation(reservation);
-                                // If editing from details, we need to switch main tab or just view?
-                                // Let's simplify: switch main tab to 'reservation' which handles form view
-                                setActiveMainTab('reservation');
-                                setView('form');
-                            }}
-                            onGenerateInvoice={handleGenerateInvoice}
-                        />
-                    ) : (
-                        <>
-                            {/* Existing Dashboard Content */}
-                            <div className="reservation-tabs">
-                                {['all', 'reserved', 'in-house', 'checked-out'].map(tab => (
-                                    <button
-                                        key={tab}
-                                        className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
-                                        onClick={() => setActiveTab(tab)}
-                                    >
-                                        {tab === 'all' ? 'All Reservations' : tab.replace('-', ' ').toUpperCase()}
-                                        <span style={{ marginLeft: '0.5rem' }}>({filteredReservations.length})</span>
-                                    </button>
-                                ))}
+            {/* Section Tabs */}
+            <div className="section-tabs-container">
+                {['stay-overview', 'reservation', 'housekeeping', 'room-service'].map(tab => (
+                    <button
+                        key={tab}
+                        className={`section-tab-btn ${sectionTab === tab ? 'active' : ''}`}
+                        onClick={() => setSectionTab(tab)}
+                    >
+                        {tab === 'stay-overview' && '👁️ Stay Overview'}
+                        {tab === 'reservation' && '📋 Reservation'}
+                        {tab === 'housekeeping' && '🧹 HouseKeeping View'}
+                        {tab === 'room-service' && '🛎️ Room Service'}
+                    </button>
+                ))}
+            </div>
+
+            {/* Show Form when Reservation tab is selected */}
+            {sectionTab === 'reservation' && (
+                <div className="reservation-form-wrapper">
+                    <div className="form-container">
+                        <form className="reservation-form" onSubmit={handleSaveReservation}>
+                            {/* Reservation Meta Section */}
+                            <div className="form-section">
+                                <h3 className="section-title">📋 Reservation Details</h3>
+                                <div className="form-grid-3">
+                                    <div className="form-row">
+                                        <label>Reservation Type</label>
+                                        <select value={reservationType} onChange={(e) => setReservationType(e.target.value)}>
+                                            <option>Confirm</option>
+                                            <option>Tentative</option>
+                                            <option>Cancelled</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-row">
+                                        <label>Booking Source</label>
+                                        <select value={bookingSource} onChange={(e) => setBookingSource(e.target.value)}>
+                                            <option>Direct</option>
+                                            <option>OTA</option>
+                                            <option>RefCode</option>
+                                            <option>Agent</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-row">
+                                        <label>Business Source</label>
+                                        <select value={businessSource} onChange={(e) => setBusinessSource(e.target.value)}>
+                                            <option>Walk-In</option>
+                                            <option>Phone</option>
+                                            <option>Email</option>
+                                            <option>Online</option>
+                                            <option>Travel Agent</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="form-grid-2">
+                                    <div className="form-row">
+                                        <label>Reference Number</label>
+                                        <input type="text" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} placeholder="e.g., WEB-2024-001" />
+                                    </div>
+                                    <div className="form-row">
+                                        <label>Arrival From</label>
+                                        <input type="text" value={arrivalFrom} onChange={(e) => setArrivalFrom(e.target.value)} placeholder="City/Location" />
+                                    </div>
+                                </div>
+                                <div className="form-row">
+                                    <label>Purpose of Visit</label>
+                                    <input type="text" value={purposeOfVisit} onChange={(e) => setPurposeOfVisit(e.target.value)} placeholder="Business, Leisure, etc." />
+                                </div>
                             </div>
 
-                            {/* Reservation Cards */}
-                            <div className="reservation-cards-grid">
-                                {filteredReservations.length > 0 ? (
-                                    filteredReservations.map(reservation => (
-                                        <div
-                                            key={reservation.id}
-                                            onClick={() => handleViewReservationDetails(reservation)}
-                                            style={{ cursor: 'pointer' }}
-                                        >
-                                            <ReservationCard
-                                                reservation={reservation}
-                                                onUpdateStatus={handleUpdateReservationStatus}
-                                                onEdit={(reservation) => {
-                                                    handleEditReservation(reservation);
-                                                    setActiveMainTab('reservation');
-                                                    setView('form');
-                                                }}
-                                                onDelete={handleDeleteReservation}
-                                                onGenerateInvoice={handleGenerateInvoice}
-                                            />
+                            {/* Guest Selection Section */}
+                            <div className="form-section">
+                                <h3 className="section-title">👤 Guest Information</h3>
+                                {selectedGuest ? (
+                                    <div className="selected-guest-info">
+                                        <div className="guest-card">
+                                            <div className="guest-details">
+                                                <p><strong>{selectedGuest.fullName || selectedGuest.name}</strong></p>
+                                                <p>{selectedGuest.email}</p>
+                                                <p>{selectedGuest.mobile || selectedGuest.phone}</p>
+                                            </div>
+                                            <button type="button" className="btn btn-danger btn-sm" onClick={() => setSelectedGuest(null)}>Change</button>
                                         </div>
-                                    ))
+                                    </div>
                                 ) : (
-                                    <div className="no-data-message">
-                                        <p>No reservations found for this status</p>
+                                    <div className="no-guest-selected">
+                                        <p>No guest selected</p>
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary"
+                                            onClick={() => setShowGuestModal(true)}
+                                        >
+                                            + Select or Create Guest
+                                        </button>
                                     </div>
                                 )}
+                                <GuestModal isOpen={showGuestModal} onClose={() => setShowGuestModal(false)} onSelectGuest={setSelectedGuest} guests={guests} />
                             </div>
-                        </>
-                    )
-                )}
 
-                {activeMainTab === 'reservation' && (
-                    <div className="form-container">
-                        <div className="form-main">
-                            <button className="back-btn" onClick={() => handleMainTabChange('stay-overview')}>
-                                ← Back to Stay Overview
-                            </button>
-                            <h1>{isEditingMode ? 'Edit Reservation' : 'Create New Reservation'}</h1>
-
-                            <form onSubmit={(e) => handleSaveReservation(e)} className="reservation-form-view">
-                                {/* Reservation Details Section */}
-                                <div className="form-section">
-                                    <h3 className="section-title">📋 Reservation Details</h3>
-                                    <div className="form-grid-2">
-                                        <div className="form-row">
-                                            <label>Reservation Type</label>
-                                            <select value={reservationType} onChange={(e) => setReservationType(e.target.value)}>
-                                                <option value="Confirm">Confirm</option>
-                                                <option value="Provisional">Provisional</option>
-                                                <option value="Tentative">Tentative</option>
-                                            </select>
-                                        </div>
-                                        <div className="form-row">
-                                            <label>Booking Source</label>
-                                            <select value={bookingSource} onChange={(e) => setBookingSource(e.target.value)}>
-                                                <option value="Direct">Direct</option>
-                                                <option value="OTA">OTA</option>
-                                                <option value="Travel Agent">Travel Agent</option>
-                                                <option value="Corporate">Corporate</option>
-                                            </select>
-                                        </div>
-                                        <div className="form-row">
-                                            <label>Business Source</label>
-                                            <select value={businessSource} onChange={(e) => setBusinessSource(e.target.value)}>
-                                                <option value="Walk-In">Walk-In</option>
-                                                <option value="Phone">Phone</option>
-                                                <option value="Email">Email</option>
-                                                <option value="Website">Website</option>
-                                            </select>
-                                        </div>
-                                        <div className="form-row">
-                                            <label>Reference Number</label>
-                                            <input type="text" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} placeholder="Booking reference..." />
-                                        </div>
-                                        <div className="form-row">
-                                            <label>Arrival From</label>
-                                            <input type="text" value={arrivalFrom} onChange={(e) => setArrivalFrom(e.target.value)} />
-                                        </div>
-                                        <div className="form-row">
-                                            <label>Purpose of Visit</label>
-                                            <input type="text" value={purposeOfVisit} onChange={(e) => setPurposeOfVisit(e.target.value)} />
-                                        </div>
+                            {/* Stay Details Section */}
+                            <div className="form-section">
+                                <h3 className="section-title">🏨 Stay Details</h3>
+                                <div className="form-grid-2">
+                                    <div className="form-row">
+                                        <label>Check-In Date</label>
+                                        <input type="date" value={checkInDate} onChange={(e) => setCheckInDate(e.target.value)} required />
+                                    </div>
+                                    <div className="form-row">
+                                        <label>Check-In Time</label>
+                                        <input type="time" value={checkInTime} onChange={(e) => setCheckInTime(e.target.value)} />
+                                    </div>
+                                    <div className="form-row">
+                                        <label>Check-Out Date</label>
+                                        <input type="date" value={checkOutDate} onChange={(e) => setCheckOutDate(e.target.value)} required />
+                                    </div>
+                                    <div className="form-row">
+                                        <label>Check-Out Time</label>
+                                        <input type="time" value={checkOutTime} onChange={(e) => setCheckOutTime(e.target.value)} />
                                     </div>
                                 </div>
-
-                                {/* Guest Selection Section */}
-                                <div className="form-section">
-                                    <h3 className="section-title">👤 Guest Information</h3>
-                                    {selectedGuest ? (
-                                        <div className="guest-selection">
-                                            <div className="selected-guest-card">
-                                                <div className="guest-info">
-                                                    <p className="guest-name">{selectedGuest.fullName || selectedGuest.name}</p>
-                                                    <p className="guest-details">{selectedGuest.mobile || selectedGuest.phone} | {selectedGuest.email}</p>
-                                                </div>
-                                                <button type="button" className="btn btn-sm btn-outline" onClick={() => setShowGuestModal(true)}>
-                                                    Change
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="no-guest-selected">
-                                            <p>No guest selected</p>
-                                            <button type="button" className="btn btn-primary" onClick={() => setShowGuestModal(true)}>
-                                                + Select or Create Guest
-                                            </button>
-                                        </div>
-                                    )}
-                                    <GuestModal isOpen={showGuestModal} onClose={() => setShowGuestModal(false)} onSelectGuest={setSelectedGuest} guests={guests} />
+                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                    <label className="checkbox-label">
+                                        <input type="checkbox" checked={flexibleCheckout} onChange={(e) => setFlexibleCheckout(e.target.checked)} />
+                                        Flexible Checkout
+                                    </label>
+                                    <label className="checkbox-label">
+                                        <input type="checkbox" checked={!flexibleCheckout} onChange={(e) => setFlexibleCheckout(!e.target.checked)} />
+                                        Fixed Checkout
+                                    </label>
                                 </div>
+                            </div>
 
-                                {/* Stay Details Section */}
-                                <div className="form-section">
-                                    <h3 className="section-title">🏨  Stay Details</h3>
-                                    <div className="form-grid-2">
-                                        <div className="form-row">
-                                            <label>Check-In Date</label>
-                                            <input type="date" value={checkInDate} onChange={(e) => setCheckInDate(e.target.value)} required />
-                                        </div>
-                                        <div className="form-row">
-                                            <label>Check-In Time</label>
-                                            <input type="time" value={checkInTime} onChange={(e) => setCheckInTime(e.target.value)} />
-                                        </div>
-                                        <div className="form-row">
-                                            <label>Check-Out Date</label>
-                                            <input type="date" value={checkOutDate} onChange={(e) => setCheckOutDate(e.target.value)} required />
-                                        </div>
-                                        <div className="form-row">
-                                            <label>Check-Out Time</label>
-                                            <input type="time" value={checkOutTime} onChange={(e) => setCheckOutTime(e.target.value)} />
-                                        </div>
-                                    </div>
-                                    <div className="form-row checkbox-row" style={{ marginTop: '0.5rem' }}>
-                                        <label className="checkbox-label">
-                                            <input type="checkbox" checked={flexibleCheckout} onChange={(e) => {
-                                                setFlexibleCheckout(e.target.checked);
-                                                if (e.target.checked) setFixedCheckout(false);
-                                            }} />
-                                            Flexible Checkout
-                                        </label>
-                                        <label className="checkbox-label" style={{ marginLeft: '1.5rem' }}>
-                                            <input type="checkbox" checked={fixedCheckout} onChange={(e) => {
-                                                setFixedCheckout(e.target.checked);
-                                                if (e.target.checked) setFlexibleCheckout(false);
-                                            }} />
-                                            Fixed Checkout
-                                        </label>
-                                    </div>
-                                </div>
-
-                                {/* Rooms Section */}
-                                <div className="form-section">
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1.5px solid #f3f3f3', paddingBottom: '0.65rem' }}>
-                                        <h3 className="section-title" style={{ borderBottom: 'none', margin: 0, padding: 0 }}>🛏️ Room Details ({nights} nights)</h3>
-                                        <div className="form-row" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                                            <label style={{ margin: 0, whiteSpace: 'nowrap' }}>No. of Rooms:</label>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                max="50"
-                                                value={rooms.length}
-                                                onChange={(e) => handleNumberOfRoomsChange(e.target.value)}
-                                                style={{ width: '70px', padding: '0.3rem 0.5rem' }}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="rooms-list">
-                                        <div style={{ marginBottom: '0.5rem', fontWeight: 'bold', color: '#555' }}>
-                                            Managing Room {currentRoomIndex + 1} of {rooms.length}
-                                        </div>
-                                        {rooms.length > 0 && (
-                                            <RoomRow
-                                                key={rooms[currentRoomIndex].id} // Use stable ID
-                                                room={rooms[currentRoomIndex]}
-                                                index={currentRoomIndex}
-                                                roomCategories={roomCategories}
-                                                onUpdate={(idx, updatedRoom) => {
+                            {/* Rooms Section */}
+                            <div className="form-section">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                    <h3 className="section-title" style={{ margin: 0 }}>🛏️ Room Details ({nights} nights)</h3>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <label style={{ fontSize: '0.75rem', fontWeight: 600, whiteSpace: 'nowrap' }}>No. of Rooms:</label>
+                                        <input 
+                                            type="number" 
+                                            min="1" 
+                                            value={rooms.length}
+                                            style={{ width: '60px', padding: '0.4rem', fontSize: '0.85rem', borderRadius: '0.4rem', border: '1px solid #ddd' }}
+                                            onChange={(e) => {
+                                                const newCount = parseInt(e.target.value) || 1;
+                                                const currentCount = rooms.length;
+                                                if (newCount > currentCount) {
                                                     const newRooms = [...rooms];
-                                                    newRooms[idx] = updatedRoom;
+                                                    for (let i = currentCount; i < newCount; i++) {
+                                                        newRooms.push({
+                                                            id: i + 1,
+                                                            categoryId: 'deluxe-ac-double',
+                                                            mealPlan: 'Veg',
+                                                            adultsCount: 1,
+                                                            childrenCount: 0,
+                                                            ratePerNight: 3000,
+                                                            discount: 0
+                                                        });
+                                                    }
                                                     setRooms(newRooms);
-                                                }}
-                                                onRemove={(idx) => {
-                                                    const newRooms = rooms.filter((_, i) => i !== idx);
-                                                    setRooms(newRooms);
-                                                    // Adjust index if needed
-                                                    if (currentRoomIndex >= newRooms.length) {
-                                                        setCurrentRoomIndex(Math.max(0, newRooms.length - 1));
+                                                } else if (newCount < currentCount) {
+                                                    setRooms(rooms.slice(0, newCount));
+                                                    if (currentRoomIndex >= newCount) {
+                                                        setCurrentRoomIndex(newCount - 1);
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {rooms.length > 0 && (
+                                    <div className="room-item" style={{ padding: '1rem', backgroundColor: '#f9f9f9', borderRadius: '0.55rem', border: '1px solid #e5e5e5' }}>
+                                        <div style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #ddd' }}>
+                                            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#666' }}>Room {currentRoomIndex + 1} of {rooms.length}</p>
+                                        </div>
+                                        
+                                        <RoomRow
+                                            room={rooms[currentRoomIndex]}
+                                            index={currentRoomIndex}
+                                            roomCategories={roomCategories}
+                                            onUpdate={(idx, updatedRoom) => {
+                                                const newRooms = [...rooms];
+                                                newRooms[idx] = updatedRoom;
+                                                setRooms(newRooms);
+                                            }}
+                                            onRemove={() => {}}
+                                        />
+
+                                        {/* Remove Button Below Card */}
+                                        {rooms.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setRooms(rooms.filter((_, i) => i !== currentRoomIndex));
+                                                    if (currentRoomIndex >= rooms.length - 1) {
+                                                        setCurrentRoomIndex(Math.max(0, currentRoomIndex - 1));
                                                     }
                                                 }}
-                                            />
+                                                style={{
+                                                    marginTop: '1rem',
+                                                    padding: '0.4rem 0.8rem',
+                                                    fontSize: '0.7rem',
+                                                    fontWeight: 600,
+                                                    backgroundColor: '#dc3545',
+                                                    color: '#fff',
+                                                    border: 'none',
+                                                    borderRadius: '0.3rem',
+                                                    cursor: 'pointer',
+                                                    width: 'fit-content'
+                                                }}
+                                            >
+                                                ✕ Remove Room
+                                            </button>
                                         )}
+
+                                        {/* Navigation Buttons */}
+                                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'space-between', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #ddd' }}>
+                                            <button
+                                                type="button"
+                                                disabled={currentRoomIndex === 0}
+                                                onClick={() => setCurrentRoomIndex(currentRoomIndex - 1)}
+                                                style={{
+                                                    padding: '0.5rem 1rem',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 600,
+                                                    backgroundColor: currentRoomIndex === 0 ? '#ddd' : '#dc3545',
+                                                    color: '#fff',
+                                                    border: 'none',
+                                                    borderRadius: '0.4rem',
+                                                    cursor: currentRoomIndex === 0 ? 'not-allowed' : 'pointer',
+                                                    opacity: currentRoomIndex === 0 ? 0.6 : 1
+                                                }}
+                                            >
+                                                ← Previous
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={currentRoomIndex === rooms.length - 1}
+                                                onClick={() => setCurrentRoomIndex(currentRoomIndex + 1)}
+                                                style={{
+                                                    padding: '0.5rem 1rem',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: 600,
+                                                    backgroundColor: currentRoomIndex === rooms.length - 1 ? '#ddd' : '#dc3545',
+                                                    color: '#fff',
+                                                    border: 'none',
+                                                    borderRadius: '0.4rem',
+                                                    cursor: currentRoomIndex === rooms.length - 1 ? 'not-allowed' : 'pointer',
+                                                    opacity: currentRoomIndex === rooms.length - 1 ? 0.6 : 1
+                                                }}
+                                            >
+                                                Next →
+                                            </button>
+                                        </div>
                                     </div>
+                                )}
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary btn-add-room"
+                                    onClick={() => setRooms([...rooms, {
+                                        id: rooms.length + 1,
+                                        categoryId: 'deluxe-ac-double',
+                                        mealPlan: 'CP',
+                                        adultsCount: 1,
+                                        childrenCount: 0,
+                                        ratePerNight: 3000,
+                                        discount: 0
+                                    }])}
+                                >
+                                    + Add Room
+                                </button>
+                            </div>
 
-                                    {/* Room Pagination Controls */}
-                                    <div className="room-pagination-controls" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
-                                        <button
-                                            type="button"
-                                            className="btn btn-outline btn-sm"
-                                            onClick={() => setCurrentRoomIndex(Math.max(0, currentRoomIndex - 1))}
-                                            disabled={currentRoomIndex === 0}
-                                        >
-                                            Previous Room
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="btn btn-outline btn-sm"
-                                            onClick={() => setCurrentRoomIndex(Math.min(rooms.length - 1, currentRoomIndex + 1))}
-                                            disabled={currentRoomIndex === rooms.length - 1}
-                                        >
-                                            Next Room
-                                        </button>
-                                    </div>
+                            {/* Form Actions */}
+                            <div className="form-actions" style={{ justifyContent: 'flex-end', gap: '0.5rem', display: 'flex', flexDirection: 'row' }}>
+                                <button type="button" className="btn btn-outline" onClick={() => { resetForm(); setSectionTab('stay-overview'); }} style={{ padding: '0.55rem 0.95rem', fontSize: '0.78rem' }}>
+                                    Cancel
+                                </button>
+                                <button type="button" className="btn btn-primary" style={{ padding: '0.65rem 1.1rem', fontSize: '0.82rem' }}>
+                                    Check In
+                                </button>
+                                <button type="submit" className="btn btn-primary" style={{ padding: '0.65rem 1.1rem', fontSize: '0.82rem' }}>
+                                    Reservation
+                                </button>
+                            </div>
+                        </form>
+                    </div>
 
-                                    {/* Removed redundant "+ Add Room" button since we use "No. of Rooms" input now */}
+                    {/* Billing Summary Panel */}
+                    <BillingSummary
+                        roomCharges={billingData.roomCharges}
+                        discount={billingData.totalDiscount}
+                        tax={billingData.taxAmount}
+                        totalAmount={billingData.totalAmount}
+                        paidAmount={paidAmount}
+                        balanceDue={billingData.balanceDue}
+                        paymentMode={paymentMode}
+                        onPaymentModeChange={setPaymentMode}
+                        onPaidAmountChange={setPaidAmount}
+                        onTaxExemptChange={setTaxExempt}
+                        taxExempt={taxExempt}
+                    />
+                </div>
+            )}
+
+            {/* Show Dashboard when Stay Overview tab is selected */}
+            {sectionTab === 'stay-overview' && (
+                <>
+                    <div className="reservation-tabs">
+                        {['all', 'reserved', 'in-house', 'checked-out'].map(tab => (
+                            <button
+                                key={tab}
+                                className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
+                                onClick={() => setActiveTab(tab)}
+                            >
+                                {tab === 'all' ? 'All Reservations' : tab.replace('-', ' ').toUpperCase()}
+                                <span style={{ marginLeft: '0.5rem' }}>({filteredReservations.length})</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Reservation Cards */}
+                    <div className="reservation-cards-grid">
+                        {filteredReservations.length > 0 ? (
+                            filteredReservations.map(reservation => (
+                                <div
+                                    key={reservation.id}
+                                    onClick={() => handleViewReservationDetails(reservation)}
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    <ReservationCard
+                                        reservation={reservation}
+                                        onUpdateStatus={handleUpdateReservationStatus}
+                                        onEdit={handleEditReservation}
+                                        onDelete={handleDeleteReservation}
+                                        onGenerateInvoice={handleGenerateInvoice}
+                                    />
                                 </div>
-
-                                {/* Form Actions */}
-                                <div className="form-actions-right">
-                                    <button type="button" className="btn btn-cancel-sm" onClick={() => { resetForm(); setView('dashboard'); }}>
-                                        Cancel
-                                    </button>
-                                    <button type="button" className="btn btn-checkin" onClick={(e) => handleSaveReservation(e, 'IN_HOUSE')}>
-                                        Check In
-                                    </button>
-                                    <button type="submit" className="btn btn-reservation">
-                                        {isEditingMode ? 'Update Reservation' : 'Reservation'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-
-                        {/* Billing Summary Panel */}
-                        <BillingSummary
-                            roomCharges={billingData.roomCharges}
-                            discount={billingData.totalDiscount}
-                            tax={billingData.taxAmount}
-                            totalAmount={billingData.totalAmount}
-                            paidAmount={paidAmount}
-                            balanceDue={billingData.balanceDue}
-                            paymentMode={paymentMode}
-                            onPaymentModeChange={setPaymentMode}
-                            onPaidAmountChange={setPaidAmount}
-                            onTaxExemptChange={setTaxExempt}
-                            taxExempt={taxExempt}
-                        />
+                            ))
+                        ) : (
+                            <div className="no-data-message">
+                                <p>No reservations found for this status</p>
+                            </div>
+                        )}
                     </div>
-                )}
-
-                {/* Placeholder Views */}
-                {activeMainTab === 'housekeeping' && (
-                    <div className="placeholder-view">
-                        <h3>Housekeeping View</h3>
-                        <p>Coming Soon</p>
-                    </div>
-                )}
-
-                {activeMainTab === 'room-service' && (
-                    <div className="placeholder-view">
-                        <h3>Room Service</h3>
-                        <p>Coming Soon</p>
-                    </div>
-                )}
-            </div>
+                </>
+            )}
         </div>
     );
 };

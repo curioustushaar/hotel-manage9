@@ -43,9 +43,8 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove }) => {
                         value={room.mealPlan}
                         onChange={(e) => handleChange('mealPlan', e.target.value)}
                     >
-                        <option value="CP">CP (Room Only)</option>
-                        <option value="MAP">MAP (B + D)</option>
-                        <option value="AP">AP (All Meals)</option>
+                        <option value="Veg">Veg</option>
+                        <option value="NonVeg">Non Veg</option>
                     </select>
                 </div>
 
@@ -109,17 +108,6 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove }) => {
                     />
                 </div>
             </div>
-
-            {index > 0 && (
-                <div className="room-footer" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                    <button
-                        className="btn btn-remove-small"
-                        onClick={() => onRemove(index)}
-                    >
-                        ✕ REMOVE
-                    </button>
-                </div>
-            )}
         </div>
     );
 };
