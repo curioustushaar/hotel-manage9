@@ -41,9 +41,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/rooms" element={<AdminDashboard />} />
-        <Route path="/admin/bookings" element={<AdminDashboard />} />
+        <Route path="/admin/reservations" element={<AdminDashboard />} />
         <Route path="/admin/food-menu" element={<AdminDashboard />} />
-        <Route path="/admin/add-booking" element={<AdminDashboard />} />
         <Route path="/admin/customers" element={<AdminDashboard />} />
         <Route path="/admin/settings" element={<AdminDashboard />} />
         <Route path="/admin/my-profile" element={<AdminDashboard />} />
