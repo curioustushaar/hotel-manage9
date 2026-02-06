@@ -11,18 +11,20 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove }) => {
     return (
         <div className="room-row">
             <div className="room-header">
-                <h4>Room {index + 1}</h4>
-                {index > 0 && (
-                    <button
-                        className="btn btn-sm btn-danger"
-                        onClick={() => onRemove(index)}
-                    >
-                        ✕ Remove
-                    </button>
-                )}
+                {/* <h4>Room {index + 1}</h4> */}
             </div>
 
             <div className="room-fields">
+                <div className="form-row">
+                    <label>Room No</label>
+                    <input
+                        type="text"
+                        placeholder="Room #"
+                        value={room.roomNumber || ''}
+                        onChange={(e) => handleChange('roomNumber', e.target.value)}
+                    />
+                </div>
+
                 <div className="form-row">
                     <label>Room Category</label>
                     <select
@@ -36,7 +38,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove }) => {
                 </div>
 
                 <div className="form-row">
-                    <label>Meal Plan</label>
+                    <label>Meal Type</label>
                     <select
                         value={room.mealPlan}
                         onChange={(e) => handleChange('mealPlan', e.target.value)}
@@ -107,6 +109,17 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove }) => {
                     />
                 </div>
             </div>
+
+            {index > 0 && (
+                <div className="room-footer" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                    <button
+                        className="btn btn-remove-small"
+                        onClick={() => onRemove(index)}
+                    >
+                        ✕ REMOVE
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
