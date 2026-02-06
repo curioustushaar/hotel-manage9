@@ -3,12 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import FoodMenuDashboard from '../FoodMenu/FoodMenuDashboard';
 import FoodPaymentReport from '../FoodPaymentReport/FoodPaymentReport';
-import Bookings from '../../components/Bookings';
-import AddBooking from '../../components/AddBooking';
 import Settings from '../Settings/Settings';
 import Customers from '../Customers/Customers';
 import DashboardHome from '../DashboardHome/DashboardHome';
 import MyProfile from '../Profile/MyProfile';
+import ReservationStayManagement from "../../components/ReservationStayManagement";
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -96,12 +95,10 @@ const AdminDashboard = () => {
     // Set active menu based on URL path
     useEffect(() => {
         const path = location.pathname;
-        if (path.includes('/add-booking')) {
-            setActiveMenu('add-booking');
+        if (path.includes('/reservations')) {
+            setActiveMenu('reservations');
         } else if (path.includes('/rooms')) {
             setActiveMenu('rooms');
-        } else if (path.includes('/bookings')) {
-            setActiveMenu('bookings');
         } else if (path.includes('/food-menu')) {
             setActiveMenu('food-menu');
         } else if (path.includes('/customers')) {
@@ -279,7 +276,7 @@ const AdminDashboard = () => {
     const menuItems = [
         { id: 'dashboard', icon: '🏠', label: 'Dashboard' },
         { id: 'rooms', icon: '🛏️', label: 'Rooms' },
-        { id: 'bookings', icon: '📅', label: 'Bookings' },
+        { id: 'reservations', icon: '🏨', label: 'Reservation & Stay Management' },
         { id: 'food-menu', icon: '🍽️', label: 'Food Menu' },
         { 
             id: 'proper-configuration', 
@@ -683,14 +680,9 @@ const AdminDashboard = () => {
                         </div>
                     )}
 
-                    {/* Bookings View */}
-                    {activeMenu === 'bookings' && (
-                        <Bookings />
-                    )}
-
-                    {/* Add Booking View */}
-                    {activeMenu === 'add-booking' && (
-                        <AddBooking />
+                    {/* Reservation & Stay Management View */}
+                    {activeMenu === 'reservations' && (
+                        <ReservationStayManagement />
                     )}
 
                     {/* Food Menu View */}
