@@ -52,7 +52,7 @@ const ReservationStayManagement = () => {
     // Form State - Guest Information
     const [selectedGuest, setSelectedGuest] = useState(null);
     const [showGuestModal, setShowGuestModal] = useState(false);
-    const [guests, setGuests] = useState(getDummyGuests());
+    const [guests] = useState(getDummyGuests());
 
     // Billing State
     const [paidAmount, setPaidAmount] = useState(0);
@@ -63,7 +63,7 @@ const ReservationStayManagement = () => {
     const [invoices, setInvoices] = useState([]);
     const [currentInvoice, setCurrentInvoice] = useState(null);
     const [showInvoiceModal, setShowInvoiceModal] = useState(false);
-    const [invoiceGenerationInProgress, setInvoiceGenerationInProgress] = useState(false);
+    const [_invoiceGenerationInProgress, setInvoiceGenerationInProgress] = useState(false);
 
     // Room Categories
     const roomCategories = useMemo(() => ({
