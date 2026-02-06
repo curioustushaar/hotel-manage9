@@ -650,7 +650,24 @@ const ReservationStayManagement = () => {
                             </div>
                             <div className="details-header-top">
                                 <div className="header-tabs">
-                                    <button className="tab-option active">Less Reservation</button>
+                                    <button 
+                                        className="tab-option active"
+                                        onClick={() => {
+                                            setShowAmendStayModal(true);
+                                            if (selectedReservation) {
+                                                setAmendArrivalDate(selectedReservation.checkInDate);
+                                                const arrivalConverted = convertTo12Hour(selectedReservation.checkInTime);
+                                                setAmendArrivalTime(arrivalConverted.time);
+                                                setAmendArrivalPeriod(arrivalConverted.period);
+                                                setAmendDepartureDate(selectedReservation.checkOutDate);
+                                                const departureConverted = convertTo12Hour(selectedReservation.checkOutTime);
+                                                setAmendDepartureTime(departureConverted.time);
+                                                setAmendDeparturePeriod(departureConverted.period);
+                                            }
+                                        }}
+                                    >
+                                        Edit Reservation
+                                    </button>
                                     <div className="more-options-wrapper">
                                         <button 
                                             className="tab-option tab-more-options"
