@@ -12,6 +12,7 @@ import DemoForm from './components/DemoForm'
 import Footer from './components/Footer'
 import Login from './pages/Login/Login'
 import AdminDashboard from './pages/Dashboard/AdminDashboard'
+import QRScanPage from './pages/QRScan/QRScanPage'
 import './index.css'
 
 // Home Page Component
@@ -49,6 +50,7 @@ function App() {
         <Route path="/admin/my-profile" element={<AdminDashboard />} />
         <Route path="/admin/cashier-report" element={<AdminDashboard />} />
         <Route path="/admin/food-payment-report" element={<AdminDashboard />} />
+        <Route path="/scan-qr/:roomId" element={<QRScanPage />} />
       </Routes>
     </Router>
   )
