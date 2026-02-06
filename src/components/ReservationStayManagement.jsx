@@ -18,6 +18,7 @@ const ReservationStayManagement = () => {
     const [reservations, setReservations] = useState(getDummyReservations());
     const [isEditingMode, setIsEditingMode] = useState(false);
     const [editingReservationId, setEditingReservationId] = useState(null);
+    const [selectedReservation, setSelectedReservation] = useState(null);
 
     // Form State - Reservation Meta
     const [reservationType, setReservationType] = useState('Confirm');
@@ -60,6 +61,18 @@ const ReservationStayManagement = () => {
     const [currentInvoice, setCurrentInvoice] = useState(null);
     const [showInvoiceModal, setShowInvoiceModal] = useState(false);
     const [invoiceGenerationInProgress, setInvoiceGenerationInProgress] = useState(false);
+    
+    // More Options Menu State
+    const [showMoreOptions, setShowMoreOptions] = useState(false);
+    const [showAmendStayModal, setShowAmendStayModal] = useState(false);
+    
+    // Amend Stay State
+    const [amendArrivalDate, setAmendArrivalDate] = useState('');
+    const [amendArrivalTime, setAmendArrivalTime] = useState('');
+    const [amendArrivalPeriod, setAmendArrivalPeriod] = useState('PM');
+    const [amendDepartureDate, setAmendDepartureDate] = useState('');
+    const [amendDepartureTime, setAmendDepartureTime] = useState('');
+    const [amendDeparturePeriod, setAmendDeparturePeriod] = useState('AM');
 
     // Room Categories
     const roomCategories = useMemo(() => ({
@@ -292,6 +305,82 @@ const ReservationStayManagement = () => {
         });
     }, [reservations, activeTab]);
 
+    // Convert 24-hour to 12-hour format
+    const convertTo12Hour = (time24) => {
+        if (!time24) return { time: '12:00', period: 'PM' };
+        const [hours, minutes] = time24.split(':');
+        let hour = parseInt(hours);
+        const period = hour >= 12 ? 'PM' : 'AM';
+        hour = hour % 12 || 12;
+        return { time: `${hour.toString().padStart(2, '0')}:${minutes}`, period };
+    };
+
+    // Convert 12-hour to 24-hour format
+    const convertTo24Hour = (time12, period) => {
+        if (!time12) return '00:00';
+        const [hours, minutes] = time12.split(':');
+        let hour = parseInt(hours);
+        if (period === 'PM' && hour !== 12) hour += 12;
+        if (period === 'AM' && hour === 12) hour = 0;
+        return `${hour.toString().padStart(2, '0')}:${minutes}`;
+    };
+
+    // Handle Amend Stay Submit
+    const handleAmendStaySubmit = () => {
+        if (!selectedReservation) return;
+
+        if (!amendArrivalDate || !amendDepartureDate) {
+            alert('Please enter both arrival and departure dates');
+            return;
+        }
+
+        if (!amendArrivalTime || !amendDepartureTime) {
+            alert('Please enter both arrival and departure times');
+            return;
+        }
+
+        if (new Date(amendDepartureDate) <= new Date(amendArrivalDate)) {
+            alert('Departure date must be after arrival date');
+            return;
+        }
+
+        // Convert to 24-hour format for storage
+        const arrivalTime24 = convertTo24Hour(amendArrivalTime, amendArrivalPeriod);
+        const departureTime24 = convertTo24Hour(amendDepartureTime, amendDeparturePeriod);
+
+        const updatedReservation = {
+            ...selectedReservation,
+            checkInDate: amendArrivalDate,
+            checkInTime: arrivalTime24,
+            checkOutDate: amendDepartureDate,
+            checkOutTime: departureTime24,
+            updatedAt: new Date().toISOString()
+        };
+
+        // Recalculate nights
+        const inDate = new Date(amendArrivalDate);
+        const outDate = new Date(amendDepartureDate);
+        const calculatedNights = Math.max(1, Math.ceil((outDate - inDate) / (1000 * 60 * 60 * 24)));
+        
+        // Recalculate billing
+        const roomCharges = updatedReservation.rooms.reduce((sum, room) => sum + (room.ratePerNight * calculatedNights), 0);
+        const totalDiscount = updatedReservation.rooms.reduce((sum, room) => sum + (room.discount * calculatedNights), 0);
+        const subtotal = roomCharges - totalDiscount;
+        const taxAmount = updatedReservation.taxExempt ? 0 : Math.round(subtotal * 0.12);
+        const totalAmount = subtotal + taxAmount;
+        const balanceDue = Math.max(0, totalAmount - updatedReservation.paidAmount);
+
+        updatedReservation.nights = calculatedNights;
+        updatedReservation.roomCharges = roomCharges;
+        updatedReservation.totalAmount = totalAmount;
+        updatedReservation.balanceDue = balanceDue;
+
+        setReservations(reservations.map(r => r.id === selectedReservation.id ? updatedReservation : r));
+        setSelectedReservation(updatedReservation);
+        setShowAmendStayModal(false);
+        alert(`Stay updated successfully!\nCheck-in: ${amendArrivalDate} at ${amendArrivalTime} ${amendArrivalPeriod}\nCheck-out: ${amendDepartureDate} at ${amendDepartureTime} ${amendDeparturePeriod}\nTotal nights: ${calculatedNights}`);
+    };
+
     if (view === 'form') {
         return (
             <div className="reservation-management-container">
@@ -516,25 +605,256 @@ const ReservationStayManagement = () => {
                 ))}
             </div>
 
-            {/* Reservation Cards */}
-            <div className="reservation-cards-grid">
-                {filteredReservations.length > 0 ? (
-                    filteredReservations.map(reservation => (
-                        <ReservationCard
-                            key={reservation.id}
-                            reservation={reservation}
-                            onUpdateStatus={handleUpdateReservationStatus}
-                            onEdit={handleEditReservation}
-                            onDelete={handleDeleteReservation}
-                            onGenerateInvoice={handleGenerateInvoice}
-                        />
-                    ))
-                ) : (
-                    <div className="no-data-message">
-                        <p>No reservations found for this status</p>
+            {/* Reservation Cards and Details Panel */}
+            <div className="reservation-content-layout">
+                <div className={`reservation-cards-grid ${selectedReservation ? 'with-details' : ''}`}>
+                    {filteredReservations.length > 0 ? (
+                        filteredReservations.map(reservation => (
+                            <ReservationCard
+                                key={reservation.id}
+                                reservation={reservation}
+                                onUpdateStatus={handleUpdateReservationStatus}
+                                onEdit={handleEditReservation}
+                                onDelete={handleDeleteReservation}
+                                onGenerateInvoice={handleGenerateInvoice}
+                                onSelect={setSelectedReservation}
+                                isSelected={selectedReservation?.id === reservation.id}
+                            />
+                        ))
+                    ) : (
+                        <div className="no-data-message">
+                            <p>No reservations found for this status</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Details Panel */}
+                {selectedReservation && (
+                    <div className="reservation-details-panel">
+                        <div className="details-header">
+                            <button 
+                                className="close-details-btn-top"
+                                onClick={() => setSelectedReservation(null)}
+                            >
+                                ✕
+                            </button>
+                            <div className="details-guest-info">
+                                <div className="guest-info-row">
+                                    <span className="guest-icon">👤</span>
+                                    <span className="guest-name-header">{selectedReservation.guestName}</span>
+                                </div>
+                                <div className="guest-info-row">
+                                    <span className="phone-icon">📞</span>
+                                    <span className="phone-number">{selectedReservation.guestPhone}</span>
+                                </div>
+                            </div>
+                            <div className="details-header-top">
+                                <div className="header-tabs">
+                                    <button 
+                                        className="tab-option active"
+                                        onClick={() => {
+                                            setShowAmendStayModal(true);
+                                            if (selectedReservation) {
+                                                setAmendArrivalDate(selectedReservation.checkInDate);
+                                                const arrivalConverted = convertTo12Hour(selectedReservation.checkInTime);
+                                                setAmendArrivalTime(arrivalConverted.time);
+                                                setAmendArrivalPeriod(arrivalConverted.period);
+                                                setAmendDepartureDate(selectedReservation.checkOutDate);
+                                                const departureConverted = convertTo12Hour(selectedReservation.checkOutTime);
+                                                setAmendDepartureTime(departureConverted.time);
+                                                setAmendDeparturePeriod(departureConverted.period);
+                                            }
+                                        }}
+                                    >
+                                        Edit Reservation
+                                    </button>
+                                    <div className="more-options-wrapper">
+                                        <button 
+                                            className="tab-option tab-more-options"
+                                            onClick={() => setShowMoreOptions(!showMoreOptions)}
+                                        >
+                                            More Options
+                                            <span className="dropdown-arrow">▼</span>
+                                        </button>
+                                        {showMoreOptions && (
+                                            <div className="more-options-dropdown">
+                                                <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Check-In</button>
+                                                <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Add Payment</button>
+                                                <button className="dropdown-item" onClick={() => {
+                                                    setShowAmendStayModal(true);
+                                                    setShowMoreOptions(false);
+                                                    if (selectedReservation) {
+                                                        setAmendArrivalDate(selectedReservation.checkInDate);
+                                                        const arrivalConverted = convertTo12Hour(selectedReservation.checkInTime);
+                                                        setAmendArrivalTime(arrivalConverted.time);
+                                                        setAmendArrivalPeriod(arrivalConverted.period);
+                                                        setAmendDepartureDate(selectedReservation.checkOutDate);
+                                                        const departureConverted = convertTo12Hour(selectedReservation.checkOutTime);
+                                                        setAmendDepartureTime(departureConverted.time);
+                                                        setAmendDeparturePeriod(departureConverted.period);
+                                                    }
+                                                }}>Amend Stay</button>
+                                                <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Room Move</button>
+                                                <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Exchange Room</button>
+                                                <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Add Show Visitor</button>
+                                                <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Void Reservation</button>
+                                                <button className="dropdown-item dropdown-item-danger" onClick={() => setShowMoreOptions(false)}>Cancel</button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button className="tab-option tab-print">Print</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="details-content">
+                            <table className="details-table">
+                                <tbody>
+                                    <tr>
+                                        <td className="details-label">Reservation Number</td>
+                                        <td className="details-value">{selectedReservation.id}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="details-label">Status</td>
+                                        <td className="details-value">
+                                            <span className={`status-badge-small ${selectedReservation.status.toLowerCase()}`}>
+                                                {selectedReservation.status.replace('_', ' ')}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td className="details-label">Arrival Date</td>
+                                        <td className="details-value">{new Date(selectedReservation.checkInDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="details-label">Departure Date</td>
+                                        <td className="details-value">{new Date(selectedReservation.checkOutDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="details-label">Booking Date</td>
+                                        <td className="details-value">{new Date(selectedReservation.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="details-label">Reservation Type</td>
+                                        <td className="details-value">{selectedReservation.reservationType}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="details-label">Level Type</td>
+                                        <td className="details-value">{selectedReservation.rooms?.[0]?.categoryId?.replace(/-/g, ' ').toUpperCase() || 'N/A'}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="details-label">Room / Occupancy</td>
+                                        <td className="details-value">{selectedReservation.rooms?.[0]?.adultsCount || 0} Adult(s), {selectedReservation.rooms?.[0]?.childrenCount || 0} Child(ren)</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="details-label">Total Bills</td>
+                                        <td className="details-value details-value-highlight">₹{selectedReservation.totalAmount?.toLocaleString('en-IN') || '0'}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
             </div>
+
+            {/* Amend Stay Modal */}
+            {showAmendStayModal && (
+                <div className="amend-stay-modal-overlay" onClick={() => setShowAmendStayModal(false)}>
+                    <div className="amend-stay-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="amend-stay-header">
+                            <h3>AmmendStay</h3>
+                            <button className="close-modal-btn" onClick={() => setShowAmendStayModal(false)}>✕</button>
+                        </div>
+                        
+                        <div className="amend-stay-content">
+                            <div className="amend-date-row">
+                                <label>Arrival Date</label>
+                                <div className="date-time-inputs-full">
+                                    <input 
+                                        type="date" 
+                                        value={amendArrivalDate}
+                                        onChange={(e) => setAmendArrivalDate(e.target.value)}
+                                        className="date-input"
+                                    />
+                                    <div className="time-with-period">
+                                        <select 
+                                            value={amendArrivalPeriod}
+                                            onChange={(e) => setAmendArrivalPeriod(e.target.value)}
+                                            className="period-select-inline"
+                                        >
+                                            <option value="AM">AM</option>
+                                            <option value="PM">PM</option>
+                                        </select>
+                                        <input 
+                                            type="time" 
+                                            value={amendArrivalTime}
+                                            onChange={(e) => setAmendArrivalTime(e.target.value)}
+                                            className="time-input-12"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="amend-date-row">
+                                <label>Departure Date</label>
+                                <div className="date-time-inputs-full">
+                                    <input 
+                                        type="date" 
+                                        value={amendDepartureDate}
+                                        onChange={(e) => setAmendDepartureDate(e.target.value)}
+                                        className="date-input"
+                                    />
+                                    <div className="time-with-period">
+                                        <select 
+                                            value={amendDeparturePeriod}
+                                            onChange={(e) => setAmendDeparturePeriod(e.target.value)}
+                                            className="period-select-inline"
+                                        >
+                                            <option value="AM">AM</option>
+                                            <option value="PM">PM</option>
+                                        </select>
+                                        <input 
+                                            type="time" 
+                                            value={amendDepartureTime}
+                                            onChange={(e) => setAmendDepartureTime(e.target.value)}
+                                            className="time-input-12"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="next-reservation-section">
+                                <h4>Next Reservation</h4>
+                                <div className="next-res-field">
+                                    <label>Reservation Number</label>
+                                    <input type="text" className="text-input" disabled />
+                                </div>
+                                <div className="next-res-field">
+                                    <label>Guest</label>
+                                    <input type="text" className="text-input" disabled />
+                                </div>
+                                <div className="next-res-field">
+                                    <label>Arrival</label>
+                                    <input type="text" className="text-input" disabled />
+                                </div>
+                                <div className="next-res-field">
+                                    <label>Departure</label>
+                                    <input type="text" className="text-input" disabled />
+                                </div>
+                            </div>
+
+                            <div className="amend-stay-actions">
+                                <button 
+                                    className="btn-add-amend"
+                                    onClick={handleAmendStaySubmit}
+                                >
+                                    Add
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
