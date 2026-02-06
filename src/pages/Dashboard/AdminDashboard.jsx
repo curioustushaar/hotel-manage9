@@ -15,8 +15,10 @@ const AdminDashboard = () => {
     const location = useLocation();
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [activeMenu, setActiveMenu] = useState('dashboard');
+    const [sidebarOpen, setSidebarOpen] = useState(true);
     const [showViewProfile, setShowViewProfile] = useState(false);
     const [showChangePassword, setShowChangePassword] = useState(false);
+    const [openConfigDropdown, setOpenConfigDropdown] = useState(false);
     const [userData, setUserData] = useState({
         name: 'Admin User',
         email: 'admin@bireena.com',
@@ -47,6 +49,17 @@ const AdminDashboard = () => {
         capacity: ''
     });
     const [roomErrorMessage, setRoomErrorMessage] = useState('');
+
+    // Generate Room QR states
+    const [selectedStore, setSelectedStore] = useState('Testing 3.0');
+    const [selectedQRCategory, setSelectedQRCategory] = useState('');
+    const [selectedQRRoom, setSelectedQRRoom] = useState('');
+    const [qrSearchTable, setQRSearchTable] = useState('');
+    const [qrRoomsData, setQRRoomsData] = useState([]);
+    const [filteredQRRooms, setFilteredQRRooms] = useState([]);
+    const [showQRModal, setShowQRModal] = useState(false);
+    const [qrModalData, setQRModalData] = useState(null);
+    const [qrLoading, setQRLoading] = useState(false);
 
     // Room type categories
     const roomTypeCategories = {
@@ -161,6 +174,32 @@ const AdminDashboard = () => {
         setFilteredRooms(filtered);
     }, [rooms, searchQuery, selectedType, selectedStatus]);
 
+    // Filter QR rooms based on search and category
+    useEffect(() => {
+        let filtered = [...rooms];
+
+        if (qrSearchTable) {
+            filtered = filtered.filter(room =>
+                room.roomNumber.toLowerCase().includes(qrSearchTable.toLowerCase()) ||
+                room.roomType.toLowerCase().includes(qrSearchTable.toLowerCase())
+            );
+        }
+
+        if (selectedQRCategory) {
+            filtered = filtered.filter(room => {
+                const roomType = room.roomType.toLowerCase();
+                const category = selectedQRCategory.toLowerCase();
+                return roomType.includes(category);
+            });
+        }
+
+        if (selectedQRRoom) {
+            filtered = filtered.filter(room => room.roomNumber === selectedQRRoom);
+        }
+
+        setFilteredQRRooms(filtered);
+    }, [rooms, qrSearchTable, selectedQRCategory, selectedQRRoom]);
+
     // Function to get user initials
     const getUserInitials = (name) => {
         const names = name.split(' ');
@@ -239,6 +278,19 @@ const AdminDashboard = () => {
         { id: 'rooms', icon: '🛏️', label: 'Rooms' },
         { id: 'reservations', icon: '🏨', label: 'Reservation & Stay Management' },
         { id: 'food-menu', icon: '🍽️', label: 'Food Menu' },
+        { 
+            id: 'proper-configuration', 
+            icon: '⚙️', 
+            label: 'Proper Configuration',
+            hasDropdown: true,
+            dropdownItems: [
+                { id: 'discount', label: 'Discount', icon: '💸' },
+                { id: 'taxes', label: 'Taxes', icon: '🧾' },
+                { id: 'tax-mapping', label: 'Tax Mapping', icon: '🔗' },
+                { id: 'generate-room-qr', label: 'Generate Room QR', icon: '📱' }
+            ]
+        },
+        { id: 'add-booking', icon: '➕', label: 'Add Booking' },
         { id: 'customers', icon: '👥', label: 'Customers' },
         { id: 'settings', icon: '⚙️', label: 'Settings' },
         { id: 'cashier-report', icon: '💰', label: 'Cashier Report' },
@@ -253,6 +305,47 @@ const AdminDashboard = () => {
             setSelectedType('All Types');
             setSelectedStatus('All Status');
         }
+    };
+
+    // Generate/View QR Code for Room
+    const handleViewQR = async (room) => {
+        setQRLoading(true);
+        try {
+            const response = await fetch(`http://localhost:5000/api/qr/generate/${room._id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setQRModalData({
+                    room: room,
+                    qrCode: data.data.qrCode,
+                    qrData: data.data.qrData
+                });
+                setShowQRModal(true);
+            } else {
+                alert('Failed to generate QR code: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error generating QR:', error);
+            alert('Failed to generate QR code. Please try again.');
+        } finally {
+            setQRLoading(false);
+        }
+    };
+
+    // Download QR Code
+    const handleDownloadQR = () => {
+        if (!qrModalData) return;
+
+        const link = document.createElement('a');
+        link.download = `Room-${qrModalData.room.roomNumber}-QR.png`;
+        link.href = qrModalData.qrCode;
+        link.click();
     };
 
     // Room management functions
@@ -368,24 +461,62 @@ const AdminDashboard = () => {
         return roomType.replace('Room', '').trim();
     };
 
+    const handleComingSoon = () => {
+        alert('Coming Soon!');
+    };
+
     return (
         <div className="admin-dashboard">
             {/* Left Sidebar */}
-            <div className="sidebar">
+            <div className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
                 <div className="sidebar-header">
-                    <h2 className="sidebar-logo">Bireena</h2>
+                    <h2 className="sidebar-logo">Bareena</h2>
                 </div>
 
                 <nav className="sidebar-nav">
                     {menuItems.map((item) => (
-                        <button
-                            key={item.id}
-                            className={`nav-item ${activeMenu === item.id ? 'active' : ''}`}
-                            onClick={() => handleMenuClick(item.id)}
-                        >
-                            <span className="nav-icon">{item.icon}</span>
-                            <span className="nav-label">{item.label}</span>
-                        </button>
+                        item.hasDropdown ? (
+                            <div key={item.id} className="nav-dropdown-wrapper">
+                                <button
+                                    className={`nav-item nav-item-dropdown ${openConfigDropdown ? 'dropdown-open' : ''}`}
+                                    onClick={() => setOpenConfigDropdown(!openConfigDropdown)}
+                                >
+                                    <span className="nav-icon">{item.icon}</span>
+                                    <span className="nav-label">{item.label}</span>
+                                    <svg 
+                                        className={`dropdown-arrow ${openConfigDropdown ? 'rotated' : ''}`} 
+                                        width="16" 
+                                        height="16" 
+                                        viewBox="0 0 24 24" 
+                                        fill="none" 
+                                        xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </button>
+                                <div className={`nav-dropdown-menu ${openConfigDropdown ? 'show' : ''}`}>
+                                    {item.dropdownItems.map((subItem) => (
+                                        <button
+                                            key={subItem.id}
+                                            className={`nav-dropdown-item ${activeMenu === subItem.id ? 'active' : ''}`}
+                                            onClick={() => handleMenuClick(subItem.id)}
+                                        >
+                                            <span className="nav-icon">{subItem.icon}</span>
+                                            <span className="nav-label">{subItem.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <button
+                                key={item.id}
+                                className={`nav-item ${activeMenu === item.id ? 'active' : ''}`}
+                                onClick={() => handleMenuClick(item.id)}
+                            >
+                                <span className="nav-icon">{item.icon}</span>
+                                <span className="nav-label">{item.label}</span>
+                            </button>
+                        )
                     ))}
                 </nav>
 
@@ -396,10 +527,36 @@ const AdminDashboard = () => {
             </div>
 
             {/* Main Content */}
-            <div className="main-content">
+            <div className={`main-content ${sidebarOpen ? '' : 'full-width'}`}>
                 {/* Top Bar */}
                 <div className="top-bar">
+                    <div className="top-bar-left">
+                        <button className="hamburger-menu" onClick={() => setSidebarOpen(!sidebarOpen)}>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </button>
+                        <h2 className="top-bar-logo">Bareena</h2>
+                    </div>
                     <div className="top-bar-right">
+                        <button className="top-icon-btn" onClick={handleComingSoon} title="Search">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                        </button>
+                        <button className="top-icon-btn" onClick={handleComingSoon} title="Bookmarks">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                        </button>
+                        <button className="top-icon-btn" onClick={handleComingSoon} title="Shopping">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                        </button>
                         <div className="profile-dropdown-wrapper">
                             <button
                                 className="profile-avatar-btn"
@@ -536,6 +693,170 @@ const AdminDashboard = () => {
                     {/* Food Payment Report View */}
                     {activeMenu === 'food-payment-report' && (
                         <FoodPaymentReport />
+                    )}
+
+                    {/* Proper Configuration Options */}
+                    {activeMenu === 'discount' && (
+                        <div className="content-section">
+                            <div className="section-header">
+                                <h1>💸 Discount Management</h1>
+                                <p className="section-subtitle">Create and manage discount rules for your services</p>
+                            </div>
+                            <div className="coming-soon-box">
+                                <div className="coming-soon-icon">🚧</div>
+                                <h2>Coming Soon</h2>
+                                <p>Discount management feature is under development</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeMenu === 'taxes' && (
+                        <div className="content-section">
+                            <div className="section-header">
+                                <h1>🧾 Tax Configuration</h1>
+                                <p className="section-subtitle">Set up and manage tax rates and rules</p>
+                            </div>
+                            <div className="coming-soon-box">
+                                <div className="coming-soon-icon">🚧</div>
+                                <h2>Coming Soon</h2>
+                                <p>Tax configuration feature is under development</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeMenu === 'tax-mapping' && (
+                        <div className="content-section">
+                            <div className="section-header">
+                                <h1>🔗 Tax Mapping</h1>
+                                <p className="section-subtitle">Map taxes to different products and services</p>
+                            </div>
+                            <div className="coming-soon-box">
+                                <div className="coming-soon-icon">🚧</div>
+                                <h2>Coming Soon</h2>
+                                <p>Tax mapping feature is under development</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeMenu === 'generate-room-qr' && (
+                        <div className="content-section generate-qr-section">
+                            <div className="qr-header">
+                                <div className="qr-header-title">
+                                    <span className="qr-icon">📱</span>
+                                    <h1>Generate Room QR</h1>
+                                </div>
+                            </div>
+
+                            <div className="qr-filters-row">
+                                <div className="qr-filter-group">
+                                    <label>Select Store</label>
+                                    <select
+                                        className="qr-select"
+                                        value={selectedStore}
+                                        onChange={(e) => setSelectedStore(e.target.value)}
+                                    >
+                                        <option value="Testing 3.0">Testing 3.0</option>
+                                        <option value="Store 1">Store 1</option>
+                                        <option value="Store 2">Store 2</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="qr-filters-row qr-filters-row-multi">
+                                <div className="qr-filter-group">
+                                    <select
+                                        className="qr-select"
+                                        value={selectedQRCategory}
+                                        onChange={(e) => {
+                                            setSelectedQRCategory(e.target.value);
+                                            setSelectedQRRoom('');
+                                        }}
+                                    >
+                                        <option value="">Select Category</option>
+                                        {[...new Set(rooms.map(room => room.roomType))].map(type => (
+                                            <option key={type} value={type}>{type}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="qr-filter-group">
+                                    <select
+                                        className="qr-select"
+                                        value={selectedQRRoom}
+                                        onChange={(e) => setSelectedQRRoom(e.target.value)}
+                                        disabled={!selectedQRCategory}
+                                    >
+                                        <option value="">Select Room</option>
+                                        {rooms
+                                            .filter(room => !selectedQRCategory || room.roomType === selectedQRCategory)
+                                            .map(room => (
+                                                <option key={room._id} value={room.roomNumber}>
+                                                    {room.roomNumber}
+                                                </option>
+                                            ))
+                                        }
+                                    </select>
+                                </div>
+
+                                <div className="qr-filter-group qr-search-group">
+                                    <input
+                                        type="text"
+                                        className="qr-search-input"
+                                        placeholder="Search Table"
+                                        value={qrSearchTable}
+                                        onChange={(e) => setQRSearchTable(e.target.value)}
+                                    />
+                                    <span className="qr-search-icon">🔍</span>
+                                </div>
+                            </div>
+
+                            <div className="qr-table-container">
+                                <table className="qr-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Category</th>
+                                            <th>Room Name</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredQRRooms.length > 0 ? (
+                                            filteredQRRooms.map((room) => (
+                                                <tr key={room._id}>
+                                                    <td>
+                                                        <span className={`qr-category-badge ${room.roomType.toLowerCase().replace(/\s+/g, '-')}`}>
+                                                            {room.roomType}
+                                                        </span>
+                                                    </td>
+                                                    <td>{room.roomNumber}</td>
+                                                    <td>
+                                                        <div className="qr-action-buttons">
+                                                            <button 
+                                                                className="qr-action-btn qr-view-btn" 
+                                                                title="Generate/View QR"
+                                                                onClick={() => handleViewQR(room)}
+                                                                disabled={qrLoading}
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                                    <circle cx="12" cy="12" r="3"></circle>
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="3" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                                                    {rooms.length === 0 ? 'No rooms available' : 'No rooms found matching your search'}
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     )}
 
                     {/* Settings View */}
@@ -848,6 +1169,110 @@ const AdminDashboard = () => {
                                         </button>
                                     </div>
                                 </form>
+                            </motion.div>
+                        </div>
+                    )}
+
+                    {/* QR Code Modal */}
+                    {showQRModal && qrModalData && (
+                        <div className="modal-overlay" onClick={() => setShowQRModal(false)}>
+                            <motion.div
+                                className="modal-content qr-modal-content"
+                                onClick={(e) => e.stopPropagation()}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <div className="qr-modal-header">
+                                    <div>
+                                        <h2>Room QR Code</h2>
+                                        <p className="qr-room-info">Room {qrModalData.room.roomNumber} - {qrModalData.room.roomType}</p>
+                                    </div>
+                                    <button 
+                                        className="close-modal-btn" 
+                                        onClick={() => setShowQRModal(false)}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+
+                                <div className="qr-modal-body">
+                                    <div className="qr-display-section">
+                                        <div className="qr-code-container">
+                                            <img src={qrModalData.qrCode} alt="Room QR Code" className="qr-code-image" />
+                                        </div>
+                                        
+                                        <div className="qr-info-section">
+                                            <div className="qr-info-card">
+                                                <h4>Scan Instructions</h4>
+                                                <p>To order from your Room {qrModalData.room.roomNumber}</p>
+                                                <p className="qr-instruction">Please scan this QR code on your mobile phone</p>
+                                                <p className="qr-store-name">{selectedStore}</p>
+                                            </div>
+
+                                            <div className="qr-details-card">
+                                                <div className="qr-detail-item">
+                                                    <span className="detail-label">Room Number:</span>
+                                                    <span className="detail-value">{qrModalData.room.roomNumber}</span>
+                                                </div>
+                                                <div className="qr-detail-item">
+                                                    <span className="detail-label">Category:</span>
+                                                    <span className="detail-value">{qrModalData.room.roomType}</span>
+                                                </div>
+                                                <div className="qr-detail-item">
+                                                    <span className="detail-label">Status:</span>
+                                                    <span className={`detail-value status-${qrModalData.room.status?.toLowerCase()}`}>
+                                                        {qrModalData.room.status}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="qr-action-section">
+                                        <button 
+                                            className="qr-download-btn"
+                                            onClick={handleDownloadQR}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                                <polyline points="7 10 12 15 17 10"></polyline>
+                                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                                            </svg>
+                                            Download QR
+                                        </button>
+                                        
+                                        <button 
+                                            className="qr-print-btn"
+                                            onClick={() => window.print()}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                                                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                                                <rect x="6" y="14" width="12" height="8"></rect>
+                                            </svg>
+                                            Print
+                                        </button>
+
+                                        <button 
+                                            className="qr-regenerate-btn"
+                                            onClick={() => handleViewQR(qrModalData.room)}
+                                            disabled={qrLoading}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <polyline points="23 4 23 10 17 10"></polyline>
+                                                <polyline points="1 20 1 14 7 14"></polyline>
+                                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                            </svg>
+                                            Regenerate
+                                        </button>
+                                    </div>
+
+                                    <div className="qr-notes">
+                                        <p><strong>Note:</strong> Please make sure to generate every room's QR separately.</p>
+                                        <p>Click <a href={qrModalData.qrData.scanUrl} target="_blank" rel="noopener noreferrer">here</a> to open the app.</p>
+                                    </div>
+                                </div>
                             </motion.div>
                         </div>
                     )}

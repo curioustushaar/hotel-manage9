@@ -10,6 +10,7 @@ dotenv.config();
 const menuRoutes = require('./routes/menuRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const roomRoutes = require('./routes/roomRoutes');
+const qrCodeRoutes = require('./routes/qrCodeRoutes');
 
 // Initialize express app
 const app = express();
@@ -40,6 +41,7 @@ connectDB();
 app.use('/api/menu', menuRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/rooms', roomRoutes);
+app.use('/api/qr', qrCodeRoutes);
 
 // Root route
 app.get('/', (req, res) => {
