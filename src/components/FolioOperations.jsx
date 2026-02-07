@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import API_URL_CONFIG from '../config/api';
 import './FolioOperations.css';
 import AddPayment from './AddPayment';
 import AddCharges from './AddCharges';
@@ -13,7 +14,7 @@ const FolioOperations = ({ reservation }) => {
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const API_URL = 'http://localhost:5000/api/bookings';
+    const API_URL = `${API_URL_CONFIG}/api/bookings`;
 
     // Fetch transactions on component load
     useEffect(() => {

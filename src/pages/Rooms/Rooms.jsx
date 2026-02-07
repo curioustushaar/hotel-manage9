@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import API_URL from '../../config/api';
 import './Rooms.css';
 
 const Rooms = () => {
@@ -80,7 +81,7 @@ const Rooms = () => {
             // Clear old localStorage data first
             localStorage.removeItem('hotelRooms');
             
-            const response = await fetch('http://localhost:5000/api/rooms/list');
+            const response = await fetch(`${API_URL}/api/rooms/list`);
             const data = await response.json();
             if (data.success) {
                 setRooms(data.data);
@@ -173,7 +174,7 @@ const Rooms = () => {
                     status: 'Available'
                 };
 
-                const response = await fetch('http://localhost:5000/api/rooms/add', {
+                const response = await fetch(`${API_URL}/api/rooms/add`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(newRoom)
@@ -197,7 +198,7 @@ const Rooms = () => {
                     price: parseInt(formData.price)
                 };
 
-                const response = await fetch(`http://localhost:5000/api/rooms/update/${currentRoom._id}`, {
+                const response = await fetch(`${API_URL}/api/rooms/update/${currentRoom._id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(updatedRoom)

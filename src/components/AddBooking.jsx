@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import API_URL from '../config/api';
 import './AddBooking.css';
 
 const AddBooking = () => {
@@ -69,7 +70,7 @@ const AddBooking = () => {
 
     const fetchAvailableRooms = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/rooms/list');
+            const response = await fetch(`${API_URL}/api/rooms/list`);
             const data = await response.json();
             
             if (data.success) {
@@ -260,7 +261,7 @@ const AddBooking = () => {
         };
 
         try {
-            const response = await fetch('http://localhost:5000/api/bookings/add', {
+            const response = await fetch(`${API_URL}/api/bookings/add`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -325,7 +326,7 @@ const AddBooking = () => {
         };
 
         try {
-            const response = await fetch('http://localhost:5000/api/bookings/add', {
+            const response = await fetch(`${API_URL}/api/bookings/add`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

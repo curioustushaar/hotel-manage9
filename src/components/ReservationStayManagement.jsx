@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence } from 'framer-motion';
+import API_URL_CONFIG from '../config/api';
 import './ReservationStayManagement.css';
 import './CreateGuestForm.css';
 import RoomRow from './RoomRow';
@@ -23,7 +24,7 @@ const ReservationStayManagement = () => {
     const [selectedReservation, setSelectedReservation] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const API_URL = 'http://localhost:5000/api/bookings';
+    const API_URL = `${API_URL_CONFIG}/api/bookings`;
 
     // Fetch reservations from MongoDB
     useEffect(() => {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import API_URL from '../../config/api';
 import './DashboardHome.css';
 
 const DashboardHome = () => {
@@ -84,12 +85,12 @@ const DashboardHome = () => {
     const calculateStatistics = async () => {
         try {
             // Fetch rooms from MongoDB API
-            const roomsResponse = await fetch('http://localhost:5000/api/rooms/list');
+            const roomsResponse = await fetch(`${API_URL}/api/rooms/list`);
             const roomsData = await roomsResponse.json();
             const rooms = roomsData.success ? roomsData.data : [];
 
             // Fetch bookings from MongoDB API
-            const bookingsResponse = await fetch('http://localhost:5000/api/bookings/list');
+            const bookingsResponse = await fetch(`${API_URL}/api/bookings/list`);
             const bookingsData = await bookingsResponse.json();
             const bookings = bookingsData.success ? bookingsData.data : [];
 

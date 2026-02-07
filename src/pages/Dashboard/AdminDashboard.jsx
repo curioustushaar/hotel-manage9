@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import API_URL from '../../config/api';
 import FoodMenuDashboard from '../FoodMenu/FoodMenuDashboard';
 import FoodPaymentReport from '../FoodPaymentReport/FoodPaymentReport';
 import Settings from '../Settings/Settings';
@@ -141,7 +142,7 @@ const AdminDashboard = () => {
             // Clear old localStorage data
             localStorage.removeItem('hotelRooms');
             
-            const response = await fetch('http://localhost:5000/api/rooms/list');
+            const response = await fetch(`${API_URL}/api/rooms/list`);
             const data = await response.json();
             if (data.success) {
                 setRooms(data.data);
@@ -311,7 +312,7 @@ const AdminDashboard = () => {
     const handleViewQR = async (room) => {
         setQRLoading(true);
         try {
-            const response = await fetch(`http://localhost:5000/api/qr/generate/${room._id}`, {
+            const response = await fetch(`${API_URL}/api/qr/generate/${room._id}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -394,7 +395,7 @@ const AdminDashboard = () => {
                     status: 'Available'
                 };
 
-                const response = await fetch('http://localhost:5000/api/rooms/add', {
+                const response = await fetch(`${API_URL}/api/rooms/add`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(newRoom)
@@ -417,7 +418,7 @@ const AdminDashboard = () => {
                     price: parseInt(roomFormData.price)
                 };
 
-                const response = await fetch(`http://localhost:5000/api/rooms/update/${currentRoom._id}`, {
+                const response = await fetch(`${API_URL}/api/rooms/update/${currentRoom._id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(updatedRoom)
