@@ -8,7 +8,10 @@ const {
     deleteBooking,
     updateBookingStatus,
     getBookingsByRoom,
-    getBookingsByDateRange
+    getBookingsByDateRange,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction
 } = require('../controllers/bookingController');
 
 // Main routes
@@ -24,5 +27,10 @@ router.patch('/status/:id', updateBookingStatus);
 
 // Room-based routes
 router.get('/room/:roomNumber', getBookingsByRoom);
+
+// Transaction routes
+router.post('/:bookingId/transactions', addTransaction);
+router.put('/:bookingId/transactions/:transactionId', updateTransaction);
+router.delete('/:bookingId/transactions/:transactionId', deleteTransaction);
 
 module.exports = router;

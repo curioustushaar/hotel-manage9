@@ -1,0 +1,650 @@
+/* ============================================
+   FOLIO OPERATIONS STYLES - ENTERPRISE GRADE
+   ============================================ */
+
+.folio-operations-container {
+    display: flex;
+    gap: 0;
+    background: white;
+    border-radius: 0;
+    min-height: calc(100vh - 400px);
+    box-shadow: none;
+    border: 1px solid #e2e8f0;
+    border-top: none;
+}
+
+/* LEFT PANEL - ROOM/FOLIO SIDEBAR */
+.room-folio-sidebar {
+    width: 280px;
+    border-right: 1px solid #e5e7eb;
+    padding: 0;
+    background: white;
+    flex-shrink: 0;
+}
+
+.folio-sidebar-title {
+    font-size: 11px;
+    font-weight: 800;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin: 0;
+    padding: 8px 10px;
+    background: #1d4ed8;
+    border-bottom: none;
+    border-radius: 0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.room-folio-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+}
+
+.room-folio-item {
+    padding: 8px 10px;
+    background: #ffffff;
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+}
+
+.room-folio-item:first-child {
+    background: #f3f4f6;
+}
+
+.room-folio-item:hover {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+    box-shadow: none;
+    transform: none;
+}
+
+.room-folio-item:first-child:hover {
+    background: #e5e7eb;
+}
+
+.room-folio-item.active {
+    background: #dbeafe;
+    border-color: #3b82f6;
+    border-left: 3px solid #2563eb;
+    padding-left: 13px;
+    box-shadow: none;
+}
+
+.room-folio-item:first-child.active {
+    background: #dbeafe;
+    border-left: 3px solid #2563eb;
+}
+
+.room-number {
+    font-size: 12px;
+    font-weight: 500;
+    color: #000000;
+    margin-bottom: 0;
+    line-height: 1.4;
+}
+
+.room-folio-item.active .room-number {
+    color: #000000;
+    font-weight: 600;
+}
+
+.room-type-guest {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.room-type-text,
+.guest-name-text {
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+.room-folio-item.active .room-type-text,
+.room-folio-item.active .guest-name-text {
+    color: #6b7280;
+}
+
+/* RIGHT PANEL - MAIN CONTENT */
+.folio-main-content {
+    flex: 1;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    background: white;
+}
+
+.folio-action-buttons {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    flex-wrap: nowrap;
+}
+
+.folio-action-btn {
+    height: 28px;
+    padding: 0 10px;
+    background: white;
+    color: #334155;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 1;
+    box-shadow: none;
+}
+
+.folio-action-btn:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+    transform: none;
+    box-shadow: none;
+}
+
+.folio-action-btn:active {
+    transform: none;
+    box-shadow: none;
+}
+
+/* Apply Discount - Yellow Style */
+.btn-apply-discount {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    color: #92400e;
+}
+
+.btn-apply-discount:hover {
+    background: #fde68a;
+    border-color: #d97706;
+}
+
+/* FILTERS */
+.folio-filters {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 0;
+    background: transparent;
+    border: none;
+}
+
+.filter-group {
+    display: flex;
+    gap: 20px;
+}
+
+.filter-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #374151;
+    font-weight: 400;
+    cursor: pointer;
+    user-select: none;
+}
+
+.filter-checkbox input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    accent-color: #3b82f6;
+    margin: 0;
+}
+
+.filter-icons {
+    display: flex;
+    gap: 8px;
+}
+
+.icon-btn {
+    width: 28px;
+    height: 28px;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.icon-btn:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+    transform: none;
+}
+
+/* CHARGES TABLE */
+.folio-table-container {
+    flex: 1;
+    overflow-x: auto;
+    margin-bottom: 10px;
+    border: none;
+    border-radius: 0;
+    background: white;
+}
+
+.folio-charges-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.folio-charges-table thead {
+    background: #f8f9fa;
+    border-bottom: none;
+}
+
+.folio-charges-table th {
+    padding: 0 10px;
+    height: 32px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 500;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    line-height: 32px;
+    white-space: nowrap;
+    border-bottom: 1px solid #e5e7eb;
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    z-index: 10;
+}
+
+.folio-charges-table th:first-child {
+    width: 40px;
+    text-align: center;
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+.folio-charges-table th:nth-child(5),
+.folio-charges-table th:nth-child(6) {
+    text-align: right;
+}
+
+.folio-charges-table tbody tr {
+    border-bottom: 1px solid #eee;
+    transition: none;
+}
+
+.folio-charges-table tbody tr:hover {
+    background: transparent;
+}
+
+.folio-charges-table tbody tr:last-child {
+    border-bottom: 1px solid #eee;
+}
+
+.folio-charges-table td {
+    padding: 0 10px;
+    height: 32px;
+    font-size: 12px;
+    color: #111827;
+    vertical-align: middle;
+    line-height: 32px;
+}
+
+.folio-charges-table td:first-child {
+    text-align: center;
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+.folio-charges-table td:nth-child(3) {
+    font-weight: 500;
+}
+
+.amount-cell {
+    text-align: right;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.folio-charges-table td:nth-child(4) {
+    color: #6b7280;
+}
+
+.amount-cell {
+    font-weight: 600;
+    color: #111827;
+    text-align: right;
+}
+
+.folio-charges-table td:last-child {
+    text-align: right;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.folio-charges-table input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    accent-color: #3b82f6;
+    margin: 0;
+    vertical-align: middle;
+}
+
+/* SUMMARY SECTION */
+.folio-summary-section {
+    padding: 10px 0 0 0;
+    background: transparent;
+    border-radius: 0;
+    border: none;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    max-width: none;
+}
+
+.summary-left,
+.summary-right {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.summary-row,
+.summary-row-right {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 30px;
+    padding: 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.summary-row:last-child,
+.summary-row-right:last-child {
+    border-bottom: none;
+    padding-top: 0;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 6px;
+    padding-top: 6px;
+}
+
+.summary-label-text {
+    font-size: 12px;
+    color: #374151;
+    font-weight: 400;
+    letter-spacing: 0;
+}
+
+.summary-amount,
+.summary-amount-right {
+    font-size: 12px;
+    color: #111827;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.summary-row:last-child .summary-label-text,
+.summary-row-right:last-child .summary-label-text {
+    font-weight: 600;
+    color: #111827;
+}
+
+.summary-amount.grand-total {
+    color: #16a34a;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.summary-amount.remaining {
+    color: #dc2626;
+    font-weight: 700;
+}
+
+.summary-amount-right {
+    color: #111827;
+    font-weight: 600;
+}
+
+.summary-row-right:nth-child(3) .summary-amount-right {
+    color: #dc2626;
+    font-weight: 700;
+}
+
+.summary-amount-right.paid {
+    color: #16a34a;
+    font-weight: 700;
+}
+
+/* Edit Reservation View */
+.edit-reservation-view {
+    width: 100%;
+    background: #f8fafc;
+    min-height: 100vh;
+}
+
+.edit-reservation-content {
+    background: white;
+    border-radius: 0;
+    padding: 0;
+}
+
+.tab-content-placeholder {
+    padding: 48px 32px;
+    text-align: center;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-top: none;
+}
+
+.tab-content-placeholder h3 {
+    margin: 0 0 12px 0;
+    color: #0f172a;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.tab-content-placeholder p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* ACTION MENU BUTTON & DROPDOWN */
+.action-menu-btn {
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+    color: #6b7280;
+}
+
+.action-menu-btn:hover {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+.action-dropdown {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 140px;
+    margin-top: 4px;
+    overflow: hidden;
+}
+
+.action-dropdown button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    background: white;
+    text-align: left;
+    font-size: 12px;
+    color: #374151;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.action-dropdown button:hover {
+    background: #f9fafb;
+}
+
+.action-dropdown button:not(:last-child) {
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.action-dropdown button:last-child {
+    color: #dc2626;
+}
+
+.action-dropdown button:last-child:hover {
+    background: #fef2f2;
+}
+
+/* Payment Badge */
+.payment-badge {
+    color: #16a34a;
+    font-weight: 600;
+}
+
+.payment-amount {
+    color: #16a34a !important;
+    font-weight: 600;
+}
+
+/* Edit Transaction Modal */
+.edit-transaction-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.edit-transaction-modal {
+    background: white;
+    border-radius: 8px;
+    padding: 24px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.edit-transaction-modal h3 {
+    margin: 0 0 20px 0;
+    font-size: 1.25rem;
+    color: #111827;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 12px;
+}
+
+.edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.edit-field label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.edit-field input,
+.edit-field textarea {
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.2s ease;
+}
+
+.edit-field input:focus,
+.edit-field textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.edit-field textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.edit-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 8px;
+}
+
+.btn-cancel,
+.btn-save {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-cancel {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.btn-cancel:hover {
+    background: #e5e7eb;
+}
+
+.btn-save {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-save:hover {
+    background: #2563eb;
+}
