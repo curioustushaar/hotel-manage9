@@ -1,0 +1,216 @@
+/* Add Charges Modal Overlay */
+.add-charges-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-end;
+    z-index: 10000;
+    backdrop-filter: blur(2px);
+}
+
+/* Add Charges Modal */
+.add-charges-modal {
+    background: white;
+    width: 420px;
+    max-width: 90%;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+/* Header */
+.add-charges-header {
+    background: #3b5bdb;
+    color: white;
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 0;
+}
+
+.add-charges-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.add-charges-close {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    opacity: 0.9;
+    transition: opacity 0.2s;
+}
+
+.add-charges-close:hover {
+    opacity: 1;
+}
+
+/* Body */
+.add-charges-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+}
+
+/* Field */
+.add-charges-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.add-charges-field label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.add-charges-field label .required {
+    color: #dc2626;
+    margin-left: 2px;
+}
+
+.error-message {
+    font-size: 12px;
+    color: #dc2626;
+    margin-top: 4px;
+    display: block;
+}
+
+.add-charges-field input[type="text"],
+.add-charges-field input[type="number"],
+.add-charges-field input[type="date"],
+.add-charges-field select,
+.add-charges-field textarea {
+    padding: 9px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #111827;
+    font-family: inherit;
+    transition: border-color 0.15s;
+}
+
+.add-charges-field input.error,
+.add-charges-field select.error,
+.add-charges-field textarea.error {
+    border-color: #dc2626;
+}
+
+.add-charges-field input:focus,
+.add-charges-field select:focus,
+.add-charges-field textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.add-charges-field textarea {
+    resize: vertical;
+}
+
+.add-charges-field textarea::placeholder {
+    color: #9ca3af;
+}
+
+/* Amount Input Group */
+.add-charges-field .amount-input-group {
+    display: flex;
+    gap: 8px;
+}
+
+.add-charges-field .currency-select {
+    width: 90px;
+    flex-shrink: 0;
+}
+
+.add-charges-field .amount-input {
+    flex: 1;
+}
+
+/* Footer */
+.add-charges-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.add-charges-cancel-btn {
+    background: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    padding: 9px 24px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.add-charges-cancel-btn:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+}
+
+.add-charges-cancel-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.add-charges-submit-btn {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 9px 24px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.add-charges-submit-btn:hover {
+    background: #059669;
+}
+
+.add-charges-submit-btn:active {
+    background: #047857;
+}
+
+.add-charges-submit-btn:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.7;
+}

@@ -9,10 +9,12 @@ import ReservationCard from './ReservationCard';
 import InvoiceGenerator from './InvoiceGenerator';
 import InvoiceView from './InvoiceView';
 import './InvoiceView.css';
+import EditReservationModal from './EditReservationModal';
 
 const ReservationStayManagement = () => {
     const [view, setView] = useState('dashboard'); // 'dashboard' or 'form'
     const [activeTab, setActiveTab] = useState('all'); // 'all', 'reserved', 'in-house', 'checked-out'
+    const [showEditModal, setShowEditModal] = useState(false); // Edit Reservation Modal state
     
     // Reservation/Booking Data
     const [reservations, setReservations] = useState(getDummyReservations());
@@ -652,19 +654,7 @@ const ReservationStayManagement = () => {
                                 <div className="header-tabs">
                                     <button 
                                         className="tab-option active"
-                                        onClick={() => {
-                                            setShowAmendStayModal(true);
-                                            if (selectedReservation) {
-                                                setAmendArrivalDate(selectedReservation.checkInDate);
-                                                const arrivalConverted = convertTo12Hour(selectedReservation.checkInTime);
-                                                setAmendArrivalTime(arrivalConverted.time);
-                                                setAmendArrivalPeriod(arrivalConverted.period);
-                                                setAmendDepartureDate(selectedReservation.checkOutDate);
-                                                const departureConverted = convertTo12Hour(selectedReservation.checkOutTime);
-                                                setAmendDepartureTime(departureConverted.time);
-                                                setAmendDeparturePeriod(departureConverted.period);
-                                            }
-                                        }}
+                                        onClick={() => setShowEditModal(true)}
                                     >
                                         Edit Reservation
                                     </button>
@@ -681,8 +671,8 @@ const ReservationStayManagement = () => {
                                                 <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Check-In</button>
                                                 <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Add Payment</button>
                                                 <button className="dropdown-item" onClick={() => {
-                                                    setShowAmendStayModal(true);
                                                     setShowMoreOptions(false);
+                                                    // AmendStay modal removed
                                                     if (selectedReservation) {
                                                         setAmendArrivalDate(selectedReservation.checkInDate);
                                                         const arrivalConverted = convertTo12Hour(selectedReservation.checkInTime);
@@ -855,6 +845,13 @@ const ReservationStayManagement = () => {
                     </div>
                 </div>
             )}
+
+            {/* Edit Reservation Modal */}
+            <EditReservationModal 
+                isOpen={showEditModal}
+                onClose={() => setShowEditModal(false)}
+                reservation={selectedReservation}
+            />
         </div>
     );
 };
