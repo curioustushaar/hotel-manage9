@@ -75,7 +75,50 @@ exports.addBooking = async (req, res) => {
         }
 
         const booking = new Booking(bookingData);
+        
+        console.log('Creating booking with data:', bookingData);
+        
+        // Add initial room charge transaction
+        const checkInDate = new Date(bookingData.checkInDate);
+        const initialTransaction = {
+            type: 'charge',
+            day: checkInDate.toLocaleDateString('en-GB', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric',
+                weekday: 'short'
+            }),
+            particulars: 'Room Tariff',
+            description: `Room Charges - ${bookingData.totalAmount} for ${checkInDate.toLocaleDateString('en-GB')} Room No: ${bookingData.roomNumber}`,
+            amount: bookingData.totalAmount || 0,
+            user: 'system'
+        };
+        
+        console.log('Initial transaction:', initialTransaction);
+        booking.transactions.push(initialTransaction);
+        
+        // Add advance payment transaction if advance is paid
+        if (bookingData.advancePaid && bookingData.advancePaid > 0) {
+            const advancePaymentTransaction = {
+                type: 'payment',
+                day: new Date().toLocaleDateString('en-GB', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    year: 'numeric',
+                    weekday: 'short'
+                }),
+                particulars: 'Advance Payment',
+                description: 'Advance payment received at booking',
+                amount: -Math.abs(bookingData.advancePaid),
+                user: 'system'
+            };
+            console.log('Advance payment transaction:', advancePaymentTransaction);
+            booking.transactions.push(advancePaymentTransaction);
+        }
+        
+        console.log('Booking before save - transactions:', booking.transactions);
         await booking.save();
+        console.log('Booking saved - transactions:', booking.transactions);
 
         // Update room status based on booking status
         const Room = require('../models/roomModel');
@@ -287,6 +330,106 @@ exports.getBookingsByDateRange = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error fetching bookings',
+            error: error.message
+        });
+    }
+};
+
+// Add transaction (charge or payment) to a booking
+exports.addTransaction = async (req, res) => {
+    try {
+        const { bookingId } = req.params;
+        const transactionData = req.body;
+
+        const booking = await Booking.findById(bookingId);
+        if (!booking) {
+            return res.status(404).json({
+                success: false,
+                message: 'Booking not found'
+            });
+        }
+
+        booking.transactions.push(transactionData);
+        await booking.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Transaction added successfully',
+            data: booking
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error adding transaction',
+            error: error.message
+        });
+    }
+};
+
+// Update transaction
+exports.updateTransaction = async (req, res) => {
+    try {
+        const { bookingId, transactionId } = req.params;
+        const updatedData = req.body;
+
+        const booking = await Booking.findById(bookingId);
+        if (!booking) {
+            return res.status(404).json({
+                success: false,
+                message: 'Booking not found'
+            });
+        }
+
+        const transaction = booking.transactions.id(transactionId);
+        if (!transaction) {
+            return res.status(404).json({
+                success: false,
+                message: 'Transaction not found'
+            });
+        }
+
+        Object.assign(transaction, updatedData);
+        await booking.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Transaction updated successfully',
+            data: booking
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error updating transaction',
+            error: error.message
+        });
+    }
+};
+
+// Delete transaction (void)
+exports.deleteTransaction = async (req, res) => {
+    try {
+        const { bookingId, transactionId } = req.params;
+
+        const booking = await Booking.findById(bookingId);
+        if (!booking) {
+            return res.status(404).json({
+                success: false,
+                message: 'Booking not found'
+            });
+        }
+
+        booking.transactions.pull(transactionId);
+        await booking.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Transaction deleted successfully',
+            data: booking
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error deleting transaction',
             error: error.message
         });
     }

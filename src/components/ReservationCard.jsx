@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import StatusBadge from './StatusBadge';
 
-const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGenerateInvoice = () => {} }) => {
+const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGenerateInvoice = () => {}, onSelect, isSelected }) => {
     const [showMenu, setShowMenu] = useState(false);
 
     const getPrimaryAction = (status) => {
@@ -35,11 +35,20 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
     const checkOutDate = new Date(reservation.checkOutDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
 
     return (
-        <div className="reservation-card-compact">
+        <div 
+            className={`reservation-card-compact ${isSelected ? 'selected' : ''}`}
+        >
             {/* Compact Header */}
-            <div className="compact-header">
+            <div 
+                className="compact-header clickable-header"
+                onClick={() => onSelect && onSelect(reservation)}
+            >
                 <div className="name-section">
-                    <h3 className="guest-name">{reservation.guestName}</h3>
+                    <h3 
+                        className="guest-name" 
+                    >
+                        {reservation.guestName}
+                    </h3>
                     <StatusBadge status={reservation.status} />
                 </div>
             </div>

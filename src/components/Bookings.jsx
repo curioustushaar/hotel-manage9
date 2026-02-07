@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import BookingRow from './BookingRow';
+import EditReservationModal from './EditReservationModal';
 import './Bookings.css';
 
 const Bookings = () => {
@@ -12,7 +13,9 @@ const Bookings = () => {
     const [selectedStatus, setSelectedStatus] = useState('All');
     const [showAddBookingModal, setShowAddBookingModal] = useState(false);
     const [showEditBookingModal, setShowEditBookingModal] = useState(false);
+    const [showEditReservationModal, setShowEditReservationModal] = useState(false);
     const [currentBooking, setCurrentBooking] = useState(null);
+    const [selectedReservation, setSelectedReservation] = useState(null);
     const [bookingErrorMessage, setBookingErrorMessage] = useState('');
     const [bookingFormData, setBookingFormData] = useState({
         bookingId: '',
@@ -70,18 +73,14 @@ const Bookings = () => {
     };
 
     const handleEditBooking = (booking) => {
-        setCurrentBooking(booking);
-        setBookingFormData({
-            bookingId: booking.bookingId,
-            guestName: booking.guestName,
-            roomNumber: booking.roomNumber,
-            roomType: booking.roomType,
-            checkInDate: booking.checkInDate,
-            checkOutDate: booking.checkOutDate || '',
-            status: booking.status
+        // Set data for EditReservationModal
+        setSelectedReservation({
+            ...booking,
+            id: booking._id, // Ensure ID is available
+            guestPhone: booking.mobileNumber || '000000000',
+            createdAt: booking.createdAt || new Date()
         });
-        setBookingErrorMessage('');
-        setShowEditBookingModal(true);
+        setShowEditReservationModal(true);
     };
 
     const handleDeleteBooking = async (id) => {
@@ -564,7 +563,16 @@ const Bookings = () => {
                     </motion.div>
                 </div>
             )}
-        </div>
+            {/* Edit Reservation Modal with Full Features */}
+            <EditReservationModal 
+                isOpen={showEditReservationModal}
+                onClose={() => {
+                    setShowEditReservationModal(false);
+                    setSelectedReservation(null);
+                    fetchBookingsFromAPI(); // Refresh list after closing
+                }}
+                reservation={selectedReservation}
+            />        </div>
     );
 };
 

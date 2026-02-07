@@ -1,0 +1,528 @@
+/* ============================================
+   EDIT RESERVATION MODAL - PROFESSIONAL PMS
+   ============================================ */
+
+/* Modal Overlay */
+.edit-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+/* Modal Card */
+.edit-modal-card {
+    background: #f5f5f5;
+    border-radius: 12px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.25);
+    width: 95%;
+    max-width: 1600px;
+    max-height: 95vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    animation: modalSlideIn 0.25s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(-12px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Close Button */
+.edit-modal-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: #666;
+    transition: all 0.2s ease;
+    z-index: 10;
+    font-weight: 300;
+}
+
+.edit-modal-close:hover {
+    background: white;
+    color: #333;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Modal Header */
+.edit-modal-header {
+    padding: 12px 20px 10px 20px;
+    border-bottom: 1px solid #ddd;
+    background: white;
+}
+
+.guest-info-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.guest-avatar-circle {
+    width: 42px;
+    height: 42px;
+    background: linear-gradient(135deg, #5b6fc7 0%, #7b87d8 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    color: white;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(91, 111, 199, 0.25);
+}
+
+.guest-name-section {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.guest-name-modal {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #222;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+}
+
+.guest-phone-modal {
+    margin: 0;
+    font-size: 0.7rem;
+    color: #666;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Booking Summary Row */
+.booking-summary-modal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 20px;
+    background: #fafafa;
+    border-bottom: 1px solid #ddd;
+}
+
+.summary-info-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.summary-col {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.summary-label-modal {
+    font-size: 0.55rem;
+    color: #777;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    line-height: 1.2;
+}
+
+.summary-value-modal {
+    font-size: 0.7rem;
+    color: #222;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.status-badge-modal {
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    display: inline-block;
+    letter-spacing: 0.3px;
+    line-height: 1.3;
+}
+
+.status-badge-modal.reserved {
+    background: #fff4e6;
+    color: #b87503;
+    border: 1px solid #ffd99e;
+}
+
+.status-badge-modal.in_house {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+}
+
+.status-badge-modal.checked_out {
+    background: #f5f5f5;
+    color: #616161;
+    border: 1px solid #e0e0e0;
+}
+
+.check-in-action {
+    flex-shrink: 0;
+}
+
+.btn-check-in-modal {
+    padding: 6px 14px;
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(22, 163, 74, 0.25);
+    transition: all 0.2s ease;
+    letter-spacing: 0.3px;
+    text-transform: capitalize;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+.btn-check-in-modal:hover {
+    background: #15803d;
+    box-shadow: 0 2px 6px rgba(22, 163, 74, 0.35);
+}
+
+/* Tabs Section */
+.modal-tabs-section {
+    border-bottom: 1px solid #ddd;
+    background: white;
+}
+
+.modal-tabs-section .reservation-tabs-container {
+    padding: 0 28px;
+    margin-bottom: 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.modal-tabs-section .reservation-tab-btn {
+    padding: 8px 14px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #666;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+}
+
+.modal-tabs-section .reservation-tab-btn:hover {
+    color: #333;
+    background-color: #fafafa;
+}
+
+.modal-tabs-section .reservation-tab-btn.active {
+    color: #c62828;
+    border-bottom-color: #c62828;
+    font-weight: 600;
+}
+
+/* Content Area */
+.modal-content-area {
+    flex: 1;
+    overflow-y: auto;
+    background: white;
+}
+
+.modal-content-area .folio-operations-container {
+    border: none;
+    box-shadow: none;
+    min-height: auto;
+    background: white;
+}
+
+.modal-content-area .room-folio-sidebar {
+    width: 260px;
+    padding: 18px 14px;
+    background: #fafafa;
+    border-right: 1px solid #ddd;
+}
+
+.modal-content-area .folio-sidebar-title {
+    font-size: 0.625rem;
+    font-weight: 700;
+    color: #666;
+    letter-spacing: 0.8px;
+    margin: 0 0 14px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.modal-content-area .room-folio-item {
+    padding: 11px 14px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.modal-content-area .room-folio-item:hover {
+    background: #f5f5f5;
+}
+
+.modal-content-area .room-folio-item.active {
+    background: #1976d2;
+    border-color: #1976d2;
+}
+
+.modal-content-area .room-number {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    margin: 0;
+    color: #333;
+}
+
+.modal-content-area .room-folio-item.active .room-number {
+    color: white;
+}
+
+.modal-content-area .folio-main-content {
+    padding: 18px 22px;
+}
+
+.modal-content-area .folio-action-buttons {
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.modal-content-area .folio-action-btn {
+    padding: 9px 18px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border-radius: 4px;
+    background: white;
+    color: #333;
+    border: 1px solid #ddd;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.modal-content-area .folio-action-btn:hover {
+    background: #fafafa;
+    border-color: #bbb;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.modal-content-area .btn-apply-discount {
+    border-color: #ffc107;
+    color: #f57c00;
+    background: #fffbf0;
+}
+
+.modal-content-area .btn-apply-discount:hover {
+    background: #fff8e1;
+    border-color: #ffb300;
+}
+
+.modal-content-area .btn-folio-ops {
+    border-color: #999;
+    background: white;
+}
+
+.modal-content-area .folio-filters {
+    padding: 11px 14px;
+    background: #fafafa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 14px;
+}
+
+.modal-content-area .filter-checkbox {
+    font-size: 0.8125rem;
+    color: #333;
+    font-weight: 500;
+    gap: 7px;
+}
+
+.modal-content-area .filter-checkbox input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+}
+
+.modal-content-area .icon-btn {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.8125rem;
+}
+
+.modal-content-area .folio-table-container {
+    border: 1px solid #ddd;
+    margin-bottom: 14px;
+}
+
+.modal-content-area .folio-charges-table thead {
+    background: #fafafa;
+    border-bottom: 1px solid #ddd;
+}
+
+.modal-content-area .folio-charges-table th {
+    padding: 11px 14px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    color: #666;
+    letter-spacing: 0.6px;
+}
+
+.modal-content-area .folio-charges-table td {
+    padding: 12px 14px;
+    font-size: 0.8125rem;
+    color: #333;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.modal-content-area .folio-charges-table td:first-child,
+.modal-content-area .folio-charges-table th:first-child {
+    text-align: center;
+    width: 42px;
+}
+
+.modal-content-area .folio-charges-table input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    accent-color: #1976d2;
+}
+
+.modal-content-area .amount-cell {
+    font-weight: 600;
+    color: #222;
+    text-align: right;
+}
+
+.modal-content-area .folio-summary-section {
+    padding: 18px 22px;
+    background: white;
+    border: 1px solid #ddd;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+}
+
+.modal-content-area .summary-grid {
+    gap: 40px;
+    max-width: 100%;
+}
+
+.modal-content-area .summary-row,
+.modal-content-area .summary-row-right {
+    padding: 7px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.modal-content-area .summary-row:last-child,
+.modal-content-area .summary-row-right:last-child {
+    border-bottom: none;
+    padding-top: 11px;
+    border-top: 1px solid #ddd;
+}
+
+.modal-content-area .summary-label-text {
+    font-size: 0.8125rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.modal-content-area .summary-amount,
+.modal-content-area .summary-amount-right {
+    font-size: 0.875rem;
+    color: #222;
+    font-weight: 600;
+}
+
+.modal-content-area .summary-amount.grand-total {
+    color: #28a745;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.modal-content-area .summary-amount.remaining {
+    color: #d32f2f;
+    font-weight: 700;
+}
+
+.modal-content-area .summary-amount-right {
+    color: #d32f2f;
+    font-weight: 700;
+}
+
+.modal-content-area .summary-amount-right.paid {
+    color: #28a745;
+    font-weight: 700;
+}
+
+/* Tab Placeholder */
+.tab-placeholder-modal {
+    padding: 40px 28px;
+    text-align: center;
+}
+
+.tab-placeholder-modal h3 {
+    margin: 0 0 10px 0;
+    color: #222;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.tab-placeholder-modal p {
+    margin: 0;
+    color: #666;
+    font-size: 0.8125rem;
+    font-weight: 400;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .edit-modal-card {
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .summary-info-row {
+        gap: 14px;
+    }
+    
+    .booking-summary-modal {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+    }
+    
+    .modal-content-area .room-folio-sidebar {
+        width: 220px;
+    }
+}

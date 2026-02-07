@@ -83,6 +83,38 @@ const bookingSchema = new mongoose.Schema(
             default: 'Upcoming'
         },
 
+        // Transactions (Charges and Payments)
+        transactions: [{
+            type: {
+                type: String,
+                enum: ['charge', 'payment'],
+                required: true
+            },
+            day: {
+                type: String,
+                required: true
+            },
+            particulars: {
+                type: String,
+                required: true
+            },
+            description: {
+                type: String
+            },
+            amount: {
+                type: Number,
+                required: true
+            },
+            user: {
+                type: String,
+                default: 'current_user'
+            },
+            createdAt: {
+                type: Date,
+                default: Date.now
+            }
+        }],
+
         // Timestamps
         createdAt: {
             type: Date,
