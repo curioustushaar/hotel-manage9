@@ -8,7 +8,7 @@ This is a professional Hotel Management System website that has been completely 
 
 ## 🎯 Features
 
-✅ **Component-based architecture** - Reusable and maintainable  
+✅ **Component-based architecture** - Reusable and maintainable     
 ✅ **Fully responsive** - Works on mobile, tablet, and desktop  
 ✅ **Interactive UI** - Dropdowns, sliders, and animations  
 ✅ **Modern tech stack** - React 18 + Vite  
