@@ -148,6 +148,17 @@ const FolioOperations = ({ reservation }) => {
         if (discountData.roomWiseDiscount) discountType.push('Room Wise');
         if (discountData.tableWiseDiscount) discountType.push('Table Wise');
 
+        // Calculate current subtotal (charges only)
+        const currentSubtotal = transactions.filter(t => t.amount > 0 && t.type !== 'discount').reduce((sum, t) => sum + t.amount, 0);
+        
+        // Calculate discount amount
+        let discountAmount = 0;
+        if (discountData.discountType === 'percentage') {
+            discountAmount = (currentSubtotal * parseFloat(discountData.discountValue)) / 100;
+        } else {
+            discountAmount = parseFloat(discountData.discountValue);
+        }
+
         const newTransaction = {
             type: 'discount',
             day: new Date(discountData.date).toLocaleDateString('en-GB', { 
@@ -156,10 +167,13 @@ const FolioOperations = ({ reservation }) => {
                 year: 'numeric',
                 weekday: 'short'
             }),
-            particulars: `Discount (${discountData.discountPercent}%)`,
+            particulars: discountData.discountType === 'percentage' 
+                ? `Discount (${discountData.discountValue}%)` 
+                : 'Discount (Fixed Amount)',
             description: `${discountType.join(' & ')} - ${discountData.comment || 'No comment'}`,
-            amount: 0, // Calculate actual discount amount based on bill
-            discountPercent: discountData.discountPercent,
+            amount: -Math.abs(discountAmount), // Negative to subtract from total
+            discountType: discountData.discountType,
+            discountValue: discountData.discountValue,
             folio: discountData.folio,
             user: 'current_user'
         };
@@ -308,12 +322,14 @@ User:        ${item.user}
     };
 
     const calculateTotals = () => {
-        const charges = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
-        const payments = Math.abs(transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
-        const grandTotal = charges;
+        const charges = transactions.filter(t => t.amount > 0 && t.type !== 'discount').reduce((sum, t) => sum + t.amount, 0);
+        const discounts = Math.abs(transactions.filter(t => t.type === 'discount').reduce((sum, t) => sum + t.amount, 0));
+        const payments = Math.abs(transactions.filter(t => t.type === 'payment' && t.amount < 0).reduce((sum, t) => sum + t.amount, 0));
+        const subTotal = charges - discounts; // Subtract discounts from charges
+        const grandTotal = subTotal;
         const remaining = grandTotal - payments;
 
-        return { subTotal: charges, grandTotal, paid: payments, remaining };
+        return { subTotal, grandTotal, paid: payments, remaining, totalDiscount: discounts };
     };
 
     const totals = calculateTotals();

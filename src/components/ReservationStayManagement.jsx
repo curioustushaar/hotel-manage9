@@ -11,6 +11,8 @@ import InvoiceGenerator from './InvoiceGenerator';
 import InvoiceView from './InvoiceView';
 import './InvoiceView.css';
 import EditReservationModal from './EditReservationModal';
+import MoreOptionsMenu from './MoreOptionsMenu';
+import BookingActionsManager from './BookingActionsManager';
 
 const ReservationStayManagement = () => {
     const [view, setView] = useState('dashboard'); // 'dashboard' or 'form'
@@ -140,6 +142,11 @@ const ReservationStayManagement = () => {
     const [showMoreOptions, setShowMoreOptions] = useState(false);
     const [showAmendStayModal, setShowAmendStayModal] = useState(false);
     
+    // Action Drawer State for More Options
+    const [actionDrawerOpen, setActionDrawerOpen] = useState(false);
+    const [currentAction, setCurrentAction] = useState(null);
+    const [actionBooking, setActionBooking] = useState(null);
+    
     // Amend Stay State
     const [amendArrivalDate, setAmendArrivalDate] = useState('');
     const [amendArrivalTime, setAmendArrivalTime] = useState('');
@@ -197,6 +204,50 @@ const ReservationStayManagement = () => {
             setShowInvoiceModal(true);
         }
     }, [invoices]);
+
+    // Handle More Options action selection
+    const handleMoreOptionsAction = (actionType) => {
+        if (!selectedReservation) return;
+        
+        // Convert reservation to booking format for the actions
+        const bookingData = {
+            _id: selectedReservation.id,
+            bookingId: selectedReservation.referenceNumber,
+            guestName: selectedReservation.guestName,
+            mobileNumber: selectedReservation.guestPhone,
+            email: selectedReservation.guestEmail,
+            roomNumber: selectedReservation.rooms?.[0]?.roomNumber || '',
+            roomType: selectedReservation.rooms?.[0]?.categoryId?.replace(/-/g, ' ').toUpperCase() || '',
+            checkInDate: selectedReservation.checkInDate,
+            checkOutDate: selectedReservation.checkOutDate,
+            numberOfNights: selectedReservation.nights,
+            numberOfGuests: selectedReservation.rooms?.[0]?.adultsCount || 1,
+            pricePerNight: selectedReservation.rooms?.[0]?.ratePerNight || 0,
+            totalAmount: selectedReservation.totalAmount || 0,
+            advancePaid: selectedReservation.paidAmount || 0,
+            status: selectedReservation.status === 'RESERVED' ? 'Upcoming' : 
+                    selectedReservation.status === 'IN_HOUSE' ? 'Checked-in' : 
+                    selectedReservation.status === 'CHECKED_OUT' ? 'Checked-out' : 'Upcoming',
+            visitors: [],
+            transactions: []
+        };
+        
+        setCurrentAction(actionType);
+        setActionBooking(bookingData);
+        setActionDrawerOpen(true);
+    };
+
+    // Handle action success - refresh reservations
+    const handleActionSuccess = async () => {
+        await fetchReservationsFromAPI();
+        // Update selected reservation if it's still in the list
+        if (selectedReservation) {
+            const updated = reservations.find(r => r.id === selectedReservation.id);
+            if (updated) {
+                setSelectedReservation(updated);
+            }
+        }
+    };
 
     // Handle Generate Invoice
     const handleGenerateInvoice = useCallback(async (reservation) => {
@@ -794,39 +845,18 @@ const ReservationStayManagement = () => {
                                     >
                                         Edit Reservation
                                     </button>
-                                    <div className="more-options-wrapper">
-                                        <button 
-                                            className="tab-option tab-more-options"
-                                            onClick={() => setShowMoreOptions(!showMoreOptions)}
-                                        >
-                                            More Options
-                                            <span className="dropdown-arrow">▼</span>
-                                        </button>
-                                        {showMoreOptions && (
-                                            <div className="more-options-dropdown">
-                                                <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Check-In</button>
-                                                <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Add Payment</button>
-                                                <button className="dropdown-item" onClick={() => {
-                                                    setShowMoreOptions(false);
-                                                    // AmendStay modal removed
-                                                    if (selectedReservation) {
-                                                        setAmendArrivalDate(selectedReservation.checkInDate);
-                                                        const arrivalConverted = convertTo12Hour(selectedReservation.checkInTime);
-                                                        setAmendArrivalTime(arrivalConverted.time);
-                                                        setAmendArrivalPeriod(arrivalConverted.period);
-                                                        setAmendDepartureDate(selectedReservation.checkOutDate);
-                                                        const departureConverted = convertTo12Hour(selectedReservation.checkOutTime);
-                                                        setAmendDepartureTime(departureConverted.time);
-                                                        setAmendDeparturePeriod(departureConverted.period);
-                                                    }
-                                                }}>Amend Stay</button>
-                                                <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Room Move</button>
-                                                <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Exchange Room</button>
-                                                <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Add Show Visitor</button>
-                                                <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Void Reservation</button>
-                                                <button className="dropdown-item dropdown-item-danger" onClick={() => setShowMoreOptions(false)}>Cancel</button>
-                                            </div>
-                                        )}
+                                    <div className="more-options-wrapper-stay">
+                                        <MoreOptionsMenu 
+                                            booking={selectedReservation ? {
+                                                _id: selectedReservation.id,
+                                                status: selectedReservation.status === 'RESERVED' ? 'Upcoming' : 
+                                                        selectedReservation.status === 'IN_HOUSE' ? 'Checked-in' : 
+                                                        selectedReservation.status === 'CHECKED_OUT' ? 'Checked-out' : 'Upcoming',
+                                                advancePaid: selectedReservation.paidAmount || 0
+                                            } : {}}
+                                            onActionSelect={handleMoreOptionsAction}
+                                            buttonLabel="More Options"
+                                        />
                                     </div>
                                     <button className="tab-option tab-print">Print</button>
                                 </div>
@@ -987,6 +1017,19 @@ const ReservationStayManagement = () => {
                 isOpen={showEditModal}
                 onClose={() => setShowEditModal(false)}
                 reservation={selectedReservation}
+            />
+
+            {/* More Options Action Drawer */}
+            <BookingActionsManager
+                isOpen={actionDrawerOpen}
+                onClose={() => {
+                    setActionDrawerOpen(false);
+                    setCurrentAction(null);
+                    setActionBooking(null);
+                }}
+                actionType={currentAction}
+                booking={actionBooking}
+                onSuccess={handleActionSuccess}
             />
         </div>
     );

@@ -6,15 +6,20 @@ const ApplyDiscount = ({ onClose, onApply, reservation }) => {
         date: new Date().toISOString().split('T')[0],
         roomWiseDiscount: true,
         tableWiseDiscount: false,
-        discountPercent: '',
+        discountType: 'percentage',
+        discountValue: '',
         folio: '',
         comment: ''
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!formData.discountPercent) {
-            alert('Please select discount percentage');
+        if (!formData.discountValue) {
+            alert('Please enter discount value');
+            return;
+        }
+        if (formData.discountType === 'percentage' && (formData.discountValue < 0 || formData.discountValue > 100)) {
+            alert('Percentage must be between 0 and 100');
             return;
         }
         onApply(formData);
@@ -72,25 +77,42 @@ const ApplyDiscount = ({ onClose, onApply, reservation }) => {
                         </label>
                     </div>
 
-                    {/* Discount Dropdown */}
+                    {/* Discount Type */}
                     <div className="form-group">
-                        <label>Discount</label>
-                        <select
-                            name="discountPercent"
-                            value={formData.discountPercent}
+                        <label>Discount Type</label>
+                        <div className="discount-type-buttons">
+                            <button
+                                type="button"
+                                className={`discount-type-btn ${formData.discountType === 'percentage' ? 'active' : ''}`}
+                                onClick={() => setFormData(prev => ({ ...prev, discountType: 'percentage', discountValue: '' }))}
+                            >
+                                Percentage (%)
+                            </button>
+                            <button
+                                type="button"
+                                className={`discount-type-btn ${formData.discountType === 'amount' ? 'active' : ''}`}
+                                onClick={() => setFormData(prev => ({ ...prev, discountType: 'amount', discountValue: '' }))}
+                            >
+                                Amount (₹)
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Discount Value Input */}
+                    <div className="form-group">
+                        <label>Discount {formData.discountType === 'percentage' ? 'Percentage' : 'Amount'}</label>
+                        <input
+                            type="number"
+                            name="discountValue"
+                            value={formData.discountValue}
                             onChange={handleChange}
-                            className="form-select"
+                            className="form-input"
+                            placeholder={formData.discountType === 'percentage' ? 'Enter discount percentage' : 'Enter discount amount'}
+                            min="0"
+                            max={formData.discountType === 'percentage' ? '100' : undefined}
+                            step={formData.discountType === 'amount' ? '0.01' : '1'}
                             required
-                        >
-                            <option value="">Select Discount</option>
-                            <option value="5">5%</option>
-                            <option value="10">10%</option>
-                            <option value="15">15%</option>
-                            <option value="20">20%</option>
-                            <option value="25">25%</option>
-                            <option value="30">30%</option>
-                            <option value="50">50%</option>
-                        </select>
+                        />
                     </div>
 
                     {/* Folio Field */}

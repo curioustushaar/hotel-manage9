@@ -7,7 +7,8 @@ const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
         date: new Date().toISOString().split('T')[0],
         roomWiseDiscount: true,
         tableWiseDiscount: false,
-        discountPercent: '',
+        discountType: 'percentage',
+        discountValue: '',
         folio: reservation ? `${reservation.roomNumber} - ${reservation.guestName}` : 'B5 - Shahrukh Ahmed',
         comment: ''
     });
@@ -16,8 +17,12 @@ const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
     const [showToast, setShowToast] = useState(false);
 
     const handleSubmit = async () => {
-        if (!formData.discountPercent) {
-            alert('Please enter discount percentage');
+        if (!formData.discountValue) {
+            alert('Please enter discount value');
+            return;
+        }
+        if (formData.discountType === 'percentage' && (formData.discountValue < 0 || formData.discountValue > 100)) {
+            alert('Percentage must be between 0 and 100');
             return;
         }
 
@@ -89,16 +94,38 @@ const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
                         </div>
                     </div>
 
+                    {/* Discount Type Buttons */}
+                    <div className="apply-discount-field">
+                        <label>Discount Type <span className="required">*</span></label>
+                        <div className="discount-type-buttons">
+                            <button
+                                type="button"
+                                className={`discount-type-btn ${formData.discountType === 'percentage' ? 'active' : ''}`}
+                                onClick={() => handleChange('discountType', 'percentage')}
+                            >
+                                Percentage (%)
+                            </button>
+                            <button
+                                type="button"
+                                className={`discount-type-btn ${formData.discountType === 'amount' ? 'active' : ''}`}
+                                onClick={() => handleChange('discountType', 'amount')}
+                            >
+                                Amount (₹)
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Discount Field */}
                     <div className="apply-discount-field">
-                        <label>Discount <span className="required">*</span></label>
+                        <label>{formData.discountType === 'percentage' ? 'Discount Percentage' : 'Discount Amount'} <span className="required">*</span></label>
                         <input
                             type="number"
-                            value={formData.discountPercent}
-                            onChange={(e) => handleChange('discountPercent', e.target.value)}
-                            placeholder="Enter discount percentage"
+                            value={formData.discountValue}
+                            onChange={(e) => handleChange('discountValue', e.target.value)}
+                            placeholder={formData.discountType === 'percentage' ? 'Enter discount percentage' : 'Enter discount amount'}
                             min="0"
-                            max="100"
+                            max={formData.discountType === 'percentage' ? '100' : undefined}
+                            step={formData.discountType === 'amount' ? '0.01' : '1'}
                         />
                     </div>
 

@@ -27,6 +27,33 @@ const bookingSchema = new mongoose.Schema(
             type: String,
             trim: true
         },
+        
+        // Check-in Details (for CHECK-IN action)
+        actualCheckInDate: {
+            type: Date
+        },
+        actualCheckInTime: {
+            type: String
+        },
+        numberOfAdults: {
+            type: Number,
+            default: 1
+        },
+        numberOfChildren: {
+            type: Number,
+            default: 0
+        },
+        vehicleNumber: {
+            type: String,
+            trim: true
+        },
+        securityDeposit: {
+            type: Number,
+            default: 0
+        },
+        checkInRemarks: {
+            type: String
+        },
 
         // Room Details
         roomType: {
@@ -79,7 +106,7 @@ const bookingSchema = new mongoose.Schema(
         // Status
         status: {
             type: String,
-            enum: ['Upcoming', 'Checked-in', 'Checked-out', 'Cancelled'],
+            enum: ['Upcoming', 'Checked-in', 'Checked-out', 'Cancelled', 'No-Show', 'Voided'],
             default: 'Upcoming'
         },
 
@@ -105,6 +132,14 @@ const bookingSchema = new mongoose.Schema(
                 type: Number,
                 required: true
             },
+            paymentMethod: {
+                type: String,
+                enum: ['Cash', 'Card', 'UPI', 'Bank Transfer', null],
+                default: null
+            },
+            referenceId: {
+                type: String
+            },
             user: {
                 type: String,
                 default: 'current_user'
@@ -112,6 +147,106 @@ const bookingSchema = new mongoose.Schema(
             createdAt: {
                 type: Date,
                 default: Date.now
+            }
+        }],
+        
+        // Visitors Log (for ADD VISITOR action)
+        visitors: [{
+            visitorName: {
+                type: String,
+                required: true
+            },
+            mobileNumber: {
+                type: String,
+                required: true
+            },
+            idProofType: {
+                type: String,
+                enum: ['Aadhaar', 'Passport', 'Driving License', 'Other'],
+                required: true
+            },
+            idProofNumber: {
+                type: String,
+                required: true
+            },
+            visitPurpose: {
+                type: String
+            },
+            inTime: {
+                type: Date,
+                default: Date.now
+            },
+            outTime: {
+                type: Date
+            }
+        }],
+        
+        // Cancellation / No-Show / Void Details
+        cancellationDetails: {
+            cancelledAt: {
+                type: Date
+            },
+            cancellationReason: {
+                type: String
+            },
+            cancellationCharges: {
+                type: Number,
+                default: 0
+            },
+            refundAmount: {
+                type: Number,
+                default: 0
+            },
+            refundMode: {
+                type: String,
+                enum: ['Cash', 'Card', 'UPI', 'Bank Transfer', null]
+            }
+        },
+        
+        noShowDetails: {
+            noShowAt: {
+                type: Date
+            },
+            noShowReason: {
+                type: String
+            },
+            noShowCharges: {
+                type: Number,
+                default: 0
+            }
+        },
+        
+        voidDetails: {
+            voidedAt: {
+                type: Date
+            },
+            voidReason: {
+                type: String
+            },
+            voidedBy: {
+                type: String
+            }
+        },
+        
+        // Audit Trail (for tracking all changes)
+        auditTrail: [{
+            action: {
+                type: String,
+                required: true
+            },
+            description: {
+                type: String
+            },
+            performedBy: {
+                type: String,
+                default: 'system'
+            },
+            performedAt: {
+                type: Date,
+                default: Date.now
+            },
+            metadata: {
+                type: mongoose.Schema.Types.Mixed
             }
         }],
 

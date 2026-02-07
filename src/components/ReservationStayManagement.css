@@ -109,7 +109,7 @@
 }
 
 .reservation-cards-grid.with-details {
-    width: calc(100% - 400px);
+    width: calc(100% - 470px);
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
 
@@ -1390,8 +1390,8 @@
    ============================================================ */
 
 .reservation-details-panel {
-    width: 380px;
-    min-width: 380px;
+    width: 450px;
+    min-width: 450px;
     background: #ffffff;
     border: 1px solid #e5e7eb;
     border-radius: 0.6rem;
@@ -1399,9 +1399,9 @@
     display: flex;
     flex-direction: column;
     height: fit-content;
-    max-height: 580px;
+    max-height: 650px;
     position: sticky;
-    top: 20px;
+    top: -80px;
     overflow: hidden;
     animation: slideInFromRight 0.3s ease-out;
 }
@@ -1516,6 +1516,45 @@
 .more-options-wrapper {
     position: relative;
     display: inline-block;
+}
+
+/* More Options for Stay Management - styled as tab button */
+.more-options-wrapper-stay {
+    position: relative;
+    display: inline-block;
+}
+
+.more-options-wrapper-stay .more-options-trigger {
+    padding: 0.5rem 1rem;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.4rem;
+    color: #666;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    width: auto;
+    height: auto;
+    letter-spacing: normal;
+}
+
+.more-options-wrapper-stay .more-options-trigger:hover {
+    background: #dc3545;
+    color: #ffffff;
+    border-color: #dc3545;
+    transform: none;
+}
+
+.more-options-wrapper-stay .more-options-dropdown {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    min-width: 220px;
+    z-index: 99999;
 }
 
 .more-options-dropdown {
