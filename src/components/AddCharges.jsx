@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './AddCharges.css';
+import Toast from './Toast';
 
 const AddCharges = ({ onClose, onAdd, reservation }) => {
     const [formData, setFormData] = useState({
@@ -15,6 +16,7 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
 
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showToast, setShowToast] = useState(false);
 
     const chargeOptions = [
         { value: 'laundry', label: 'Laundry' },
@@ -105,9 +107,13 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
             existingCharges.push(chargeData);
             localStorage.setItem('charges', JSON.stringify(existingCharges));
 
-            alert(`Charge of ${formData.currency} ${chargeData.totalAmount} added successfully!`);
+            // Show success toast notification
+            setShowToast(true);
             
-            onClose();
+            // Close after a short delay to show the toast
+            setTimeout(() => {
+                onClose();
+            }, 1000);
         } catch (error) {
             console.error('Error submitting charge:', error);
             alert('Failed to add charge. Please try again.');
@@ -252,6 +258,15 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
                     </button>
                 </div>
             </div>
+            
+            {/* Success Toast */}
+            {showToast && (
+                <Toast 
+                    message="Successful!"
+                    onClose={() => setShowToast(false)}
+                    type="success"
+                />
+            )}
         </div>
     );
 };
