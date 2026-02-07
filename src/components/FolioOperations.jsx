@@ -3,17 +3,25 @@ import './FolioOperations.css';
 import AddPayment from './AddPayment';
 import AddCharges from './AddCharges';
 import ApplyDiscountSidebar from './ApplyDiscountSidebar';
+import NewFolio from './NewFolio';
+import FolioOperationsMenu from './FolioOperationsMenu';
 
 const FolioOperations = ({ reservation }) => {
     const [selectedRoom, setSelectedRoom] = useState(0);
     const [showAddPayment, setShowAddPayment] = useState(false);
     const [showAddCharges, setShowAddCharges] = useState(false);
     const [showApplyDiscount, setShowApplyDiscount] = useState(false);
+    const [showNewFolio, setShowNewFolio] = useState(false);
+    const [showFolioOpsMenu, setShowFolioOpsMenu] = useState(false);
     const [activeMenu, setActiveMenu] = useState(null); // For three dot menu
     const [editingItem, setEditingItem] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [folioList, setFolioList] = useState([
+        { id: 0, name: 'Deluxe-102', roomNumber: '102' },
+        { id: 1, name: 'B2 - Mr. Shahrukh Ahmed', roomNumber: 'B2' }
+    ]);
 
     const API_URL = 'http://localhost:5000/api/bookings';
 
@@ -173,6 +181,40 @@ const FolioOperations = ({ reservation }) => {
         }
     };
 
+    // Handler for saving new folio
+    const handleSaveNewFolio = async (folioData) => {
+        console.log('New Folio Data:', folioData);
+        
+        try {
+            // Find the selected guest
+            const response = await fetch('http://localhost:5000/api/bookings/list');
+            const data = await response.json();
+            
+            if (data.success && data.data) {
+                const selectedGuest = data.data.find(booking => booking._id === folioData.customer);
+                
+                if (selectedGuest) {
+                    // Add new folio to the list
+                    const newFolio = {
+                        id: folioList.length,
+                        name: `${folioData.rooms} - ${selectedGuest.guestName}`,
+                        roomNumber: folioData.rooms,
+                        guestName: selectedGuest.guestName,
+                        registrationNo: folioData.registrationNo
+                    };
+                    
+                    setFolioList([...folioList, newFolio]);
+                    setSelectedRoom(newFolio.id);
+                }
+            }
+        } catch (error) {
+            console.error('Error saving folio:', error);
+        }
+        
+        setShowNewFolio(false);
+        setShowFolioOpsMenu(true);
+    };
+
     // Action handlers
     const handlePrint = (index) => {
         const item = transactions[index];
@@ -282,23 +324,20 @@ User:        ${item.user}
                 <div className="folio-sidebar-header">
                     <h3 className="folio-sidebar-title">ROOM / FOLIO</h3>
                     <button className="sidebar-add-btn" onClick={() => {
-                        console.log('Add button clicked');
-                        setShowAddPayment(true);
+                        console.log('New Folio button clicked');
+                        setShowNewFolio(true);
                     }}>+</button>
                 </div>
                 <div className="room-folio-list">
-                    <div
-                        className={`room-folio-item ${selectedRoom === 0 ? 'active' : ''}`}
-                        onClick={() => setSelectedRoom(0)}
-                    >
-                        <div className="room-number">Deluxe-102</div>
-                    </div>
-                    <div
-                        className="room-folio-item"
-                        onClick={() => setSelectedRoom(1)}
-                    >
-                        <div className="room-number">B2 - Mr. Shahrukh Ahmed</div>
-                    </div>
+                    {folioList.map((folio) => (
+                        <div
+                            key={folio.id}
+                            className={`room-folio-item ${selectedRoom === folio.id ? 'active' : ''}`}
+                            onClick={() => setSelectedRoom(folio.id)}
+                        >
+                            <div className="room-number">{folio.name}</div>
+                        </div>
+                    ))}
                 </div>
             </div>
 
@@ -312,7 +351,17 @@ User:        ${item.user}
                     }}>Add Payment</button>
                     <button className="folio-action-btn" onClick={() => setShowAddCharges(true)}>Add Charges</button>
                     <button className="folio-action-btn btn-apply-discount" onClick={() => setShowApplyDiscount(true)}>Apply Discount</button>
-                    <button className="folio-action-btn btn-folio-ops">Folio Operations</button>
+                    <div className="folio-ops-dropdown-container">
+                        <button 
+                            className="folio-action-btn btn-folio-ops" 
+                            onClick={() => {
+                                setShowFolioOpsDropdown(false);
+                                setShowFolioOpsMenu(true);
+                            }}
+                        >
+                            Folio Operations
+                        </button>
+                    </div>
                 </div>
 
                 {/* Charges Table */}
@@ -449,6 +498,25 @@ User:        ${item.user}
                     onClose={() => setShowApplyDiscount(false)}
                     onApply={handleApplyDiscount}
                     reservation={reservation}
+                />
+            )}
+
+            {/* New Folio Modal */}
+            {showNewFolio && (
+                <NewFolio 
+                    onClose={() => setShowNewFolio(false)}
+                    onSave={handleSaveNewFolio}
+                />
+            )}
+
+            {/* Folio Operations Menu */}
+            {showFolioOpsMenu && (
+                <FolioOperationsMenu 
+                    onClose={() => setShowFolioOpsMenu(false)}
+                    onSelectOperation={(operation) => {
+                        console.log('Operation selected:', operation);
+                        setShowFolioOpsMenu(false);
+                    }}
                 />
             )}
 
