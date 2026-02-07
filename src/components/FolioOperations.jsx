@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import './FolioOperations.css';
 import AddPayment from './AddPayment';
 import AddCharges from './AddCharges';
+import ApplyDiscountSidebar from './ApplyDiscountSidebar';
 
 const FolioOperations = ({ reservation }) => {
     const [selectedRoom, setSelectedRoom] = useState(0);
     const [showAddPayment, setShowAddPayment] = useState(false);
     const [showAddCharges, setShowAddCharges] = useState(false);
+    const [showApplyDiscount, setShowApplyDiscount] = useState(false);
     const [activeMenu, setActiveMenu] = useState(null); // For three dot menu
     const [editingItem, setEditingItem] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -131,6 +133,46 @@ const FolioOperations = ({ reservation }) => {
         }
     };
 
+    // Handler for applying discount
+    const handleApplyDiscount = async (discountData) => {
+        const discountType = [];
+        if (discountData.roomWiseDiscount) discountType.push('Room Wise');
+        if (discountData.tableWiseDiscount) discountType.push('Table Wise');
+
+        const newTransaction = {
+            type: 'discount',
+            day: new Date(discountData.date).toLocaleDateString('en-GB', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric',
+                weekday: 'short'
+            }),
+            particulars: `Discount (${discountData.discountPercent}%)`,
+            description: `${discountType.join(' & ')} - ${discountData.comment || 'No comment'}`,
+            amount: 0, // Calculate actual discount amount based on bill
+            discountPercent: discountData.discountPercent,
+            folio: discountData.folio,
+            user: 'current_user'
+        };
+
+        try {
+            const bookingId = reservation.id || reservation._id;
+            const response = await fetch(`${API_URL}/${bookingId}/transactions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newTransaction)
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                await fetchTransactions();
+                setShowApplyDiscount(false);
+            }
+        } catch (error) {
+            console.error('Error applying discount:', error);
+        }
+    };
+
     // Action handlers
     const handlePrint = (index) => {
         const item = transactions[index];
@@ -237,7 +279,13 @@ User:        ${item.user}
         <div className="folio-operations-container">
             {/* Left Panel - Room/Folio List */}
             <div className="room-folio-sidebar">
-                <h3 className="folio-sidebar-title">ROOM / FOLIO</h3>
+                <div className="folio-sidebar-header">
+                    <h3 className="folio-sidebar-title">ROOM / FOLIO</h3>
+                    <button className="sidebar-add-btn" onClick={() => {
+                        console.log('Add button clicked');
+                        setShowAddPayment(true);
+                    }}>+</button>
+                </div>
                 <div className="room-folio-list">
                     <div
                         className={`room-folio-item ${selectedRoom === 0 ? 'active' : ''}`}
@@ -258,9 +306,12 @@ User:        ${item.user}
             <div className="folio-main-content">
                 {/* Action Buttons */}
                 <div className="folio-action-buttons">
-                    <button className="folio-action-btn btn-add-payment" onClick={() => setShowAddPayment(true)}>+ Add Payment</button>
-                    <button className="folio-action-btn btn-add-charges" onClick={() => setShowAddCharges(true)}>+ Add Charges</button>
-                    <button className="folio-action-btn btn-apply-discount">Apply Discount</button>
+                    <button className="folio-action-btn" onClick={() => {
+                        console.log('Add Payment clicked');
+                        setShowAddPayment(true);
+                    }}>Add Payment</button>
+                    <button className="folio-action-btn" onClick={() => setShowAddCharges(true)}>Add Charges</button>
+                    <button className="folio-action-btn btn-apply-discount" onClick={() => setShowApplyDiscount(true)}>Apply Discount</button>
                     <button className="folio-action-btn btn-folio-ops">Folio Operations</button>
                 </div>
 
@@ -388,6 +439,15 @@ User:        ${item.user}
                 <AddCharges 
                     onClose={() => setShowAddCharges(false)}
                     onAdd={handleAddCharge}
+                    reservation={reservation}
+                />
+            )}
+
+            {/* Apply Discount Sidebar */}
+            {showApplyDiscount && (
+                <ApplyDiscountSidebar 
+                    onClose={() => setShowApplyDiscount(false)}
+                    onApply={handleApplyDiscount}
                     reservation={reservation}
                 />
             )}

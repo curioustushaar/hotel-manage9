@@ -1,5 +1,5 @@
-/* Add Payment Modal Overlay */
-.add-payment-overlay {
+/* Apply Discount Modal Overlay */
+.apply-discount-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -14,8 +14,8 @@
     padding: 100px 0;
 }
 
-/* Add Payment Modal */
-.add-payment-modal {
+/* Apply Discount Modal */
+.apply-discount-modal {
     background: white;
     width: 420px;
     max-width: 90%;
@@ -38,7 +38,7 @@
 }
 
 /* Header */
-.add-payment-header {
+.apply-discount-header {
     background: #3b5bdb;
     color: white;
     padding: 14px 20px;
@@ -48,13 +48,13 @@
     border-radius: 0;
 }
 
-.add-payment-header h2 {
+.apply-discount-header h2 {
     margin: 0;
     font-size: 16px;
     font-weight: 600;
 }
 
-.add-payment-close {
+.apply-discount-close {
     background: transparent;
     border: none;
     color: white;
@@ -71,49 +71,43 @@
     transition: opacity 0.2s;
 }
 
-.add-payment-close:hover {
+.apply-discount-close:hover {
     opacity: 1;
 }
 
 /* Body */
-.add-payment-body {
+.apply-discount-body {
     padding: 20px;
     display: flex;
     flex-direction: column;
     gap: 16px;
     overflow-y: auto;
+    flex: 1;
 }
 
 /* Field */
-.add-payment-field {
+.apply-discount-field {
     display: flex;
     flex-direction: column;
     gap: 6px;
 }
 
-.add-payment-field label {
+.apply-discount-field label {
     font-size: 13px;
     font-weight: 500;
     color: #374151;
 }
 
-.add-payment-field label .required {
+.apply-discount-field label .required {
     color: #dc2626;
     margin-left: 2px;
 }
 
-.error-message {
-    font-size: 12px;
-    color: #dc2626;
-    margin-top: 4px;
-    display: block;
-}
-
-.add-payment-field input[type="text"],
-.add-payment-field input[type="number"],
-.add-payment-field input[type="date"],
-.add-payment-field select,
-.add-payment-field textarea {
+.apply-discount-field input[type="text"],
+.apply-discount-field input[type="number"],
+.apply-discount-field input[type="date"],
+.apply-discount-field select,
+.apply-discount-field textarea {
     padding: 9px 12px;
     border: 1px solid #d1d5db;
     border-radius: 4px;
@@ -123,45 +117,82 @@
     transition: border-color 0.15s;
 }
 
-.add-payment-field input.error,
-.add-payment-field select.error,
-.add-payment-field textarea.error {
-    border-color: #dc2626;
-}
-
-.add-payment-field input:focus,
-.add-payment-field select:focus,
-.add-payment-field textarea:focus {
+.apply-discount-field input:focus,
+.apply-discount-field select:focus,
+.apply-discount-field textarea:focus {
     outline: none;
     border-color: #3b82f6;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.add-payment-field textarea {
+.apply-discount-field textarea {
     resize: vertical;
 }
 
-.add-payment-field textarea::placeholder {
+.apply-discount-field textarea::placeholder {
     color: #9ca3af;
 }
 
-/* Amount Input Group */
-.amount-input-group {
+/* Checkbox Group */
+.discount-checkbox-group {
     display: flex;
-    gap: 8px;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.currency-select {
-    width: 90px;
+.discount-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.discount-checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #3b5bdb;
     flex-shrink: 0;
 }
 
-.amount-input {
-    flex: 1;
+.checkbox-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #dc2626;
+    letter-spacing: 0.3px;
+}
+
+/* Plus Value Button */
+.discount-plus-value-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 9px 12px;
+    background-color: #f3f4f6;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.discount-plus-value-btn:hover {
+    background-color: #e5e7eb;
+    border-color: #9ca3af;
+}
+
+.plus-icon {
+    font-size: 16px;
+    font-weight: bold;
 }
 
 /* Footer */
-.add-payment-footer {
+.apply-discount-footer {
     padding: 16px 20px;
     border-top: 1px solid #e5e7eb;
     display: flex;
@@ -169,7 +200,7 @@
     gap: 10px;
 }
 
-.add-payment-cancel-btn {
+.apply-discount-cancel-btn {
     background: white;
     color: #374151;
     border: 1px solid #d1d5db;
@@ -181,17 +212,17 @@
     transition: all 0.2s;
 }
 
-.add-payment-cancel-btn:hover {
+.apply-discount-cancel-btn:hover {
     background: #f9fafb;
     border-color: #9ca3af;
 }
 
-.add-payment-cancel-btn:disabled {
+.apply-discount-cancel-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-.add-payment-submit-btn {
+.apply-discount-submit-btn {
     background: #10b981;
     color: white;
     border: none;
@@ -203,15 +234,15 @@
     transition: background 0.2s;
 }
 
-.add-payment-submit-btn:hover {
+.apply-discount-submit-btn:hover {
     background: #059669;
 }
 
-.add-payment-submit-btn:active {
+.apply-discount-submit-btn:active {
     background: #047857;
 }
 
-.add-payment-submit-btn:disabled {
+.apply-discount-submit-btn:disabled {
     background: #9ca3af;
     cursor: not-allowed;
     opacity: 0.7;
