@@ -6,9 +6,9 @@
 
 This is a professional Hotel Management System website that has been completely converted from HTML to React. The project features a clean component-based architecture, smooth animations, and a fully responsive design.
 
-## 🎯 Features
+## 🎯 Features   
 
-✅ **Component-based architecture** - Reusable and maintainable  
+✅ **Component-based architecture** - Reusable and maintainable     
 ✅ **Fully responsive** - Works on mobile, tablet, and desktop  
 ✅ **Interactive UI** - Dropdowns, sliders, and animations  
 ✅ **Modern tech stack** - React 18 + Vite  
