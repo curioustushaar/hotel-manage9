@@ -20,39 +20,54 @@ const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
     process.env.FRONTEND_URL || 'http://localhost:5173'
-];
+].filter(Boolean);
 
 app.use(cors({
     origin: function(origin, callback) {
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) === -1) {
-            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-            return callback(new Error(msg), false);
+        
+        // Check if origin is allowed or if it's a vercel.app domain in production
+        if (allowedOrigins.indexOf(origin) !== -1 || 
+            (process.env.NODE_ENV === 'production' && origin?.includes('.vercel.app'))) {
+            return callback(null, true);
         }
-        return callback(null, true);
+        
+        const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+        return callback(new Error(msg), false);
     },
     credentials: true
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// MongoDB Connection
+// MongoDB Connection with caching for serverless
+let cachedDb = null;
+
 const connectDB = async () => {
+    if (cachedDb) {
+        console.log('Using cached database connection');
+        return cachedDb;
+    }
+    
     try {
         const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bareena-atithi', {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });
         console.log(`MongoDB Connected: ${conn.connection.host}`);
+        cachedDb = conn;
+        return conn;
     } catch (error) {
         console.error(`Error: ${error.message}`);
-        process.exit(1);
+        throw error;
     }
 };
 
 // Connect to database
-connectDB();
+connectDB().catch(err => {
+    console.error('Failed to connect to MongoDB:', err);
+});
 
 // Routes
 app.use('/api/menu', menuRoutes);
@@ -89,9 +104,13 @@ app.use((req, res) => {
 // Server configuration
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`API available at http://localhost:${PORT}`);
-});
+// Only listen if not in serverless environment (Vercel)
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+        console.log(`API available at http://localhost:${PORT}`);
+    });
+}
 
+// Export for Vercel serverless
 module.exports = app;
