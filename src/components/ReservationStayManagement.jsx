@@ -65,6 +65,23 @@ const ReservationStayManagement = () => {
     const [showInvoiceModal, setShowInvoiceModal] = useState(false);
     const [_invoiceGenerationInProgress, setInvoiceGenerationInProgress] = useState(false);
 
+    // Housekeeping State
+    const [housekeepingItems, _setHousekeepingItems] = useState(getDummyHousekeepingItems());
+    const [housekeepingSearch, setHousekeepingSearch] = useState('');
+    const [showHousekeepingModal, setShowHousekeepingModal] = useState(false);
+    const [housekeepingFormData, setHousekeepingFormData] = useState({ name: '', colorCode: '#ff4444', status: 'Active' });
+
+    // Room Service State (now Food Ordering)
+    const [roomServiceItems, _setRoomServiceItems] = useState(getDummyRoomServiceItems());
+    const [foodItems, _setFoodItems] = useState(getDummyFoodItems());
+    const [foodSearch, setFoodSearch] = useState('');
+    const [foodCodeSearch, setFoodCodeSearch] = useState('');
+    const [selectedFoodCategory, setSelectedFoodCategory] = useState('Ala Carte');
+    const [roomServiceView, setRoomServiceView] = useState('list'); // 'list' or 'food'
+    const [selectedFoods, setSelectedFoods] = useState({});
+    const [roomServiceSearch, setRoomServiceSearch] = useState('');
+    const [roomServiceFilter, setRoomServiceFilter] = useState('all'); // 'all', 'running', 'reservation'
+
     // Room Categories
     const roomCategories = useMemo(() => ({
         'deluxe-ac-double': { name: 'Deluxe AC Double', baseRate: 3000 },
@@ -297,6 +314,38 @@ const ReservationStayManagement = () => {
     const handleDeleteReservation = (reservationId) => {
         setReservations(reservations.filter(r => r.id !== reservationId));
     };
+
+    // Housekeeping Handlers
+    const handleAddHousekeepingItem = () => {
+        if (housekeepingFormData.name.trim()) {
+            const _newItem = {
+                id: Date.now(),
+                name: housekeepingFormData.name,
+                count: 0,
+                status: housekeepingFormData.status,
+                colorCode: housekeepingFormData.colorCode
+            };
+            // In a real app, this would be an API call
+            setShowHousekeepingModal(false);
+            setHousekeepingFormData({ name: '', colorCode: '#ff4444', status: 'Active' });
+        }
+    };
+
+    const handleOpenHousekeepingModal = () => {
+        setHousekeepingFormData({ name: '', colorCode: '#ff4444', status: 'Active' });
+        setShowHousekeepingModal(true);
+    };
+
+    const handleCloseHousekeepingModal = () => {
+        setShowHousekeepingModal(false);
+        setHousekeepingFormData({ name: '', colorCode: '#ff4444', status: 'Active' });
+    };
+
+    // Room Service Handlers
+    const handleOpenRoomServiceModal = () => {
+        setRoomServiceView('food');
+    };
+
 
     // Filter reservations
     const filteredReservations = useMemo(() => {
@@ -879,11 +928,379 @@ const ReservationStayManagement = () => {
                     </div>
                 </>
             )}
+
+            {/* Housekeeping View */}
+            {sectionTab === 'housekeeping' && (
+                <div className="housekeeping-view">
+                    <div className="housekeeping-header">
+                        <h2>🧹 HouseKeeping Management</h2>
+                        <input
+                            type="text"
+                            placeholder="Search by name..."
+                            className="housekeeping-search"
+                            value={housekeepingSearch}
+                            onChange={(e) => setHousekeepingSearch(e.target.value)}
+                        />
+                        <button className="btn btn-primary" onClick={handleOpenHousekeepingModal} style={{ fontSize: '0.85rem', padding: '0.6rem 1rem' }}>
+                            + Add Item
+                        </button>
+                    </div>
+
+                    <div className="housekeeping-table-wrapper">
+                        <table className="housekeeping-table">
+                            <thead>
+                                <tr>
+                                    <th>Sno</th>
+                                    <th>Name</th>
+                                    <th>Count</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {housekeepingItems
+                                    .filter(item => item.name.toLowerCase().includes(housekeepingSearch.toLowerCase()))
+                                    .map((item, index) => (
+                                        <tr key={item.id}>
+                                            <td>{index + 1}</td>
+                                            <td>{item.name}</td>
+                                            <td>{item.count}</td>
+                                            <td>
+                                                <span className={`status-badge status-${item.status.toLowerCase()}`}>
+                                                    {item.status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div className="action-buttons">
+                                                    <button className="action-btn edit-btn" title="Edit">
+                                                        ✏️
+                                                    </button>
+                                                    <button className="action-btn delete-btn" title="Delete">
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Housekeeping Item Modal */}
+            {showHousekeepingModal && (
+                <div className="modal-overlay" onClick={handleCloseHousekeepingModal}>
+                    <div className="modal-content housekeeping-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Add Housekeeping Item</h3>
+                            <button className="modal-close" onClick={handleCloseHousekeepingModal}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="form-group">
+                                <label>Enter name</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g., Towels, Bedsheets"
+                                    value={housekeepingFormData.name}
+                                    onChange={(e) => setHousekeepingFormData({ ...housekeepingFormData, name: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Enter color code</label>
+                                <div className="color-input-wrapper">
+                                    <input
+                                        type="color"
+                                        value={housekeepingFormData.colorCode}
+                                        onChange={(e) => setHousekeepingFormData({ ...housekeepingFormData, colorCode: e.target.value })}
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="#ff4444"
+                                        value={housekeepingFormData.colorCode}
+                                        onChange={(e) => setHousekeepingFormData({ ...housekeepingFormData, colorCode: e.target.value })}
+                                        className="color-code-input"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Status</label>
+                                <div className="radio-group">
+                                    <label className="radio-label">
+                                        <input
+                                            type="radio"
+                                            name="status"
+                                            value="Active"
+                                            checked={housekeepingFormData.status === 'Active'}
+                                            onChange={(e) => setHousekeepingFormData({ ...housekeepingFormData, status: e.target.value })}
+                                        />
+                                        <span>Active</span>
+                                    </label>
+                                    <label className="radio-label">
+                                        <input
+                                            type="radio"
+                                            name="status"
+                                            value="Inactive"
+                                            checked={housekeepingFormData.status === 'Inactive'}
+                                            onChange={(e) => setHousekeepingFormData({ ...housekeepingFormData, status: e.target.value })}
+                                        />
+                                        <span>Inactive</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={housekeepingFormData.isDirty || false}
+                                        onChange={(e) => setHousekeepingFormData({ ...housekeepingFormData, isDirty: e.target.checked })}
+                                    />
+                                    <span>Mark as Dirty</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-outline" onClick={handleCloseHousekeepingModal}>
+                                Cancel
+                            </button>
+                            <button className="btn btn-primary" onClick={handleAddHousekeepingItem}>
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Room Service View */}
+            {sectionTab === 'room-service' && roomServiceView === 'food' && (
+                <div className="food-ordering-view">
+                    <div className="food-header">
+                        <button className="btn-back" onClick={() => setRoomServiceView('list')}>
+                            ← Back
+                        </button>
+                        <h2>Food Ordering</h2>
+                    </div>
+
+                    <div className="food-container">
+                        {/* Search Bars */}
+                        <div className="search-section">
+                            <div className="search-bar">
+                                <input
+                                    type="text"
+                                    placeholder="Search items by name or code..."
+                                    value={foodSearch}
+                                    onChange={(e) => setFoodSearch(e.target.value)}
+                                    className="search-input"
+                                />
+                            </div>
+                            <div className="search-bar">
+                                <input
+                                    type="text"
+                                    placeholder="Short Code..."
+                                    value={foodCodeSearch}
+                                    onChange={(e) => setFoodCodeSearch(e.target.value)}
+                                    className="search-input"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="food-main-layout">
+                            {/* Sidebar with Categories */}
+                            <div className="food-sidebar">
+                                <h3>Categories</h3>
+                                {['Ala Carte', 'Beverages', 'Breads', 'Breakfast', 'Budget Food', 'Chinese', 'Khabashe Combos', 'Kulcha', 'Haleem', "Pizza's", 'Biryani', 'Rice'].map((cat) => (
+                                    <button
+                                        key={cat}
+                                        className={`category-btn ${selectedFoodCategory === cat ? 'active' : ''}`}
+                                        onClick={() => setSelectedFoodCategory(cat)}
+                                    >
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Food Items Grid */}
+                            <div className="food-items-grid">
+                                {foodItems
+                                    .filter(item => 
+                                        item.category === selectedFoodCategory &&
+                                        (foodSearch === '' || item.name.toLowerCase().includes(foodSearch.toLowerCase()) || item.code.toLowerCase().includes(foodSearch.toLowerCase())) &&
+                                        (foodCodeSearch === '' || item.shortCode.toLowerCase().includes(foodCodeSearch.toLowerCase()))
+                                    )
+                                    .map((item) => (
+                                        <div key={item.id} className="food-card">
+                                            <div className="food-card-body">
+                                                <h4>{item.name}</h4>
+                                                <div className="food-card-info">
+                                                    <span className="code-badge">{item.code}</span>
+                                                    <span className="price">₹{item.price}</span>
+                                                </div>
+                                                <div className="quantity-selector">
+                                                    <button 
+                                                        className="qty-btn"
+                                                        onClick={() => {
+                                                            const current = selectedFoods[item.id] || 0;
+                                                            if (current > 0) {
+                                                                setSelectedFoods({
+                                                                    ...selectedFoods,
+                                                                    [item.id]: current - 1
+                                                                });
+                                                            }
+                                                        }}
+                                                    >
+                                                        −
+                                                    </button>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        value={selectedFoods[item.id] || 0}
+                                                        onChange={(e) => {
+                                                            const val = Math.max(0, parseInt(e.target.value) || 0);
+                                                            setSelectedFoods({
+                                                                ...selectedFoods,
+                                                                [item.id]: val
+                                                            });
+                                                        }}
+                                                        className="qty-input"
+                                                    />
+                                                    <button
+                                                        className="qty-btn"
+                                                        onClick={() => {
+                                                            const current = selectedFoods[item.id] || 0;
+                                                            setSelectedFoods({
+                                                                ...selectedFoods,
+                                                                [item.id]: current + 1
+                                                            });
+                                                        }}
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Room Service View */}
+            {sectionTab === 'room-service' && roomServiceView === 'list' && (
+                <div className="room-service-view">
+                    <div className="room-service-header">
+                        <h2>🛎️ Room Service</h2>
+                        <input
+                            type="text"
+                            placeholder="Search"
+                            className="room-service-search"
+                            value={roomServiceSearch}
+                            onChange={(e) => setRoomServiceSearch(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="room-service-filter-buttons">
+                        <button 
+                            className={`filter-btn ${roomServiceFilter === 'all' ? 'filter-btn-active' : ''}`}
+                            onClick={() => setRoomServiceFilter('all')}
+                        >
+                            All
+                        </button>
+                        <button 
+                            className={`filter-btn ${roomServiceFilter === 'running' ? 'filter-btn-active' : ''}`}
+                            onClick={() => setRoomServiceFilter('running')}
+                        >
+                            Running
+                        </button>
+                        <button 
+                            className={`filter-btn ${roomServiceFilter === 'reservation' ? 'filter-btn-active' : ''}`}
+                            onClick={() => setRoomServiceFilter('reservation')}
+                        >
+                            Reservation
+                        </button>
+                    </div>
+
+                    <div className="room-service-table-wrapper">
+                        <table className="room-service-table">
+                            <thead>
+                                <tr>
+                                    <th>Room No.</th>
+                                    <th>Service Type</th>
+                                    <th>Room Status</th>
+                                    <th>Check In</th>
+                                    <th>Check Out</th>
+                                    <th>Rate</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {roomServiceItems
+                                    .filter(item => {
+                                        const matchesSearch = item.roomNumber.toLowerCase().includes(roomServiceSearch.toLowerCase()) || item.serviceType.toLowerCase().includes(roomServiceSearch.toLowerCase());
+                                        if (roomServiceFilter === 'all') return matchesSearch;
+                                        if (roomServiceFilter === 'running') return matchesSearch && item.filter === 'running';
+                                        if (roomServiceFilter === 'reservation') return matchesSearch && item.filter === 'reservation';
+                                        return matchesSearch;
+                                    })
+                                    .map((item) => (
+                                        <tr key={item.id}>
+                                            <td>
+                                                <div className="room-with-guest">
+                                                    <span className="room-number">🚪 {item.roomNumber}</span>
+                                                    <span className="guest-name">{item.guestName}</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span className="service-badge">{item.serviceType}</span>
+                                            </td>
+                                            <td>
+                                                <span className={`status-badge service-status-${item.status.toLowerCase()}`}>
+                                                    {item.status}
+                                                </span>
+                                            </td>
+                                            <td className="date-cell">{item.checkInDate}</td>
+                                            <td className="date-cell">{item.checkOutDate}</td>
+                                            <td className="rate-cell">
+                                                <span className="rate-badge">₹{item.rate}</span>
+                                            </td>
+                                            <td>
+                                                <button className="action-btn service-action-btn" onClick={handleOpenRoomServiceModal} title="Add Service">
+                                                    +
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
 // Dummy Data Functions
+function getDummyHousekeepingItems() {
+    return [
+        { id: 1, name: 'Dry', count: 5, status: 'Active', type: 'laundry' },
+        { id: 2, name: 'Clean', count: 12, status: 'Active', type: 'status' },
+        { id: 3, name: 'Maintenance', count: 2, status: 'Pending', type: 'status' },
+        { id: 4, name: 'Busy', count: 3, status: 'Active', type: 'status' },
+    ];
+}
+
+function getDummyRoomServiceItems() {
+    return [
+        { id: 1, roomNumber: '101', guestName: 'Rajesh Kumar', serviceType: 'Detox', status: 'Open', checkInDate: '2024-02-07', checkOutDate: '2024-02-10', rate: 3000, filter: 'running' },
+        { id: 2, roomNumber: '102', guestName: 'Priya Sharma', serviceType: 'Aroma', status: 'Closed', checkInDate: '2024-02-06', checkOutDate: '2024-02-08', rate: 2500, filter: 'reservation' },
+        { id: 3, roomNumber: '201', guestName: 'Amit Patel', serviceType: 'Massage', status: 'Open', checkInDate: '2024-02-07', checkOutDate: '2024-02-12', rate: 4000, filter: 'running' },
+        { id: 4, roomNumber: '202', guestName: 'Neha Singh', serviceType: 'Spa', status: 'Open', checkInDate: '2024-02-07', checkOutDate: '2024-02-09', rate: 5000, filter: 'reservation' },
+    ];
+}
+
 function getDummyReservations() {
     const today = new Date();
     const tomorrow = new Date(today);
@@ -1210,6 +1627,183 @@ function getDummyGuests() {
             createdAt: new Date().toISOString()
         }
     ];
+}
+
+function getDummyFoodItems() {
+    const foodData = {
+        'Ala Carte': [
+            { id: 1, name: 'Grilled Chicken', category: 'Ala Carte', price: 320, code: 'GC001', shortCode: 'GC' },
+            { id: 2, name: 'Fish Fry', category: 'Ala Carte', price: 280, code: 'FF001', shortCode: 'FF' },
+            { id: 3, name: 'Tandoori Paneer', category: 'Ala Carte', price: 240, code: 'TP001', shortCode: 'TP' },
+            { id: 4, name: 'Butter Chicken', category: 'Ala Carte', price: 300, code: 'BC001', shortCode: 'BC' },
+            { id: 5, name: 'Dal Makhani', category: 'Ala Carte', price: 180, code: 'DM001', shortCode: 'DM' },
+            { id: 6, name: 'Chana Masala', category: 'Ala Carte', price: 160, code: 'CM001', shortCode: 'CM' },
+            { id: 7, name: 'Palak Paneer', category: 'Ala Carte', price: 220, code: 'PP001', shortCode: 'PP' },
+            { id: 8, name: 'Biryani Rice', category: 'Ala Carte', price: 200, code: 'BR001', shortCode: 'BR' },
+            { id: 9, name: 'Shrimp Curry', category: 'Ala Carte', price: 350, code: 'SC001', shortCode: 'SC' },
+            { id: 10, name: 'Lamb Kebab', category: 'Ala Carte', price: 380, code: 'LK001', shortCode: 'LK' },
+            { id: 11, name: 'Mixed Vegetable', category: 'Ala Carte', price: 150, code: 'MV001', shortCode: 'MV' },
+            { id: 12, name: 'Egg Curry', category: 'Ala Carte', price: 140, code: 'EC001', shortCode: 'EC' },
+        ],
+        'Beverages': [
+            { id: 13, name: 'Orange Juice', category: 'Beverages', price: 80, code: 'OJ001', shortCode: 'OJ' },
+            { id: 14, name: 'Mango Lassi', category: 'Beverages', price: 90, code: 'ML001', shortCode: 'ML' },
+            { id: 15, name: 'Iced Tea', category: 'Beverages', price: 60, code: 'IT001', shortCode: 'IT' },
+            { id: 16, name: 'Coffee', category: 'Beverages', price: 70, code: 'CF001', shortCode: 'CF' },
+            { id: 17, name: 'Lemon Water', category: 'Beverages', price: 40, code: 'LW001', shortCode: 'LW' },
+            { id: 18, name: 'Soft Drinks', category: 'Beverages', price: 50, code: 'SD001', shortCode: 'SD' },
+            { id: 19, name: 'Milkshake', category: 'Beverages', price: 100, code: 'MS001', shortCode: 'MS' },
+            { id: 20, name: 'Fresh Lemonade', category: 'Beverages', price: 75, code: 'FL001', shortCode: 'FL' },
+            { id: 21, name: 'Buttermilk', category: 'Beverages', price: 50, code: 'BM001', shortCode: 'BM' },
+            { id: 22, name: 'Cucumber Water', category: 'Beverages', price: 45, code: 'CW001', shortCode: 'CW' },
+            { id: 23, name: 'Guava Juice', category: 'Beverages', price: 85, code: 'GJ001', shortCode: 'GJ' },
+            { id: 24, name: 'Pomegranate Juice', category: 'Beverages', price: 110, code: 'PJ001', shortCode: 'PJ' },
+        ],
+        'Breads': [
+            { id: 25, name: 'Naan', category: 'Breads', price: 40, code: 'NN001', shortCode: 'NN' },
+            { id: 26, name: 'Roti', category: 'Breads', price: 20, code: 'RT001', shortCode: 'RT' },
+            { id: 27, name: 'Paratha', category: 'Breads', price: 50, code: 'PT001', shortCode: 'PT' },
+            { id: 28, name: 'Puri', category: 'Breads', price: 30, code: 'PR001', shortCode: 'PR' },
+            { id: 29, name: 'Bhature', category: 'Breads', price: 60, code: 'BH001', shortCode: 'BH' },
+            { id: 30, name: 'Dosa', category: 'Breads', price: 70, code: 'DS001', shortCode: 'DS' },
+            { id: 31, name: 'Idli', category: 'Breads', price: 50, code: 'ID001', shortCode: 'ID' },
+            { id: 32, name: 'Uttapam', category: 'Breads', price: 80, code: 'UP001', shortCode: 'UP' },
+            { id: 33, name: 'Garlic Naan', category: 'Breads', price: 55, code: 'GN001', shortCode: 'GN' },
+            { id: 34, name: 'Butter Naan', category: 'Breads', price: 50, code: 'BUN001', shortCode: 'BUN' },
+            { id: 35, name: 'Cheese Naan', category: 'Breads', price: 70, code: 'CHN001', shortCode: 'CHN' },
+            { id: 36, name: 'Stuffed Paratha', category: 'Breads', price: 75, code: 'SP001', shortCode: 'SP' },
+        ],
+        'Breakfast': [
+            { id: 37, name: 'Omelette', category: 'Breakfast', price: 80, code: 'OM001', shortCode: 'OM' },
+            { id: 38, name: 'Pancakes', category: 'Breakfast', price: 100, code: 'PC001', shortCode: 'PC' },
+            { id: 39, name: 'Poha', category: 'Breakfast', price: 60, code: 'PH001', shortCode: 'PH' },
+            { id: 40, name: 'Upma', category: 'Breakfast', price: 70, code: 'UP001', shortCode: 'UP' },
+            { id: 41, name: 'Toast & Jam', category: 'Breakfast', price: 50, code: 'TJ001', shortCode: 'TJ' },
+            { id: 42, name: 'Cornflakes', category: 'Breakfast', price: 40, code: 'CF001', shortCode: 'CF' },
+            { id: 43, name: 'Bread Omelette', category: 'Breakfast', price: 90, code: 'BO001', shortCode: 'BO' },
+            { id: 44, name: 'Scrambled Eggs', category: 'Breakfast', price: 85, code: 'SE001', shortCode: 'SE' },
+            { id: 45, name: 'Aloo Parathas', category: 'Breakfast', price: 75, code: 'AP001', shortCode: 'AP' },
+            { id: 46, name: 'Chole Bhature', category: 'Breakfast', price: 120, code: 'CB001', shortCode: 'CB' },
+            { id: 47, name: 'Masala Dosa', category: 'Breakfast', price: 90, code: 'MDS001', shortCode: 'MDS' },
+            { id: 48, name: 'Fruit Salad', category: 'Breakfast', price: 110, code: 'FS001', shortCode: 'FS' },
+        ],
+        'Budget Food': [
+            { id: 49, name: 'Rice Plate', category: 'Budget Food', price: 80, code: 'RP001', shortCode: 'RP' },
+            { id: 50, name: 'Dal Rice', category: 'Budget Food', price: 90, code: 'DR001', shortCode: 'DR' },
+            { id: 51, name: 'Sabzi Rice', category: 'Budget Food', price: 85, code: 'SR001', shortCode: 'SR' },
+            { id: 52, name: 'Pickle & Rice', category: 'Budget Food', price: 75, code: 'PKR001', shortCode: 'PKR' },
+            { id: 53, name: 'Egg Rice', category: 'Budget Food', price: 95, code: 'ER001', shortCode: 'ER' },
+            { id: 54, name: 'Simple Roti', category: 'Budget Food', price: 30, code: 'SR001', shortCode: 'SR' },
+            { id: 55, name: 'Vegetable Curry', category: 'Budget Food', price: 70, code: 'VC001', shortCode: 'VC' },
+            { id: 56, name: 'Bean Curry', category: 'Budget Food', price: 65, code: 'BN001', shortCode: 'BN' },
+            { id: 57, name: 'Peas Curry', category: 'Budget Food', price: 60, code: 'PS001', shortCode: 'PS' },
+            { id: 58, name: 'Radish Curry', category: 'Budget Food', price: 50, code: 'RC001', shortCode: 'RC' },
+            { id: 59, name: 'Carrot Curry', category: 'Budget Food', price: 55, code: 'CR001', shortCode: 'CR' },
+            { id: 60, name: 'Spinach Curry', category: 'Budget Food', price: 60, code: 'SC001', shortCode: 'SC' },
+        ],
+        'Chinese': [
+            { id: 61, name: 'Fried Rice', category: 'Chinese', price: 150, code: 'FR001', shortCode: 'FR' },
+            { id: 62, name: 'Hakka Noodles', category: 'Chinese', price: 140, code: 'HN001', shortCode: 'HN' },
+            { id: 63, name: 'Chow Mein', category: 'Chinese', price: 130, code: 'CM001', shortCode: 'CM' },
+            { id: 64, name: 'Spring Rolls', category: 'Chinese', price: 120, code: 'SR001', shortCode: 'SR' },
+            { id: 65, name: 'Manchuria', category: 'Chinese', price: 160, code: 'MC001', shortCode: 'MC' },
+            { id: 66, name: 'Hot & Sour Soup', category: 'Chinese', price: 100, code: 'HSS001', shortCode: 'HSS' },
+            { id: 67, name: 'Honey Chilli Potato', category: 'Chinese', price: 140, code: 'HCP001', shortCode: 'HCP' },
+            { id: 68, name: 'Garlic Mushroom', category: 'Chinese', price: 150, code: 'GM001', shortCode: 'GM' },
+            { id: 69, name: 'Paneer 65', category: 'Chinese', price: 170, code: 'P65001', shortCode: 'P65' },
+            { id: 70, name: 'Chicken 65', category: 'Chinese', price: 180, code: 'C65001', shortCode: 'C65' },
+            { id: 71, name: 'Corn Soup', category: 'Chinese', price: 90, code: 'CRS001', shortCode: 'CRS' },
+            { id: 72, name: 'Schezwan Noodles', category: 'Chinese', price: 160, code: 'SN001', shortCode: 'SN' },
+        ],
+        'Khabashe Combos': [
+            { id: 73, name: 'Samosa Combo', category: 'Khabashe Combos', price: 120, code: 'SCMB001', shortCode: 'SCMB' },
+            { id: 74, name: 'Pakora Combo', category: 'Khabashe Combos', price: 140, code: 'PCMB001', shortCode: 'PCMB' },
+            { id: 75, name: 'Chaat Combo', category: 'Khabashe Combos', price: 160, code: 'CHATCMB001', shortCode: 'CHATCMB' },
+            { id: 76, name: 'Spice Mix', category: 'Khabashe Combos', price: 100, code: 'SM001', shortCode: 'SM' },
+            { id: 77, name: 'Snack Platter', category: 'Khabashe Combos', price: 200, code: 'SP001', shortCode: 'SP' },
+            { id: 78, name: 'Evening Special', category: 'Khabashe Combos', price: 180, code: 'ES001', shortCode: 'ES' },
+            { id: 79, name: 'Jalebi Combo', category: 'Khabashe Combos', price: 130, code: 'JCB001', shortCode: 'JCB' },
+            { id: 80, name: 'Fafda Combo', category: 'Khabashe Combos', price: 140, code: 'FCB001', shortCode: 'FCB' },
+            { id: 81, name: 'Bhel Combo', category: 'Khabashe Combos', price: 110, code: 'BHELCMB001', shortCode: 'BHELCMB' },
+            { id: 82, name: 'Pani Puri Combo', category: 'Khabashe Combos', price: 100, code: 'PPCOMBO001', shortCode: 'PPCOMBO' },
+            { id: 83, name: 'Dahi Bhalle', category: 'Khabashe Combos', price: 120, code: 'DB001', shortCode: 'DB' },
+            { id: 84, name: 'Namkeen Mix', category: 'Khabashe Combos', price: 90, code: 'NM001', shortCode: 'NM' },
+        ],
+        'Kulcha': [
+            { id: 85, name: 'Aloo Kulcha', category: 'Kulcha', price: 80, code: 'AK001', shortCode: 'AK' },
+            { id: 86, name: 'Paneer Kulcha', category: 'Kulcha', price: 100, code: 'PK001', shortCode: 'PK' },
+            { id: 87, name: 'Onion Kulcha', category: 'Kulcha', price: 70, code: 'OK001', shortCode: 'OK' },
+            { id: 88, name: 'Peas Kulcha', category: 'Kulcha', price: 75, code: 'PEASK001', shortCode: 'PEASK' },
+            { id: 89, name: 'Mixed Veg Kulcha', category: 'Kulcha', price: 85, code: 'MVK001', shortCode: 'MVK' },
+            { id: 90, name: 'Methi Kulcha', category: 'Kulcha', price: 80, code: 'MK001', shortCode: 'MK' },
+            { id: 91, name: 'Cauliflower Kulcha', category: 'Kulcha', price: 90, code: 'CK001', shortCode: 'CK' },
+            { id: 92, name: 'Spinach Kulcha', category: 'Kulcha', price: 80, code: 'SPINK001', shortCode: 'SPINK' },
+            { id: 93, name: 'Corn Kulcha', category: 'Kulcha', price: 85, code: 'CORNK001', shortCode: 'CORNK' },
+            { id: 94, name: 'Cheese Kulcha', category: 'Kulcha', price: 110, code: 'CHEESEK001', shortCode: 'CHEESEK' },
+            { id: 95, name: 'Tandoori Kulcha', category: 'Kulcha', price: 120, code: 'TK001', shortCode: 'TK' },
+            { id: 96, name: 'Butter Kulcha', category: 'Kulcha', price: 90, code: 'BK001', shortCode: 'BK' },
+        ],
+        'Haleem': [
+            { id: 97, name: 'Chicken Haleem', category: 'Haleem', price: 200, code: 'CH001', shortCode: 'CH' },
+            { id: 98, name: 'Mutton Haleem', category: 'Haleem', price: 250, code: 'MH001', shortCode: 'MH' },
+            { id: 99, name: 'Beef Haleem', category: 'Haleem', price: 280, code: 'BH001', shortCode: 'BH' },
+            { id: 100, name: 'Fish Haleem', category: 'Haleem', price: 240, code: 'FH001', shortCode: 'FH' },
+            { id: 101, name: 'Vegetable Haleem', category: 'Haleem', price: 160, code: 'VH001', shortCode: 'VH' },
+            { id: 102, name: 'Paneer Haleem', category: 'Haleem', price: 180, code: 'PH001', shortCode: 'PH' },
+            { id: 103, name: 'Mixed Haleem', category: 'Haleem', price: 220, code: 'MIX001', shortCode: 'MIX' },
+            { id: 104, name: 'Hyderabadi Haleem', category: 'Haleem', price: 260, code: 'HYD001', shortCode: 'HYD' },
+            { id: 105, name: 'Spicy Haleem', category: 'Haleem', price: 210, code: 'SPYH001', shortCode: 'SPYH' },
+            { id: 106, name: 'Mild Haleem', category: 'Haleem', price: 190, code: 'MILDH001', shortCode: 'MILDH' },
+            { id: 107, name: 'Premium Haleem', category: 'Haleem', price: 300, code: 'PRM001', shortCode: 'PRM' },
+            { id: 108, name: 'Biryani Haleem', category: 'Haleem', price: 270, code: 'BIR001', shortCode: 'BIR' },
+        ],
+        "Pizza's": [
+            { id: 109, name: 'Margherita Pizza', category: "Pizza's", price: 250, code: 'MPI001', shortCode: 'MPI' },
+            { id: 110, name: 'Pepperoni Pizza', category: "Pizza's", price: 280, code: 'PPI001', shortCode: 'PPI' },
+            { id: 111, name: 'Veggie Pizza', category: "Pizza's", price: 220, code: 'VPI001', shortCode: 'VPI' },
+            { id: 112, name: 'Paneer Pizza', category: "Pizza's", price: 240, code: 'PNPI001', shortCode: 'PNPI' },
+            { id: 113, name: 'Chicken Pizza', category: "Pizza's", price: 300, code: 'CPI001', shortCode: 'CPI' },
+            { id: 114, name: 'BBQ Chicken Pizza', category: "Pizza's", price: 320, code: 'BBQPI001', shortCode: 'BBQPI' },
+            { id: 115, name: 'Cheese Burst Pizza', category: "Pizza's", price: 310, code: 'CBPI001', shortCode: 'CBPI' },
+            { id: 116, name: 'Mexican Pizza', category: "Pizza's", price: 290, code: 'MEPI001', shortCode: 'MEPI' },
+            { id: 117, name: 'Tandoori Pizza', category: "Pizza's", price: 300, code: 'TAPI001', shortCode: 'TAPI' },
+            { id: 118, name: 'Garlic Bread Pizza', category: "Pizza's", price: 200, code: 'GBPI001', shortCode: 'GBPI' },
+            { id: 119, name: 'Mushroom Pizza', category: "Pizza's", price: 260, code: 'MUPI001', shortCode: 'MUPI' },
+            { id: 120, name: 'Olive Pizza', category: "Pizza's", price: 240, code: 'OLPI001', shortCode: 'OLPI' },
+        ],
+        'Biryani': [
+            { id: 121, name: 'Chicken Biryani', category: 'Biryani', price: 280, code: 'CBR001', shortCode: 'CBR' },
+            { id: 122, name: 'Mutton Biryani', category: 'Biryani', price: 320, code: 'MBR001', shortCode: 'MBR' },
+            { id: 123, name: 'Beef Biryani', category: 'Biryani', price: 340, code: 'BBR001', shortCode: 'BBR' },
+            { id: 124, name: 'Fish Biryani', category: 'Biryani', price: 300, code: 'FBR001', shortCode: 'FBR' },
+            { id: 125, name: 'Vegetable Biryani', category: 'Biryani', price: 180, code: 'VBR001', shortCode: 'VBR' },
+            { id: 126, name: 'Paneer Biryani', category: 'Biryani', price: 220, code: 'PBR001', shortCode: 'PBR' },
+            { id: 127, name: 'Hyderabadi Biryani', category: 'Biryani', price: 330, code: 'HBR001', shortCode: 'HBR' },
+            { id: 128, name: 'Lucknowi Biryani', category: 'Biryani', price: 350, code: 'LBR001', shortCode: 'LBR' },
+            { id: 129, name: 'Kolkati Biryani', category: 'Biryani', price: 310, code: 'KBR001', shortCode: 'KBR' },
+            { id: 130, name: 'Egg Biryani', category: 'Biryani', price: 240, code: 'EBR001', shortCode: 'EBR' },
+            { id: 131, name: 'Prawn Biryani', category: 'Biryani', price: 360, code: 'PRBR001', shortCode: 'PRBR' },
+            { id: 132, name: 'Mixed Biryani', category: 'Biryani', price: 380, code: 'MIXBR001', shortCode: 'MIXBR' },
+        ],
+        'Rice': [
+            { id: 133, name: 'Plain Rice', category: 'Rice', price: 60, code: 'PR001', shortCode: 'PR' },
+            { id: 134, name: 'Jeera Rice', category: 'Rice', price: 70, code: 'JR001', shortCode: 'JR' },
+            { id: 135, name: 'Tamarind Rice', category: 'Rice', price: 80, code: 'TR001', shortCode: 'TR' },
+            { id: 136, name: 'Lemon Rice', category: 'Rice', price: 75, code: 'LR001', shortCode: 'LR' },
+            { id: 137, name: 'Curd Rice', category: 'Rice', price: 70, code: 'CR001', shortCode: 'CR' },
+            { id: 138, name: 'Tomato Rice', category: 'Rice', price: 75, code: 'TOMR001', shortCode: 'TOMR' },
+            { id: 139, name: 'Coconut Rice', category: 'Rice', price: 85, code: 'COR001', shortCode: 'COR' },
+            { id: 140, name: 'Peas Rice', category: 'Rice', price: 80, code: 'PER001', shortCode: 'PER' },
+            { id: 141, name: 'Corn Rice', category: 'Rice', price: 80, code: 'CORR001', shortCode: 'CORR' },
+            { id: 142, name: 'Mixed Vegetable Rice', category: 'Rice', price: 90, code: 'MVR001', shortCode: 'MVR' },
+            { id: 143, name: 'Garlic Rice', category: 'Rice', price: 85, code: 'GR001', shortCode: 'GR' },
+            { id: 144, name: 'Fried Rice', category: 'Rice', price: 110, code: 'FR001', shortCode: 'FR' },
+        ],
+    };
+    
+    const allItems = [];
+    Object.values(foodData).forEach(items => allItems.push(...items));
+    return allItems;
 }
 
 export default ReservationStayManagement;
