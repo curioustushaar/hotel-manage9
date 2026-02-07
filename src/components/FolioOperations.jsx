@@ -26,11 +26,19 @@ const FolioOperations = ({ reservation }) => {
         try {
             setLoading(true);
             const bookingId = reservation.id || reservation._id;
+            console.log('Fetching transactions for booking:', bookingId);
+            console.log('Full reservation object:', reservation);
             const response = await fetch(`${API_URL}/${bookingId}`);
             const data = await response.json();
             
+            console.log('Fetched data:', data);
+            console.log('Transactions from API:', data.data?.transactions);
+            
             if (data.success && data.data.transactions) {
                 setTransactions(data.data.transactions);
+                console.log('Set transactions:', data.data.transactions);
+            } else {
+                console.log('No transactions found or API error');
             }
         } catch (error) {
             console.error('Error fetching transactions:', error);
@@ -351,7 +359,7 @@ User:        ${item.user}
                             </div>
                             <div className="summary-row-right">
                                 <span className="summary-label-text">Grand Total</span>
-                                <span className="summary-amount-right">₹ 2500</span>
+                                <span className="summary-amount-right">₹ {totals.grandTotal}</span>
                             </div>
                             <div className="summary-row-right">
                                 <span className="summary-label-text">Balance</span>
@@ -359,7 +367,7 @@ User:        ${item.user}
                             </div>
                             <div className="summary-row-right">
                                 <span className="summary-label-text">Paid</span>
-                                <span className="summary-amount-right paid">₹ {totals.remaining}</span>
+                                <span className="summary-amount-right paid">₹ {totals.paid}</span>
                             </div>
                         </div>
                     </div>
