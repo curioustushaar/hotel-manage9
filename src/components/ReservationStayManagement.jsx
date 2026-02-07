@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import './ReservationStayManagement.css';
 import './CreateGuestForm.css';
@@ -17,10 +17,80 @@ const ReservationStayManagement = () => {
     const [showEditModal, setShowEditModal] = useState(false); // Edit Reservation Modal state
     
     // Reservation/Booking Data
-    const [reservations, setReservations] = useState(getDummyReservations());
+    const [reservations, setReservations] = useState([]);
     const [isEditingMode, setIsEditingMode] = useState(false);
     const [editingReservationId, setEditingReservationId] = useState(null);
     const [selectedReservation, setSelectedReservation] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    const API_URL = 'http://localhost:5000/api/bookings';
+
+    // Fetch reservations from MongoDB
+    useEffect(() => {
+        fetchReservationsFromAPI();
+    }, []);
+
+    const fetchReservationsFromAPI = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch(`${API_URL}/list`);
+            const data = await response.json();
+            
+            if (data.success && data.data) {
+                // Map MongoDB bookings to reservation format
+                const mappedReservations = data.data.map(booking => ({
+                    id: booking._id,
+                    reservationType: 'Confirm',
+                    bookingSource: 'Direct',
+                    businessSource: 'Walk-In',
+                    referenceNumber: booking.bookingId || '',
+                    arrivalFrom: '',
+                    purposeOfVisit: '',
+                    guestId: booking._id,
+                    guestName: booking.guestName,
+                    guestEmail: booking.email || '',
+                    guestPhone: booking.mobileNumber,
+                    checkInDate: new Date(booking.checkInDate).toISOString().split('T')[0],
+                    checkInTime: '14:00',
+                    checkOutDate: new Date(booking.checkOutDate).toISOString().split('T')[0],
+                    checkOutTime: '11:00',
+                    flexibleCheckout: false,
+                    rooms: [{
+                        id: 1,
+                        categoryId: booking.roomType?.toLowerCase().replace(/ /g, '-') || 'deluxe-ac-double',
+                        roomNumber: booking.roomNumber || '',
+                        mealPlan: 'CP',
+                        adultsCount: booking.numberOfGuests || 1,
+                        childrenCount: 0,
+                        ratePerNight: booking.pricePerNight || 0,
+                        discount: 0
+                    }],
+                    nights: booking.numberOfNights || 1,
+                    status: booking.status === 'Upcoming' ? 'RESERVED' : 
+                            booking.status === 'Checked-in' ? 'IN_HOUSE' : 
+                            booking.status === 'Checked-out' ? 'CHECKED_OUT' : 'RESERVED',
+                    roomCharges: booking.totalAmount || 0,
+                    discount: 0,
+                    tax: 0,
+                    totalAmount: booking.totalAmount || 0,
+                    paidAmount: booking.advancePaid || 0,
+                    balanceDue: booking.remainingAmount || 0,
+                    paymentMode: 'Cash',
+                    taxExempt: false,
+                    createdAt: booking.createdAt || new Date().toISOString(),
+                    updatedAt: booking.updatedAt || new Date().toISOString()
+                }));
+                
+                console.log('Fetched and mapped reservations:', mappedReservations);
+                setReservations(mappedReservations);
+            }
+        } catch (error) {
+            console.error('Error fetching reservations:', error);
+            setReservations([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Form State - Reservation Meta
     const [reservationType, setReservationType] = useState('Confirm');
@@ -41,6 +111,7 @@ const ReservationStayManagement = () => {
     const [rooms, setRooms] = useState([{
         id: 1,
         categoryId: 'deluxe-ac-double',
+        roomNumber: '',
         mealPlan: 'CP',
         adultsCount: 1,
         childrenCount: 0,
@@ -177,11 +248,31 @@ const ReservationStayManagement = () => {
     }, [invoices, reservations, handleViewInvoice]);
 
     // Handle Update Status
-    const handleUpdateReservationStatus = useCallback((reservationId, newStatus) => {
-        setReservations(reservations.map(r =>
-            r.id === reservationId ? { ...r, status: newStatus, updatedAt: new Date().toISOString() } : r
-        ));
-    }, [reservations]);
+    const handleUpdateReservationStatus = useCallback(async (reservationId, newStatus) => {
+        try {
+            // Map UI status to MongoDB booking status
+            const bookingStatus = newStatus === 'RESERVED' ? 'Upcoming' : 
+                                 newStatus === 'IN_HOUSE' ? 'Checked-in' : 
+                                 newStatus === 'CHECKED_OUT' ? 'Checked-out' : 
+                                 'Upcoming';
+
+            const response = await fetch(`${API_URL}/status/${reservationId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: bookingStatus })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                await fetchReservationsFromAPI();
+            } else {
+                alert(`Error: ${data.message}`);
+            }
+        } catch (error) {
+            console.error('Error updating status:', error);
+            alert('Failed to update status');
+        }
+    }, []);
 
     // Reset Form
     const resetForm = useCallback(() => {
@@ -198,7 +289,7 @@ const ReservationStayManagement = () => {
         setCheckOutDate('');
         setCheckOutTime('11:00');
         setFlexibleCheckout(false);
-        setRooms([{ id: 1, categoryId: 'deluxe-ac-double', mealPlan: 'CP', adultsCount: 1, childrenCount: 0, ratePerNight: 3000, discount: 0 }]);
+        setRooms([{ id: 1, categoryId: 'deluxe-ac-double', roomNumber: '', mealPlan: 'CP', adultsCount: 1, childrenCount: 0, ratePerNight: 3000, discount: 0 }]);
         setSelectedGuest(null);
         setPaidAmount(0);
         setPaymentMode('Cash');
@@ -209,7 +300,7 @@ const ReservationStayManagement = () => {
     }, []);
 
     // Handle Save Reservation
-    const handleSaveReservation = (e) => {
+    const handleSaveReservation = async (e) => {
         e.preventDefault();
 
         if (!selectedGuest) {
@@ -227,40 +318,64 @@ const ReservationStayManagement = () => {
             return;
         }
 
-        const newReservation = {
-            id: isEditingMode ? editingReservationId : 'RES-' + Date.now(),
-            reservationType,
-            bookingSource,
-            businessSource,
-            referenceNumber,
-            arrivalFrom,
-            purposeOfVisit,
-            guestId: selectedGuest.guestId || selectedGuest.id,
+        // Map reservation data to MongoDB booking format
+        const bookingData = {
             guestName: selectedGuest.fullName || selectedGuest.name,
-            guestEmail: selectedGuest.email,
-            guestPhone: selectedGuest.mobile || selectedGuest.phone,
+            mobileNumber: selectedGuest.mobile || selectedGuest.phone,
+            email: selectedGuest.email,
+            roomType: rooms[0].categoryId.replace(/-/g, ' ').toUpperCase(),
+            roomNumber: rooms[0].roomNumber || 'TBD',
+            numberOfGuests: rooms[0].adultsCount + rooms[0].childrenCount,
             checkInDate,
-            checkInTime,
             checkOutDate,
-            checkOutTime,
-            flexibleCheckout,
-            rooms: JSON.parse(JSON.stringify(rooms)),
-            nights,
-            status: isEditingMode ? reservations.find(r => r.id === editingReservationId)?.status : 'RESERVED',
-            ...billingData,
-            createdAt: isEditingMode ? reservations.find(r => r.id === editingReservationId)?.createdAt : new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            numberOfNights: nights,
+            pricePerNight: rooms[0].ratePerNight,
+            totalAmount: billingData.totalAmount,
+            advancePaid: billingData.paidAmount || 0,
+            status: 'Upcoming'
         };
 
-        if (isEditingMode) {
-            setReservations(reservations.map(r => r.id === editingReservationId ? newReservation : r));
-        } else {
-            setReservations([newReservation, ...reservations]);
-        }
+        try {
+            if (isEditingMode) {
+                // Update existing booking
+                const response = await fetch(`${API_URL}/update/${editingReservationId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bookingData)
+                });
 
-        resetForm();
-        setView('dashboard');
-        alert(isEditingMode ? 'Reservation updated successfully!' : 'Reservation created successfully!');
+                const data = await response.json();
+                if (data.success) {
+                    await fetchReservationsFromAPI();
+                    alert('Reservation updated successfully!');
+                } else {
+                    alert(`Error: ${data.message}`);
+                    return;
+                }
+            } else {
+                // Create new booking
+                const response = await fetch(`${API_URL}/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bookingData)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    await fetchReservationsFromAPI();
+                    alert('Reservation created successfully!');
+                } else {
+                    alert(`Error: ${data.message}`);
+                    return;
+                }
+            }
+
+            resetForm();
+            setView('dashboard');
+        } catch (error) {
+            console.error('Error saving reservation:', error);
+            alert('Failed to save reservation. Please check if the server is running.');
+        }
     };
 
     // Handle Edit
@@ -292,8 +407,27 @@ const ReservationStayManagement = () => {
     };
 
     // Handle Delete
-    const handleDeleteReservation = (reservationId) => {
-        setReservations(reservations.filter(r => r.id !== reservationId));
+    const handleDeleteReservation = async (reservationId) => {
+        if (!confirm('Are you sure you want to delete this reservation?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/delete/${reservationId}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                await fetchReservationsFromAPI();
+                alert('Reservation deleted successfully');
+            } else {
+                alert(`Error: ${data.message}`);
+            }
+        } catch (error) {
+            console.error('Error deleting reservation:', error);
+            alert('Failed to delete reservation');
+        }
     };
 
     // Filter reservations
@@ -517,6 +651,7 @@ const ReservationStayManagement = () => {
                                     onClick={() => setRooms([...rooms, {
                                         id: rooms.length + 1,
                                         categoryId: 'deluxe-ac-double',
+                                        roomNumber: '',
                                         mealPlan: 'CP',
                                         adultsCount: 1,
                                         childrenCount: 0,

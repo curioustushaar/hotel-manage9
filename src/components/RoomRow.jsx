@@ -36,6 +36,16 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove }) => {
                 </div>
 
                 <div className="form-row">
+                    <label>Room Number</label>
+                    <input
+                        type="text"
+                        placeholder="e.g., 101, A1"
+                        value={room.roomNumber || ''}
+                        onChange={(e) => handleChange('roomNumber', e.target.value)}
+                    />
+                </div>
+
+                <div className="form-row">
                     <label>Meal Plan</label>
                     <select
                         value={room.mealPlan}

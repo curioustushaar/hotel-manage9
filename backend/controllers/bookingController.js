@@ -76,6 +76,8 @@ exports.addBooking = async (req, res) => {
 
         const booking = new Booking(bookingData);
         
+        console.log('Creating booking with data:', bookingData);
+        
         // Add initial room charge transaction
         const checkInDate = new Date(bookingData.checkInDate);
         const initialTransaction = {
@@ -92,8 +94,31 @@ exports.addBooking = async (req, res) => {
             user: 'system'
         };
         
+        console.log('Initial transaction:', initialTransaction);
         booking.transactions.push(initialTransaction);
+        
+        // Add advance payment transaction if advance is paid
+        if (bookingData.advancePaid && bookingData.advancePaid > 0) {
+            const advancePaymentTransaction = {
+                type: 'payment',
+                day: new Date().toLocaleDateString('en-GB', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    year: 'numeric',
+                    weekday: 'short'
+                }),
+                particulars: 'Advance Payment',
+                description: 'Advance payment received at booking',
+                amount: -Math.abs(bookingData.advancePaid),
+                user: 'system'
+            };
+            console.log('Advance payment transaction:', advancePaymentTransaction);
+            booking.transactions.push(advancePaymentTransaction);
+        }
+        
+        console.log('Booking before save - transactions:', booking.transactions);
         await booking.save();
+        console.log('Booking saved - transactions:', booking.transactions);
 
         // Update room status based on booking status
         const Room = require('../models/roomModel');
