@@ -1,0 +1,141 @@
+.folio-ops-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(2px);
+}
+
+.folio-ops-menu-modal {
+    background: white;
+    width: 550px;
+    max-width: 90%;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.folio-ops-menu-header {
+    background: #f9fafb;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 2px solid #e5e7eb;
+    border-radius: 8px 8px 0 0;
+}
+
+.folio-ops-back-btn {
+    background: transparent;
+    border: none;
+    color: #374151;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+}
+
+.folio-ops-back-btn:hover {
+    background: #e5e7eb;
+    color: #1f2937;
+}
+
+.folio-ops-menu-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.folio-ops-menu-body {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    min-height: 250px;
+}
+
+.folio-ops-menu-item {
+    padding: 18px 20px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.folio-ops-menu-item:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.folio-ops-menu-footer {
+    padding: 24px;
+    border-top: 2px solid #e5e7eb;
+    display: flex;
+    gap: 16px;
+    background: white;
+    border-radius: 0 0 8px 8px;
+}
+
+.folio-ops-cancel-btn,
+.folio-ops-save-btn {
+    flex: 1;
+    padding: 14px 28px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.folio-ops-cancel-btn {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.folio-ops-cancel-btn:hover {
+    background: #e5e7eb;
+}
+
+.folio-ops-save-btn {
+    background: #10b981;
+    color: white;
+}
+
+.folio-ops-save-btn:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}

@@ -1,0 +1,161 @@
+.new-folio-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    z-index: 10000;
+    backdrop-filter: blur(2px);
+    padding: 100px 0;
+}
+
+.new-folio-modal {
+    background: white;
+    width: 420px;
+    max-width: 90%;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 200px);
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+.new-folio-header {
+    background: #4c6ef5;
+    color: white;
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 0;
+    flex-shrink: 0;
+}
+
+.new-folio-header h2 {
+    margin: 0;
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.new-folio-close {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    opacity: 0.9;
+    transition: opacity 0.2s;
+}
+
+.new-folio-close:hover {
+    opacity: 1;
+}
+
+.new-folio-form {
+    padding: 24px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #1f2937;
+    background: white;
+    transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #4c6ef5;
+    box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.1);
+}
+
+.form-group select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23374151' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+}
+
+.new-folio-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 28px;
+    justify-content: flex-start;
+}
+
+.btn-cancel,
+.btn-save {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-cancel {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-cancel:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.btn-save {
+    background: #10b981;
+    color: white;
+}
+
+.btn-save:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}

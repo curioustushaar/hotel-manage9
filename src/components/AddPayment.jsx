@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import './AddPayment.css';
+import Toast from './Toast';
 
 const AddPayment = ({ onClose, onAdd, reservation }) => {
+    console.log('AddPayment component mounted');
+    
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         folio: reservation ? `${reservation.roomNumber} - ${reservation.guestName}` : 'B5 - Shahrukh Ahmed',
@@ -13,6 +16,7 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
 
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showToast, setShowToast] = useState(false);
 
     const handleChange = (field, value) => {
         setFormData(prev => ({
@@ -84,10 +88,13 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
             existingPayments.push(paymentData);
             localStorage.setItem('payments', JSON.stringify(existingPayments));
 
-            // Show success message (you can add a toast notification here)
-            alert(`Payment of ${formData.currency} ${formData.amount} added successfully!`);
+            // Show success toast notification
+            setShowToast(true);
             
-            onClose();
+            // Close after a short delay to show the toast
+            setTimeout(() => {
+                onClose();
+            }, 1000);
         } catch (error) {
             console.error('Error submitting payment:', error);
             alert('Failed to add payment. Please try again.');
@@ -213,6 +220,15 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
                     </button>
                 </div>
             </div>
+            
+            {/* Success Toast */}
+            {showToast && (
+                <Toast 
+                    message="Successful!"
+                    onClose={() => setShowToast(false)}
+                    type="success"
+                />
+            )}
         </div>
     );
 };
