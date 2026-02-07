@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import API_URL from '../config/api';
 import BookingRow from './BookingRow';
 import EditReservationModal from './EditReservationModal';
+import BookingActionsManager from './BookingActionsManager';
 import './Bookings.css';
 
 const Bookings = () => {
@@ -18,6 +19,12 @@ const Bookings = () => {
     const [currentBooking, setCurrentBooking] = useState(null);
     const [selectedReservation, setSelectedReservation] = useState(null);
     const [bookingErrorMessage, setBookingErrorMessage] = useState('');
+    
+    // More Options State
+    const [actionDrawerOpen, setActionDrawerOpen] = useState(false);
+    const [currentAction, setCurrentAction] = useState(null);
+    const [actionBooking, setActionBooking] = useState(null);
+    
     const [bookingFormData, setBookingFormData] = useState({
         bookingId: '',
         guestName: '',
@@ -243,6 +250,18 @@ const Bookings = () => {
             case 'Checked-out':
                 return 'status-checkedout';
             case 'Cancelled':
+    // Handle More Options action selection
+    const handleMoreOptionsAction = (actionType, booking) => {
+        setCurrentAction(actionType);
+        setActionBooking(booking);
+        setActionDrawerOpen(true);
+    };
+
+    // Handle action success - refresh bookings
+    const handleActionSuccess = async (updatedBooking) => {
+        await fetchBookingsFromAPI(); // Refresh the bookings list
+    };
+
                 return 'status-cancelled';
             default:
                 return '';
@@ -310,7 +329,8 @@ const Bookings = () => {
                             <th className="text-center">Room No</th>
                             <th className="text-left">Room Type</th>
                             <th className="text-center">Check-in Date</th>
-                            <th className="text-center">Status</th>
+                            <th     onMoreOptions={handleMoreOptionsAction}
+                                className="text-center">Status</th>
                             <th className="text-center">Actions</th>
                         </tr>
                     </thead>
@@ -560,7 +580,21 @@ const Bookings = () => {
                                     Update Booking
                                 </button>
                             </div>
-                        </form>
+              
+
+            {/* More Options Action Drawer */}
+            <BookingActionsManager
+                isOpen={actionDrawerOpen}
+                onClose={() => {
+                    setActionDrawerOpen(false);
+                    setCurrentAction(null);
+                    setActionBooking(null);
+                }}
+                actionType={currentAction}
+                booking={actionBooking}
+                onSuccess={handleActionSuccess}
+            />
+          </form>
                     </motion.div>
                 </div>
             )}

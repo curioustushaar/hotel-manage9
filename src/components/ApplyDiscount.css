@@ -147,6 +147,39 @@
     user-select: none;
 }
 
+/* Discount Type Buttons */
+.discount-type-buttons {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.discount-type-btn {
+    flex: 1;
+    padding: 10px 16px;
+    background: white;
+    border: 2px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.discount-type-btn:hover {
+    border-color: #667eea;
+    color: #667eea;
+    background: #f3f4f6;
+}
+
+.discount-type-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+    color: white;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
 /* Select Dropdown */
 .form-select {
     cursor: pointer;

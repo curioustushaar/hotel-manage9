@@ -163,6 +163,39 @@
     letter-spacing: 0.3px;
 }
 
+/* Discount Type Buttons */
+.discount-type-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.discount-type-btn {
+    flex: 1;
+    padding: 10px 16px;
+    background: white;
+    border: 2px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.discount-type-btn:hover {
+    border-color: #3b5bdb;
+    color: #3b5bdb;
+    background: #f3f4f6;
+}
+
+.discount-type-btn.active {
+    background: linear-gradient(135deg, #3b5bdb 0%, #4c6ef5 100%);
+    border-color: #3b5bdb;
+    color: white;
+    box-shadow: 0 2px 8px rgba(59, 91, 219, 0.3);
+}
+
 /* Plus Value Button */
 .discount-plus-value-btn {
     display: flex;
