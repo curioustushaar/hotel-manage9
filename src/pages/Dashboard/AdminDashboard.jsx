@@ -9,6 +9,7 @@ import Customers from '../Customers/Customers';
 import DashboardHome from '../DashboardHome/DashboardHome';
 import MyProfile from '../Profile/MyProfile';
 import ReservationStayManagement from "../../components/ReservationStayManagement";
+import GuestMealService from '../GuestMealService/GuestMealService';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -100,6 +101,8 @@ const AdminDashboard = () => {
             setActiveMenu('reservations');
         } else if (path.includes('/rooms')) {
             setActiveMenu('rooms');
+        } else if (path.includes('/guest-meal-service')) {
+            setActiveMenu('guest-meal-service');
         } else if (path.includes('/food-menu')) {
             setActiveMenu('food-menu');
         } else if (path.includes('/customers')) {
@@ -278,6 +281,7 @@ const AdminDashboard = () => {
         { id: 'dashboard', icon: '🏠', label: 'Dashboard' },
         { id: 'rooms', icon: '🛏️', label: 'Rooms' },
         { id: 'reservations', icon: '🏨', label: 'Reservation & Stay Management' },
+        { id: 'guest-meal-service', icon: '🍴', label: 'Guest Meal Service' },
         { id: 'food-menu', icon: '🍽️', label: 'Food Menu' },
         { 
             id: 'proper-configuration', 
@@ -684,6 +688,11 @@ const AdminDashboard = () => {
                     {/* Reservation & Stay Management View */}
                     {activeMenu === 'reservations' && (
                         <ReservationStayManagement />
+                    )}
+
+                    {/* Guest Meal Service View */}
+                    {activeMenu === 'guest-meal-service' && (
+                        <GuestMealService />
                     )}
 
                     {/* Food Menu View */}
