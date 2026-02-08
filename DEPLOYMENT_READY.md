@@ -61,7 +61,7 @@ Vercel Dashboard पर जाएं:
 ```
 MONGODB_URI=mongodb+srv://majar_123:majar_123@cluster0.mfempxz.mongodb.net/bareena-atithi?appName=Cluster0
 NODE_ENV=production
-FRONTEND_URL=https://bareena-athithi-bf1o.vercel.app
+FRONTEND_URL=https://hotel-management-three-psi.vercel.app
 PORT=5000
 ```
 
