@@ -1,0 +1,444 @@
+/* ============================================================
+   ROOM SERVICE STYLES
+   ============================================================ */
+
+.room-service-container {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+}
+
+/* Header Section */
+.room-service-header {
+    margin-bottom: 2rem;
+}
+
+.room-service-header .header-title h2 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #1a1a1a;
+    margin: 0 0 0.5rem 0;
+    letter-spacing: -0.02em;
+}
+
+.room-service-header .header-title p {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 0;
+    font-weight: 400;
+    letter-spacing: 0.2px;
+    line-height: 1.5;
+}
+
+/* Controls Section */
+.room-service-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* Search Box */
+.search-box-room {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+    min-width: 250px;
+}
+
+.search-input-room {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    font-size: 0.85rem;
+    color: #333;
+    background-color: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.search-input-room:focus {
+    outline: none;
+    border-color: #dc3545;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.search-icon-room {
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1rem;
+    color: #999;
+    pointer-events: none;
+}
+
+/* Filter Buttons */
+.filter-buttons {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.filter-btn {
+    padding: 0.65rem 1.25rem;
+    background-color: #ffffff;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.filter-btn:hover {
+    border-color: #dc3545;
+    color: #dc3545;
+    background-color: #fff5f5;
+}
+
+.filter-btn.active {
+    background-color: #dc3545;
+    color: #ffffff;
+    border-color: #dc3545;
+    box-shadow: 0 2px 6px rgba(220, 53, 69, 0.2);
+}
+
+/* Add Service Button */
+.btn-add-service {
+    padding: 0.75rem 1.5rem;
+    background-color: #dc3545;
+    color: #ffffff;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(220, 53, 69, 0.2);
+}
+
+.btn-add-service:hover {
+    background-color: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
+}
+
+/* Room List Container */
+.room-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Room Card */
+.room-card {
+    display: flex;
+    align-items: center;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.6rem;
+    padding: 1.25rem 1.5rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.room-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    border-color: #dc3545;
+}
+
+/* Left Section - Room Info */
+.room-info-section {
+    min-width: 150px;
+    padding-right: 1.5rem;
+    border-right: 1px solid #e5e7eb;
+}
+
+.room-number {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #dc3545;
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.02em;
+}
+
+.guest-name {
+    font-size: 0.85rem;
+    color: #4b5563;
+    font-weight: 500;
+}
+
+/* Middle Section - Details */
+.room-details-section {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    padding: 0 1.5rem;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.detail-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.detail-value {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.detail-date {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.detail-time {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.rate-value {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #dc3545;
+}
+
+/* Guests Icons */
+.guests-icons {
+    display: flex;
+    gap: 0.75rem;
+    flex-direction: row;
+}
+
+.guest-icon {
+    font-size: 0.85rem;
+    color: #4b5563;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Right Section - Actions */
+.room-actions-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding-left: 1.5rem;
+    border-left: 1px solid #e5e7eb;
+}
+
+/* Service Icons */
+.service-icons {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.service-icon {
+    font-size: 1.25rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.service-icon:hover {
+    transform: scale(1.2);
+}
+
+/* Action Button */
+.btn-room-action {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #dc3545;
+    color: #ffffff;
+    border: none;
+    font-size: 1.5rem;
+    font-weight: 300;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(220, 53, 69, 0.2);
+}
+
+.btn-room-action:hover {
+    background-color: #c82333;
+    transform: scale(1.1);
+    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
+}
+
+/* View Order Button */
+.btn-view-order {
+    padding: 0.6rem 1.2rem;
+    background-color: #10b981;
+    color: #ffffff;
+    border: none;
+    border-radius: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+}
+
+.btn-view-order:hover {
+    background-color: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+}
+
+/* No Rooms Message */
+.no-rooms-message {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #999;
+    font-size: 0.95rem;
+    font-style: italic;
+    background-color: #f9fafb;
+    border-radius: 0.6rem;
+    border: 1px dashed #e5e7eb;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal-content-service {
+    background-color: #ffffff;
+    border-radius: 0.6rem;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .room-details-section {
+        gap: 1.5rem;
+    }
+}
+
+@media (max-width: 992px) {
+    .room-card {
+        flex-wrap: wrap;
+    }
+
+    .room-info-section {
+        border-right: none;
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 1rem;
+        margin-bottom: 1rem;
+        width: 100%;
+    }
+
+    .room-details-section {
+        width: 100%;
+        padding: 0;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .detail-item {
+        min-width: 120px;
+    }
+
+    .room-actions-section {
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid #e5e7eb;
+        padding-left: 0;
+        padding-top: 1rem;
+        margin-top: 1rem;
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 768px) {
+    .room-service-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-box-room {
+        max-width: 100%;
+    }
+
+    .filter-buttons {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .filter-btn {
+        flex: 1;
+    }
+
+    .btn-add-service {
+        width: 100%;
+    }
+
+    .room-details-section {
+        gap: 0.75rem;
+    }
+
+    .detail-item {
+        min-width: 100px;
+    }
+}

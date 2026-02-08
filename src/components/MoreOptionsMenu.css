@@ -1,0 +1,106 @@
+/* More Options Wrapper */
+.more-options-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+/* Trigger Button */
+.more-options-trigger {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    letter-spacing: 2px;
+    gap: 0.3rem;
+}
+
+.more-options-trigger .dropdown-arrow {
+    font-size: 10px;
+    margin-left: 4px;
+    transition: transform 0.2s ease;
+}
+
+.more-options-trigger:hover {
+    background: #dc2626;
+    color: white;
+    border-color: #dc2626;
+    transform: scale(1.1);
+}
+
+/* Dropdown Menu - FIXED Z-INDEX ISSUE */
+.more-options-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    min-width: 260px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e5e7eb;
+    z-index: 99999; /* High z-index to appear above everything */
+    overflow: hidden;
+    padding: 4px 0;
+}
+
+/* Individual Menu Items */
+.more-options-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 10px 16px;
+    text-align: left;
+    background: white;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1f2937;
+    transition: all 0.15s ease;
+    border-bottom: none;
+    margin: 2px 6px;
+    border-radius: 6px;
+    gap: 8px;
+}
+
+.more-options-item:last-child {
+    border-bottom: none;
+}
+
+.more-options-item:not(.disabled):hover {
+    background: #f3f4f6 !important;
+    color: #111827;
+    transform: none;
+}
+
+.more-options-item.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    color: #9ca3af;
+}
+
+.more-options-item.disabled:hover {
+    background: white;
+    transform: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .more-options-dropdown {
+        min-width: 200px;
+    }
+    
+    .more-options-item {
+        font-size: 13px;
+        padding: 10px 14px;
+    }
+}

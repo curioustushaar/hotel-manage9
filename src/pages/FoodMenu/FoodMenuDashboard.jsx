@@ -1,5 +1,6 @@
 // Simplified Food Menu Component for Dashboard Integration
 import React, { useState, useEffect } from 'react';
+import API_URL from '../../config/api';
 
 const FoodMenuDashboard = () => {
     const [showAddForm, setShowAddForm] = useState(false);
@@ -18,7 +19,7 @@ const FoodMenuDashboard = () => {
 
     const fetchMenuItems = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/menu/list');
+            const response = await fetch(`${API_URL}/api/menu/list`);
             const data = await response.json();
             if (data.success) {
                 setMenuItems(data.data);
@@ -40,7 +41,7 @@ const FoodMenuDashboard = () => {
         };
 
         try {
-            const response = await fetch('http://localhost:5000/api/menu/add', {
+            const response = await fetch(`${API_URL}/api/menu/add`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newItem),
@@ -72,7 +73,7 @@ const FoodMenuDashboard = () => {
         };
 
         try {
-            const response = await fetch(`http://localhost:5000/api/menu/update/${editingItem._id}`, {
+            const response = await fetch(`${API_URL}/api/menu/update/${editingItem._id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updatedItem),
@@ -93,7 +94,7 @@ const FoodMenuDashboard = () => {
     const handleToggleStatus = async (item) => {
         const newStatus = item.status === 'Active' ? 'Inactive' : 'Active';
         try {
-            const response = await fetch(`http://localhost:5000/api/menu/update/${item._id}`, {
+            const response = await fetch(`${API_URL}/api/menu/update/${item._id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus }),
@@ -111,7 +112,7 @@ const FoodMenuDashboard = () => {
 
     const handleDeleteItem = async (id) => {
         try {
-            const response = await fetch(`http://localhost:5000/api/menu/delete/${id}`, {
+            const response = await fetch(`${API_URL}/api/menu/delete/${id}`, {
                 method: 'DELETE',
             });
             if (response.ok) {

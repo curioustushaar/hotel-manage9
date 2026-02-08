@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import API_URL from '../config/api';
 import BookingRow from './BookingRow';
 import EditReservationModal from './EditReservationModal';
+import BookingActionsManager from './BookingActionsManager';
 import './Bookings.css';
 
 const Bookings = () => {
@@ -17,6 +19,12 @@ const Bookings = () => {
     const [currentBooking, setCurrentBooking] = useState(null);
     const [selectedReservation, setSelectedReservation] = useState(null);
     const [bookingErrorMessage, setBookingErrorMessage] = useState('');
+    
+    // More Options State
+    const [actionDrawerOpen, setActionDrawerOpen] = useState(false);
+    const [currentAction, setCurrentAction] = useState(null);
+    const [actionBooking, setActionBooking] = useState(null);
+    
     const [bookingFormData, setBookingFormData] = useState({
         bookingId: '',
         guestName: '',
@@ -39,7 +47,7 @@ const Bookings = () => {
             // Clear old localStorage data
             localStorage.removeItem('hotelBookings');
             
-            const response = await fetch('http://localhost:5000/api/bookings/list');
+            const response = await fetch(`${API_URL}/api/bookings/list`);
             const data = await response.json();
             if (data.success) {
                 setBookings(data.data);
@@ -86,7 +94,7 @@ const Bookings = () => {
     const handleDeleteBooking = async (id) => {
         if (confirm('Are you sure you want to delete this booking?')) {
             try {
-                const response = await fetch(`http://localhost:5000/api/bookings/delete/${id}`, {
+                const response = await fetch(`${API_URL}/api/bookings/delete/${id}`, {
                     method: 'DELETE'
                 });
 
@@ -134,7 +142,7 @@ const Bookings = () => {
                     status: bookingFormData.status || 'Upcoming'
                 };
 
-                const response = await fetch('http://localhost:5000/api/bookings/add', {
+                const response = await fetch(`${API_URL}/api/bookings/add`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(newBooking)
@@ -159,7 +167,7 @@ const Bookings = () => {
                     status: bookingFormData.status
                 };
 
-                const response = await fetch(`http://localhost:5000/api/bookings/update/${currentBooking._id}`, {
+                const response = await fetch(`${API_URL}/api/bookings/update/${currentBooking._id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(updatedBooking)
@@ -242,6 +250,18 @@ const Bookings = () => {
             case 'Checked-out':
                 return 'status-checkedout';
             case 'Cancelled':
+    // Handle More Options action selection
+    const handleMoreOptionsAction = (actionType, booking) => {
+        setCurrentAction(actionType);
+        setActionBooking(booking);
+        setActionDrawerOpen(true);
+    };
+
+    // Handle action success - refresh bookings
+    const handleActionSuccess = async (updatedBooking) => {
+        await fetchBookingsFromAPI(); // Refresh the bookings list
+    };
+
                 return 'status-cancelled';
             default:
                 return '';
@@ -309,7 +329,8 @@ const Bookings = () => {
                             <th className="text-center">Room No</th>
                             <th className="text-left">Room Type</th>
                             <th className="text-center">Check-in Date</th>
-                            <th className="text-center">Status</th>
+                            <th     onMoreOptions={handleMoreOptionsAction}
+                                className="text-center">Status</th>
                             <th className="text-center">Actions</th>
                         </tr>
                     </thead>
@@ -559,7 +580,21 @@ const Bookings = () => {
                                     Update Booking
                                 </button>
                             </div>
-                        </form>
+              
+
+            {/* More Options Action Drawer */}
+            <BookingActionsManager
+                isOpen={actionDrawerOpen}
+                onClose={() => {
+                    setActionDrawerOpen(false);
+                    setCurrentAction(null);
+                    setActionBooking(null);
+                }}
+                actionType={currentAction}
+                booking={actionBooking}
+                onSuccess={handleActionSuccess}
+            />
+          </form>
                     </motion.div>
                 </div>
             )}

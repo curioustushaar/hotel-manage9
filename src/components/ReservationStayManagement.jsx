@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AnimatePresence } from 'framer-motion';
+import API_URL_CONFIG from '../config/api';
 import './ReservationStayManagement.css';
 import './CreateGuestForm.css';
 import RoomRow from './RoomRow';
@@ -10,12 +11,16 @@ import InvoiceGenerator from './InvoiceGenerator';
 import InvoiceView from './InvoiceView';
 import './InvoiceView.css';
 import EditReservationModal from './EditReservationModal';
+import MoreOptionsMenu from './MoreOptionsMenu';
+import BookingActionsManager from './BookingActionsManager';
+import HousekeepingView from './HousekeepingView';
+import RoomService from './RoomService';
 
 const ReservationStayManagement = () => {
-    const [view, setView] = useState('dashboard'); // 'dashboard' or 'form'
+    const [view, setView] = useState('dashboard'); // 'dashboard', 'form', 'housekeeping', or 'roomservice'
     const [activeTab, setActiveTab] = useState('all'); // 'all', 'reserved', 'in-house', 'checked-out'
     const [showEditModal, setShowEditModal] = useState(false); // Edit Reservation Modal state
-    
+
     // Reservation/Booking Data
     const [reservations, setReservations] = useState([]);
     const [isEditingMode, setIsEditingMode] = useState(false);
@@ -23,7 +28,7 @@ const ReservationStayManagement = () => {
     const [selectedReservation, setSelectedReservation] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const API_URL = 'http://localhost:5000/api/bookings';
+    const API_URL = `${API_URL_CONFIG}/api/bookings`;
 
     // Fetch reservations from MongoDB
     useEffect(() => {
@@ -36,7 +41,7 @@ const ReservationStayManagement = () => {
             setLoading(true);
             const response = await fetch(`${API_URL}/list`);
             const data = await response.json();
-            
+
             if (data.success && data.data) {
                 // Map MongoDB bookings to reservation format
                 const mappedReservations = data.data.map(booking => ({
@@ -67,8 +72,8 @@ const ReservationStayManagement = () => {
                         discount: 0
                     }],
                     nights: booking.numberOfNights || 1,
-                    status: booking.status === 'Upcoming' ? 'RESERVED' : 
-                            booking.status === 'Checked-in' ? 'IN_HOUSE' : 
+                    status: booking.status === 'Upcoming' ? 'RESERVED' :
+                        booking.status === 'Checked-in' ? 'IN_HOUSE' :
                             booking.status === 'Checked-out' ? 'CHECKED_OUT' : 'RESERVED',
                     roomCharges: booking.totalAmount || 0,
                     discount: 0,
@@ -81,7 +86,7 @@ const ReservationStayManagement = () => {
                     createdAt: booking.createdAt || new Date().toISOString(),
                     updatedAt: booking.updatedAt || new Date().toISOString()
                 }));
-                
+
                 console.log('Fetched and mapped reservations:', mappedReservations);
                 setReservations(mappedReservations);
             }
@@ -151,11 +156,16 @@ const ReservationStayManagement = () => {
     const [currentInvoice, setCurrentInvoice] = useState(null);
     const [showInvoiceModal, setShowInvoiceModal] = useState(false);
     const [invoiceGenerationInProgress, setInvoiceGenerationInProgress] = useState(false);
-    
+
     // More Options Menu State
     const [showMoreOptions, setShowMoreOptions] = useState(false);
     const [showAmendStayModal, setShowAmendStayModal] = useState(false);
-    
+
+    // Action Drawer State for More Options
+    const [actionDrawerOpen, setActionDrawerOpen] = useState(false);
+    const [currentAction, setCurrentAction] = useState(null);
+    const [actionBooking, setActionBooking] = useState(null);
+
     // Amend Stay State
     const [amendArrivalDate, setAmendArrivalDate] = useState('');
     const [amendArrivalTime, setAmendArrivalTime] = useState('');
@@ -214,6 +224,50 @@ const ReservationStayManagement = () => {
         }
     }, [invoices]);
 
+    // Handle More Options action selection
+    const handleMoreOptionsAction = (actionType) => {
+        if (!selectedReservation) return;
+
+        // Convert reservation to booking format for the actions
+        const bookingData = {
+            _id: selectedReservation.id,
+            bookingId: selectedReservation.referenceNumber,
+            guestName: selectedReservation.guestName,
+            mobileNumber: selectedReservation.guestPhone,
+            email: selectedReservation.guestEmail,
+            roomNumber: selectedReservation.rooms?.[0]?.roomNumber || '',
+            roomType: selectedReservation.rooms?.[0]?.categoryId?.replace(/-/g, ' ').toUpperCase() || '',
+            checkInDate: selectedReservation.checkInDate,
+            checkOutDate: selectedReservation.checkOutDate,
+            numberOfNights: selectedReservation.nights,
+            numberOfGuests: selectedReservation.rooms?.[0]?.adultsCount || 1,
+            pricePerNight: selectedReservation.rooms?.[0]?.ratePerNight || 0,
+            totalAmount: selectedReservation.totalAmount || 0,
+            advancePaid: selectedReservation.paidAmount || 0,
+            status: selectedReservation.status === 'RESERVED' ? 'Upcoming' :
+                selectedReservation.status === 'IN_HOUSE' ? 'Checked-in' :
+                    selectedReservation.status === 'CHECKED_OUT' ? 'Checked-out' : 'Upcoming',
+            visitors: [],
+            transactions: []
+        };
+
+        setCurrentAction(actionType);
+        setActionBooking(bookingData);
+        setActionDrawerOpen(true);
+    };
+
+    // Handle action success - refresh reservations
+    const handleActionSuccess = async () => {
+        await fetchReservationsFromAPI();
+        // Update selected reservation if it's still in the list
+        if (selectedReservation) {
+            const updated = reservations.find(r => r.id === selectedReservation.id);
+            if (updated) {
+                setSelectedReservation(updated);
+            }
+        }
+    };
+
     // Handle Generate Invoice
     const handleGenerateInvoice = useCallback(async (reservation) => {
         if (reservation.actionType === 'viewInvoice') {
@@ -229,7 +283,7 @@ const ReservationStayManagement = () => {
         }
 
         setInvoiceGenerationInProgress(true);
-        
+
         try {
             const billingDataForInvoice = {
                 roomCharges: reservation.roomCharges,
@@ -244,12 +298,12 @@ const ReservationStayManagement = () => {
 
             const invoice = InvoiceGenerator.generateInvoice(reservation, billingDataForInvoice);
             await InvoiceGenerator.saveInvoice(invoice);
-            
+
             setInvoices([...invoices, invoice]);
             setCurrentInvoice(invoice);
             setShowInvoiceModal(true);
 
-            setReservations(reservations.map(r => 
+            setReservations(reservations.map(r =>
                 r.id === reservation.id ? {
                     ...r,
                     status: 'CHECKED_OUT',
@@ -268,10 +322,10 @@ const ReservationStayManagement = () => {
     const handleUpdateReservationStatus = useCallback(async (reservationId, newStatus) => {
         try {
             // Map UI status to MongoDB booking status
-            const bookingStatus = newStatus === 'RESERVED' ? 'Upcoming' : 
-                                 newStatus === 'IN_HOUSE' ? 'Checked-in' : 
-                                 newStatus === 'CHECKED_OUT' ? 'Checked-out' : 
-                                 'Upcoming';
+            const bookingStatus = newStatus === 'RESERVED' ? 'Upcoming' :
+                newStatus === 'IN_HOUSE' ? 'Checked-in' :
+                    newStatus === 'CHECKED_OUT' ? 'Checked-out' :
+                        'Upcoming';
 
             const response = await fetch(`${API_URL}/status/${reservationId}`, {
                 method: 'PATCH',
@@ -514,7 +568,7 @@ const ReservationStayManagement = () => {
         const inDate = new Date(amendArrivalDate);
         const outDate = new Date(amendDepartureDate);
         const calculatedNights = Math.max(1, Math.ceil((outDate - inDate) / (1000 * 60 * 60 * 24)));
-        
+
         // Recalculate billing
         const roomCharges = updatedReservation.rooms.reduce((sum, room) => sum + (room.ratePerNight * calculatedNights), 0);
         const totalDiscount = updatedReservation.rooms.reduce((sum, room) => sum + (room.discount * calculatedNights), 0);
@@ -533,6 +587,30 @@ const ReservationStayManagement = () => {
         setShowAmendStayModal(false);
         alert(`Stay updated successfully!\nCheck-in: ${amendArrivalDate} at ${amendArrivalTime} ${amendArrivalPeriod}\nCheck-out: ${amendDepartureDate} at ${amendDepartureTime} ${amendDeparturePeriod}\nTotal nights: ${calculatedNights}`);
     };
+
+    // Room Service View
+    if (view === 'roomservice') {
+        return (
+            <div className="reservation-management-container">
+                <button className="back-btn" onClick={() => setView('dashboard')}>
+                    ← Back to Dashboard
+                </button>
+                <RoomService />
+            </div>
+        );
+    }
+
+    // Housekeeping View
+    if (view === 'housekeeping') {
+        return (
+            <div className="reservation-management-container">
+                <button className="back-btn" onClick={() => setView('dashboard')}>
+                    ← Back to Dashboard
+                </button>
+                <HousekeepingView />
+            </div>
+        );
+    }
 
     if (view === 'form') {
         return (
@@ -746,7 +824,16 @@ const ReservationStayManagement = () => {
                 </div>
                 <div className="header-actions">
                     <button className="btn btn-primary" onClick={() => setView('form')}>
+                        <span style={{ marginRight: '0.5rem' }}>📅</span>
                         + New Reservation
+                    </button>
+                    <button className="btn btn-primary" onClick={() => setView('housekeeping')}>
+                        <span style={{ marginRight: '0.5rem' }}>🧹</span>
+                        Housekeeping View
+                    </button>
+                    <button className="btn btn-primary" onClick={() => setView('roomservice')}>
+                        <span style={{ marginRight: '0.5rem' }}>🔔</span>
+                        Room Service
                     </button>
                 </div>
             </div>
@@ -795,7 +882,7 @@ const ReservationStayManagement = () => {
                 {selectedReservation && (
                     <div className="reservation-details-panel">
                         <div className="details-header">
-                            <button 
+                            <button
                                 className="close-details-btn-top"
                                 onClick={() => setSelectedReservation(null)}
                             >
@@ -813,45 +900,24 @@ const ReservationStayManagement = () => {
                             </div>
                             <div className="details-header-top">
                                 <div className="header-tabs">
-                                    <button 
+                                    <button
                                         className="tab-option active"
                                         onClick={() => setShowEditModal(true)}
                                     >
                                         Edit Reservation
                                     </button>
-                                    <div className="more-options-wrapper">
-                                        <button 
-                                            className="tab-option tab-more-options"
-                                            onClick={() => setShowMoreOptions(!showMoreOptions)}
-                                        >
-                                            More Options
-                                            <span className="dropdown-arrow">▼</span>
-                                        </button>
-                                        {showMoreOptions && (
-                                            <div className="more-options-dropdown">
-                                                <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Check-In</button>
-                                                <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Add Payment</button>
-                                                <button className="dropdown-item" onClick={() => {
-                                                    setShowMoreOptions(false);
-                                                    // AmendStay modal removed
-                                                    if (selectedReservation) {
-                                                        setAmendArrivalDate(selectedReservation.checkInDate);
-                                                        const arrivalConverted = convertTo12Hour(selectedReservation.checkInTime);
-                                                        setAmendArrivalTime(arrivalConverted.time);
-                                                        setAmendArrivalPeriod(arrivalConverted.period);
-                                                        setAmendDepartureDate(selectedReservation.checkOutDate);
-                                                        const departureConverted = convertTo12Hour(selectedReservation.checkOutTime);
-                                                        setAmendDepartureTime(departureConverted.time);
-                                                        setAmendDeparturePeriod(departureConverted.period);
-                                                    }
-                                                }}>Amend Stay</button>
-                                                <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Room Move</button>
-                                                <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Exchange Room</button>
-                                                <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Add Show Visitor</button>
-                                                <button className="dropdown-item" onClick={() => setShowMoreOptions(false)}>Void Reservation</button>
-                                                <button className="dropdown-item dropdown-item-danger" onClick={() => setShowMoreOptions(false)}>Cancel</button>
-                                            </div>
-                                        )}
+                                    <div className="more-options-wrapper-stay">
+                                        <MoreOptionsMenu
+                                            booking={selectedReservation ? {
+                                                _id: selectedReservation.id,
+                                                status: selectedReservation.status === 'RESERVED' ? 'Upcoming' :
+                                                    selectedReservation.status === 'IN_HOUSE' ? 'Checked-in' :
+                                                        selectedReservation.status === 'CHECKED_OUT' ? 'Checked-out' : 'Upcoming',
+                                                advancePaid: selectedReservation.paidAmount || 0
+                                            } : {}}
+                                            onActionSelect={handleMoreOptionsAction}
+                                            buttonLabel="More Options"
+                                        />
                                     </div>
                                     <button className="tab-option tab-print">Print</button>
                                 </div>
@@ -916,19 +982,19 @@ const ReservationStayManagement = () => {
                             <h3>AmmendStay</h3>
                             <button className="close-modal-btn" onClick={() => setShowAmendStayModal(false)}>✕</button>
                         </div>
-                        
+
                         <div className="amend-stay-content">
                             <div className="amend-date-row">
                                 <label>Arrival Date</label>
                                 <div className="date-time-inputs-full">
-                                    <input 
-                                        type="date" 
+                                    <input
+                                        type="date"
                                         value={amendArrivalDate}
                                         onChange={(e) => setAmendArrivalDate(e.target.value)}
                                         className="date-input"
                                     />
                                     <div className="time-with-period">
-                                        <select 
+                                        <select
                                             value={amendArrivalPeriod}
                                             onChange={(e) => setAmendArrivalPeriod(e.target.value)}
                                             className="period-select-inline"
@@ -936,8 +1002,8 @@ const ReservationStayManagement = () => {
                                             <option value="AM">AM</option>
                                             <option value="PM">PM</option>
                                         </select>
-                                        <input 
-                                            type="time" 
+                                        <input
+                                            type="time"
                                             value={amendArrivalTime}
                                             onChange={(e) => setAmendArrivalTime(e.target.value)}
                                             className="time-input-12"
@@ -949,14 +1015,14 @@ const ReservationStayManagement = () => {
                             <div className="amend-date-row">
                                 <label>Departure Date</label>
                                 <div className="date-time-inputs-full">
-                                    <input 
-                                        type="date" 
+                                    <input
+                                        type="date"
                                         value={amendDepartureDate}
                                         onChange={(e) => setAmendDepartureDate(e.target.value)}
                                         className="date-input"
                                     />
                                     <div className="time-with-period">
-                                        <select 
+                                        <select
                                             value={amendDeparturePeriod}
                                             onChange={(e) => setAmendDeparturePeriod(e.target.value)}
                                             className="period-select-inline"
@@ -964,8 +1030,8 @@ const ReservationStayManagement = () => {
                                             <option value="AM">AM</option>
                                             <option value="PM">PM</option>
                                         </select>
-                                        <input 
-                                            type="time" 
+                                        <input
+                                            type="time"
                                             value={amendDepartureTime}
                                             onChange={(e) => setAmendDepartureTime(e.target.value)}
                                             className="time-input-12"
@@ -995,7 +1061,7 @@ const ReservationStayManagement = () => {
                             </div>
 
                             <div className="amend-stay-actions">
-                                <button 
+                                <button
                                     className="btn-add-amend"
                                     onClick={handleAmendStaySubmit}
                                 >
@@ -1008,10 +1074,23 @@ const ReservationStayManagement = () => {
             )}
 
             {/* Edit Reservation Modal */}
-            <EditReservationModal 
+            <EditReservationModal
                 isOpen={showEditModal}
                 onClose={() => setShowEditModal(false)}
                 reservation={selectedReservation}
+            />
+
+            {/* More Options Action Drawer */}
+            <BookingActionsManager
+                isOpen={actionDrawerOpen}
+                onClose={() => {
+                    setActionDrawerOpen(false);
+                    setCurrentAction(null);
+                    setActionBooking(null);
+                }}
+                actionType={currentAction}
+                booking={actionBooking}
+                onSuccess={handleActionSuccess}
             />
         </div>
     );

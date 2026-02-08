@@ -1,6 +1,7 @@
 import StatusBadge from './StatusBadge';
+import MoreOptionsMenu from './MoreOptionsMenu';
 
-const BookingRow = ({ booking, onEdit, onDelete }) => {
+const BookingRow = ({ booking, onEdit, onDelete, onMoreOptions }) => {
     return (
         <tr key={booking._id || booking.id}>
             {/* CELL 1: Booking ID - text-left */}
@@ -42,14 +43,15 @@ const BookingRow = ({ booking, onEdit, onDelete }) => {
                 >
                     👁️
                 </button>
-                {booking.status === 'Upcoming' && (
-                    <button
-                        className="action-btn checkin-btn"
-                        title="Check-in"
-                    >
-                        ✓
-                    </button>
+                
+                {/* More Options Menu */}
+                {onMoreOptions && (
+                    <MoreOptionsMenu 
+                        booking={booking} 
+                        onActionSelect={onMoreOptions}
+                    />
                 )}
+                
                 <button
                     className="action-btn delete-btn"
                     onClick={() => onDelete(booking._id || booking.id)}
