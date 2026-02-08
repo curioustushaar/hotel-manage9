@@ -9,6 +9,11 @@ import AddVisitorForm from './forms/AddVisitorForm';
 import NoShowForm from './forms/NoShowForm';
 import VoidReservationForm from './forms/VoidReservationForm';
 import CancelReservationForm from './forms/CancelReservationForm';
+import PrintSummaryForm from './forms/PrintSummaryForm';
+import PrintInvoiceForm from './forms/PrintInvoiceForm';
+import PrintGRCForm from './forms/PrintGRCForm';
+import PrintGRCAllForm from './forms/PrintGRCAllForm';
+import SendInvoiceForm from './forms/SendInvoiceForm';
 import API_URL from '../config/api';
 
 const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess }) => {
@@ -24,7 +29,20 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
             'add-visitor': '👤 Add / Show Visitor',
             'no-show': '❌ Mark No-Show',
             'void': '🗑️ Void Reservation',
-            'cancel': '⚠️ Cancel Reservation'
+            'cancel': '⚠️ Cancel Reservation',
+            'print-summary': '📄 Print Summary',
+            'print-invoice': '🧾 Print Invoice',
+            'print-grc': '📋 Print GRC',
+            'print-grc-all': '📋 Print All GRCs',
+            'send-invoice': '📧 Send Invoice'
+        // For print and email actions, handle locally without API call
+        if (['print-summary', 'print-invoice', 'print-grc', 'print-grc-all', 'send-invoice'].includes(actionType)) {
+            console.log(`${actionType} completed:`, formData);
+            onSuccess?.(booking);
+            onClose();
+            return;
+        }
+
         };
         return titles[actionType] || 'Action';
     };
@@ -120,6 +138,16 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
                 return <RoomMoveForm {...formProps} />;
             case 'exchange-room':
                 return <ExchangeRoomForm {...formProps} />;
+            case 'print-summary':
+                return <PrintSummaryForm {...formProps} />;
+            case 'print-invoice':
+                return <PrintInvoiceForm {...formProps} />;
+            case 'print-grc':
+                return <PrintGRCForm {...formProps} />;
+            case 'print-grc-all':
+                return <PrintGRCAllForm {...formProps} />;
+            case 'send-invoice':
+                return <SendInvoiceForm {...formProps} />;
             case 'add-visitor':
                 return <AddVisitorForm {...formProps} />;
             case 'no-show':

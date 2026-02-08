@@ -14,6 +14,36 @@ const MoreOptionsMenu = ({ booking, onActionSelect, buttonLabel = '⋯' }) => {
             disabled: booking.status === 'Checked-in' || booking.status === 'Cancelled' || booking.status === 'Voided'
         },
         { 
+            id: 'print-summary', 
+            label: '📄 Print Summary', 
+            color: '#6366f1',
+            disabled: false
+        },
+        { 
+            id: 'print-invoice', 
+            label: '🧾 Print Invoice', 
+            color: '#8b5cf6',
+            disabled: false
+        },
+        { 
+            id: 'print-grc', 
+            label: '📋 Print GRC', 
+            color: '#0ea5e9',
+            disabled: false
+        },
+        { 
+            id: 'print-grc-all', 
+            label: '📋 Print GRC All', 
+            color: '#06b6d4',
+            disabled: false
+        },
+        { 
+            id: 'send-invoice', 
+            label: '📧 Send Invoice', 
+            color: '#14b8a6',
+            disabled: !booking.email
+        },
+        { 
             id: 'add-payment', 
             label: '💳 Add Payment', 
             color: '#2563eb',
