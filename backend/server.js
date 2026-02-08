@@ -12,6 +12,7 @@ const bookingRoutes = require('./routes/bookingRoutes');
 const roomRoutes = require('./routes/roomRoutes');
 const qrCodeRoutes = require('./routes/qrCodeRoutes');
 const guestRoutes = require('./routes/guestRoutes');
+const cashierRoutes = require('./routes/cashierRoutes');
 
 // Initialize express app
 const app = express();
@@ -76,6 +77,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/qr', qrCodeRoutes);
 app.use('/api/guests', guestRoutes);
+app.use('/api/cashier', cashierRoutes);
 
 // Root route
 app.get('/', (req, res) => {
