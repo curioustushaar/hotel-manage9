@@ -16,8 +16,15 @@ import BookingActionsManager from './BookingActionsManager';
 import HousekeepingView from './HousekeepingView';
 import RoomService from './RoomService';
 
-const ReservationStayManagement = () => {
-    const [view, setView] = useState('dashboard'); // 'dashboard', 'form', 'housekeeping', or 'roomservice'
+const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
+    const [view, setView] = useState(viewMode); // 'dashboard', 'form', 'housekeeping', or 'roomservice'
+
+    // Sync internal view state with prop changes
+    useEffect(() => {
+        if (viewMode) {
+            setView(viewMode);
+        }
+    }, [viewMode]);
     const [activeTab, setActiveTab] = useState('all'); // 'all', 'reserved', 'in-house', 'checked-out'
     const [showEditModal, setShowEditModal] = useState(false); // Edit Reservation Modal state
 
@@ -135,7 +142,7 @@ const ReservationStayManagement = () => {
         try {
             const response = await fetch('http://localhost:5000/api/guests/list');
             const data = await response.json();
-            
+
             if (data.success && data.data) {
                 setGuests(data.data);
             }
@@ -691,10 +698,10 @@ const ReservationStayManagement = () => {
                                         </button>
                                     </div>
                                 )}
-                                <GuestModal 
-                                    isOpen={showGuestModal} 
-                                    onClose={() => setShowGuestModal(false)} 
-                                    onSelectGuest={setSelectedGuest} 
+                                <GuestModal
+                                    isOpen={showGuestModal}
+                                    onClose={() => setShowGuestModal(false)}
+                                    onSelectGuest={setSelectedGuest}
                                     guests={guests}
                                     onRefreshGuests={fetchGuestsFromAPI}
                                 />

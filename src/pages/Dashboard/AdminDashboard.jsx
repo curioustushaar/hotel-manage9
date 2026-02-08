@@ -13,6 +13,7 @@ import GuestMealService from '../GuestMealService/GuestMealService';
 import DiscountManagement from '../DiscountManagement/DiscountManagement';
 import TaxConfiguration from '../TaxConfiguration/TaxConfiguration';
 import TaxMapping from '../TaxMapping/TaxMapping';
+import FoodOrderPage from '../../components/FoodOrderPage'; // Import FoodOrderPage
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -20,10 +21,12 @@ const AdminDashboard = () => {
     const location = useLocation();
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [activeMenu, setActiveMenu] = useState('dashboard');
+    const [reservationView, setReservationView] = useState('dashboard'); // State for Reservation Sub-views
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [showViewProfile, setShowViewProfile] = useState(false);
     const [showChangePassword, setShowChangePassword] = useState(false);
     const [openConfigDropdown, setOpenConfigDropdown] = useState(false);
+    const [openReservationDropdown, setOpenReservationDropdown] = useState(false); // State for Reservation Dropdown
     const [userData, setUserData] = useState({
         name: 'Admin User',
         email: 'admin@bireena.com',
@@ -147,7 +150,7 @@ const AdminDashboard = () => {
         try {
             // Clear old localStorage data
             localStorage.removeItem('hotelRooms');
-            
+
             const response = await fetch(`${API_URL}/api/rooms/list`);
             const data = await response.json();
             if (data.success) {
@@ -283,12 +286,23 @@ const AdminDashboard = () => {
     const menuItems = [
         { id: 'dashboard', icon: '🏠', label: 'Dashboard' },
         { id: 'rooms', icon: '🛏️', label: 'Rooms' },
-        { id: 'reservations', icon: '🏨', label: 'Reservation & Stay Management' },
+        {
+            id: 'reservations',
+            icon: '🏨',
+            label: 'Reservation & Stay Management',
+            hasDropdown: true,
+            dropdownItems: [
+                { id: 'new-reservation', label: 'New Reservation', icon: '📅' },
+                { id: 'housekeeping', label: 'Housekeeping View', icon: '🧹' },
+                { id: 'room-service', label: 'Room Service', icon: '🛎️' },
+                { id: 'food-order', label: 'Food Order', icon: '🍽️' }
+            ]
+        },
         { id: 'guest-meal-service', icon: '🍴', label: 'Guest Meal Service' },
         { id: 'food-menu', icon: '🍽️', label: 'Food Menu' },
-        { 
-            id: 'proper-configuration', 
-            icon: '⚙️', 
+        {
+            id: 'proper-configuration',
+            icon: '⚙️',
             label: 'Proper Configuration',
             hasDropdown: true,
             dropdownItems: [
@@ -306,12 +320,41 @@ const AdminDashboard = () => {
     ];
 
     const handleMenuClick = (menuId) => {
-        setActiveMenu(menuId);
+        // Handle Sub-menu routing for Reservation Dropdown
+        if (menuId === 'new-reservation') {
+            setActiveMenu('reservations');
+            setReservationView('form');
+        } else if (menuId === 'housekeeping') {
+            setActiveMenu('reservations');
+            setReservationView('housekeeping');
+        } else if (menuId === 'room-service') {
+            setActiveMenu('reservations');
+            setReservationView('roomservice');
+        } else if (menuId === 'food-order') {
+            setActiveMenu('food-order-pos'); // Separate view for POS
+        }
+        // Handle main menu items
+        else if (menuId === 'reservations') {
+            toggleDropdown('reservations');
+        }
+        else {
+            setActiveMenu(menuId);
+        }
+
         // Reset search and filters when switching menus
         if (menuId === 'rooms') {
             setSearchQuery('');
             setSelectedType('All Types');
             setSelectedStatus('All Status');
+        }
+    };
+
+    // Helper to toggle specific dropdowns
+    const toggleDropdown = (id) => {
+        if (id === 'proper-configuration') {
+            setOpenConfigDropdown(!openConfigDropdown);
+        } else if (id === 'reservations') {
+            setOpenReservationDropdown(!openReservationDropdown);
         }
     };
 
@@ -409,7 +452,7 @@ const AdminDashboard = () => {
                 });
 
                 const data = await response.json();
-                
+
                 if (!data.success) {
                     setRoomErrorMessage(data.message || 'Failed to add room');
                     return;
@@ -432,7 +475,7 @@ const AdminDashboard = () => {
                 });
 
                 const data = await response.json();
-                
+
                 if (!data.success) {
                     setRoomErrorMessage(data.message || 'Failed to update room');
                     return;
@@ -482,37 +525,51 @@ const AdminDashboard = () => {
                 </div>
 
                 <nav className="sidebar-nav">
-                    {menuItems.map((item) => (
-                        item.hasDropdown ? (
+                    {menuItems.map((item) => {
+                        const isOpen = item.id === 'proper-configuration' ? openConfigDropdown :
+                            item.id === 'reservations' ? openReservationDropdown : false;
+
+                        return item.hasDropdown ? (
                             <div key={item.id} className="nav-dropdown-wrapper">
                                 <button
-                                    className={`nav-item nav-item-dropdown ${openConfigDropdown ? 'dropdown-open' : ''}`}
-                                    onClick={() => setOpenConfigDropdown(!openConfigDropdown)}
+                                    className={`nav-item nav-item-dropdown ${isOpen ? 'dropdown-open' : ''}`}
+                                    onClick={() => toggleDropdown(item.id)}
                                 >
                                     <span className="nav-icon">{item.icon}</span>
                                     <span className="nav-label">{item.label}</span>
-                                    <svg 
-                                        className={`dropdown-arrow ${openConfigDropdown ? 'rotated' : ''}`} 
-                                        width="16" 
-                                        height="16" 
-                                        viewBox="0 0 24 24" 
-                                        fill="none" 
+                                    <svg
+                                        className={`dropdown-arrow ${isOpen ? 'rotated' : ''}`}
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
                                         xmlns="http://www.w3.org/2000/svg"
                                     >
                                         <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
                                 </button>
-                                <div className={`nav-dropdown-menu ${openConfigDropdown ? 'show' : ''}`}>
-                                    {item.dropdownItems.map((subItem) => (
-                                        <button
-                                            key={subItem.id}
-                                            className={`nav-dropdown-item ${activeMenu === subItem.id ? 'active' : ''}`}
-                                            onClick={() => handleMenuClick(subItem.id)}
-                                        >
-                                            <span className="nav-icon">{subItem.icon}</span>
-                                            <span className="nav-label">{subItem.label}</span>
-                                        </button>
-                                    ))}
+                                <div className={`nav-dropdown-menu ${isOpen ? 'show' : ''}`}>
+                                    {item.dropdownItems.map((subItem) => {
+                                        // Determine active state for sub-items
+                                        const isActive =
+                                            // For Reservations: activeMenu is 'reservations' AND sub-view matches
+                                            (item.id === 'reservations' && activeMenu === 'reservations' && reservationView === subItem.id) ||
+                                            // For Food Order POS: activeMenu is 'food-order-pos'
+                                            (subItem.id === 'food-order' && activeMenu === 'food-order-pos') ||
+                                            // For Normal items: activeMenu matches subItem.id directly
+                                            (activeMenu === subItem.id);
+
+                                        return (
+                                            <button
+                                                key={subItem.id}
+                                                className={`nav-dropdown-item ${isActive ? 'active' : ''}`}
+                                                onClick={() => handleMenuClick(subItem.id)}
+                                            >
+                                                <span className="nav-icon">{subItem.icon}</span>
+                                                <span className="nav-label">{subItem.label}</span>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         ) : (
@@ -524,8 +581,8 @@ const AdminDashboard = () => {
                                 <span className="nav-icon">{item.icon}</span>
                                 <span className="nav-label">{item.label}</span>
                             </button>
-                        )
-                    ))}
+                        );
+                    })}
                 </nav>
 
                 <button className="logout-btn" onClick={handleLogout}>
@@ -549,20 +606,20 @@ const AdminDashboard = () => {
                     <div className="top-bar-right">
                         <button className="top-icon-btn" onClick={handleComingSoon} title="Search">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </button>
                         <button className="top-icon-btn" onClick={handleComingSoon} title="Bookmarks">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </button>
                         <button className="top-icon-btn" onClick={handleComingSoon} title="Shopping">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </button>
                         <div className="profile-dropdown-wrapper">
@@ -690,7 +747,14 @@ const AdminDashboard = () => {
 
                     {/* Reservation & Stay Management View */}
                     {activeMenu === 'reservations' && (
-                        <ReservationStayManagement />
+                        <ReservationStayManagement viewMode={reservationView} />
+                    )}
+
+                    {/* Food Order POS View */}
+                    {activeMenu === 'food-order-pos' && (
+                        <div style={{ position: 'relative', height: 'calc(100vh - 64px)', width: '100%' }}>
+                            <FoodOrderPage room={{ roomNumber: 'POS', guestName: 'Walk-in / Direct' }} onClose={() => setActiveMenu('reservations')} />
+                        </div>
                     )}
 
                     {/* Guest Meal Service View */}
@@ -814,8 +878,8 @@ const AdminDashboard = () => {
                                                     <td>{room.roomNumber}</td>
                                                     <td>
                                                         <div className="qr-action-buttons">
-                                                            <button 
-                                                                className="qr-action-btn qr-view-btn" 
+                                                            <button
+                                                                className="qr-action-btn qr-view-btn"
                                                                 title="Generate/View QR"
                                                                 onClick={() => handleViewQR(room)}
                                                                 disabled={qrLoading}
@@ -1171,8 +1235,8 @@ const AdminDashboard = () => {
                                         <h2>Room QR Code</h2>
                                         <p className="qr-room-info">Room {qrModalData.room.roomNumber} - {qrModalData.room.roomType}</p>
                                     </div>
-                                    <button 
-                                        className="close-modal-btn" 
+                                    <button
+                                        className="close-modal-btn"
                                         onClick={() => setShowQRModal(false)}
                                     >
                                         ×
@@ -1184,7 +1248,7 @@ const AdminDashboard = () => {
                                         <div className="qr-code-container">
                                             <img src={qrModalData.qrCode} alt="Room QR Code" className="qr-code-image" />
                                         </div>
-                                        
+
                                         <div className="qr-info-section">
                                             <div className="qr-info-card">
                                                 <h4>Scan Instructions</h4>
@@ -1213,7 +1277,7 @@ const AdminDashboard = () => {
                                     </div>
 
                                     <div className="qr-action-section">
-                                        <button 
+                                        <button
                                             className="qr-download-btn"
                                             onClick={handleDownloadQR}
                                         >
@@ -1224,8 +1288,8 @@ const AdminDashboard = () => {
                                             </svg>
                                             Download QR
                                         </button>
-                                        
-                                        <button 
+
+                                        <button
                                             className="qr-print-btn"
                                             onClick={() => window.print()}
                                         >
@@ -1237,7 +1301,7 @@ const AdminDashboard = () => {
                                             Print
                                         </button>
 
-                                        <button 
+                                        <button
                                             className="qr-regenerate-btn"
                                             onClick={() => handleViewQR(qrModalData.room)}
                                             disabled={qrLoading}
