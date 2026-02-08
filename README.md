@@ -1,5 +1,5 @@
-# 🏨 Bireena Atithi - Hotel Management System
-
+# 🏨 Bireena Atithi - Hotel Management Syst  em
+    
 > **Modern, fully responsive Hotel Management System website built with React & Vite**
 
 ## ✨ Overview
