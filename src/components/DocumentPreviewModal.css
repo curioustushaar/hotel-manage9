@@ -1,0 +1,337 @@
+/* ============================================================
+   DOCUMENT PREVIEW MODAL STYLES
+   ============================================================ */
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Document Modal - Large (75% width) */
+.document-modal {
+    width: 75%;
+    max-width: 1000px;
+    max-height: 90vh;
+    background-color: #ffffff;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Document Header */
+.document-header {
+    padding: 2rem;
+    text-align: center;
+    border-bottom: 3px solid #dc3545;
+    background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+}
+
+.document-header h2 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #dc3545;
+    margin: 0 0 0.5rem 0;
+    letter-spacing: 0.5px;
+}
+
+.document-header p {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #666;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Document Content - Scrollable */
+.document-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2.5rem 3rem;
+    background-color: #ffffff;
+}
+
+/* Document Styles */
+.kot-document,
+.bill-document {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.doc-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+    color: #1a1a1a;
+}
+
+.doc-row strong {
+    color: #dc3545;
+    margin-right: 0.5rem;
+}
+
+.doc-separator {
+    border-top: 2px solid #e5e7eb;
+    margin: 1.5rem 0;
+}
+
+/* Items Table */
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+}
+
+.items-table th {
+    background-color: #f9fafb;
+    padding: 1rem 0.75rem;
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #1a1a1a;
+    border-bottom: 2px solid #dc3545;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.items-table td {
+    padding: 0.85rem 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+    color: #333;
+}
+
+.items-table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+/* Totals Section */
+.totals-section {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 2px solid #e5e7eb;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    color: #333;
+}
+
+.total-row span:first-child {
+    font-weight: 600;
+}
+
+.total-row.grand-total {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #dc3545;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 3px solid #dc3545;
+}
+
+/* Document Footer */
+.doc-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-style: italic;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.doc-footer p {
+    margin: 0.25rem 0;
+}
+
+/* Action Buttons */
+.document-actions {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem 2rem;
+    border-top: 2px solid #e5e7eb;
+    background-color: #f9fafb;
+    border-bottom-left-radius: 0.5rem;
+    border-bottom-right-radius: 0.5rem;
+}
+
+.document-actions button {
+    flex: 1;
+    padding: 1rem 1.5rem;
+    border: none;
+    border-radius: 0.4rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.document-actions button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.document-actions .btn-print {
+    background-color: #6366f1;
+    color: #ffffff;
+}
+
+.document-actions .btn-print:hover {
+    background-color: #4f46e5;
+}
+
+.document-actions .btn-download {
+    background-color: #10b981;
+    color: #ffffff;
+}
+
+.document-actions .btn-download:hover {
+    background-color: #059669;
+}
+
+.document-actions .btn-close {
+    background-color: #dc3545;
+    color: #ffffff;
+}
+
+.document-actions .btn-close:hover {
+    background-color: #c82333;
+}
+
+/* Scrollbar Styling */
+.document-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.document-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.document-content::-webkit-scrollbar-thumb {
+    background: #dc3545;
+    border-radius: 4px;
+}
+
+.document-content::-webkit-scrollbar-thumb:hover {
+    background: #c82333;
+}
+
+/* Print Styles */
+@media print {
+
+    .document-actions,
+    .modal-overlay {
+        display: none !important;
+    }
+
+    .document-modal {
+        box-shadow: none;
+        max-height: none;
+        width: 100%;
+        max-width: none;
+    }
+
+    .document-header {
+        border-bottom: 2px solid #000;
+        background: none;
+    }
+
+    .document-content {
+        padding: 1rem;
+    }
+
+    .items-table th {
+        border-bottom: 2px solid #000;
+        background: none;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .document-modal {
+        width: 85%;
+    }
+}
+
+@media (max-width: 768px) {
+    .document-modal {
+        width: 95%;
+        max-height: 95vh;
+    }
+
+    .document-header {
+        padding: 1.5rem;
+    }
+
+    .document-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .document-header p {
+        font-size: 0.9rem;
+    }
+
+    .document-content {
+        padding: 1.5rem;
+    }
+
+    .document-actions {
+        flex-direction: column;
+        padding: 1rem;
+    }
+
+    .document-actions button {
+        width: 100%;
+    }
+
+    .items-table {
+        font-size: 0.85rem;
+    }
+
+    .items-table th,
+    .items-table td {
+        padding: 0.5rem 0.25rem;
+    }
+}
