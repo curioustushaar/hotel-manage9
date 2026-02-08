@@ -35,6 +35,11 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
             'print-grc': '📋 Print GRC',
             'print-grc-all': '📋 Print All GRCs',
             'send-invoice': '📧 Send Invoice'
+        };
+        return titles[actionType] || 'Action';
+    };
+
+    const handleSubmit = async (formData) => {
         // For print and email actions, handle locally without API call
         if (['print-summary', 'print-invoice', 'print-grc', 'print-grc-all', 'send-invoice'].includes(actionType)) {
             console.log(`${actionType} completed:`, formData);
@@ -43,11 +48,6 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
             return;
         }
 
-        };
-        return titles[actionType] || 'Action';
-    };
-
-    const handleSubmit = async (formData) => {
         setIsSubmitting(true);
         
         try {
