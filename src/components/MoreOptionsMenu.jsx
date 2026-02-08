@@ -8,58 +8,34 @@ const MoreOptionsMenu = ({ booking, onActionSelect, buttonLabel = '⋯' }) => {
 
     const actions = [
         { 
-            id: 'check-in', 
-            label: '✓ Check-In', 
-            color: '#16a34a',
-            disabled: booking.status === 'Checked-in' || booking.status === 'Cancelled' || booking.status === 'Voided'
+            id: 'print-summary', 
+            label: '📄 Print Summary', 
+            color: '#6366f1',
+            disabled: false
         },
         { 
-            id: 'add-payment', 
-            label: '💳 Add Payment', 
-            color: '#2563eb',
-            disabled: booking.status === 'Cancelled' || booking.status === 'Voided'
+            id: 'print-invoice', 
+            label: '🧾 Print Invoice', 
+            color: '#8b5cf6',
+            disabled: false
         },
         { 
-            id: 'amend-stay', 
-            label: '📅 Amend Stay', 
-            color: '#7c3aed',
-            disabled: booking.status === 'Checked-out' || booking.status === 'Cancelled' || booking.status === 'Voided'
+            id: 'print-grc', 
+            label: '📋 Print GRC', 
+            color: '#0ea5e9',
+            disabled: false
         },
         { 
-            id: 'room-move', 
-            label: '🚪 Room Move', 
-            color: '#ea580c',
-            disabled: booking.status === 'Cancelled' || booking.status === 'Voided'
+            id: 'print-grc-all', 
+            label: '📋 Print GRC All', 
+            color: '#06b6d4',
+            disabled: false
         },
         { 
-            id: 'exchange-room', 
-            label: '🔄 Exchange Room', 
-            color: '#0891b2',
-            disabled: booking.status === 'Cancelled' || booking.status === 'Voided'
-        },
-        { 
-            id: 'add-visitor', 
-            label: '👤 Add/Show Visitor', 
-            color: '#65a30d',
-            disabled: booking.status === 'Cancelled' || booking.status === 'Voided'
-        },
-        { 
-            id: 'no-show', 
-            label: '❌ No-Show', 
-            color: '#ca8a04',
-            disabled: booking.status !== 'Upcoming'
-        },
-        { 
-            id: 'void', 
-            label: '🗑️ Void Reservation', 
-            color: '#dc2626',
-            disabled: booking.status === 'Voided'
-        },
-        { 
-            id: 'cancel', 
-            label: '⚠️ Cancel Reservation', 
-            color: '#dc2626',
-            disabled: booking.status === 'Checked-in' || booking.status === 'Cancelled' || booking.status === 'Voided'
+            id: 'send-invoice', 
+            label: '📧 Send Invoice', 
+            color: '#14b8a6',
+            disabled: !booking.email
         }
     ];
 
