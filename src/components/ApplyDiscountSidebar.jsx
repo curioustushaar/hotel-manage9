@@ -1,42 +1,43 @@
 import React, { useState } from 'react';
 import './ApplyDiscountSidebar.css';
-import Toast from './Toast';
 
 const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         roomWiseDiscount: true,
         tableWiseDiscount: false,
-        discountPercent: '',
+        discountType: 'percentage',
+        discountValue: '',
         folio: reservation ? `${reservation.roomNumber} - ${reservation.guestName}` : 'B5 - Shahrukh Ahmed',
         comment: ''
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [showToast, setShowToast] = useState(false);
 
     const handleSubmit = async () => {
-        if (!formData.discountPercent) {
-            alert('Please enter discount percentage');
+        if (!formData.discountValue) {
+            alert(`Please enter discount ${formData.discountType === 'percentage' ? 'percentage' : 'amount'}`);
+            return;
+        }
+
+        if (formData.discountType === 'percentage' && (formData.discountValue < 0 || formData.discountValue > 100)) {
+            alert('Discount percentage must be between 0 and 100');
+            return;
+        }
+
+        if (formData.discountType === 'amount' && formData.discountValue < 0) {
+            alert('Discount amount must be greater than 0');
             return;
         }
 
         setIsSubmitting(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            onApply(formData);
-            
-            // Show success toast notification
-            setShowToast(true);
-            
-            // Close after a short delay to show the toast
-            setTimeout(() => {
-                onClose();
-            }, 1000);
+            // Call the parent handler and wait for it to complete
+            await onApply(formData);
+            // Parent will handle closing the sidebar and showing toast
         } catch (error) {
             console.error('Error applying discount:', error);
             alert('Failed to apply discount. Please try again.');
-        } finally {
             setIsSubmitting(false);
         }
     };
@@ -89,16 +90,43 @@ const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
                         </div>
                     </div>
 
-                    {/* Discount Field */}
+                    {/* Discount Type Selection */}
+                    <div className="apply-discount-field">
+                        <label>Discount Type <span className="required">*</span></label>
+                        <div className="discount-type-group">
+                            <label className="discount-type-radio">
+                                <input
+                                    type="radio"
+                                    name="discountType"
+                                    value="percentage"
+                                    checked={formData.discountType === 'percentage'}
+                                    onChange={(e) => handleChange('discountType', e.target.value)}
+                                />
+                                <span className="radio-text">Percentage (%)</span>
+                            </label>
+                            <label className="discount-type-radio">
+                                <input
+                                    type="radio"
+                                    name="discountType"
+                                    value="amount"
+                                    checked={formData.discountType === 'amount'}
+                                    onChange={(e) => handleChange('discountType', e.target.value)}
+                                />
+                                <span className="radio-text">Amount (₹)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    {/* Discount Value Field */}
                     <div className="apply-discount-field">
                         <label>Discount <span className="required">*</span></label>
                         <input
                             type="number"
-                            value={formData.discountPercent}
-                            onChange={(e) => handleChange('discountPercent', e.target.value)}
-                            placeholder="Enter discount percentage"
+                            value={formData.discountValue}
+                            onChange={(e) => handleChange('discountValue', e.target.value)}
+                            placeholder={formData.discountType === 'percentage' ? 'Enter discount percentage' : 'Enter discount amount'}
                             min="0"
-                            max="100"
+                            max={formData.discountType === 'percentage' ? '100' : undefined}
                         />
                     </div>
 
@@ -149,15 +177,6 @@ const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
                     </button>
                 </div>
             </div>
-            
-            {/* Success Toast */}
-            {showToast && (
-                <Toast 
-                    message="Successful!"
-                    onClose={() => setShowToast(false)}
-                    type="success"
-                />
-            )}
         </div>
     );
 };

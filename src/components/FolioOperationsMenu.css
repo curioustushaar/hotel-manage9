@@ -99,6 +99,12 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+.folio-ops-menu-item.selected {
+    background: #dbeafe;
+    border-color: #3b82f6;
+    color: #1e40af;
+}
+
 .folio-ops-menu-footer {
     padding: 24px;
     border-top: 2px solid #e5e7eb;

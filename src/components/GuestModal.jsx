@@ -2,7 +2,7 @@ import { useState } from 'react';
 import CreateGuestForm from './CreateGuestForm';
 import './GuestModal.css';
 
-const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [] }) => {
+const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGuests }) => {
     const [view, setView] = useState('selection'); // 'selection' or 'create'
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -13,9 +13,13 @@ const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [] }) => {
         onClose();
     };
 
-    const handleCreateGuest = (newGuest) => {
+    const handleCreateGuest = async (newGuest) => {
         // Select the newly created guest
         onSelectGuest(newGuest);
+        // Refresh the guests list
+        if (onRefreshGuests) {
+            await onRefreshGuests();
+        }
         onClose();
     };
 

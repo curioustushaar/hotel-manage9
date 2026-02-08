@@ -131,6 +131,96 @@
     flex-wrap: nowrap;
 }
 
+/* Folio Routing Section */
+.folio-routing-section {
+    margin: 0;
+    padding: 12px 0;
+    background: white;
+}
+
+.routing-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.routing-back-btn {
+    background: transparent;
+    border: none;
+    color: #374151;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 2px 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    border-radius: 4px;
+}
+
+.routing-back-btn:hover {
+    background: #f3f4f6;
+    color: #1f2937;
+}
+
+.routing-header-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.routing-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.routing-option-text {
+    font-size: 12px;
+    font-weight: 400;
+    color: #374151;
+    line-height: 1.4;
+}
+
+.routing-option-button {
+    padding: 10px 16px;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    width: auto;
+    display: inline-block;
+}
+
+.routing-option-button:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.routing-option-button:active {
+    transform: translateY(1px);
+}
+
+.routing-option-text.routing-clickable {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.routing-option-text.routing-clickable:hover {
+    color: #1f2937;
+    text-decoration: underline;
+}
+
 .folio-action-btn {
     height: 38px;
     padding: 0 20px;
@@ -417,6 +507,12 @@
 .summary-amount.remaining {
     color: #dc2626;
     font-weight: 700;
+}
+
+.summary-amount.discount-amount,
+.summary-amount-right.discount-amount {
+    color: #f59e0b;
+    font-weight: 600;
 }
 
 .summary-amount-right {

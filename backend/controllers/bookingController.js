@@ -434,3 +434,144 @@ exports.deleteTransaction = async (req, res) => {
         });
     }
 };
+
+// Route transactions from source folio to target folio (supports cross-booking routing)
+exports.routeFolioTransactions = async (req, res) => {
+    try {
+        const { bookingId } = req.params;
+        const { sourceFolioId, targetFolioId, transactionIds, routedBy, targetBookingId } = req.body;
+
+        // Validate input
+        if (sourceFolioId === undefined || targetFolioId === undefined || !transactionIds || transactionIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields: sourceFolioId, targetFolioId, or transactionIds'
+            });
+        }
+
+        if (sourceFolioId === targetFolioId && (!targetBookingId || targetBookingId === bookingId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Source and target folio cannot be the same'
+            });
+        }
+
+        const sourceBooking = await Booking.findById(bookingId);
+        if (!sourceBooking) {
+            return res.status(404).json({
+                success: false,
+                message: 'Source booking not found'
+            });
+        }
+
+        // Check if routing to different booking
+        const isCrossBookingRoute = targetBookingId && targetBookingId !== bookingId;
+        let targetBooking = sourceBooking;
+
+        if (isCrossBookingRoute) {
+            targetBooking = await Booking.findById(targetBookingId);
+            if (!targetBooking) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Target booking not found'
+                });
+            }
+        }
+
+        // Validate and route transactions
+        let routedCount = 0;
+        const routingTimestamp = new Date();
+        const routedTransactions = [];
+        const transactionsToRemove = [];
+
+        for (const transactionId of transactionIds) {
+            const transaction = sourceBooking.transactions.id(transactionId);
+            
+            if (!transaction) {
+                continue; // Skip if transaction not found
+            }
+
+            // Verify transaction belongs to source folio (or any folio if cross-booking)
+            if (!isCrossBookingRoute && transaction.folioId !== sourceFolioId) {
+                continue; // Skip if transaction doesn't belong to source folio
+            }
+
+            if (isCrossBookingRoute) {
+                // Cross-booking routing: Clone transaction to target booking
+                const newTransaction = {
+                    type: transaction.type,
+                    day: transaction.day,
+                    particulars: transaction.particulars,
+                    description: transaction.description,
+                    amount: transaction.amount,
+                    user: transaction.user,
+                    folioId: targetFolioId,
+                    routedFrom: sourceFolioId,
+                    routedTo: targetFolioId,
+                    routedBy: routedBy || 'system',
+                    routedAt: routingTimestamp,
+                    originalBookingId: bookingId,
+                    createdAt: transaction.createdAt || new Date()
+                };
+
+                targetBooking.transactions.push(newTransaction);
+                transactionsToRemove.push(transactionId);
+            } else {
+                // Same booking routing: Update folioId
+                transaction.folioId = targetFolioId;
+                transaction.routedFrom = sourceFolioId;
+                transaction.routedTo = targetFolioId;
+                transaction.routedBy = routedBy || 'system';
+                transaction.routedAt = routingTimestamp;
+            }
+
+            routedTransactions.push({
+                id: transaction._id,
+                particulars: transaction.particulars,
+                amount: transaction.amount
+            });
+
+            routedCount++;
+        }
+
+        if (routedCount === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No valid transactions found to route'
+            });
+        }
+
+        // Save target booking first (in case of cross-booking)
+        if (isCrossBookingRoute) {
+            await targetBooking.save();
+            
+            // Remove transactions from source booking
+            for (const transactionId of transactionsToRemove) {
+                sourceBooking.transactions.pull(transactionId);
+            }
+        }
+
+        // Save source booking
+        await sourceBooking.save();
+
+        res.status(200).json({
+            success: true,
+            message: `Successfully routed ${routedCount} transaction(s) from folio ${sourceFolioId} to folio ${targetFolioId}`,
+            data: {
+                sourceBooking: isCrossBookingRoute ? sourceBooking : undefined,
+                targetBooking: isCrossBookingRoute ? targetBooking : undefined,
+                booking: !isCrossBookingRoute ? sourceBooking : undefined,
+                routedCount,
+                routedTransactions,
+                crossBookingRoute: isCrossBookingRoute
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error routing folio transactions',
+            error: error.message
+        });
+    }
+};
+

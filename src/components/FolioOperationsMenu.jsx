@@ -1,10 +1,18 @@
 import React from 'react';
 import './FolioOperationsMenu.css';
 
-const FolioOperationsMenu = ({ onClose, onSelectOperation }) => {
+const FolioOperationsMenu = ({ onClose, onSelectOperation, onSave, selectedOperation }) => {
     const handleOperation = (operation) => {
         console.log('Selected operation:', operation);
         onSelectOperation(operation);
+    };
+
+    const handleSave = () => {
+        if (onSave) {
+            onSave();
+        } else {
+            onClose();
+        }
     };
 
     return (
@@ -19,13 +27,13 @@ const FolioOperationsMenu = ({ onClose, onSelectOperation }) => {
 
                 <div className="folio-ops-menu-body">
                     <div 
-                        className="folio-ops-menu-item" 
+                        className={`folio-ops-menu-item ${selectedOperation === 'routing-operation' ? 'selected' : ''}`}
                         onClick={() => handleOperation('routing-operation')}
                     >
                         Folio Routing Operation
                     </div>
                     <div 
-                        className="folio-ops-menu-item" 
+                        className={`folio-ops-menu-item ${selectedOperation === 'routing' ? 'selected' : ''}`}
                         onClick={() => handleOperation('routing')}
                     >
                         Folio Routing
@@ -36,7 +44,7 @@ const FolioOperationsMenu = ({ onClose, onSelectOperation }) => {
                     <button className="folio-ops-cancel-btn" onClick={onClose}>
                         Cancel
                     </button>
-                    <button className="folio-ops-save-btn" onClick={onClose}>
+                    <button className="folio-ops-save-btn" onClick={handleSave}>
                         Save
                     </button>
                 </div>

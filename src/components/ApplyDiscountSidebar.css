@@ -163,6 +163,35 @@
     letter-spacing: 0.3px;
 }
 
+/* Discount Type Radio Group */
+.discount-type-group {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.discount-type-radio {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.discount-type-radio input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #3b5bdb;
+    flex-shrink: 0;
+}
+
+.radio-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+}
+
 /* Plus Value Button */
 .discount-plus-value-btn {
     display: flex;

@@ -11,7 +11,8 @@ const {
     getBookingsByDateRange,
     addTransaction,
     updateTransaction,
-    deleteTransaction
+    deleteTransaction,
+    routeFolioTransactions
 } = require('../controllers/bookingController');
 
 // Main routes
@@ -32,5 +33,8 @@ router.get('/room/:roomNumber', getBookingsByRoom);
 router.post('/:bookingId/transactions', addTransaction);
 router.put('/:bookingId/transactions/:transactionId', updateTransaction);
 router.delete('/:bookingId/transactions/:transactionId', deleteTransaction);
+
+// Folio routing
+router.post('/:bookingId/route-folio', routeFolioTransactions);
 
 module.exports = router;
