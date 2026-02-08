@@ -13,6 +13,7 @@ import GuestMealService from '../GuestMealService/GuestMealService';
 import DiscountManagement from '../DiscountManagement/DiscountManagement';
 import TaxConfiguration from '../TaxConfiguration/TaxConfiguration';
 import TaxMapping from '../TaxMapping/TaxMapping';
+import CashierReport from '../CashierReport/CashierReport';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -706,6 +707,11 @@ const AdminDashboard = () => {
                     {/* Food Payment Report View */}
                     {activeMenu === 'food-payment-report' && (
                         <FoodPaymentReport />
+                    )}
+
+                    {/* Cashier Report View */}
+                    {activeMenu === 'cashier-report' && (
+                        <CashierReport />
                     )}
 
                     {/* Proper Configuration Options */}
