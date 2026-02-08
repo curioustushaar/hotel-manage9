@@ -8,12 +8,6 @@ const MoreOptionsMenu = ({ booking, onActionSelect, buttonLabel = '⋯' }) => {
 
     const actions = [
         { 
-            id: 'check-in', 
-            label: '✓ Check-In', 
-            color: '#16a34a',
-            disabled: booking.status === 'Checked-in' || booking.status === 'Cancelled' || booking.status === 'Voided'
-        },
-        { 
             id: 'print-summary', 
             label: '📄 Print Summary', 
             color: '#6366f1',
