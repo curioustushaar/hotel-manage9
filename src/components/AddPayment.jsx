@@ -60,9 +60,6 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
         setIsSubmitting(true);
 
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 500));
-
             // Here you would make an API call to save the payment
             const paymentData = {
                 id: Date.now(),
@@ -80,7 +77,7 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
 
             // Call the onAdd callback to update parent state
             if (onAdd) {
-                onAdd(paymentData);
+                await onAdd(paymentData);
             }
 
             // Save to localStorage as backup
@@ -88,17 +85,10 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
             existingPayments.push(paymentData);
             localStorage.setItem('payments', JSON.stringify(existingPayments));
 
-            // Show success toast notification
-            setShowToast(true);
-            
-            // Close after a short delay to show the toast
-            setTimeout(() => {
-                onClose();
-            }, 1000);
+            // Parent will handle closing and showing toast
         } catch (error) {
             console.error('Error submitting payment:', error);
             alert('Failed to add payment. Please try again.');
-        } finally {
             setIsSubmitting(false);
         }
     };

@@ -11,6 +11,7 @@ const menuRoutes = require('./routes/menuRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const roomRoutes = require('./routes/roomRoutes');
 const qrCodeRoutes = require('./routes/qrCodeRoutes');
+const guestRoutes = require('./routes/guestRoutes');
 
 // Initialize express app
 const app = express();
@@ -74,6 +75,7 @@ app.use('/api/menu', menuRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/qr', qrCodeRoutes);
+app.use('/api/guests', guestRoutes);
 
 // Root route
 app.get('/', (req, res) => {

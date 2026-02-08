@@ -144,6 +144,23 @@ const bookingSchema = new mongoose.Schema(
                 type: String,
                 default: 'current_user'
             },
+            folioId: {
+                type: Number,
+                default: 0
+            },
+            // Routing metadata
+            routedFrom: {
+                type: Number
+            },
+            routedTo: {
+                type: Number
+            },
+            routedBy: {
+                type: String
+            },
+            routedAt: {
+                type: Date
+            },
             createdAt: {
                 type: Date,
                 default: Date.now

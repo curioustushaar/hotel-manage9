@@ -211,7 +211,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         if (!validateForm()) {
@@ -220,7 +220,6 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
         }
 
         const newGuest = {
-            guestId: 'G-' + Date.now(),
             fullName: formData.fullName,
             mobile: formData.mobile,
             email: formData.email,
@@ -243,17 +242,32 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
             anniversary: formData.anniversary,
             photoFile: formData.photoFile,
             companyName: formData.companyName,
-            gstNumber: formData.gstNumber,
-            createdAt: new Date().toISOString(),
-            totalStays: 1,
-            lastStayDate: null,
-            bookingCount: 0
+            gstNumber: formData.gstNumber
         };
 
-        setSuccessMessage('Guest created successfully! ✓');
-        setTimeout(() => {
-            onSave(newGuest);
-        }, 1500);
+        try {
+            const response = await fetch('http://localhost:5000/api/guests/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(newGuest)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setSuccessMessage('Guest created successfully! ✓');
+                setTimeout(() => {
+                    onSave(data.data); // Pass the saved guest with _id from backend
+                }, 1000);
+            } else {
+                setErrors({ submit: data.message || 'Failed to create guest' });
+            }
+        } catch (error) {
+            console.error('Error creating guest:', error);
+            setErrors({ submit: 'Failed to create guest. Please try again.' });
+        }
     };
 
     const sections = [

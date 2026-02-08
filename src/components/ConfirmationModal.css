@@ -1,0 +1,122 @@
+.confirmation-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.confirmation-modal-container {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.confirmation-modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.confirmation-modal-header h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.confirmation-close-btn {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.confirmation-close-btn:hover {
+    background: #f3f4f6;
+    color: #1f2937;
+}
+
+.confirmation-modal-body {
+    padding: 24px;
+}
+
+.confirmation-modal-body p {
+    margin: 0;
+    font-size: 16px;
+    color: #4b5563;
+    line-height: 1.6;
+}
+
+.confirmation-modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.confirmation-cancel-btn,
+.confirmation-confirm-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.confirmation-cancel-btn {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.confirmation-cancel-btn:hover:not(:disabled) {
+    background: #e5e7eb;
+}
+
+.confirmation-confirm-btn {
+    background: #3b82f6;
+    color: white;
+}
+
+.confirmation-confirm-btn:hover:not(:disabled) {
+    background: #2563eb;
+}
+
+.confirmation-cancel-btn:disabled,
+.confirmation-confirm-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

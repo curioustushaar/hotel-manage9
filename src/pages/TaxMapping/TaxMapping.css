@@ -1,0 +1,607 @@
+/* Tax Mapping Page */
+.tax-mapping-page {
+    padding: 24px;
+    background: #f9fafb;
+    min-height: 100vh;
+}
+
+.tax-mapping-page-header {
+    margin-bottom: 24px;
+}
+
+.tax-mapping-page-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 8px 0;
+}
+
+.tax-mapping-page-header p {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0;
+}
+
+/* Main Content Layout - 70/30 Split */
+.tax-mapping-content {
+    display: grid;
+    grid-template-columns: 70% 30%;
+    gap: 24px;
+    align-items: start;
+}
+
+/* Section Headers */
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.section-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+}
+
+.count-badge {
+    padding: 4px 12px;
+    background: #e0e7ff;
+    color: #4f46e5;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* Left Section - Tax Mapping List */
+.tax-mapping-list-section {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.table-container {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.tax-mapping-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.tax-mapping-table thead {
+    background: #f9fafb;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.tax-mapping-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.tax-mapping-table tbody tr {
+    border-bottom: 1px solid #e5e7eb;
+    transition: background-color 0.15s;
+}
+
+.tax-mapping-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+.tax-mapping-table tbody tr.selected-row {
+    background: #eff6ff;
+}
+
+.tax-mapping-table tbody tr.selected-row:hover {
+    background: #dbeafe;
+}
+
+.tax-mapping-table td {
+    padding: 14px 16px;
+    color: #111827;
+}
+
+/* Service Type Cell */
+.service-type-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.service-type-name {
+    font-weight: 600;
+    color: #111827;
+}
+
+/* Applied Taxes Cell */
+.applied-taxes-cell {
+    max-width: 300px;
+}
+
+.taxes-list {
+    color: #4b5563;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Default Badge */
+.default-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.default-badge.yes {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.default-badge.no {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+/* Status Toggle Button */
+.status-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.status-toggle.active {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-toggle.active:hover {
+    background: #bbf7d0;
+}
+
+.status-toggle.inactive {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-toggle.inactive:hover {
+    background: #fecaca;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+/* Actions Cell */
+.actions-cell {
+    position: relative;
+}
+
+.action-menu-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.btn-menu {
+    padding: 4px 10px;
+    background: transparent;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.btn-menu:hover {
+    background: #f3f4f6;
+    color: #111827;
+    border-color: #d1d5db;
+}
+
+.action-menu-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    z-index: 100;
+    min-width: 140px;
+    overflow: hidden;
+    animation: slideDown 0.15s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.action-menu-dropdown .menu-item {
+    width: 100%;
+    padding: 10px 16px;
+    background: transparent;
+    color: #374151;
+    border: none;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.action-menu-dropdown .menu-item:hover {
+    background: #f3f4f6;
+}
+
+.action-menu-dropdown .menu-item.remove {
+    color: #dc2626;
+}
+
+.action-menu-dropdown .menu-item.remove:hover {
+    background: #fef2f2;
+}
+
+/* No Data State */
+.no-data {
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.no-data-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.no-data-icon {
+    font-size: 48px;
+    opacity: 0.5;
+}
+
+.no-data-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: #6b7280;
+    margin: 0;
+}
+
+.no-data-subtext {
+    font-size: 14px;
+    color: #9ca3af;
+    margin: 0;
+}
+
+/* Right Section - Form */
+.tax-mapping-form-section {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 24px;
+}
+
+.form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Form Groups */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.form-label .required {
+    color: #dc2626;
+    margin-left: 2px;
+}
+
+/* Form Select */
+.form-select {
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #111827;
+    background: white;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.form-select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-select.error {
+    border-color: #dc2626;
+}
+
+.form-select.error:focus {
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+/* Tax Checkbox List */
+.tax-checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #f9fafb;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.tax-checkbox-list.error {
+    border-color: #dc2626;
+}
+
+.tax-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: background-color 0.15s;
+}
+
+.tax-checkbox-item:hover {
+    background: white;
+}
+
+.tax-checkbox-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #3b82f6;
+}
+
+.tax-checkbox-label {
+    font-size: 14px;
+    color: #374151;
+    user-select: none;
+}
+
+.no-taxes-message {
+    padding: 12px;
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 8px;
+}
+
+.no-taxes-message p {
+    margin: 0;
+    font-size: 13px;
+    color: #92400e;
+}
+
+/* Toggle Switch */
+.toggle-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #d1d5db;
+    transition: 0.3s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: #3b82f6;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+}
+
+.toggle-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.field-hint {
+    font-size: 12px;
+    color: #6b7280;
+    margin: -4px 0 0 0;
+    font-style: italic;
+}
+
+/* Form Textarea */
+.form-textarea {
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #111827;
+    font-family: inherit;
+    resize: vertical;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.form-textarea:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-textarea::placeholder {
+    color: #9ca3af;
+}
+
+/* Error Message */
+.error-message {
+    color: #dc2626;
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: -4px;
+}
+
+/* Form Actions */
+.form-actions {
+    display: flex;
+    gap: 12px;
+    padding-top: 8px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.btn-primary {
+    flex: 1;
+    padding: 10px 16px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+}
+
+.btn-secondary {
+    flex: 1;
+    padding: 10px 16px;
+    background: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+/* Responsive Design */
+@media (max-width: 1400px) {
+    .tax-mapping-content {
+        grid-template-columns: 65% 35%;
+    }
+}
+
+@media (max-width: 1200px) {
+    .tax-mapping-content {
+        grid-template-columns: 1fr;
+    }
+
+    .tax-mapping-form-section {
+        position: static;
+    }
+}
+
+@media (max-width: 768px) {
+    .tax-mapping-page {
+        padding: 16px;
+    }
+
+    .tax-mapping-page-header h1 {
+        font-size: 24px;
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .table-container {
+        overflow-x: auto;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+        width: 100%;
+    }
+}

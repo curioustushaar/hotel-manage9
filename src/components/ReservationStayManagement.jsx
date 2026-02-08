@@ -33,6 +33,7 @@ const ReservationStayManagement = () => {
     // Fetch reservations from MongoDB
     useEffect(() => {
         fetchReservationsFromAPI();
+        fetchGuestsFromAPI();
     }, []);
 
     const fetchReservationsFromAPI = async () => {
@@ -127,7 +128,23 @@ const ReservationStayManagement = () => {
     // Form State - Guest Information
     const [selectedGuest, setSelectedGuest] = useState(null);
     const [showGuestModal, setShowGuestModal] = useState(false);
-    const [guests, setGuests] = useState(getDummyGuests());
+    const [guests, setGuests] = useState([]);
+
+    // Fetch guests from API
+    const fetchGuestsFromAPI = async () => {
+        try {
+            const response = await fetch('http://localhost:5000/api/guests/list');
+            const data = await response.json();
+            
+            if (data.success && data.data) {
+                setGuests(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching guests:', error);
+            // Fallback to dummy data if API fails
+            setGuests(getDummyGuests());
+        }
+    };
 
     // Billing State
     const [paidAmount, setPaidAmount] = useState(0);
@@ -674,7 +691,13 @@ const ReservationStayManagement = () => {
                                         </button>
                                     </div>
                                 )}
-                                <GuestModal isOpen={showGuestModal} onClose={() => setShowGuestModal(false)} onSelectGuest={setSelectedGuest} guests={guests} />
+                                <GuestModal 
+                                    isOpen={showGuestModal} 
+                                    onClose={() => setShowGuestModal(false)} 
+                                    onSelectGuest={setSelectedGuest} 
+                                    guests={guests}
+                                    onRefreshGuests={fetchGuestsFromAPI}
+                                />
                             </div>
 
                             {/* Stay Details Section */}
@@ -841,7 +864,10 @@ const ReservationStayManagement = () => {
                                 onEdit={handleEditReservation}
                                 onDelete={handleDeleteReservation}
                                 onGenerateInvoice={handleGenerateInvoice}
-                                onSelect={setSelectedReservation}
+                                onSelect={(res) => {
+                                    setSelectedReservation(res);
+                                    // setShowEditModal(true); // Disabled - modal won't open on card click
+                                }}
                                 isSelected={selectedReservation?.id === reservation.id}
                             />
                         ))

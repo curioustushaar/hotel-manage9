@@ -79,8 +79,6 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
         setIsSubmitting(true);
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 500));
-
             const chargeData = {
                 id: Date.now(),
                 date: formData.date,
@@ -100,24 +98,17 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
 
             // Call the onAdd callback to update parent state
             if (onAdd) {
-                onAdd(chargeData);
+                await onAdd(chargeData);
             }
 
             const existingCharges = JSON.parse(localStorage.getItem('charges') || '[]');
             existingCharges.push(chargeData);
             localStorage.setItem('charges', JSON.stringify(existingCharges));
 
-            // Show success toast notification
-            setShowToast(true);
-            
-            // Close after a short delay to show the toast
-            setTimeout(() => {
-                onClose();
-            }, 1000);
+            // Parent will handle closing and showing toast
         } catch (error) {
             console.error('Error submitting charge:', error);
             alert('Failed to add charge. Please try again.');
-        } finally {
             setIsSubmitting(false);
         }
     };

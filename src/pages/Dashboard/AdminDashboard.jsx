@@ -10,6 +10,9 @@ import DashboardHome from '../DashboardHome/DashboardHome';
 import MyProfile from '../Profile/MyProfile';
 import ReservationStayManagement from "../../components/ReservationStayManagement";
 import GuestMealService from '../GuestMealService/GuestMealService';
+import DiscountManagement from '../DiscountManagement/DiscountManagement';
+import TaxConfiguration from '../TaxConfiguration/TaxConfiguration';
+import TaxMapping from '../TaxMapping/TaxMapping';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -707,45 +710,15 @@ const AdminDashboard = () => {
 
                     {/* Proper Configuration Options */}
                     {activeMenu === 'discount' && (
-                        <div className="content-section">
-                            <div className="section-header">
-                                <h1>💸 Discount Management</h1>
-                                <p className="section-subtitle">Create and manage discount rules for your services</p>
-                            </div>
-                            <div className="coming-soon-box">
-                                <div className="coming-soon-icon">🚧</div>
-                                <h2>Coming Soon</h2>
-                                <p>Discount management feature is under development</p>
-                            </div>
-                        </div>
+                        <DiscountManagement />
                     )}
 
                     {activeMenu === 'taxes' && (
-                        <div className="content-section">
-                            <div className="section-header">
-                                <h1>🧾 Tax Configuration</h1>
-                                <p className="section-subtitle">Set up and manage tax rates and rules</p>
-                            </div>
-                            <div className="coming-soon-box">
-                                <div className="coming-soon-icon">🚧</div>
-                                <h2>Coming Soon</h2>
-                                <p>Tax configuration feature is under development</p>
-                            </div>
-                        </div>
+                        <TaxConfiguration />
                     )}
 
                     {activeMenu === 'tax-mapping' && (
-                        <div className="content-section">
-                            <div className="section-header">
-                                <h1>🔗 Tax Mapping</h1>
-                                <p className="section-subtitle">Map taxes to different products and services</p>
-                            </div>
-                            <div className="coming-soon-box">
-                                <div className="coming-soon-icon">🚧</div>
-                                <h2>Coming Soon</h2>
-                                <p>Tax mapping feature is under development</p>
-                            </div>
-                        </div>
+                        <TaxMapping />
                     )}
 
                     {activeMenu === 'generate-room-qr' && (
