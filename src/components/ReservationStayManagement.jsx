@@ -47,57 +47,115 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const fetchReservationsFromAPI = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`${API_URL}/list`);
-            const data = await response.json();
 
-            if (data.success && data.data) {
-                // Map MongoDB bookings to reservation format
-                const mappedReservations = data.data.map(booking => ({
-                    id: booking._id,
-                    reservationType: 'Confirm',
-                    bookingSource: 'Direct',
-                    businessSource: 'Walk-In',
-                    referenceNumber: booking.bookingId || '',
-                    arrivalFrom: '',
-                    purposeOfVisit: '',
-                    guestId: booking._id,
-                    guestName: booking.guestName,
-                    guestEmail: booking.email || '',
-                    guestPhone: booking.mobileNumber,
-                    checkInDate: new Date(booking.checkInDate).toISOString().split('T')[0],
-                    checkInTime: '14:00',
-                    checkOutDate: new Date(booking.checkOutDate).toISOString().split('T')[0],
-                    checkOutTime: '11:00',
-                    flexibleCheckout: false,
-                    rooms: [{
-                        id: 1,
-                        categoryId: booking.roomType?.toLowerCase().replace(/ /g, '-') || 'deluxe-ac-double',
-                        roomNumber: booking.roomNumber || '',
-                        mealPlan: 'CP',
-                        adultsCount: booking.numberOfGuests || 1,
-                        childrenCount: 0,
-                        ratePerNight: booking.pricePerNight || 0,
-                        discount: 0
-                    }],
-                    nights: booking.numberOfNights || 1,
-                    status: booking.status === 'Upcoming' ? 'RESERVED' :
-                        booking.status === 'Checked-in' ? 'IN_HOUSE' :
-                            booking.status === 'Checked-out' ? 'CHECKED_OUT' : 'RESERVED',
-                    roomCharges: booking.totalAmount || 0,
-                    discount: 0,
-                    tax: 0,
-                    totalAmount: booking.totalAmount || 0,
-                    paidAmount: booking.advancePaid || 0,
-                    balanceDue: booking.remainingAmount || 0,
-                    paymentMode: 'Cash',
-                    taxExempt: false,
-                    createdAt: booking.createdAt || new Date().toISOString(),
-                    updatedAt: booking.updatedAt || new Date().toISOString()
-                }));
+            // Fetch from both endpoints
+            const [bookingsResponse, reservationsResponse] = await Promise.all([
+                fetch(`${API_URL}/list`).catch(() => ({ ok: false })),
+                fetch(`${API_URL_CONFIG}/api/reservations/list`).catch(() => ({ ok: false }))
+            ]);
 
-                console.log('Fetched and mapped reservations:', mappedReservations);
-                setReservations(mappedReservations);
+            let allReservations = [];
+
+            // Process bookings data
+            if (bookingsResponse.ok) {
+                const bookingsData = await bookingsResponse.json();
+                if (bookingsData.success && bookingsData.data) {
+                    const mappedBookings = bookingsData.data.map(booking => ({
+                        id: booking._id,
+                        reservationType: 'Confirm',
+                        bookingSource: 'Direct',
+                        businessSource: 'Walk-In',
+                        referenceNumber: booking.bookingId || '',
+                        arrivalFrom: '',
+                        purposeOfVisit: '',
+                        guestId: booking._id,
+                        guestName: booking.guestName,
+                        guestEmail: booking.email || '',
+                        guestPhone: booking.mobileNumber,
+                        checkInDate: new Date(booking.checkInDate).toISOString().split('T')[0],
+                        checkInTime: '14:00',
+                        checkOutDate: new Date(booking.checkOutDate).toISOString().split('T')[0],
+                        checkOutTime: '11:00',
+                        flexibleCheckout: false,
+                        rooms: [{
+                            id: 1,
+                            categoryId: booking.roomType?.toLowerCase().replace(/ /g, '-') || 'deluxe-ac-double',
+                            roomNumber: booking.roomNumber || '',
+                            mealPlan: 'CP',
+                            adultsCount: booking.numberOfGuests || 1,
+                            childrenCount: 0,
+                            ratePerNight: booking.pricePerNight || 0,
+                            discount: 0
+                        }],
+                        nights: booking.numberOfNights || 1,
+                        status: booking.status === 'Upcoming' ? 'RESERVED' :
+                            booking.status === 'Checked-in' ? 'IN_HOUSE' :
+                                booking.status === 'Checked-out' ? 'CHECKED_OUT' : 'RESERVED',
+                        roomCharges: booking.totalAmount || 0,
+                        discount: 0,
+                        tax: 0,
+                        totalAmount: booking.totalAmount || 0,
+                        paidAmount: booking.advancePaid || 0,
+                        balanceDue: booking.remainingAmount || 0,
+                        paymentMode: 'Cash',
+                        taxExempt: false,
+                        createdAt: booking.createdAt || new Date().toISOString(),
+                        updatedAt: booking.updatedAt || new Date().toISOString()
+                    }));
+                    allReservations = [...allReservations, ...mappedBookings];
+                }
             }
+
+            // Process reservations data (new endpoint)
+            if (reservationsResponse.ok) {
+                const reservationsData = await reservationsResponse.json();
+                if (reservationsData.success && reservationsData.data) {
+                    const mappedReservations = reservationsData.data.map(reservation => ({
+                        id: reservation._id,
+                        reservationType: 'Confirm',
+                        bookingSource: 'Direct',
+                        businessSource: 'Walk-In',
+                        referenceNumber: reservation.referenceId,
+                        arrivalFrom: '',
+                        purposeOfVisit: '',
+                        guestId: reservation._id,
+                        guestName: reservation.guestName,
+                        guestEmail: reservation.email,
+                        guestPhone: reservation.phone,
+                        checkInDate: new Date(reservation.checkInDate).toISOString().split('T')[0],
+                        checkInTime: '14:00',
+                        checkOutDate: new Date(reservation.checkOutDate).toISOString().split('T')[0],
+                        checkOutTime: '11:00',
+                        flexibleCheckout: false,
+                        rooms: [{
+                            id: 1,
+                            categoryId: 'deluxe-ac-double',
+                            roomNumber: '',
+                            mealPlan: 'CP',
+                            adultsCount: 2,
+                            childrenCount: 0,
+                            ratePerNight: Math.round(reservation.amount / reservation.nights),
+                            discount: 0
+                        }],
+                        nights: reservation.nights,
+                        status: reservation.status,
+                        roomCharges: reservation.amount,
+                        discount: 0,
+                        tax: 0,
+                        totalAmount: reservation.amount,
+                        paidAmount: reservation.paid,
+                        balanceDue: reservation.balance,
+                        paymentMode: 'Cash',
+                        taxExempt: false,
+                        createdAt: reservation.createdAt || new Date().toISOString(),
+                        updatedAt: reservation.updatedAt || new Date().toISOString()
+                    }));
+                    allReservations = [...allReservations, ...mappedReservations];
+                }
+            }
+
+            console.log('Fetched and mapped reservations:', allReservations);
+            setReservations(allReservations);
         } catch (error) {
             console.error('Error fetching reservations:', error);
             setReservations([]);
