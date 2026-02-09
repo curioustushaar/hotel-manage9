@@ -17,8 +17,15 @@ import HousekeepingView from './HousekeepingView';
 import RoomService from './RoomService';
 import PrintPreviewModal from './PrintPreviewModal';
 
-const ReservationStayManagement = () => {
-    const [view, setView] = useState('dashboard'); // 'dashboard', 'form', 'housekeeping', or 'roomservice'
+const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
+    const [view, setView] = useState(viewMode); // 'dashboard', 'form', 'housekeeping', or 'roomservice'
+
+    // Sync internal view state with prop changes
+    useEffect(() => {
+        if (viewMode) {
+            setView(viewMode);
+        }
+    }, [viewMode]);
     const [activeTab, setActiveTab] = useState('all'); // 'all', 'reserved', 'in-house', 'checked-out'
     const [showEditModal, setShowEditModal] = useState(false); // Edit Reservation Modal state
 
