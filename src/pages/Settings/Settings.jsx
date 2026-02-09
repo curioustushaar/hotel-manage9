@@ -23,7 +23,7 @@ const Settings = () => {
         'Rooms',
         'Bookings',
         'Food Menu',
-        'Add Booking',
+
         'Customers',
         'Settings',
         'Cashier Report',
@@ -150,27 +150,27 @@ const Settings = () => {
 
     const handleTogglePermissionForStaff = (permission) => {
         if (!managingPermissions) return;
-        
+
         const currentPermissions = managingPermissions.permissions || [];
         const updatedPermissions = currentPermissions.includes(permission)
             ? currentPermissions.filter(p => p !== permission)
             : [...currentPermissions, permission];
-        
+
         const updatedStaff = {
             ...managingPermissions,
             permissions: updatedPermissions
         };
-        
+
         setManagingPermissions(updatedStaff);
     };
 
     const handleSavePermissions = () => {
         if (!managingPermissions) return;
-        
+
         const updatedStaffData = staffData.map(staff =>
             staff.id === managingPermissions.id ? managingPermissions : staff
         );
-        
+
         setStaffData(updatedStaffData);
         saveToLocalStorage(updatedStaffData);
         setManagingPermissions(null);
@@ -209,7 +209,7 @@ const Settings = () => {
     return (
         <div className="settings-page">
             <div className="settings-header">
-                <h1>⚙️ Settings</h1>
+                <h1>👨‍💼 Add Staff</h1>
             </div>
 
             {/* Tabs */}
@@ -396,150 +396,150 @@ const Settings = () => {
 
             {/* Permissions View */}
             {activeTab === 'permissions' && (
-                        <div className="permissions-info-section">
-                            <h2>Available Permissions</h2>
-                            <div className="permissions-grid">
-                                {permissionOptions.map((permission, index) => {
-                                    const staffWithPermission = staffData.filter(staff =>
-                                        staff.permissions.includes(permission)
-                                    );
-                                    return (
-                                        <div key={index} className="permission-card">
-                                            <div className="permission-header">
-                                                <span className="permission-icon">🔐</span>
-                                                <span className="permission-name">{permission}</span>
-                                            </div>
-                                            <div className="permission-staff-count">
-                                                <span className="staff-count-badge">
-                                                    {staffWithPermission.length} {staffWithPermission.length === 1 ? 'Staff' : 'Staff Members'}
-                                                </span>
-                                            </div>
-                                            {staffWithPermission.length > 0 ? (
-                                                <div className="permission-staff-list">
-                                                    {staffWithPermission.map(staff => (
-                                                        <div key={staff.id} className="staff-chip">
-                                                            <span className="staff-chip-name">{staff.fullName}</span>
-                                                            <span className={`staff-chip-status ${staff.active ? 'active' : 'inactive'}`}>
-                                                                {staff.active ? '●' : '○'}
-                                                            </span>
-                                                        </div>
-                                                    ))}
+                <div className="permissions-info-section">
+                    <h2>Available Permissions</h2>
+                    <div className="permissions-grid">
+                        {permissionOptions.map((permission, index) => {
+                            const staffWithPermission = staffData.filter(staff =>
+                                staff.permissions.includes(permission)
+                            );
+                            return (
+                                <div key={index} className="permission-card">
+                                    <div className="permission-header">
+                                        <span className="permission-icon">🔐</span>
+                                        <span className="permission-name">{permission}</span>
+                                    </div>
+                                    <div className="permission-staff-count">
+                                        <span className="staff-count-badge">
+                                            {staffWithPermission.length} {staffWithPermission.length === 1 ? 'Staff' : 'Staff Members'}
+                                        </span>
+                                    </div>
+                                    {staffWithPermission.length > 0 ? (
+                                        <div className="permission-staff-list">
+                                            {staffWithPermission.map(staff => (
+                                                <div key={staff.id} className="staff-chip">
+                                                    <span className="staff-chip-name">{staff.fullName}</span>
+                                                    <span className={`staff-chip-status ${staff.active ? 'active' : 'inactive'}`}>
+                                                        {staff.active ? '●' : '○'}
+                                                    </span>
                                                 </div>
-                                            ) : (
-                                                <div className="no-staff-assigned">
-                                                    <span>No staff assigned</span>
-                                                </div>
-                                            )}
+                                            ))}
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
+                                    ) : (
+                                        <div className="no-staff-assigned">
+                                            <span>No staff assigned</span>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
-                    {/* Add/Edit Staff Modal */}
-                    {(showAddModal || showEditModal) && (
-                        <div className="modal-overlay" onClick={() => { setShowAddModal(false); setShowEditModal(false); resetForm(); }}>
-                            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                                <div className="modal-header">
-                                    <h2>{showEditModal ? '✏️ Edit Staff Member' : '➕ Add New Staff'}</h2>
-                                    <button
-                                        className="modal-close"
-                                        onClick={() => { setShowAddModal(false); setShowEditModal(false); resetForm(); }}
-                                    >
-                                        ✕
-                                    </button>
+            {/* Add/Edit Staff Modal */}
+            {(showAddModal || showEditModal) && (
+                <div className="modal-overlay" onClick={() => { setShowAddModal(false); setShowEditModal(false); resetForm(); }}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>{showEditModal ? '✏️ Edit Staff Member' : '➕ Add New Staff'}</h2>
+                            <button
+                                className="modal-close"
+                                onClick={() => { setShowAddModal(false); setShowEditModal(false); resetForm(); }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <form onSubmit={showEditModal ? handleUpdateStaff : handleAddStaff}>
+                            <div className="modal-body">
+                                <div className="form-group">
+                                    <label>Full Name *</label>
+                                    <input
+                                        type="text"
+                                        value={formData.fullName}
+                                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                                        required
+                                    />
                                 </div>
 
-                                <form onSubmit={showEditModal ? handleUpdateStaff : handleAddStaff}>
-                                    <div className="modal-body">
-                                        <div className="form-group">
-                                            <label>Full Name *</label>
-                                            <input
-                                                type="text"
-                                                value={formData.fullName}
-                                                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                                                required
-                                            />
-                                        </div>
+                                <div className="form-group">
+                                    <label>Phone Number *</label>
+                                    <input
+                                        type="tel"
+                                        value={formData.phone}
+                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                        required
+                                    />
+                                </div>
 
-                                        <div className="form-group">
-                                            <label>Phone Number *</label>
-                                            <input
-                                                type="tel"
-                                                value={formData.phone}
-                                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                                required
-                                            />
-                                        </div>
+                                <div className="form-group">
+                                    <label>Email *</label>
+                                    <input
+                                        type="email"
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                        required
+                                    />
+                                </div>
 
-                                        <div className="form-group">
-                                            <label>Email *</label>
-                                            <input
-                                                type="email"
-                                                value={formData.email}
-                                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                                required
-                                            />
-                                        </div>
+                                <div className="form-group">
+                                    <label>Password {!showEditModal && '*'}</label>
+                                    <input
+                                        type="password"
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                        required={!showEditModal}
+                                        placeholder={showEditModal ? 'Leave blank to keep current' : ''}
+                                    />
+                                </div>
 
-                                        <div className="form-group">
-                                            <label>Password {!showEditModal && '*'}</label>
-                                            <input
-                                                type="password"
-                                                value={formData.password}
-                                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                                required={!showEditModal}
-                                                placeholder={showEditModal ? 'Leave blank to keep current' : ''}
-                                            />
-                                        </div>
+                                <div className="form-group">
+                                    <label>Confirm Password {!showEditModal && '*'}</label>
+                                    <input
+                                        type="password"
+                                        value={formData.confirmPassword}
+                                        onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                                        required={!showEditModal}
+                                        placeholder={showEditModal ? 'Leave blank to keep current' : ''}
+                                    />
+                                </div>
 
-                                        <div className="form-group">
-                                            <label>Confirm Password {!showEditModal && '*'}</label>
-                                            <input
-                                                type="password"
-                                                value={formData.confirmPassword}
-                                                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                                                required={!showEditModal}
-                                                placeholder={showEditModal ? 'Leave blank to keep current' : ''}
-                                            />
-                                        </div>
-
-                                        <div className="form-group">
-                                            <label>Permissions</label>
-                                            <div className="permissions-checkbox-grid">
-                                                {permissionOptions.map((permission) => (
-                                                    <label key={permission} className="permission-checkbox">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={formData.permissions.includes(permission)}
-                                                            onChange={() => handlePermissionToggle(permission)}
-                                                        />
-                                                        <span>{permission}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
+                                <div className="form-group">
+                                    <label>Permissions</label>
+                                    <div className="permissions-checkbox-grid">
+                                        {permissionOptions.map((permission) => (
+                                            <label key={permission} className="permission-checkbox">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.permissions.includes(permission)}
+                                                    onChange={() => handlePermissionToggle(permission)}
+                                                />
+                                                <span>{permission}</span>
+                                            </label>
+                                        ))}
                                     </div>
-
-                                    <div className="modal-footer">
-                                        <button
-                                            type="button"
-                                            className="btn-cancel"
-                                            onClick={() => { setShowAddModal(false); setShowEditModal(false); resetForm(); }}
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button type="submit" className="btn-submit">
-                                            {showEditModal ? 'Update Staff' : 'Add Staff'}
-                                        </button>
-                                    </div>
-                                </form>
+                                </div>
                             </div>
-                        </div>
-                    )}
+
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn-cancel"
+                                    onClick={() => { setShowAddModal(false); setShowEditModal(false); resetForm(); }}
+                                >
+                                    Cancel
+                                </button>
+                                <button type="submit" className="btn-submit">
+                                    {showEditModal ? 'Update Staff' : 'Add Staff'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            );
+            )}
+        </div>
+    );
 };
 
-            export default Settings;
+export default Settings;
