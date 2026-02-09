@@ -13,6 +13,7 @@ import Footer from './components/Footer'
 import Login from './pages/Login/Login'
 import AdminDashboard from './pages/Dashboard/AdminDashboard'
 import QRScanPage from './pages/QRScan/QRScanPage'
+import FoodOrderPage from './components/FoodOrderPage'
 import './index.css'
 
 // Home Page Component
@@ -51,6 +52,7 @@ function App() {
         <Route path="/admin/cashier-report" element={<AdminDashboard />} />
         <Route path="/admin/food-payment-report" element={<AdminDashboard />} />
         <Route path="/scan-qr/:roomId" element={<QRScanPage />} />
+        <Route path="/food-order" element={<FoodOrderPage />} />
       </Routes>
     </Router>
   )
