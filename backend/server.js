@@ -49,20 +49,23 @@ let cachedDb = null;
 
 const connectDB = async () => {
     if (cachedDb) {
-        console.log('Using cached database connection');
+        console.log('✅ Using cached database connection');
         return cachedDb;
     }
 
     try {
-        const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bareena-atithi', {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
-        console.log(`MongoDB Connected: ${conn.connection.host}`);
+        console.log('🔄 Connecting to MongoDB...');
+        console.log('📍 URI:', process.env.MONGODB_URI ? 'Found in .env' : 'Using default localhost');
+        
+        const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bareena-atithi');
+        
+        console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+        console.log(`📊 Database: ${conn.connection.name}`);
         cachedDb = conn;
         return conn;
     } catch (error) {
-        console.error(`Error: ${error.message}`);
+        console.error('❌ MongoDB Connection Error:', error.message);
+        console.error('💡 Check your MONGODB_URI in .env file');
         throw error;
     }
 };
