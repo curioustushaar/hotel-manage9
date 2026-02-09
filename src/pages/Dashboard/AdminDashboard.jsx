@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import API_URL from '../../config/api';
 import FoodMenuDashboard from '../FoodMenu/FoodMenuDashboard';
+import FoodOrderPage from '../../components/FoodOrderPage';
+import AdminLayout from '../../components/AdminLayout';
 import FoodPaymentReport from '../FoodPaymentReport/FoodPaymentReport';
 import Settings from '../Settings/Settings';
 import Customers from '../Customers/Customers';
@@ -13,8 +15,7 @@ import GuestMealService from '../GuestMealService/GuestMealService';
 import DiscountManagement from '../DiscountManagement/DiscountManagement';
 import TaxConfiguration from '../TaxConfiguration/TaxConfiguration';
 import TaxMapping from '../TaxMapping/TaxMapping';
-import FoodOrderPage from '../../components/FoodOrderPage'; // Import FoodOrderPage
-import AdminLayout from '../../components/AdminLayout'; // Import AdminLayout
+import CashierReport from '../CashierReport/CashierReport';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -626,6 +627,86 @@ const AdminDashboard = () => {
                 )
             }
 
+            {/* Add/Edit Room Modal */}
+            {(showAddRoomModal || showEditRoomModal) && (
+                <div className="modal-overlay" onClick={() => { setShowAddRoomModal(false); setShowEditRoomModal(false); }}>
+                    <motion.div
+                        className="modal-content"
+                        onClick={(e) => e.stopPropagation()}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        <div className="modal-header">
+                            <h2>{showAddRoomModal ? 'Add New Room' : 'Edit Room'}</h2>
+                            <button className="modal-close" onClick={() => { setShowAddRoomModal(false); setShowEditRoomModal(false); }}>
+                                ✕
+                            </button>
+                        </div>
+                        <form onSubmit={handleRoomSubmit}>
+                            <div className="modal-body">
+                                {roomErrorMessage && <p className="error-message">{roomErrorMessage}</p>}
+                                <div className="form-group">
+                                    <label>ROOM NUMBER *</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="e.g., 101, 102"
+                                        value={roomFormData.roomNumber}
+                                        onChange={(e) => setRoomFormData({ ...roomFormData, roomNumber: e.target.value })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>ROOM TYPE *</label>
+                                    <select
+                                        className="form-input"
+                                        value={roomFormData.roomType}
+                                        onChange={(e) => setRoomFormData({ ...roomFormData, roomType: e.target.value })}
+                                    >
+                                        <option value="">Select Room Type</option>
+                                        {Object.entries(roomTypeCategories).map(([category, types]) => (
+                                            <optgroup key={category} label={category}>
+                                                {types.map(type => (
+                                                    <option key={type} value={type}>{type}</option>
+                                                ))}
+                                            </optgroup>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>PRICE (per night) *</label>
+                                    <input
+                                        type="number"
+                                        className="form-input"
+                                        placeholder="e.g., 1500"
+                                        value={roomFormData.price}
+                                        onChange={(e) => setRoomFormData({ ...roomFormData, price: e.target.value })}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>CAPACITY (persons) *</label>
+                                    <input
+                                        type="number"
+                                        className="form-input"
+                                        placeholder="e.g., 2"
+                                        value={roomFormData.capacity}
+                                        onChange={(e) => setRoomFormData({ ...roomFormData, capacity: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-secondary" onClick={() => { setShowAddRoomModal(false); setShowEditRoomModal(false); }}>
+                                    Cancel
+                                </button>
+                                <button type="submit" className="btn btn-primary">
+                                    {showAddRoomModal ? 'Add Room' : 'Save Changes'}
+                                </button>
+                            </div>
+                        </form>
+                    </motion.div>
+                </div>
+            )}
+
             {/* Reservation & Stay Management View */}
             {
                 activeMenu === 'reservations' && (
@@ -657,11 +738,14 @@ const AdminDashboard = () => {
             }
 
             {/* Food Payment Report View */}
-            {
-                activeMenu === 'food-payment-report' && (
-                    <FoodPaymentReport />
-                )
-            }
+            {activeMenu === 'food-payment-report' && (
+                <FoodPaymentReport />
+            )}
+
+            {/* Cashier Report View */}
+            {activeMenu === 'cashier-report' && (
+                <CashierReport />
+            )}
 
             {/* Proper Configuration Options */}
             {

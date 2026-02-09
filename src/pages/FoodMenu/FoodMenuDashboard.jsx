@@ -10,7 +10,24 @@ const FoodMenuDashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('All Categories');
 
-    const categories = ['All Categories', 'Cake', 'chicken', 'nithai', 'milk', 'veg', 'Beverages', 'Desserts', 'Starters'];
+    const categories = ['All Categories', 'Starters', 'Main Course', 'Breakfast', 'Rice', 'Desserts', 'Beverages', 'Chinese', 'Continental'];
+
+    // Category icons mapping
+    const categoryIcons = {
+        'Starters': '🍴',
+        'Main Course': '🍛',
+        'Breakfast': '☕',
+        'Rice': '🍚',
+        'Desserts': '🍨',
+        'Beverages': '🥤',
+        'Chinese': '🥡',
+        'Continental': '🍝'
+    };
+
+    const getCategoryWithIcon = (categoryName) => {
+        const icon = categoryIcons[categoryName] || '';
+        return icon ? `${icon} ${categoryName}` : categoryName;
+    };
 
     // Fetch menu items
     useEffect(() => {
@@ -176,7 +193,7 @@ const FoodMenuDashboard = () => {
                             }}>
                                 <option value="">Select category</option>
                                 {categories.filter(c => c !== 'All Categories').map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
+                                    <option key={cat} value={cat}>{getCategoryWithIcon(cat)}</option>
                                 ))}
                             </select>
                         </div>
@@ -238,7 +255,7 @@ const FoodMenuDashboard = () => {
                         }}
                     >
                         {categories.map(cat => (
-                            <option key={cat} value={cat}>{cat}</option>
+                            <option key={cat} value={cat}>{cat === 'All Categories' ? '🍽️ All Categories' : getCategoryWithIcon(cat)}</option>
                         ))}
                     </select>
                 </div>
@@ -281,7 +298,7 @@ const FoodMenuDashboard = () => {
                                     <tr key={item._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                                         <td style={{ padding: '12px' }}>{index + 1}</td>
                                         <td style={{ padding: '12px' }}>{item.itemName}</td>
-                                        <td style={{ padding: '12px' }}>{item.category}</td>
+                                        <td style={{ padding: '12px' }}>{getCategoryWithIcon(item.category)}</td>
                                         <td style={{ padding: '12px' }}>{item.description || '---'}</td>
                                         <td style={{ padding: '12px' }}>₹{item.price}</td>
                                         <td style={{ padding: '12px' }}>
@@ -422,7 +439,7 @@ const FoodMenuDashboard = () => {
                                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600, color: '#374151' }}>
                                     CATEGORY <span style={{ color: '#ef4444' }}>*</span>
                                 </label>
-                                <input
+                                <select
                                     name="category"
                                     defaultValue={editingItem.category}
                                     required
@@ -434,7 +451,11 @@ const FoodMenuDashboard = () => {
                                         fontSize: '14px',
                                         backgroundColor: 'white'
                                     }}
-                                />
+                                >
+                                    {categories.filter(c => c !== 'All Categories').map(cat => (
+                                        <option key={cat} value={cat}>{getCategoryWithIcon(cat)}</option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div style={{ marginBottom: '15px' }}>
