@@ -14,15 +14,21 @@ const FoodMenu = () => {
 
     const categories = [
         { value: 'All Categories', label: '🍽️ All Categories', icon: '🍽️' },
-        { value: 'Cake', label: '🎂 Cake', icon: '🎂' },
-        { value: 'Chicken', label: '🍗 Chicken', icon: '🍗' },
-        { value: 'Mithai', label: '🍬 Mithai', icon: '🍬' },
-        { value: 'Milk', label: '🥛 Milk', icon: '🥛' },
-        { value: 'Vegetarian', label: '🥗 Vegetarian', icon: '🥗' },
-        { value: 'Beverages', label: '🥤 Beverages', icon: '🥤' },
+        { value: 'Starters', label: '🍴 Starters', icon: '🍴' },
+        { value: 'Main Course', label: '🍛 Main Course', icon: '🍛' },
+        { value: 'Breakfast', label: '☕ Breakfast', icon: '☕' },
+        { value: 'Rice', label: '🍚 Rice', icon: '🍚' },
         { value: 'Desserts', label: '🍨 Desserts', icon: '🍨' },
-        { value: 'Starters', label: '🍴 Starters', icon: '🍴' }
+        { value: 'Beverages', label: '🥤 Beverages', icon: '🥤' },
+        { value: 'Chinese', label: '🥡 Chinese', icon: '🥡' },
+        { value: 'Continental', label: '🍝 Continental', icon: '🍝' }
     ];
+
+    // Get category with icon
+    const getCategoryWithIcon = (categoryName) => {
+        const category = categories.find(cat => cat.value === categoryName);
+        return category ? category.label : categoryName;
+    };
 
     // Fetch menu items on component mount
     useEffect(() => {
@@ -221,7 +227,7 @@ const FoodMenu = () => {
                                     <tr key={item._id}>
                                         <td>{indexOfFirstItem + index + 1}</td>
                                         <td>{item.itemName}</td>
-                                        <td>{item.category}</td>
+                                        <td>{getCategoryWithIcon(item.category)}</td>
                                         <td>{item.description || '---'}</td>
                                         <td>₹{item.price.toFixed(2)}</td>
                                         <td>
@@ -327,14 +333,14 @@ const AddItemForm = ({ onSubmit, onCancel }) => {
     });
 
     const categories = [
-        { value: 'Cake', label: '🎂 Cake', icon: '🎂' },
-        { value: 'Chicken', label: '🍗 Chicken', icon: '🍗' },
-        { value: 'Mithai', label: '🍬 Mithai', icon: '🍬' },
-        { value: 'Milk', label: '🥛 Milk', icon: '🥛' },
-        { value: 'Vegetarian', label: '🥗 Vegetarian', icon: '🥗' },
-        { value: 'Beverages', label: '🥤 Beverages', icon: '🥤' },
+        { value: 'Starters', label: '🍴 Starters', icon: '🍴' },
+        { value: 'Main Course', label: '🍛 Main Course', icon: '🍛' },
+        { value: 'Breakfast', label: '☕ Breakfast', icon: '☕' },
+        { value: 'Rice', label: '🍚 Rice', icon: '🍚' },
         { value: 'Desserts', label: '🍨 Desserts', icon: '🍨' },
-        { value: 'Starters', label: '🍴 Starters', icon: '🍴' }
+        { value: 'Beverages', label: '🥤 Beverages', icon: '🥤' },
+        { value: 'Chinese', label: '🥡 Chinese', icon: '🥡' },
+        { value: 'Continental', label: '🍝 Continental', icon: '🍝' }
     ];
 
     const handleSubmit = (e) => {
@@ -431,14 +437,14 @@ const EditItemModal = ({ item, onSave, onCancel }) => {
     });
 
     const categories = [
-        { value: 'Cake', label: '🎂 Cake', icon: '🎂' },
-        { value: 'Chicken', label: '🍗 Chicken', icon: '🍗' },
-        { value: 'Mithai', label: '🍬 Mithai', icon: '🍬' },
-        { value: 'Milk', label: '🥛 Milk', icon: '🥛' },
-        { value: 'Vegetarian', label: '🥗 Vegetarian', icon: '🥗' },
-        { value: 'Beverages', label: '🥤 Beverages', icon: '🥤' },
+        { value: 'Starters', label: '🍴 Starters', icon: '🍴' },
+        { value: 'Main Course', label: '🍛 Main Course', icon: '🍛' },
+        { value: 'Breakfast', label: '☕ Breakfast', icon: '☕' },
+        { value: 'Rice', label: '🍚 Rice', icon: '🍚' },
         { value: 'Desserts', label: '🍨 Desserts', icon: '🍨' },
-        { value: 'Starters', label: '🍴 Starters', icon: '🍴' }
+        { value: 'Beverages', label: '🥤 Beverages', icon: '🥤' },
+        { value: 'Chinese', label: '🥡 Chinese', icon: '🥡' },
+        { value: 'Continental', label: '🍝 Continental', icon: '🍝' }
     ];
 
     const handleSubmit = (e) => {

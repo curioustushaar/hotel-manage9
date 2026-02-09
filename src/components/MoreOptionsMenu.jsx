@@ -2,42 +2,44 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './MoreOptionsMenu.css';
 
-const MoreOptionsMenu = ({ booking, onActionSelect, buttonLabel = '⋯' }) => {
+const MoreOptionsMenu = ({ booking, onActionSelect, buttonLabel = '⋯', options }) => {
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef(null);
 
-    const actions = [
-        { 
-            id: 'print-summary', 
-            label: '📄 Print Summary', 
+    const defaultActions = [
+        {
+            id: 'print-summary',
+            label: '📄 Print Summary',
             color: '#6366f1',
             disabled: false
         },
-        { 
-            id: 'print-invoice', 
-            label: '🧾 Print Invoice', 
+        {
+            id: 'print-invoice',
+            label: '🧾 Print Invoice',
             color: '#8b5cf6',
             disabled: false
         },
-        { 
-            id: 'print-grc', 
-            label: '📋 Print GRC', 
+        {
+            id: 'print-grc',
+            label: '📋 Print GRC',
             color: '#0ea5e9',
             disabled: false
         },
-        { 
-            id: 'print-grc-all', 
-            label: '📋 Print GRC All', 
+        {
+            id: 'print-grc-all',
+            label: '📋 Print GRC All',
             color: '#06b6d4',
             disabled: false
         },
-        { 
-            id: 'send-invoice', 
-            label: '📧 Send Invoice', 
+        {
+            id: 'send-invoice',
+            label: '📧 Send Invoice',
             color: '#14b8a6',
-            disabled: !booking.email
+            disabled: !booking.email && !booking.guestEmail
         }
     ];
+
+    const actions = options || defaultActions;
 
     // Close menu when clicking outside
     useEffect(() => {
@@ -65,7 +67,7 @@ const MoreOptionsMenu = ({ booking, onActionSelect, buttonLabel = '⋯' }) => {
 
     return (
         <div className="more-options-wrapper" ref={menuRef}>
-            <button 
+            <button
                 className="more-options-trigger"
                 onClick={(e) => {
                     e.stopPropagation();
@@ -89,7 +91,7 @@ const MoreOptionsMenu = ({ booking, onActionSelect, buttonLabel = '⋯' }) => {
                             <motion.button
                                 key={action.id}
                                 className={`more-options-item ${action.disabled ? 'disabled' : ''}`}
-                                style={{ 
+                                style={{
                                     borderLeft: `4px solid ${action.disabled ? '#d1d5db' : action.color}`
                                 }}
                                 onClick={(e) => {
