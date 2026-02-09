@@ -300,7 +300,7 @@ const AdminDashboard = () => {
         },
         { id: 'add-booking', icon: '➕', label: 'Add Booking' },
         { id: 'customers', icon: '👥', label: 'Customers' },
-        { id: 'settings', icon: '⚙️', label: 'Settings' },
+        { id: 'settings', icon: '👨‍💼', label: 'Add Staff' },
         { id: 'cashier-report', icon: '💰', label: 'Cashier Report' },
         { id: 'food-payment-report', icon: '🧾', label: 'Food Payment Report' },
     ];

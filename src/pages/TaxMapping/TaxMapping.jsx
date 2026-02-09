@@ -97,14 +97,14 @@ const TaxMapping = () => {
 
     const validateForm = () => {
         const errors = {};
-        
+
         if (!formData.serviceType) {
             errors.serviceType = 'Service type is required';
         }
 
         // Check for duplicate service type (unless editing)
         if (!isEditMode || (isEditMode && selectedMapping.serviceType !== formData.serviceType)) {
-            const duplicate = taxMappings.find(mapping => 
+            const duplicate = taxMappings.find(mapping =>
                 mapping.serviceType === formData.serviceType
             );
             if (duplicate) {
@@ -118,9 +118,9 @@ const TaxMapping = () => {
 
         // Check if trying to set as default when another default exists
         if (formData.isDefault) {
-            const existingDefault = taxMappings.find(mapping => 
-                mapping.serviceType === formData.serviceType && 
-                mapping.isDefault && 
+            const existingDefault = taxMappings.find(mapping =>
+                mapping.serviceType === formData.serviceType &&
+                mapping.isDefault &&
                 (!isEditMode || mapping.id !== selectedMapping?.id)
             );
             if (existingDefault) {
@@ -138,7 +138,7 @@ const TaxMapping = () => {
         }
 
         let updatedMappings;
-        
+
         if (isEditMode && selectedMapping) {
             // Update existing mapping
             updatedMappings = taxMappings.map(mapping =>
@@ -188,7 +188,7 @@ const TaxMapping = () => {
         setTaxMappings(updatedMappings);
         saveToLocalStorage(updatedMappings);
         setOpenMenuId(null);
-        
+
         // If the deleted mapping was selected, reset form
         if (selectedMapping && selectedMapping.id === id) {
             handleResetForm();
@@ -264,7 +264,7 @@ const TaxMapping = () => {
                             <tbody>
                                 {taxMappings.length > 0 ? (
                                     taxMappings.map(mapping => (
-                                        <tr 
+                                        <tr
                                             key={mapping.id}
                                             className={selectedMapping?.id === mapping.id ? 'selected-row' : ''}
                                         >
@@ -348,6 +348,7 @@ const TaxMapping = () => {
                     <div className="section-header">
                         <h2>{isEditMode ? 'Edit Tax Mapping' : 'Create Tax Mapping'}</h2>
                     </div>
+                    <p className="form-subtitle">Manage how taxes apply to each service</p>
 
                     <div className="form-container">
                         {/* Service Type */}
@@ -378,17 +379,23 @@ const TaxMapping = () => {
                                 Applicable Taxes <span className="required">*</span>
                             </label>
                             {taxes.length > 0 ? (
-                                <div className={`tax-checkbox-list ${formErrors.taxIds ? 'error' : ''}`}>
+                                <div className="tax-checkbox-card-group">
                                     {taxes.map(tax => (
-                                        <label key={tax.id} className="tax-checkbox-item">
+                                        <label key={tax.id} className={`tax-checkbox-card ${formData.taxIds.includes(tax.id) ? 'checked' : ''}`}>
                                             <input
                                                 type="checkbox"
                                                 checked={formData.taxIds.includes(tax.id)}
                                                 onChange={() => handleTaxCheckboxChange(tax.id)}
                                             />
-                                            <span className="tax-checkbox-label">
-                                                {tax.name} ({tax.type === 'PERCENTAGE' ? `${tax.value}%` : `₹${tax.value}`})
-                                            </span>
+                                            <div className="tax-checkbox-card-content">
+                                                <span className="tax-checkbox-card-icon">📋</span>
+                                                <div className="tax-checkbox-card-text">
+                                                    <span className="tax-checkbox-card-label">{tax.name}</span>
+                                                    <span className="tax-checkbox-card-desc">
+                                                        {tax.type === 'PERCENTAGE' ? `${tax.value}% government tax` : `₹${tax.value} additional service fee`}
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </label>
                                     ))}
                                 </div>
@@ -432,9 +439,9 @@ const TaxMapping = () => {
                                     <input
                                         type="checkbox"
                                         checked={formData.status === 'ACTIVE'}
-                                        onChange={(e) => setFormData({ 
-                                            ...formData, 
-                                            status: e.target.checked ? 'ACTIVE' : 'INACTIVE' 
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            status: e.target.checked ? 'ACTIVE' : 'INACTIVE'
                                         })}
                                     />
                                     <span className="toggle-slider"></span>
