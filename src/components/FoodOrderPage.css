@@ -164,7 +164,7 @@
 
 .pos-food-card {
     background: white;
-    border: 1px solid var(--pos-border);
+    border: 2px solid var(--pos-red);
     border-radius: 8px;
     padding: 10px;
     display: flex;
@@ -172,18 +172,15 @@
     justify-content: space-between;
     cursor: pointer;
     position: relative;
-    transition: transform 0.1s, box-shadow 0.1s;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    transition: border-color 0.2s ease;
 }
 
 .pos-food-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     border-color: var(--pos-red);
 }
 
 .pos-food-card.has-qty {
-    border: 1px solid var(--pos-red);
+    border: 2px solid var(--pos-red);
     background: var(--pos-red-light);
 }
 
@@ -194,6 +191,7 @@
     position: absolute;
     top: 8px;
     left: 10px;
+    z-index: 2;
 }
 
 .pos-card-badge {
@@ -207,6 +205,7 @@
     border-radius: 10px;
     font-weight: bold;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 3;
 }
 
 .pos-card-content {
@@ -227,8 +226,23 @@
     line-height: 1.2;
 }
 
+.pos-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.pos-card-qty-available {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--pos-text-light);
+}
+
 .pos-card-price {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--pos-red);
 }

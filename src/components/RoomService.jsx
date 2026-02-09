@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './RoomService.css';
 import FoodOrderPage from './FoodOrderPage';
 import OrderManagementModal from './OrderManagementModal';
+import ViewOrderModal from './ViewOrderModal';
 import { orderStorage } from '../utils/orderStorage';
 
 const RoomService = () => {
@@ -93,6 +94,10 @@ const RoomService = () => {
     const [showManagementModal, setShowManagementModal] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
 
+    // View Order Modal State
+    const [showViewOrderModal, setShowViewOrderModal] = useState(false);
+    const [viewOrderRoom, setViewOrderRoom] = useState(null);
+
     // Load active orders on mount
     useEffect(() => {
         const orders = orderStorage.getAllOrders();
@@ -140,12 +145,12 @@ const RoomService = () => {
 
     // Handle add service or view order
     const handleAddService = (room) => {
-        const existingOrder = activeOrders[room.id];
+        const existingOrder = foodOrders.includes(room.id);
 
         if (existingOrder) {
-            // Open Editable Management Modal
-            setSelectedOrder(existingOrder);
-            setShowManagementModal(true);
+            // Open View Order Modal (NOT navigate)
+            setViewOrderRoom(room);
+            setShowViewOrderModal(true);
         } else {
             // Navigate to Food Order embedded in Dashboard
             navigate('/admin/dashboard', {
@@ -162,6 +167,10 @@ const RoomService = () => {
     const handleUpdateOrder = () => {
         const orders = orderStorage.getAllOrders();
         setActiveOrders(orders);
+
+        // Reload food orders
+        const storedFood = JSON.parse(localStorage.getItem('pos_active_orders') || '[]');
+        setFoodOrders(storedFood);
     };
 
     // If order page is open, show it - REMOVED for routing refactor
@@ -296,10 +305,9 @@ const RoomService = () => {
                                     {/* Action Button - Show View Order or Add Service */}
                                     {foodOrders.includes(room.id) ? (
                                         <button
-                                            className="service-btn"
+                                            className="btn-view-order"
                                             onClick={() => handleAddService(room)}
                                             title="View Order"
-                                            style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none' }}
                                         >
                                             🍽️ View Order
                                         </button>
@@ -335,6 +343,17 @@ const RoomService = () => {
                         setSelectedRoom(room);
                         setShowOrderPage(true);
                     }}
+                    onUpdateOrder={handleUpdateOrder}
+                />
+            )}
+
+            {/* View Order Modal */}
+            {showViewOrderModal && (
+                <ViewOrderModal
+                    isOpen={showViewOrderModal}
+                    onClose={() => setShowViewOrderModal(false)}
+                    room={viewOrderRoom}
+                    currentOrder={null}
                     onUpdateOrder={handleUpdateOrder}
                 />
             )}

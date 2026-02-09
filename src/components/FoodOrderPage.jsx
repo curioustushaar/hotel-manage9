@@ -95,100 +95,100 @@ const FoodOrderPage = ({ onClose }) => {
     // Food Items
     const foodItems = {
         1: [ // Starters
-            { id: 101, name: 'Paneer Tikka', price: 500 },
-            { id: 102, name: 'Veg Spring Roll', price: 220 },
-            { id: 103, name: 'Chicken Tikka', price: 320 },
-            { id: 104, name: 'Fish Fingers', price: 350 },
-            { id: 105, name: 'Mushroom Soup', price: 180 },
-            { id: 106, name: 'Tomato Soup', price: 150 },
-            { id: 107, name: 'Corn Soup', price: 160 },
-            { id: 108, name: 'Veg Manchurian', price: 240 },
-            { id: 109, name: 'Chilli Paneer', price: 260 },
-            { id: 110, name: 'Crispy Corn', price: 200 }
+            { id: 101, name: 'Paneer Tikka', price: 500, quantityAvailable: 8 },
+            { id: 102, name: 'Veg Spring Roll', price: 220, quantityAvailable: 5 },
+            { id: 103, name: 'Chicken Tikka', price: 320, quantityAvailable: 6 },
+            { id: 104, name: 'Fish Fingers', price: 350, quantityAvailable: 4 },
+            { id: 105, name: 'Mushroom Soup', price: 180, quantityAvailable: 10 },
+            { id: 106, name: 'Tomato Soup', price: 150, quantityAvailable: 7 },
+            { id: 107, name: 'Corn Soup', price: 160, quantityAvailable: 9 },
+            { id: 108, name: 'Veg Manchurian', price: 240, quantityAvailable: 5 },
+            { id: 109, name: 'Chilli Paneer', price: 260, quantityAvailable: 6 },
+            { id: 110, name: 'Crispy Corn', price: 200, quantityAvailable: 8 }
         ],
         2: [ // Main Course
-            { id: 201, name: 'Paneer Butter Masala', price: 320 },
-            { id: 202, name: 'Dal Makhani', price: 280 },
-            { id: 203, name: 'Chicken Curry', price: 380 },
-            { id: 204, name: 'Mutton Rogan Josh', price: 450 },
-            { id: 205, name: 'Fish Curry', price: 400 },
-            { id: 206, name: 'Veg Kolhapuri', price: 300 },
-            { id: 207, name: 'Kadai Paneer', price: 340 },
-            { id: 208, name: 'Palak Paneer', price: 310 },
-            { id: 209, name: 'Butter Chicken', price: 420 },
-            { id: 210, name: 'Mixed Veg Curry', price: 270 }
+            { id: 201, name: 'Paneer Butter Masala', price: 320, quantityAvailable: 7 },
+            { id: 202, name: 'Dal Makhani', price: 280, quantityAvailable: 10 },
+            { id: 203, name: 'Chicken Curry', price: 380, quantityAvailable: 5 },
+            { id: 204, name: 'Mutton Rogan Josh', price: 450, quantityAvailable: 4 },
+            { id: 205, name: 'Fish Curry', price: 400, quantityAvailable: 6 },
+            { id: 206, name: 'Veg Kolhapuri', price: 300, quantityAvailable: 8 },
+            { id: 207, name: 'Kadai Paneer', price: 340, quantityAvailable: 9 },
+            { id: 208, name: 'Palak Paneer', price: 310, quantityAvailable: 7 },
+            { id: 209, name: 'Butter Chicken', price: 420, quantityAvailable: 5 },
+            { id: 210, name: 'Mixed Veg Curry', price: 270, quantityAvailable: 10 }
         ],
         3: [ // Breads
-            { id: 301, name: 'Butter Naan', price: 60 },
-            { id: 302, name: 'Garlic Naan', price: 70 },
-            { id: 303, name: 'Tandoori Roti', price: 40 },
-            { id: 304, name: 'Butter Roti', price: 50 },
-            { id: 305, name: 'Cheese Naan', price: 90 },
-            { id: 306, name: 'Kulcha', price: 65 },
-            { id: 307, name: 'Paratha', price: 55 },
-            { id: 308, name: 'Lachha Paratha', price: 75 },
-            { id: 309, name: 'Missi Roti', price: 60 },
-            { id: 310, name: 'Roomali Roti', price: 45 }
+            { id: 301, name: 'Butter Naan', price: 60, quantityAvailable: 15 },
+            { id: 302, name: 'Garlic Naan', price: 70, quantityAvailable: 12 },
+            { id: 303, name: 'Tandoori Roti', price: 40, quantityAvailable: 20 },
+            { id: 304, name: 'Butter Roti', price: 50, quantityAvailable: 18 },
+            { id: 305, name: 'Cheese Naan', price: 90, quantityAvailable: 8 },
+            { id: 306, name: 'Kulcha', price: 65, quantityAvailable: 10 },
+            { id: 307, name: 'Paratha', price: 55, quantityAvailable: 14 },
+            { id: 308, name: 'Lachha Paratha', price: 75, quantityAvailable: 9 },
+            { id: 309, name: 'Missi Roti', price: 60, quantityAvailable: 11 },
+            { id: 310, name: 'Roomali Roti', price: 45, quantityAvailable: 16 }
         ],
         4: [ // Rice
-            { id: 401, name: 'Veg Biryani', price: 280 },
-            { id: 402, name: 'Chicken Biryani', price: 350 },
-            { id: 403, name: 'Mutton Biryani', price: 420 },
-            { id: 404, name: 'Jeera Rice', price: 180 },
-            { id: 405, name: 'Veg Pulao', price: 220 },
-            { id: 406, name: 'Steam Rice', price: 150 },
-            { id: 407, name: 'Fried Rice', price: 240 },
-            { id: 408, name: 'Schezwan Rice', price: 260 },
-            { id: 409, name: 'Egg Fried Rice', price: 280 },
-            { id: 410, name: 'Curd Rice', price: 160 }
+            { id: 401, name: 'Veg Biryani', price: 280, quantityAvailable: 6 },
+            { id: 402, name: 'Chicken Biryani', price: 350, quantityAvailable: 5 },
+            { id: 403, name: 'Mutton Biryani', price: 420, quantityAvailable: 4 },
+            { id: 404, name: 'Jeera Rice', price: 180, quantityAvailable: 10 },
+            { id: 405, name: 'Veg Pulao', price: 220, quantityAvailable: 8 },
+            { id: 406, name: 'Steam Rice', price: 150, quantityAvailable: 12 },
+            { id: 407, name: 'Fried Rice', price: 240, quantityAvailable: 7 },
+            { id: 408, name: 'Schezwan Rice', price: 260, quantityAvailable: 6 },
+            { id: 409, name: 'Egg Fried Rice', price: 280, quantityAvailable: 5 },
+            { id: 410, name: 'Curd Rice', price: 160, quantityAvailable: 9 }
         ],
         5: [ // Desserts
-            { id: 501, name: 'Gulab Jamun', price: 120 },
-            { id: 502, name: 'Rasgulla', price: 130 },
-            { id: 503, name: 'Ice Cream', price: 150 },
-            { id: 504, name: 'Brownie', price: 180 },
-            { id: 505, name: 'Pastry', price: 160 },
-            { id: 506, name: 'Kheer', price: 140 },
-            { id: 507, name: 'Kulfi', price: 100 },
-            { id: 508, name: 'Jalebi', price: 110 },
-            { id: 509, name: 'Rasmalai', price: 150 },
-            { id: 510, name: 'Gajar Halwa', price: 130 }
+            { id: 501, name: 'Gulab Jamun', price: 120, quantityAvailable: 15 },
+            { id: 502, name: 'Rasgulla', price: 130, quantityAvailable: 12 },
+            { id: 503, name: 'Ice Cream', price: 150, quantityAvailable: 8 },
+            { id: 504, name: 'Brownie', price: 180, quantityAvailable: 6 },
+            { id: 505, name: 'Pastry', price: 160, quantityAvailable: 7 },
+            { id: 506, name: 'Kheer', price: 140, quantityAvailable: 10 },
+            { id: 507, name: 'Kulfi', price: 100, quantityAvailable: 14 },
+            { id: 508, name: 'Jalebi', price: 110, quantityAvailable: 16 },
+            { id: 509, name: 'Rasmalai', price: 150, quantityAvailable: 9 },
+            { id: 510, name: 'Gajar Halwa', price: 130, quantityAvailable: 11 }
         ],
         6: [ // Beverages
-            { id: 601, name: 'Tea', price: 40 },
-            { id: 602, name: 'Coffee', price: 60 },
-            { id: 603, name: 'Cold Coffee', price: 100 },
-            { id: 604, name: 'Fresh Lime Soda', price: 80 },
-            { id: 605, name: 'Mango Shake', price: 120 },
-            { id: 606, name: 'Banana Shake', price: 110 },
-            { id: 607, name: 'Lassi', price: 90 },
-            { id: 608, name: 'Buttermilk', price: 60 },
-            { id: 609, name: 'Soft Drink', price: 50 },
-            { id: 610, name: 'Mineral Water', price: 30 }
+            { id: 601, name: 'Tea', price: 40, quantityAvailable: 20 },
+            { id: 602, name: 'Coffee', price: 60, quantityAvailable: 18 },
+            { id: 603, name: 'Cold Coffee', price: 100, quantityAvailable: 10 },
+            { id: 604, name: 'Fresh Lime Soda', price: 80, quantityAvailable: 12 },
+            { id: 605, name: 'Mango Shake', price: 120, quantityAvailable: 8 },
+            { id: 606, name: 'Banana Shake', price: 110, quantityAvailable: 9 },
+            { id: 607, name: 'Lassi', price: 90, quantityAvailable: 11 },
+            { id: 608, name: 'Buttermilk', price: 60, quantityAvailable: 15 },
+            { id: 609, name: 'Soft Drink', price: 50, quantityAvailable: 25 },
+            { id: 610, name: 'Mineral Water', price: 30, quantityAvailable: 30 }
         ],
         7: [ // Chinese
-            { id: 701, name: 'Veg Noodles', price: 220 },
-            { id: 702, name: 'Chicken Noodles', price: 280 },
-            { id: 703, name: 'Veg Manchurian', price: 240 },
-            { id: 704, name: 'Chilli Chicken', price: 320 },
-            { id: 705, name: 'Spring Rolls', price: 200 },
-            { id: 706, name: 'Momos', price: 180 },
-            { id: 707, name: 'Hakka Noodles', price: 240 },
-            { id: 708, name: 'Chowmein', price: 230 },
-            { id: 709, name: 'Fried Rice', price: 250 },
-            { id: 710, name: 'Sweet Corn Soup', price: 160 }
+            { id: 701, name: 'Veg Noodles', price: 220, quantityAvailable: 8 },
+            { id: 702, name: 'Chicken Noodles', price: 280, quantityAvailable: 6 },
+            { id: 703, name: 'Veg Manchurian', price: 240, quantityAvailable: 7 },
+            { id: 704, name: 'Chilli Chicken', price: 320, quantityAvailable: 5 },
+            { id: 705, name: 'Spring Rolls', price: 200, quantityAvailable: 10 },
+            { id: 706, name: 'Momos', price: 180, quantityAvailable: 12 },
+            { id: 707, name: 'Hakka Noodles', price: 240, quantityAvailable: 7 },
+            { id: 708, name: 'Chowmein', price: 230, quantityAvailable: 8 },
+            { id: 709, name: 'Fried Rice', price: 250, quantityAvailable: 9 },
+            { id: 710, name: 'Sweet Corn Soup', price: 160, quantityAvailable: 11 }
         ],
         8: [ // Continental
-            { id: 801, name: 'Pasta Alfredo', price: 320 },
-            { id: 802, name: 'Pizza Margherita', price: 380 },
-            { id: 803, name: 'Burger', price: 220 },
-            { id: 804, name: 'Sandwich', price: 180 },
-            { id: 805, name: 'French Fries', price: 140 },
-            { id: 806, name: 'Garlic Bread', price: 160 },
-            { id: 807, name: 'Grilled Chicken', price: 400 },
-            { id: 808, name: 'Fish & Chips', price: 420 },
-            { id: 809, name: 'Caesar Salad', price: 280 },
-            { id: 810, name: 'Club Sandwich', price: 240 }
+            { id: 801, name: 'Pasta Alfredo', price: 320, quantityAvailable: 6 },
+            { id: 802, name: 'Pizza Margherita', price: 380, quantityAvailable: 5 },
+            { id: 803, name: 'Burger', price: 220, quantityAvailable: 10 },
+            { id: 804, name: 'Sandwich', price: 180, quantityAvailable: 12 },
+            { id: 805, name: 'French Fries', price: 140, quantityAvailable: 15 },
+            { id: 806, name: 'Garlic Bread', price: 160, quantityAvailable: 11 },
+            { id: 807, name: 'Grilled Chicken', price: 400, quantityAvailable: 4 },
+            { id: 808, name: 'Fish & Chips', price: 420, quantityAvailable: 5 },
+            { id: 809, name: 'Caesar Salad', price: 280, quantityAvailable: 8 },
+            { id: 810, name: 'Club Sandwich', price: 240, quantityAvailable: 9 }
         ]
     };
 
@@ -269,8 +269,7 @@ const FoodOrderPage = ({ onClose }) => {
         saveOrderToStorage();
         addToast('KOT saved successfully');
         setTimeout(() => {
-            if (source === 'room-service') navigate(-1);
-            else navigate('/admin/dashboard');
+            if (onClose) onClose();
         }, 1000);
     };
 
@@ -282,6 +281,9 @@ const FoodOrderPage = ({ onClose }) => {
     const handleSaveBill = () => {
         saveOrderToStorage();
         addToast('Bill saved successfully');
+        setTimeout(() => {
+            if (onClose) onClose();
+        }, 1000);
     };
 
     const handleSavePrintBill = () => {
@@ -290,12 +292,20 @@ const FoodOrderPage = ({ onClose }) => {
     };
 
     const handleRoomPosting = () => {
+        saveOrderToStorage();
         addToast('Room posted successfully');
+        setTimeout(() => {
+            if (onClose) onClose();
+        }, 1000);
     };
 
     // Modal Action Handlers
     const handleModalPrint = () => {
         setPrintMode(printModal); // Triggers useEffect -> window.print()
+        // Close after print
+        setTimeout(() => {
+            if (onClose) onClose();
+        }, 1500);
     };
 
     const handleModalDownload = () => {
@@ -311,17 +321,28 @@ const FoodOrderPage = ({ onClose }) => {
 
         if (printModal === 'KOT') addToast('KOT saved & downloaded');
         else addToast('Bill saved & downloaded');
+
+        // Close after download
+        setTimeout(() => {
+            if (onClose) onClose();
+        }, 1500);
     };
 
     const handleModalClose = () => {
         const wasKOT = printModal === 'KOT';
+        const wasBILL = printModal === 'BILL';
         setPrintModal(null);
+
         if (wasKOT) {
             addToast('KOT saved successfully');
             setTimeout(() => {
-                if (source === 'room-service') navigate(-1);
-                else navigate('/admin/dashboard');
-            }, 500);
+                if (onClose) onClose();
+            }, 1000);
+        } else if (wasBILL) {
+            addToast('Bill saved successfully');
+            setTimeout(() => {
+                if (onClose) onClose();
+            }, 1000);
         }
     };
 
@@ -387,6 +408,9 @@ const FoodOrderPage = ({ onClose }) => {
                                             )}
                                             <div className="pos-card-content">
                                                 <div className="pos-card-name">{item.name}</div>
+                                            </div>
+                                            <div className="pos-card-footer">
+                                                <div className="pos-card-qty-available">Qty: {item.quantityAvailable}</div>
                                                 <div className="pos-card-price">₹{item.price}</div>
                                             </div>
                                         </div>

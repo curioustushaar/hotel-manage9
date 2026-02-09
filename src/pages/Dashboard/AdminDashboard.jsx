@@ -718,7 +718,13 @@ const AdminDashboard = () => {
             {
                 activeMenu === 'food-order-pos' && (
                     <div style={{ position: 'relative', height: 'calc(100vh - 64px)', width: '100%' }}>
-                        <FoodOrderPage room={{ roomNumber: 'POS', guestName: 'Walk-in / Direct' }} onClose={() => setActiveMenu('reservations')} />
+                        <FoodOrderPage
+                            room={{ roomNumber: 'POS', guestName: 'Walk-in / Direct' }}
+                            onClose={() => {
+                                setActiveMenu('reservations');
+                                setReservationView('roomservice');
+                            }}
+                        />
                     </div>
                 )
             }
