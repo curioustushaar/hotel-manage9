@@ -1,8 +1,8 @@
-import { useState } from 'react';
 import StatusBadge from './StatusBadge';
+import MoreOptionsMenu from './MoreOptionsMenu';
 
-const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGenerateInvoice = () => {}, onSelect, isSelected }) => {
-    const [showMenu, setShowMenu] = useState(false);
+const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGenerateInvoice = () => { }, onSelect, isSelected, onActionSelect }) => {
+
 
     const getPrimaryAction = (status) => {
         switch (status) {
@@ -27,7 +27,6 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
         } else {
             onUpdateStatus(reservation.id, primaryAction.action);
         }
-        setShowMenu(false);
     };
 
     const nights = reservation.nights || 0;
@@ -35,17 +34,17 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
     const checkOutDate = new Date(reservation.checkOutDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
 
     return (
-        <div 
+        <div
             className={`reservation-card-compact ${isSelected ? 'selected' : ''}`}
         >
             {/* Compact Header */}
-            <div 
+            <div
                 className="compact-header clickable-header"
                 onClick={() => onSelect && onSelect(reservation)}
             >
                 <div className="name-section">
-                    <h3 
-                        className="guest-name" 
+                    <h3
+                        className="guest-name"
                     >
                         {reservation.guestName}
                     </h3>
@@ -108,49 +107,18 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
                     </button>
                 )}
                 <div className="menu-container">
-                    <button
-                        className="btn-menu"
-                        onClick={() => setShowMenu(!showMenu)}
-                    >
-                        ⋮
-                    </button>
-                    {showMenu && (
-                        <div className="menu-dropdown">
-                            <button
-                                className="menu-item menu-edit"
-                                onClick={() => {
-                                    onEdit(reservation);
-                                    setShowMenu(false);
-                                }}
-                            >
-                                ✏️ Edit
-                            </button>
-                            {reservation.status !== 'CANCELLED' && (
-                                <button
-                                    className="menu-item menu-cancel"
-                                    onClick={() => {
-                                        if (confirm('Cancel this reservation?')) {
-                                            onUpdateStatus(reservation.id, 'CANCELLED');
-                                            setShowMenu(false);
-                                        }
-                                    }}
-                                >
-                                    ✕ Cancel
-                                </button>
-                            )}
-                            <button
-                                className="menu-item menu-delete"
-                                onClick={() => {
-                                    if (confirm('Delete this reservation?')) {
-                                        onDelete(reservation.id);
-                                        setShowMenu(false);
-                                    }
-                                }}
-                            >
-                                🗑️ Delete
-                            </button>
-                        </div>
-                    )}
+                    <MoreOptionsMenu
+                        booking={reservation}
+                        onActionSelect={onActionSelect}
+                        buttonLabel="⋮"
+                        options={[
+                            { id: 'print-summary', label: '📄 Print Summary', color: '#6366f1', disabled: false },
+                            { id: 'print-invoice', label: '🧾 Print Invoice', color: '#8b5cf6', disabled: false },
+                            { id: 'print-grc', label: '📋 Print GRC', color: '#0ea5e9', disabled: false },
+                            { id: 'print-grc-all', label: '📋 Print GRC All', color: '#06b6d4', disabled: false },
+                            { id: 'send-invoice', label: '📧 Send Invoice', color: '#14b8a6', disabled: !reservation.guestEmail }
+                        ]}
+                    />
                 </div>
             </div>
         </div>
