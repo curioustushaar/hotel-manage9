@@ -13,6 +13,7 @@ const roomRoutes = require('./routes/roomRoutes');
 const qrCodeRoutes = require('./routes/qrCodeRoutes');
 const guestRoutes = require('./routes/guestRoutes');
 const cashierRoutes = require('./routes/cashierRoutes');
+const reservationRoutes = require('./routes/reservationRoutes');
 
 // Initialize express app
 const app = express();
@@ -25,16 +26,16 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 app.use(cors({
-    origin: function(origin, callback) {
+    origin: function (origin, callback) {
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
-        
+
         // Check if origin is allowed or if it's a vercel.app domain in production
-        if (allowedOrigins.indexOf(origin) !== -1 || 
+        if (allowedOrigins.indexOf(origin) !== -1 ||
             (process.env.NODE_ENV === 'production' && origin?.includes('.vercel.app'))) {
             return callback(null, true);
         }
-        
+
         const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
         return callback(new Error(msg), false);
     },
@@ -51,7 +52,7 @@ const connectDB = async () => {
         console.log('Using cached database connection');
         return cachedDb;
     }
-    
+
     try {
         const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bareena-atithi', {
             useNewUrlParser: true,
@@ -78,6 +79,7 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/qr', qrCodeRoutes);
 app.use('/api/guests', guestRoutes);
 app.use('/api/cashier', cashierRoutes);
+app.use('/api/reservations', reservationRoutes);
 
 // Root route
 app.get('/', (req, res) => {

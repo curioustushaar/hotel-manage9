@@ -15,9 +15,17 @@ import MoreOptionsMenu from './MoreOptionsMenu';
 import BookingActionsManager from './BookingActionsManager';
 import HousekeepingView from './HousekeepingView';
 import RoomService from './RoomService';
+import PrintPreviewModal from './PrintPreviewModal';
 
-const ReservationStayManagement = () => {
-    const [view, setView] = useState('dashboard'); // 'dashboard', 'form', 'housekeeping', or 'roomservice'
+const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
+    const [view, setView] = useState(viewMode); // 'dashboard', 'form', 'housekeeping', or 'roomservice'
+
+    // Sync internal view state with prop changes
+    useEffect(() => {
+        if (viewMode) {
+            setView(viewMode);
+        }
+    }, [viewMode]);
     const [activeTab, setActiveTab] = useState('all'); // 'all', 'reserved', 'in-house', 'checked-out'
     const [showEditModal, setShowEditModal] = useState(false); // Edit Reservation Modal state
 
@@ -39,57 +47,115 @@ const ReservationStayManagement = () => {
     const fetchReservationsFromAPI = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`${API_URL}/list`);
-            const data = await response.json();
 
-            if (data.success && data.data) {
-                // Map MongoDB bookings to reservation format
-                const mappedReservations = data.data.map(booking => ({
-                    id: booking._id,
-                    reservationType: 'Confirm',
-                    bookingSource: 'Direct',
-                    businessSource: 'Walk-In',
-                    referenceNumber: booking.bookingId || '',
-                    arrivalFrom: '',
-                    purposeOfVisit: '',
-                    guestId: booking._id,
-                    guestName: booking.guestName,
-                    guestEmail: booking.email || '',
-                    guestPhone: booking.mobileNumber,
-                    checkInDate: new Date(booking.checkInDate).toISOString().split('T')[0],
-                    checkInTime: '14:00',
-                    checkOutDate: new Date(booking.checkOutDate).toISOString().split('T')[0],
-                    checkOutTime: '11:00',
-                    flexibleCheckout: false,
-                    rooms: [{
-                        id: 1,
-                        categoryId: booking.roomType?.toLowerCase().replace(/ /g, '-') || 'deluxe-ac-double',
-                        roomNumber: booking.roomNumber || '',
-                        mealPlan: 'CP',
-                        adultsCount: booking.numberOfGuests || 1,
-                        childrenCount: 0,
-                        ratePerNight: booking.pricePerNight || 0,
-                        discount: 0
-                    }],
-                    nights: booking.numberOfNights || 1,
-                    status: booking.status === 'Upcoming' ? 'RESERVED' :
-                        booking.status === 'Checked-in' ? 'IN_HOUSE' :
-                            booking.status === 'Checked-out' ? 'CHECKED_OUT' : 'RESERVED',
-                    roomCharges: booking.totalAmount || 0,
-                    discount: 0,
-                    tax: 0,
-                    totalAmount: booking.totalAmount || 0,
-                    paidAmount: booking.advancePaid || 0,
-                    balanceDue: booking.remainingAmount || 0,
-                    paymentMode: 'Cash',
-                    taxExempt: false,
-                    createdAt: booking.createdAt || new Date().toISOString(),
-                    updatedAt: booking.updatedAt || new Date().toISOString()
-                }));
+            // Fetch from both endpoints
+            const [bookingsResponse, reservationsResponse] = await Promise.all([
+                fetch(`${API_URL}/list`).catch(() => ({ ok: false })),
+                fetch(`${API_URL_CONFIG}/api/reservations/list`).catch(() => ({ ok: false }))
+            ]);
 
-                console.log('Fetched and mapped reservations:', mappedReservations);
-                setReservations(mappedReservations);
+            let allReservations = [];
+
+            // Process bookings data
+            if (bookingsResponse.ok) {
+                const bookingsData = await bookingsResponse.json();
+                if (bookingsData.success && bookingsData.data) {
+                    const mappedBookings = bookingsData.data.map(booking => ({
+                        id: booking._id,
+                        reservationType: 'Confirm',
+                        bookingSource: 'Direct',
+                        businessSource: 'Walk-In',
+                        referenceNumber: booking.bookingId || '',
+                        arrivalFrom: '',
+                        purposeOfVisit: '',
+                        guestId: booking._id,
+                        guestName: booking.guestName,
+                        guestEmail: booking.email || '',
+                        guestPhone: booking.mobileNumber,
+                        checkInDate: new Date(booking.checkInDate).toISOString().split('T')[0],
+                        checkInTime: '14:00',
+                        checkOutDate: new Date(booking.checkOutDate).toISOString().split('T')[0],
+                        checkOutTime: '11:00',
+                        flexibleCheckout: false,
+                        rooms: [{
+                            id: 1,
+                            categoryId: booking.roomType?.toLowerCase().replace(/ /g, '-') || 'deluxe-ac-double',
+                            roomNumber: booking.roomNumber || '',
+                            mealPlan: 'CP',
+                            adultsCount: booking.numberOfGuests || 1,
+                            childrenCount: 0,
+                            ratePerNight: booking.pricePerNight || 0,
+                            discount: 0
+                        }],
+                        nights: booking.numberOfNights || 1,
+                        status: booking.status === 'Upcoming' ? 'RESERVED' :
+                            booking.status === 'Checked-in' ? 'IN_HOUSE' :
+                                booking.status === 'Checked-out' ? 'CHECKED_OUT' : 'RESERVED',
+                        roomCharges: booking.totalAmount || 0,
+                        discount: 0,
+                        tax: 0,
+                        totalAmount: booking.totalAmount || 0,
+                        paidAmount: booking.advancePaid || 0,
+                        balanceDue: booking.remainingAmount || 0,
+                        paymentMode: 'Cash',
+                        taxExempt: false,
+                        createdAt: booking.createdAt || new Date().toISOString(),
+                        updatedAt: booking.updatedAt || new Date().toISOString()
+                    }));
+                    allReservations = [...allReservations, ...mappedBookings];
+                }
             }
+
+            // Process reservations data (new endpoint)
+            if (reservationsResponse.ok) {
+                const reservationsData = await reservationsResponse.json();
+                if (reservationsData.success && reservationsData.data) {
+                    const mappedReservations = reservationsData.data.map(reservation => ({
+                        id: reservation._id,
+                        reservationType: 'Confirm',
+                        bookingSource: 'Direct',
+                        businessSource: 'Walk-In',
+                        referenceNumber: reservation.referenceId,
+                        arrivalFrom: '',
+                        purposeOfVisit: '',
+                        guestId: reservation._id,
+                        guestName: reservation.guestName,
+                        guestEmail: reservation.email,
+                        guestPhone: reservation.phone,
+                        checkInDate: new Date(reservation.checkInDate).toISOString().split('T')[0],
+                        checkInTime: '14:00',
+                        checkOutDate: new Date(reservation.checkOutDate).toISOString().split('T')[0],
+                        checkOutTime: '11:00',
+                        flexibleCheckout: false,
+                        rooms: [{
+                            id: 1,
+                            categoryId: 'deluxe-ac-double',
+                            roomNumber: '',
+                            mealPlan: 'CP',
+                            adultsCount: 2,
+                            childrenCount: 0,
+                            ratePerNight: Math.round(reservation.amount / reservation.nights),
+                            discount: 0
+                        }],
+                        nights: reservation.nights,
+                        status: reservation.status,
+                        roomCharges: reservation.amount,
+                        discount: 0,
+                        tax: 0,
+                        totalAmount: reservation.amount,
+                        paidAmount: reservation.paid,
+                        balanceDue: reservation.balance,
+                        paymentMode: 'Cash',
+                        taxExempt: false,
+                        createdAt: reservation.createdAt || new Date().toISOString(),
+                        updatedAt: reservation.updatedAt || new Date().toISOString()
+                    }));
+                    allReservations = [...allReservations, ...mappedReservations];
+                }
+            }
+
+            console.log('Fetched and mapped reservations:', allReservations);
+            setReservations(allReservations);
         } catch (error) {
             console.error('Error fetching reservations:', error);
             setReservations([]);
@@ -135,7 +201,7 @@ const ReservationStayManagement = () => {
         try {
             const response = await fetch('http://localhost:5000/api/guests/list');
             const data = await response.json();
-            
+
             if (data.success && data.data) {
                 setGuests(data.data);
             }
@@ -173,6 +239,11 @@ const ReservationStayManagement = () => {
     const [amendDepartureDate, setAmendDepartureDate] = useState('');
     const [amendDepartureTime, setAmendDepartureTime] = useState('');
     const [amendDeparturePeriod, setAmendDeparturePeriod] = useState('AM');
+
+    // Print Modal State
+    const [showPrintModal, setShowPrintModal] = useState(false);
+    const [printType, setPrintType] = useState('');
+    const [printBooking, setPrintBooking] = useState(null);
 
     // Room Categories
     const roomCategories = useMemo(() => ({
@@ -225,28 +296,38 @@ const ReservationStayManagement = () => {
     }, [invoices]);
 
     // Handle More Options action selection
-    const handleMoreOptionsAction = (actionType) => {
-        if (!selectedReservation) return;
+    // Handle More Options action selection
+    const handleMoreOptionsAction = (actionType, bookingSpec) => {
+        const targetReservation = bookingSpec || selectedReservation;
+        if (!targetReservation) return;
+
+        // Check if it's a print or send action
+        if (actionType.startsWith('print-') || actionType === 'send-invoice') {
+            setPrintType(actionType);
+            setPrintBooking(targetReservation);
+            setShowPrintModal(true);
+            return;
+        }
 
         // Convert reservation to booking format for the actions
         const bookingData = {
-            _id: selectedReservation.id,
-            bookingId: selectedReservation.referenceNumber,
-            guestName: selectedReservation.guestName,
-            mobileNumber: selectedReservation.guestPhone,
-            email: selectedReservation.guestEmail,
-            roomNumber: selectedReservation.rooms?.[0]?.roomNumber || '',
-            roomType: selectedReservation.rooms?.[0]?.categoryId?.replace(/-/g, ' ').toUpperCase() || '',
-            checkInDate: selectedReservation.checkInDate,
-            checkOutDate: selectedReservation.checkOutDate,
-            numberOfNights: selectedReservation.nights,
-            numberOfGuests: selectedReservation.rooms?.[0]?.adultsCount || 1,
-            pricePerNight: selectedReservation.rooms?.[0]?.ratePerNight || 0,
-            totalAmount: selectedReservation.totalAmount || 0,
-            advancePaid: selectedReservation.paidAmount || 0,
-            status: selectedReservation.status === 'RESERVED' ? 'Upcoming' :
-                selectedReservation.status === 'IN_HOUSE' ? 'Checked-in' :
-                    selectedReservation.status === 'CHECKED_OUT' ? 'Checked-out' : 'Upcoming',
+            _id: targetReservation.id,
+            bookingId: targetReservation.referenceNumber,
+            guestName: targetReservation.guestName,
+            mobileNumber: targetReservation.guestPhone,
+            email: targetReservation.guestEmail,
+            roomNumber: targetReservation.rooms?.[0]?.roomNumber || '',
+            roomType: targetReservation.rooms?.[0]?.categoryId?.replace(/-/g, ' ').toUpperCase() || '',
+            checkInDate: targetReservation.checkInDate,
+            checkOutDate: targetReservation.checkOutDate,
+            numberOfNights: targetReservation.nights,
+            numberOfGuests: targetReservation.rooms?.[0]?.adultsCount || 1,
+            pricePerNight: targetReservation.rooms?.[0]?.ratePerNight || 0,
+            totalAmount: targetReservation.totalAmount || 0,
+            advancePaid: targetReservation.paidAmount || 0,
+            status: targetReservation.status === 'RESERVED' ? 'Upcoming' :
+                targetReservation.status === 'IN_HOUSE' ? 'Checked-in' :
+                    targetReservation.status === 'CHECKED_OUT' ? 'Checked-out' : 'Upcoming',
             visitors: [],
             transactions: []
         };
@@ -254,6 +335,27 @@ const ReservationStayManagement = () => {
         setCurrentAction(actionType);
         setActionBooking(bookingData);
         setActionDrawerOpen(true);
+    };
+
+    const handlePrintConfirm = (type, booking) => {
+        // Implement actual print logic here
+        // For now, we'll close the modal and simulate the action
+        console.log(`Executing ${type} for booking ${booking.id}`);
+
+        // You can add specific print logic here if needed
+        if (type === 'print-invoice') {
+            // Logic to print invoice
+            // maybe calling onGenerateInvoice?
+            if (booking.status === 'CHECKED_OUT' || booking.status === 'IN_HOUSE') {
+                handleGenerateInvoice(booking);
+            } else {
+                alert("Invoice unavailable for this status");
+            }
+        } else {
+            window.print(); // Simple fallback
+        }
+
+        setShowPrintModal(false);
     };
 
     // Handle action success - refresh reservations
@@ -691,10 +793,10 @@ const ReservationStayManagement = () => {
                                         </button>
                                     </div>
                                 )}
-                                <GuestModal 
-                                    isOpen={showGuestModal} 
-                                    onClose={() => setShowGuestModal(false)} 
-                                    onSelectGuest={setSelectedGuest} 
+                                <GuestModal
+                                    isOpen={showGuestModal}
+                                    onClose={() => setShowGuestModal(false)}
+                                    onSelectGuest={setSelectedGuest}
                                     guests={guests}
                                     onRefreshGuests={fetchGuestsFromAPI}
                                 />
@@ -864,6 +966,7 @@ const ReservationStayManagement = () => {
                                 onEdit={handleEditReservation}
                                 onDelete={handleDeleteReservation}
                                 onGenerateInvoice={handleGenerateInvoice}
+                                onActionSelect={handleMoreOptionsAction}
                                 onSelect={(res) => {
                                     setSelectedReservation(res);
                                     // setShowEditModal(true); // Disabled - modal won't open on card click
@@ -913,10 +1016,22 @@ const ReservationStayManagement = () => {
                                                 status: selectedReservation.status === 'RESERVED' ? 'Upcoming' :
                                                     selectedReservation.status === 'IN_HOUSE' ? 'Checked-in' :
                                                         selectedReservation.status === 'CHECKED_OUT' ? 'Checked-out' : 'Upcoming',
-                                                advancePaid: selectedReservation.paidAmount || 0
+                                                advancePaid: selectedReservation.paidAmount || 0,
+                                                email: selectedReservation.guestEmail
                                             } : {}}
                                             onActionSelect={handleMoreOptionsAction}
                                             buttonLabel="More Options"
+                                            options={[
+                                                { id: 'check-in', label: '✓ Check-In', color: '#9ca3af', disabled: false },
+                                                { id: 'add-payment', label: '💳 Add Payment', color: '#10b981', disabled: false },
+                                                { id: 'amend-stay', label: '📅 Amend Stay', color: '#f59e0b', disabled: false },
+                                                { id: 'room-move', label: '🚪 Room Move', color: '#8b5cf6', disabled: false },
+                                                { id: 'exchange-room', label: '🔄 Exchange Room', color: '#3b82f6', disabled: false },
+                                                { id: 'add-visitor', label: '👤 Add Visitor', color: '#ec4899', disabled: false },
+                                                { id: 'no-show', label: '❌ No-Show', color: '#ef4444', disabled: false },
+                                                { id: 'void', label: '🗑 Void', color: '#6b7280', disabled: false },
+                                                { id: 'cancel', label: '⚠️ Cancel', color: '#dc2626', disabled: false }
+                                            ]}
                                         />
                                     </div>
                                     <button className="tab-option tab-print">Print</button>
@@ -1091,6 +1206,14 @@ const ReservationStayManagement = () => {
                 actionType={currentAction}
                 booking={actionBooking}
                 onSuccess={handleActionSuccess}
+            />
+            {/* Print Preview Modal */}
+            <PrintPreviewModal
+                isOpen={showPrintModal}
+                onClose={() => setShowPrintModal(false)}
+                onPrint={handlePrintConfirm}
+                type={printType}
+                booking={printBooking}
             />
         </div>
     );

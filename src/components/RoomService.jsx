@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './RoomService.css';
 import FoodOrderPage from './FoodOrderPage';
 import OrderManagementModal from './OrderManagementModal';
@@ -86,15 +87,20 @@ const RoomService = () => {
     const [showOrderPage, setShowOrderPage] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState(null);
     const [activeOrders, setActiveOrders] = useState({});
+    const [foodOrders, setFoodOrders] = useState([]);
 
     // Order Management Modal State
     const [showManagementModal, setShowManagementModal] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
 
-    // Load active orders on mount and when returning from order page
+    // Load active orders on mount
     useEffect(() => {
         const orders = orderStorage.getAllOrders();
         setActiveOrders(orders);
+
+        // Load Food Orders
+        const storedFood = JSON.parse(localStorage.getItem('pos_active_orders') || '[]');
+        setFoodOrders(storedFood);
     }, [showOrderPage]);
 
     // Filter rooms based on search and active filter
@@ -130,6 +136,8 @@ const RoomService = () => {
         return { date: dateStr, time: timeStr };
     };
 
+    const navigate = useNavigate();
+
     // Handle add service or view order
     const handleAddService = (room) => {
         const existingOrder = activeOrders[room.id];
@@ -139,9 +147,14 @@ const RoomService = () => {
             setSelectedOrder(existingOrder);
             setShowManagementModal(true);
         } else {
-            // No order exists, open Food Order Page to create new order
-            setSelectedRoom(room);
-            setShowOrderPage(true);
+            // Navigate to Food Order embedded in Dashboard
+            navigate('/admin/dashboard', {
+                state: {
+                    activeMenu: 'food-order-pos',
+                    room: room,
+                    source: 'room-service'
+                }
+            });
         }
     };
 
@@ -151,21 +164,8 @@ const RoomService = () => {
         setActiveOrders(orders);
     };
 
-    // If order page is open, show it
-    if (showOrderPage && selectedRoom) {
-        return (
-            <FoodOrderPage
-                room={selectedRoom}
-                onClose={() => {
-                    setShowOrderPage(false);
-                    setSelectedRoom(null);
-                    // Refresh orders when returning
-                    const orders = orderStorage.getAllOrders();
-                    setActiveOrders(orders);
-                }}
-            />
-        );
-    }
+    // If order page is open, show it - REMOVED for routing refactor
+    // if (showOrderPage && selectedRoom) { ... }
 
     return (
         <div className="room-service-container">
@@ -294,11 +294,12 @@ const RoomService = () => {
                                     </div>
 
                                     {/* Action Button - Show View Order or Add Service */}
-                                    {activeOrders[room.id] ? (
+                                    {foodOrders.includes(room.id) ? (
                                         <button
-                                            className="btn-view-order"
+                                            className="service-btn"
                                             onClick={() => handleAddService(room)}
                                             title="View Order"
+                                            style={{ backgroundColor: '#3b82f6', color: 'white', border: 'none' }}
                                         >
                                             🍽️ View Order
                                         </button>
