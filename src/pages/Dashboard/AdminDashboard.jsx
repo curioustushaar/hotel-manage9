@@ -147,7 +147,7 @@ const AdminDashboard = () => {
         try {
             // Clear old localStorage data
             localStorage.removeItem('hotelRooms');
-            
+
             const response = await fetch(`${API_URL}/api/rooms/list`);
             const data = await response.json();
             if (data.success) {
@@ -286,9 +286,9 @@ const AdminDashboard = () => {
         { id: 'reservations', icon: '🏨', label: 'Reservation & Stay Management' },
         { id: 'guest-meal-service', icon: '🍴', label: 'Guest Meal Service' },
         { id: 'food-menu', icon: '🍽️', label: 'Food Menu' },
-        { 
-            id: 'proper-configuration', 
-            icon: '⚙️', 
+        {
+            id: 'proper-configuration',
+            icon: '⚙️',
             label: 'Proper Configuration',
             hasDropdown: true,
             dropdownItems: [
@@ -409,7 +409,7 @@ const AdminDashboard = () => {
                 });
 
                 const data = await response.json();
-                
+
                 if (!data.success) {
                     setRoomErrorMessage(data.message || 'Failed to add room');
                     return;
@@ -432,7 +432,7 @@ const AdminDashboard = () => {
                 });
 
                 const data = await response.json();
-                
+
                 if (!data.success) {
                     setRoomErrorMessage(data.message || 'Failed to update room');
                     return;
@@ -491,12 +491,12 @@ const AdminDashboard = () => {
                                 >
                                     <span className="nav-icon">{item.icon}</span>
                                     <span className="nav-label">{item.label}</span>
-                                    <svg 
-                                        className={`dropdown-arrow ${openConfigDropdown ? 'rotated' : ''}`} 
-                                        width="16" 
-                                        height="16" 
-                                        viewBox="0 0 24 24" 
-                                        fill="none" 
+                                    <svg
+                                        className={`dropdown-arrow ${openConfigDropdown ? 'rotated' : ''}`}
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
                                         xmlns="http://www.w3.org/2000/svg"
                                     >
                                         <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -544,25 +544,25 @@ const AdminDashboard = () => {
                             <span></span>
                             <span></span>
                         </button>
-                        <h2 className="top-bar-logo">Bareena</h2>
+
                     </div>
                     <div className="top-bar-right">
                         <button className="top-icon-btn" onClick={handleComingSoon} title="Search">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </button>
                         <button className="top-icon-btn" onClick={handleComingSoon} title="Bookmarks">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </button>
                         <button className="top-icon-btn" onClick={handleComingSoon} title="Shopping">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </button>
                         <div className="profile-dropdown-wrapper">
@@ -814,8 +814,8 @@ const AdminDashboard = () => {
                                                     <td>{room.roomNumber}</td>
                                                     <td>
                                                         <div className="qr-action-buttons">
-                                                            <button 
-                                                                className="qr-action-btn qr-view-btn" 
+                                                            <button
+                                                                className="qr-action-btn qr-view-btn"
                                                                 title="Generate/View QR"
                                                                 onClick={() => handleViewQR(room)}
                                                                 disabled={qrLoading}
@@ -1171,8 +1171,8 @@ const AdminDashboard = () => {
                                         <h2>Room QR Code</h2>
                                         <p className="qr-room-info">Room {qrModalData.room.roomNumber} - {qrModalData.room.roomType}</p>
                                     </div>
-                                    <button 
-                                        className="close-modal-btn" 
+                                    <button
+                                        className="close-modal-btn"
                                         onClick={() => setShowQRModal(false)}
                                     >
                                         ×
@@ -1184,7 +1184,7 @@ const AdminDashboard = () => {
                                         <div className="qr-code-container">
                                             <img src={qrModalData.qrCode} alt="Room QR Code" className="qr-code-image" />
                                         </div>
-                                        
+
                                         <div className="qr-info-section">
                                             <div className="qr-info-card">
                                                 <h4>Scan Instructions</h4>
@@ -1213,7 +1213,7 @@ const AdminDashboard = () => {
                                     </div>
 
                                     <div className="qr-action-section">
-                                        <button 
+                                        <button
                                             className="qr-download-btn"
                                             onClick={handleDownloadQR}
                                         >
@@ -1224,8 +1224,8 @@ const AdminDashboard = () => {
                                             </svg>
                                             Download QR
                                         </button>
-                                        
-                                        <button 
+
+                                        <button
                                             className="qr-print-btn"
                                             onClick={() => window.print()}
                                         >
@@ -1237,7 +1237,7 @@ const AdminDashboard = () => {
                                             Print
                                         </button>
 
-                                        <button 
+                                        <button
                                             className="qr-regenerate-btn"
                                             onClick={() => handleViewQR(qrModalData.room)}
                                             disabled={qrLoading}
