@@ -93,19 +93,20 @@ const TaxConfiguration = () => {
 
     const validateForm = () => {
         const errors = {};
-        
+
         if (!formData.name.trim()) {
             errors.name = 'Tax name is required';
         }
-        
+
         if (!formData.value || formData.value <= 0) {
             errors.value = 'Please enter a valid tax value';
         }
-        
+
         if (formData.type === 'PERCENTAGE' && formData.value > 100) {
             errors.value = 'Percentage cannot exceed 100%';
         }
-        
+
+
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
     };
@@ -116,7 +117,7 @@ const TaxConfiguration = () => {
         }
 
         let updatedTaxes;
-        
+
         if (isEditMode && selectedTax) {
             // Update existing tax
             updatedTaxes = taxes.map(tax =>
@@ -169,7 +170,7 @@ const TaxConfiguration = () => {
         setTaxes(updatedTaxes);
         saveToLocalStorage(updatedTaxes);
         setOpenMenuId(null);
-        
+
         // If the deleted tax was selected, reset form
         if (selectedTax && selectedTax.id === id) {
             handleResetForm();
@@ -231,7 +232,7 @@ const TaxConfiguration = () => {
                             <tbody>
                                 {taxes.length > 0 ? (
                                     taxes.map(tax => (
-                                        <tr 
+                                        <tr
                                             key={tax.id}
                                             className={selectedTax?.id === tax.id ? 'selected-row' : ''}
                                         >
@@ -247,8 +248,8 @@ const TaxConfiguration = () => {
                                             </td>
                                             <td>
                                                 <span className="tax-value">
-                                                    {tax.type === 'PERCENTAGE' 
-                                                        ? `${tax.value}%` 
+                                                    {tax.type === 'PERCENTAGE'
+                                                        ? `${tax.value}%`
                                                         : `₹${tax.value}`}
                                                 </span>
                                             </td>

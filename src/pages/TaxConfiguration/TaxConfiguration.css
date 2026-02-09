@@ -253,6 +253,7 @@
         opacity: 0;
         transform: translateY(-8px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -435,6 +436,42 @@
     right: 12px;
 }
 
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.checkbox-label:hover {
+    background: #f9fafb;
+    border-color: #3b82f6;
+}
+
+.checkbox-label input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #3b82f6;
+}
+
+.checkbox-label span {
+    font-size: 13px;
+    color: #dc2626;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
 .toggle-label {
     display: flex;
     justify-content: space-between;
@@ -484,11 +521,11 @@
     border-radius: 50%;
 }
 
-.toggle-switch input:checked + .toggle-slider {
+.toggle-switch input:checked+.toggle-slider {
     background-color: #10b981;
 }
 
-.toggle-switch input:checked + .toggle-slider:before {
+.toggle-switch input:checked+.toggle-slider:before {
     transform: translateX(20px);
 }
 
@@ -544,7 +581,7 @@
     .tax-main-layout {
         grid-template-columns: 1fr;
     }
-    
+
     .tax-right-section {
         position: static;
     }
@@ -554,15 +591,15 @@
     .tax-configuration-page {
         padding: 16px;
     }
-    
+
     .tax-table-container {
         overflow-x: scroll;
     }
-    
+
     .tax-table {
         min-width: 900px;
     }
-    
+
     .form-actions {
         flex-direction: column;
     }

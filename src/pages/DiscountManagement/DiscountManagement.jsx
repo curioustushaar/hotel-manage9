@@ -93,23 +93,23 @@ const DiscountManagement = () => {
 
     const validateForm = () => {
         const errors = {};
-        
+
         if (!formData.name.trim()) {
             errors.name = 'Discount name is required';
         }
-        
+
         if (!formData.value || formData.value <= 0) {
             errors.value = 'Please enter a valid discount value';
         }
-        
+
         if (formData.type === 'PERCENTAGE' && formData.value > 100) {
             errors.value = 'Percentage cannot exceed 100%';
         }
-        
+
         if (formData.appliesTo.length === 0) {
             errors.appliesTo = 'Please select at least one category';
         }
-        
+
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
     };
@@ -120,7 +120,7 @@ const DiscountManagement = () => {
         }
 
         let updatedDiscounts;
-        
+
         if (isEditMode && selectedDiscount) {
             // Update existing discount
             updatedDiscounts = discounts.map(discount =>
@@ -172,7 +172,7 @@ const DiscountManagement = () => {
         setDiscounts(updatedDiscounts);
         saveToLocalStorage(updatedDiscounts);
         setOpenMenuId(null);
-        
+
         // If the deleted discount was selected, reset form
         if (selectedDiscount && selectedDiscount.id === id) {
             handleResetForm();
@@ -237,7 +237,7 @@ const DiscountManagement = () => {
                             <tbody>
                                 {discounts.length > 0 ? (
                                     discounts.map(discount => (
-                                        <tr 
+                                        <tr
                                             key={discount.id}
                                             className={selectedDiscount?.id === discount.id ? 'selected-row' : ''}
                                         >
@@ -256,8 +256,8 @@ const DiscountManagement = () => {
                                             </td>
                                             <td>
                                                 <span className="discount-value">
-                                                    {discount.type === 'PERCENTAGE' 
-                                                        ? `${discount.value}%` 
+                                                    {discount.type === 'PERCENTAGE'
+                                                        ? `${discount.value}%`
                                                         : `₹${discount.value}`}
                                                 </span>
                                             </td>
@@ -383,15 +383,18 @@ const DiscountManagement = () => {
                         {/* Applies To */}
                         <div className="form-group">
                             <label>Applies To <span className="required">*</span></label>
-                            <div className="checkbox-group">
+                            <div className="checkbox-simple-group">
                                 {applyToOptions.map(option => (
-                                    <label key={option.id} className="checkbox-label">
+                                    <label key={option.id} className="checkbox-simple-item">
                                         <input
                                             type="checkbox"
                                             checked={formData.appliesTo.includes(option.id)}
                                             onChange={() => handleCheckboxChange(option.id)}
                                         />
-                                        <span>{option.label}</span>
+                                        <div className="checkbox-simple-content">
+                                            <span className="checkbox-simple-label">{option.label}</span>
+                                            <span className="checkbox-simple-desc">Apply discount to {option.label.toLowerCase()}</span>
+                                        </div>
                                     </label>
                                 ))}
                             </div>
