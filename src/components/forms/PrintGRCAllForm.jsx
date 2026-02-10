@@ -7,6 +7,11 @@ const PrintGRCAllForm = ({ booking, onSubmit, onCancel }) => {
     const [selectedBookings, setSelectedBookings] = useState([]);
     const [loading, setLoading] = useState(false);
     const [filter, setFilter] = useState('all'); // 'all', 'today', 'week'
+    const [printType, setPrintType] = useState('Dot Matrix');
+
+    const printOptions = [
+        'Dot Matrix', 'Thermal', 'A4', 'A5', '2 inch', '3 inch'
+    ];
 
     useEffect(() => {
         fetchBookings();
@@ -17,23 +22,23 @@ const PrintGRCAllForm = ({ booking, onSubmit, onCancel }) => {
         try {
             const response = await fetch(`${API_URL}/api/bookings/list`);
             const data = await response.json();
-            
+
             if (data.success) {
                 let filtered = data.data;
-                
+
                 if (filter === 'today') {
                     const today = new Date().toDateString();
-                    filtered = filtered.filter(b => 
+                    filtered = filtered.filter(b =>
                         new Date(b.checkInDate).toDateString() === today
                     );
                 } else if (filter === 'week') {
                     const weekAgo = new Date();
                     weekAgo.setDate(weekAgo.getDate() - 7);
-                    filtered = filtered.filter(b => 
+                    filtered = filtered.filter(b =>
                         new Date(b.checkInDate) >= weekAgo
                     );
                 }
-                
+
                 setBookings(filtered);
                 // Select all by default
                 setSelectedBookings(filtered.map(b => b._id));
@@ -53,6 +58,236 @@ const PrintGRCAllForm = ({ booking, onSubmit, onCancel }) => {
         }
     };
 
+    const getPrintStyle = (type) => {
+        const reset = `
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { color: #000; line-height: 1.3; }
+        `;
+
+        if (type === 'A4' || type === 'A5') {
+            return `
+                ${reset}
+                body { 
+                    font-family: Arial, sans-serif; 
+                    padding: ${type === 'A5' ? '20px' : '40px'}; 
+                    font-size: ${type === 'A5' ? '11px' : '13px'};
+                }
+                .grc-card {
+                    padding: 20px;
+                    border: 1px solid #000;
+                    margin-bottom: 20px;
+                    page-break-after: always;
+                    height: 95vh;
+                }
+                .grc-card:last-child { page-break-after: auto; }
+                .header {
+                    text-align: center;
+                    border-bottom: 2px solid #000;
+                    padding-bottom: 10px;
+                    margin-bottom: 20px;
+                }
+                .hotel-name {
+                    font-size: 22px;
+                    font-weight: bold;
+                    margin-bottom: 5px;
+                }
+                .document-title {
+                    text-align: center;
+                    background: #000;
+                    color: #fff;
+                    padding: 8px;
+                    font-weight: bold;
+                    margin: 20px 0;
+                    text-transform: uppercase;
+                    font-size: 14px;
+                }
+                .info-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 15px 0;
+                }
+                .info-table td {
+                    padding: 8px;
+                    border: 1px solid #999;
+                }
+                .info-table .label {
+                    font-weight: bold;
+                    width: 35%;
+                    background: #f0f0f0;
+                }
+                .additional-info p { margin: 5px 0; }
+                .declaration {
+                    margin: 20px 0;
+                    padding: 10px;
+                    border: 1px solid #ccc;
+                    font-size: 11px;
+                    text-align: justify;
+                }
+                .signature-area {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-top: 40px;
+                }
+                .sign-line {
+                    border-top: 1px solid #000;
+                    padding-top: 5px;
+                    text-align: center;
+                    width: 40%;
+                }
+                .footer-note {
+                    text-align: center;
+                    margin-top: 20px;
+                    font-size: 10px;
+                    color: #666;
+                }
+                @media print {
+                    @page { size: ${type}; margin: 10mm; }
+                }
+            `;
+        }
+
+        if (type === 'Dot Matrix') {
+            return `
+                ${reset}
+                body { 
+                    font-family: 'Courier New', Courier, monospace; 
+                    font-size: 13px; 
+                    padding: 15px;
+                }
+                .grc-card {
+                    padding: 10px;
+                    border-bottom: 2px dashed #000;
+                    margin-bottom: 30px;
+                    page-break-after: always;
+                }
+                .header {
+                    text-align: center;
+                    border-bottom: 1px dashed #000;
+                    padding-bottom: 10px;
+                    margin-bottom: 15px;
+                }
+                .hotel-name {
+                    font-size: 18px;
+                    font-weight: bold;
+                    text-transform: uppercase;
+                }
+                .document-title {
+                    text-align: center;
+                    border: 1px dashed #000;
+                    padding: 5px;
+                    font-weight: bold;
+                    margin: 15px 0;
+                    text-transform: uppercase;
+                }
+                .info-table {
+                    width: 100%;
+                    margin: 10px 0;
+                }
+                .info-table td {
+                    padding: 4px 0;
+                    border-bottom: 1px dotted #000;
+                }
+                .info-table .label {
+                    font-weight: bold;
+                    width: 40%;
+                }
+                .declaration {
+                    margin: 15px 0;
+                    padding: 5px;
+                    border: 1px dashed #000;
+                    font-size: 11px;
+                }
+                .signature-area { margin-top: 30px; }
+                .sign-line {
+                    border-top: 1px dashed #000;
+                    margin-top: 20px;
+                    padding-top: 5px;
+                    text-align: center;
+                }
+                @media print {
+                    @page { size: auto; margin: 5mm; }
+                }
+            `;
+        }
+
+        // Thermal / Small Format
+        const isSmall = type === '2 inch';
+        const width = isSmall ? '56mm' : '78mm';
+        const fontSize = isSmall ? '10px' : '11px';
+
+        return `
+            ${reset}
+            body { 
+                font-family: 'Roboto Mono', monospace; 
+                font-size: ${fontSize};
+                width: ${width};
+                background: #fff;
+            }
+            .grc-card { 
+                padding: 0; 
+                border-bottom: 2px dashed #000; 
+                padding-bottom: 20px;
+                margin-bottom: 20px;
+            }
+            .header { 
+                text-align: center; 
+                margin-bottom: 10px; 
+                border-bottom: 1px dashed #000;
+                padding-bottom: 5px;
+            }
+            .hotel-name { 
+                font-size: ${isSmall ? '14px' : '16px'}; 
+                font-weight: bold; 
+                margin-bottom: 5px;
+            }
+            .document-title { 
+                text-align: center; 
+                font-weight: bold; 
+                margin: 10px 0; 
+                border: 1px solid #000; 
+                padding: 4px;
+                font-size: ${fontSize};
+            }
+            .info-table { 
+                width: 100%; 
+                margin: 10px 0; 
+                border-collapse: collapse; 
+            }
+            .info-table td { 
+                padding: 2px 0; 
+                border-bottom: 1px dotted #ccc;
+                display: ${isSmall ? 'block' : 'table-cell'};
+            }
+            .info-table .label { 
+                font-weight: bold; 
+                width: ${isSmall ? '100%' : '40%'}; 
+            }
+            .declaration { 
+                margin: 10px 0; 
+                font-size: ${isSmall ? '9px' : '10px'}; 
+                text-align: justify;
+                border-top: 1px dashed #000;
+                padding-top: 5px;
+            }
+            .signature-area { margin-top: 20px; }
+            .sign-line { 
+                border-top: 1px solid #000; 
+                margin-top: 20px; 
+                padding-top: 5px; 
+                text-align: center; 
+            }
+            .footer-note { 
+                text-align: center; 
+                margin-top: 10px; 
+                font-size: 9px; 
+                color: #666; 
+            }
+            @media print {
+                @page { size: ${width} auto; margin: 0; }
+            }
+        `;
+    };
+
     const handleSelectBooking = (bookingId) => {
         if (selectedBookings.includes(bookingId)) {
             setSelectedBookings(selectedBookings.filter(id => id !== bookingId));
@@ -63,25 +298,26 @@ const PrintGRCAllForm = ({ booking, onSubmit, onCancel }) => {
 
     const handlePrintAll = () => {
         const selectedBookingData = bookings.filter(b => selectedBookings.includes(b._id));
-        
+
         if (selectedBookingData.length === 0) {
             alert('Please select at least one booking');
             return;
         }
 
         const printContent = generateAllGRC(selectedBookingData);
-        
+
         const printWindow = window.open('', '', 'width=900,height=700');
         printWindow.document.write(printContent);
         printWindow.document.close();
         printWindow.focus();
         printWindow.print();
         printWindow.close();
-        
-        onSubmit({ 
-            action: 'print-grc-all', 
+
+        onSubmit({
+            action: 'print-grc-all',
             count: selectedBookingData.length,
-            timestamp: new Date().toISOString() 
+            timestamp: new Date().toISOString(),
+            type: printType
         });
     };
 
@@ -173,84 +409,7 @@ const PrintGRCAllForm = ({ booking, onSubmit, onCancel }) => {
             <head>
                 <title>GRC - All Guests</title>
                 <style>
-                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body { 
-                        font-family: Arial, sans-serif; 
-                        color: #000;
-                        font-size: 13px;
-                    }
-                    .grc-card {
-                        padding: 20px;
-                        border: 2px solid #000;
-                        margin-bottom: 20px;
-                    }
-                    .header {
-                        text-align: center;
-                        border-bottom: 2px solid #000;
-                        padding-bottom: 10px;
-                        margin-bottom: 15px;
-                    }
-                    .hotel-name {
-                        font-size: 20px;
-                        font-weight: bold;
-                    }
-                    .document-title {
-                        text-align: center;
-                        background: #000;
-                        color: #fff;
-                        padding: 6px;
-                        font-weight: bold;
-                        margin: 10px 0;
-                    }
-                    .info-table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin: 15px 0;
-                    }
-                    .info-table td {
-                        padding: 6px;
-                        border: 1px solid #ccc;
-                    }
-                    .info-table .label {
-                        font-weight: bold;
-                        width: 35%;
-                        background: #f5f5f5;
-                    }
-                    .additional-info {
-                        margin: 15px 0;
-                        padding: 10px;
-                        border: 1px solid #ccc;
-                    }
-                    .additional-info p {
-                        margin: 5px 0;
-                    }
-                    .declaration {
-                        margin: 15px 0;
-                        padding: 8px;
-                        border: 1px solid #000;
-                        font-size: 11px;
-                    }
-                    .signature-area {
-                        display: flex;
-                        justify-content: space-between;
-                        margin-top: 20px;
-                    }
-                    .sign-line {
-                        border-top: 1px solid #000;
-                        margin-top: 30px;
-                        padding-top: 3px;
-                        text-align: center;
-                    }
-                    .footer-note {
-                        text-align: center;
-                        margin-top: 10px;
-                        font-size: 10px;
-                        color: #666;
-                    }
-                    @media print {
-                        @page { size: A4; margin: 10mm; }
-                        body { padding: 0; }
-                    }
+                    ${getPrintStyle(printType)}
                 </style>
             </head>
             <body>
@@ -261,23 +420,16 @@ const PrintGRCAllForm = ({ booking, onSubmit, onCancel }) => {
     };
 
     return (
-        <div className="form-container">
-            <div className="form-section">
-                <h3 className="section-title">📋 Print Multiple GRC Forms</h3>
-                <p className="form-description">
-                    Select multiple bookings to print their Guest Registration Cards in batch.
-                </p>
-
-                <div className="filter-section" style={{ marginTop: '20px', marginBottom: '15px' }}>
-                    <label style={{ fontWeight: 'bold', marginRight: '10px' }}>Filter:</label>
-                    <select 
-                        value={filter} 
+        <div className="flex flex-col h-full bg-white">
+            {/* Main Content */}
+            <div className="flex-1 overflow-hidden flex flex-col p-8 space-y-6">
+                {/* Filter Section */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <label className="block text-sm font-medium text-gray-500 mb-2">Filter</label>
+                    <select
+                        value={filter}
                         onChange={(e) => setFilter(e.target.value)}
-                        style={{
-                            padding: '8px',
-                            borderRadius: '6px',
-                            border: '1px solid #d1d5db'
-                        }}
+                        className="w-full px-4 py-2.5 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white transition-all"
                     >
                         <option value="all">All Bookings</option>
                         <option value="today">Today's Check-ins</option>
@@ -285,95 +437,87 @@ const PrintGRCAllForm = ({ booking, onSubmit, onCancel }) => {
                     </select>
                 </div>
 
+                {/* Print Type Dropdown */}
+                <div>
+                    <label className="block text-base font-semibold text-gray-700 mb-3">Print Type</label>
+                    <select
+                        value={printType}
+                        onChange={(e) => setPrintType(e.target.value)}
+                        className="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white"
+                    >
+                        {printOptions.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                    </select>
+                </div>
+
                 {loading ? (
-                    <div style={{ textAlign: 'center', padding: '20px' }}>Loading bookings...</div>
+                    <div className="text-center py-12 text-gray-500 text-base">Loading bookings...</div>
                 ) : (
                     <>
-                        <div style={{ 
-                            marginBottom: '15px',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center'
-                        }}>
-                            <button 
+                        {/* Selection Header */}
+                        <div className="flex justify-between items-center py-2">
+                            <button
                                 type="button"
                                 onClick={handleSelectAll}
-                                style={{
-                                    padding: '8px 16px',
-                                    background: '#f3f4f6',
-                                    border: '1px solid #d1d5db',
-                                    borderRadius: '6px',
-                                    cursor: 'pointer'
-                                }}
+                                className="text-sm px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors border border-gray-300 font-medium"
                             >
-                                {selectedBookings.length === bookings.length ? '☑️ Deselect All' : '☐ Select All'}
+                                {selectedBookings.length === bookings.length ? 'Unselect All' : 'Select All'}
                             </button>
-                            <span style={{ color: '#6b7280' }}>
-                                {selectedBookings.length} of {bookings.length} selected
+                            <span className="text-base text-gray-700 font-semibold">
+                                {selectedBookings.length} selected
                             </span>
                         </div>
 
-                        <div style={{
-                            maxHeight: '400px',
-                            overflowY: 'auto',
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '6px'
-                        }}>
+                        {/* Booking List */}
+                        <div className="flex-1 overflow-y-auto border-2 border-gray-200 rounded-lg bg-white">
                             {bookings.length === 0 ? (
-                                <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                                <div className="p-12 text-center text-gray-500 text-base">
                                     No bookings found
                                 </div>
                             ) : (
-                                bookings.map(b => (
-                                    <div 
-                                        key={b._id}
-                                        onClick={() => handleSelectBooking(b._id)}
-                                        style={{
-                                            padding: '12px',
-                                            borderBottom: '1px solid #f3f4f6',
-                                            cursor: 'pointer',
-                                            background: selectedBookings.includes(b._id) ? '#fef2f2' : '#fff',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '12px'
-                                        }}
-                                    >
-                                        <input 
-                                            type="checkbox"
-                                            checked={selectedBookings.includes(b._id)}
-                                            onChange={() => handleSelectBooking(b._id)}
-                                            style={{ width: '18px', height: '18px' }}
-                                        />
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontWeight: 'bold' }}>{b.guestName}</div>
-                                            <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                                                {b.bookingId} | Room: {b.roomNumber || 'TBA'} | 
-                                                Check-in: {new Date(b.checkInDate).toLocaleDateString('en-IN')}
+                                <div className="divide-y divide-gray-100">
+                                    {bookings.map(b => (
+                                        <div
+                                            key={b._id}
+                                            onClick={() => handleSelectBooking(b._id)}
+                                            className={`p-4 cursor-pointer flex items-center gap-4 transition-colors ${selectedBookings.includes(b._id) ? 'bg-green-50 border-l-4 border-green-500' : 'hover:bg-gray-50'
+                                                }`}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedBookings.includes(b._id)}
+                                                onChange={() => handleSelectBooking(b._id)}
+                                                className="w-5 h-5 text-green-600 rounded border-gray-300 focus:ring-green-500"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-semibold text-gray-900 text-base truncate">{b.guestName}</div>
+                                                <div className="text-sm text-gray-500 truncate">
+                                                    {b.bookingId} • Room: {b.roomNumber || 'TBA'}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))
+                                    ))}
+                                </div>
                             )}
                         </div>
                     </>
                 )}
             </div>
 
-            <div className="form-actions">
-                <button 
-                    type="button" 
-                    className="btn-secondary"
-                    onClick={onCancel}
-                >
-                    Cancel
-                </button>
-                <button 
+            {/* Footer Action - Centered Green Print Button */}
+            <div className="p-6 border-t bg-gray-50">
+                <button
                     type="button"
-                    className="btn-primary"
                     onClick={handlePrintAll}
                     disabled={selectedBookings.length === 0}
+                    className={`w-full py-3.5 text-base font-semibold rounded-lg shadow-md transition-all duration-200 flex items-center justify-center gap-2 ${selectedBookings.length === 0
+                        ? 'bg-gray-400 cursor-not-allowed text-white'
+                        : 'bg-green-600 hover:bg-green-700 hover:shadow-lg text-white active:scale-98'
+                        }`}
                 >
-                    🖨️ Print {selectedBookings.length} GRC Forms
+                    <span className="text-xl">🖨️</span>
+                    <span>Print {selectedBookings.length} GRC Form{selectedBookings.length !== 1 ? 's' : ''}</span>
                 </button>
             </div>
         </div>

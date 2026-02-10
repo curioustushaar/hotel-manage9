@@ -330,7 +330,10 @@ const AdminDashboard = () => {
 
     const handleMenuClick = (menuId) => {
         // Handle Sub-menu routing for Reservation Dropdown
-        if (menuId === 'new-reservation') {
+        if (menuId === 'reservations-dashboard') {
+            setActiveMenu('reservations');
+            setReservationView('dashboard');
+        } else if (menuId === 'new-reservation') {
             setActiveMenu('reservations');
             setReservationView('form');
         } else if (menuId === 'housekeeping') {

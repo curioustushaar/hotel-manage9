@@ -2,15 +2,19 @@
 .top-bar {
     background: #ffffff;
     border-bottom: 1px solid #e5e7eb;
-    padding: 15px 30px;
+    padding: 0 30px;
+    /* Increased padding for alignment */
     display: flex;
     justify-content: space-between;
     align-items: center;
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    width: 100%;
     z-index: 50;
-    height: 64px;
-    /* Explicit height helps with layout calculations */
+    height: 60px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    /* Lighter shadow */
 }
 
 .top-bar-left {
@@ -36,108 +40,122 @@
 }
 
 .hamburger-menu span {
-    width: 24px;
-    height: 3px;
+    width: 20px;
+    height: 2px;
     background: #1f2937;
+    /* Dark color for hamburger */
     border-radius: 2px;
     transition: all 0.3s ease;
 }
 
 .top-bar-logo {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 700;
     color: #1f2937;
+    /* Dark text */
     margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .top-bar-right {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 20px;
+    /* Consistent spacing */
 }
 
 .top-icon-btn {
     background: transparent;
     border: none;
     cursor: pointer;
-    padding: 8px;
+    padding: 0;
+    /* Removing padding to be tight like Image/Instruction */
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-    color: #6b7280;
+    transition: all 0.2s ease;
+    color: #4b5563;
+    /* Darker gray default */
+    opacity: 1;
 }
 
 .top-icon-btn:hover {
-    background: #f3f4f6;
-    color: #ef4444;
+    color: #111827;
+    /* Near black on hover */
+    background: transparent;
 }
 
 .top-icon-btn svg {
     width: 22px;
     height: 22px;
+    stroke-width: 2;
+    /* Bolder icons */
 }
 
 .profile-dropdown-wrapper {
     position: relative;
+    margin-left: 10px;
+    /* Push a bit to right corner */
 }
 
-.profile-avatar-btn {
+.profile-trigger {
     display: flex;
     align-items: center;
-    gap: 10px;
-    background: transparent;
-    border: none;
+    gap: 6px;
     cursor: pointer;
-    padding: 5px;
-    border-radius: 50px;
-    transition: all 0.3s ease;
 }
 
-.profile-avatar-btn:hover {
-    background: #f3f4f6;
-}
-
-.avatar-img {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    border: 2px solid #ef4444;
-    object-fit: cover;
-}
-
-.avatar-initials {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    color: #ffffff;
+.profile-avatar {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    background: #ef4444;
+    /* Bright Red */
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    color: white;
     font-weight: 700;
-    border: 2px solid #ef4444;
+    font-size: 15px;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+    transition: all 0.2s ease;
 }
 
-.dropdown-arrow {
+.profile-trigger:hover .profile-avatar {
+    background: #dc2626;
+    transform: scale(1.05);
+}
+
+.profile-caret {
+    width: 20px;
+    height: 20px;
     color: #6b7280;
-    font-size: 12px;
-    transition: transform 0.3s ease;
+    /* Gray-500 */
+    transition: color 0.2s ease;
 }
 
+.profile-trigger:hover .profile-caret {
+    color: #1f2937;
+    /* Darker on hover */
+}
+
+/* Dropdown Styles */
 .profile-dropdown {
     position: absolute;
-    top: 60px;
+    top: 50px;
     right: 0;
     background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-    min-width: 200px;
-    padding: 8px;
+    border-radius: 8px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+    min-width: 180px;
+    padding: 5px;
     z-index: 1000;
-    animation: dropdownFade 0.3s ease;
+    border: 1px solid #e5e7eb;
+    animation: dropdownFade 0.2s ease;
 }
 
 @keyframes dropdownFade {
@@ -157,14 +175,15 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 15px;
+    padding: 10px 15px;
     background: transparent;
     border: none;
     cursor: pointer;
     font-size: 14px;
     color: #374151;
-    border-radius: 8px;
-    transition: all 0.3s ease;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    text-align: left;
 }
 
 .dropdown-item:hover {
@@ -177,12 +196,4 @@
 
 .dropdown-item.logout:hover {
     background: #fef2f2;
-}
-
-.dropdown-icon {
-    font-size: 18px;
-    width: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }

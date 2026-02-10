@@ -7,11 +7,11 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
     const getPrimaryAction = (status) => {
         switch (status) {
             case 'RESERVED':
-                return { label: 'CHECK-IN', action: 'IN_HOUSE', type: 'checkIn' };
+                return { label: 'Check In', action: 'IN_HOUSE', type: 'checkIn', icon: '🏨' };
             case 'IN_HOUSE':
-                return { label: 'CHECK-OUT', action: 'CHECKED_OUT', type: 'checkOut' };
+                return { label: 'Check Out', action: 'CHECKED_OUT', type: 'checkOut', icon: '👋' };
             case 'CHECKED_OUT':
-                return { label: 'VIEW INVOICE', action: 'viewInvoice', type: 'invoice' };
+                return { label: 'View Invoice', action: 'viewInvoice', type: 'invoice', icon: '🧾' };
             default:
                 return null;
         }
@@ -19,7 +19,8 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
 
     const primaryAction = getPrimaryAction(reservation.status);
 
-    const handlePrimaryAction = () => {
+    const handlePrimaryAction = (e) => {
+        e.stopPropagation();
         if (primaryAction.type === 'checkOut') {
             onGenerateInvoice(reservation);
         } else if (primaryAction.type === 'invoice') {
@@ -29,88 +30,84 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
         }
     };
 
-    const nights = reservation.nights || 0;
-    const checkInDate = new Date(reservation.checkInDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-    const checkOutDate = new Date(reservation.checkOutDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+    const checkInDateObj = new Date(reservation.checkInDate);
+    const checkOutDateObj = new Date(reservation.checkOutDate);
+
+    const formatDate = (date) => date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+    const formatTime = (time) => {
+        if (!time) return '';
+        const [hours, minutes] = time.split(':');
+        const h = parseInt(hours, 10);
+        const period = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        return `${h12}:${minutes} ${period}`;
+    };
+
+    const roomNumber = reservation.rooms?.[0]?.roomNumber || 'N/A';
+    const adults = reservation.rooms?.[0]?.adultsCount || 0;
+    const children = reservation.rooms?.[0]?.childrenCount || 0;
 
     return (
         <div
-            className={`reservation-card-compact ${isSelected ? 'selected' : ''}`}
+            className={`reservation-card-list-item ${isSelected ? 'selected' : ''}`}
+            onClick={() => onSelect && onSelect(reservation)}
         >
-            {/* Compact Header */}
-            <div
-                className="compact-header clickable-header"
-                onClick={() => onSelect && onSelect(reservation)}
-            >
-                <div className="name-section">
-                    <h3
-                        className="guest-name"
-                    >
-                        {reservation.guestName}
-                    </h3>
-                    <StatusBadge status={reservation.status} />
+            <div className="card-left-section">
+                <div className="room-number-box">
+                    <span>{roomNumber}</span>
+                </div>
+                <div className="guest-info-box">
+                    <h4 className="guest-name">{reservation.guestName}</h4>
+                    {/* <span className="guest-id">Ref: {reservation.id.substring(0, 8)}</span> */}
                 </div>
             </div>
 
-            {/* Reservation ID */}
-            <p className="res-id-compact">Ref: {reservation.id.substring(0, 8)}...</p>
-
-            {/* Dates and Nights */}
-            <div className="dates-row">
-                <span className="date">{checkInDate}</span>
-                <span className="arrow">→</span>
-                <span className="date">{checkOutDate}</span>
-                <span className="nights">{nights} night(s)</span>
-            </div>
-
-            {/* Rooms */}
-            <p className="rooms-row">
-                🛏️ {reservation.rooms?.length || 1} Room(s)
-            </p>
-
-            {/* Billing Summary */}
-            <div className="billing-row">
-                <div className="billing-item">
-                    <span className="billing-label">Amount</span>
-                    <span className="billing-value">₹{reservation.totalAmount?.toLocaleString('en-IN', { maximumFractionDigits: 0 }) || '0'}</span>
+            <div className="card-middle-section">
+                <div className="info-col">
+                    <label>CHECK-IN</label>
+                    <span className="info-date">{formatDate(checkInDateObj)}</span>
+                    <span className="info-time">{formatTime(reservation.checkInTime)}</span>
                 </div>
-                <div className="billing-item">
-                    <span className="billing-label billing-label-green">Paid</span>
-                    <span className="billing-value billing-green">₹{reservation.paidAmount?.toLocaleString('en-IN', { maximumFractionDigits: 0 }) || '0'}</span>
+                <div className="info-col">
+                    <label>CHECK-OUT</label>
+                    <span className="info-date">{formatDate(checkOutDateObj)}</span>
+                    <span className="info-time">{formatTime(reservation.checkOutTime)}</span>
                 </div>
-                <div className="billing-item">
-                    <span className="billing-label billing-label-red">Balance</span>
-                    <span className="billing-value billing-red">₹{(reservation.balanceDue || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                <div className="info-col">
+                    <label>RATE</label>
+                    <span className="info-rate">₹{reservation.totalAmount?.toLocaleString('en-IN') || '0'}</span>
+                </div>
+                <div className="info-col">
+                    <label>GUESTS</label>
+                    <div className="guest-counts">
+                        <span title="Adults">👨 × {adults}</span>
+                        {children > 0 && <span title="Children">👶 × {children}</span>}
+                    </div>
                 </div>
             </div>
 
-            {/* Contact Info */}
-            <div className="contact-row">
-                <div className="contact-item">
-                    <span className="contact-icon">📞</span>
-                    <span className="contact-value">{reservation.guestPhone || 'N/A'}</span>
+            <div className="card-right-section">
+                <div className="action-icons">
+                    <button className="icon-btn" title="Statistics">📊</button>
+                    <button className="icon-btn" title="Inspect" onClick={(e) => { e.stopPropagation(); onSelect && onSelect(reservation); }}>�</button>
+                    <button className="icon-btn" title="Services">👔</button>
                 </div>
-                <div className="contact-item">
-                    <span className="contact-icon">📧</span>
-                    <span className="contact-value" title={reservation.guestEmail}>{reservation.guestEmail || 'N/A'}</span>
-                </div>
-            </div>
 
-            {/* Actions */}
-            <div className="compact-actions">
                 {primaryAction && (
                     <button
-                        className="btn-primary-action"
+                        className="view-order-btn"
                         onClick={handlePrimaryAction}
                     >
+                        {/* <span className="btn-icon">{primaryAction.icon}</span> */}
                         {primaryAction.label}
                     </button>
                 )}
-                <div className="menu-container">
+                <div className="menu-container" onClick={e => e.stopPropagation()}>
                     <MoreOptionsMenu
                         booking={reservation}
                         onActionSelect={onActionSelect}
-                        buttonLabel="⋮"
+                        buttonLabel="+"
+                        buttonClassName="plus-menu-btn"
                         options={[
                             { id: 'print-summary', label: '📄 Print Summary', color: '#6366f1', disabled: false },
                             { id: 'print-invoice', label: '🧾 Print Invoice', color: '#8b5cf6', disabled: false },

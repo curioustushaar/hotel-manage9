@@ -23,7 +23,12 @@
 .logo {
     font-size: 1.5rem;
     font-weight: 700;
-    color: #e11d48;
+    color: #1f2937;
+    /* Dark text to match AdminNavbar/Image 2 */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-transform: uppercase;
 }
 
 .hamburger {

@@ -1,285 +1,189 @@
+import React, { useState } from 'react';
 import './FormStyles.css';
 
-const PrintSummaryForm = ({ booking, onSubmit, onCancel }) => {
-    
-    const handlePrint = () => {
-        // Create printable content
-        const printContent = generatePrintSummary();
-        
-        // Open print window
-        const printWindow = window.open('', '', 'width=800,height=600');
-        printWindow.document.write(printContent);
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-        
-        onSubmit({ action: 'print-summary', timestamp: new Date().toISOString() });
+const PrintSummaryForm = ({ booking, onSubmit }) => {
+    const [printType, setPrintType] = useState('Dot Matrix');
+
+    const printOptions = [
+        'Dot Matrix', 'Thermal', 'A4', 'A5', '2 inch', '3 inch'
+    ];
+
+    const getPrintStyle = (type) => {
+        const reset = `
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+                font-family: Arial, sans-serif; 
+                margin: 0; 
+                padding: 10px;
+                color: #000;
+                line-height: 1.4;
+            }
+            .header { 
+                text-align: center; 
+                margin-bottom: 20px; 
+                border-bottom: 1px solid #ccc; 
+                padding-bottom: 10px; 
+            }
+            .header h3 { margin: 0; font-size: 18px; }
+            .content { font-size: 14px; }
+            .row { 
+                display: flex; 
+                justify-content: space-between; 
+                margin-bottom: 8px; 
+                border-bottom: 1px dotted #eee;
+                padding-bottom: 4px;
+            }
+            .footer { 
+                margin-top: 20px; 
+                text-align: center; 
+                font-size: 12px; 
+                color: #666; 
+                border-top: 1px solid #ccc;
+                padding-top: 10px;
+            }
+        `;
+
+        // A4 and A5
+        if (type === 'A4' || type === 'A5') {
+            return `
+                ${reset}
+                body { 
+                    padding: 40px; 
+                    font-size: 14px;
+                }
+                .header { border-bottom: 2px solid #000; }
+                .header h3 { font-size: 24px; }
+                .row { border-bottom: 1px solid #eee; padding: 8px 0; }
+                .footer { border-top: 1px solid #000; }
+                @page { size: ${type}; margin: 20mm; }
+            `;
+        }
+
+        // Dot Matrix
+        if (type === 'Dot Matrix') {
+            return `
+                ${reset}
+                body { font-family: 'Courier New', monospace; font-size: 13px; }
+                .header { border-bottom: 1px dashed #000; text-transform: uppercase; }
+                .row { border-bottom: 1px dashed #ccc; }
+                .footer { border-top: 1px dashed #000; }
+                @page { size: auto; margin: 5mm; }
+            `;
+        }
+
+        // Thermal / Small
+        const isSmall = type === '2 inch';
+        const width = isSmall ? '56mm' : '78mm';
+        const fontSize = isSmall ? '10px' : '12px';
+
+        return `
+            ${reset}
+            body { 
+                font-family: 'Roboto Mono', monospace; 
+                font-size: ${fontSize};
+                width: ${width};
+                padding: 0;
+            }
+            .header { 
+                border-bottom: 1px dashed #000; 
+                margin-bottom: 10px; 
+                padding-bottom: 5px;
+            }
+            .header h3 { font-size: ${isSmall ? '14px' : '16px'}; }
+            .content { font-size: ${fontSize}; }
+            .row { 
+                ${isSmall ? 'flex-direction: column; align-items: flex-start;' : ''}
+                margin-bottom: ${isSmall ? '4px' : '6px'};
+                border-bottom: none;
+            }
+            .footer { 
+                border-top: 1px dashed #000; 
+                margin-top: 10px; 
+                padding-top: 5px;
+                font-size: ${isSmall ? '9px' : '10px'};
+            }
+            @page { size: ${width} auto; margin: 0; }
+        `;
     };
 
-    const generatePrintSummary = () => {
+    const generatePrintContent = () => {
+        const { bookingId, guestName, checkInDate, checkOutDate, totalAmount } = booking || {};
         return `
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Booking Summary - ${booking.bookingId}</title>
-                <style>
-                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body { 
-                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-                        padding: 40px; 
-                        color: #333;
-                    }
-                    .header {
-                        text-align: center;
-                        border-bottom: 3px solid #dc2626;
-                        padding-bottom: 20px;
-                        margin-bottom: 30px;
-                    }
-                    .hotel-name { 
-                        font-size: 28px; 
-                        font-weight: bold; 
-                        color: #dc2626;
-                        margin-bottom: 5px;
-                    }
-                    .hotel-info { 
-                        font-size: 12px; 
-                        color: #666; 
-                        margin-top: 5px;
-                    }
-                    .document-title {
-                        font-size: 22px;
-                        font-weight: bold;
-                        margin: 20px 0;
-                        text-align: center;
-                        text-transform: uppercase;
-                    }
-                    .section {
-                        margin-bottom: 25px;
-                        border: 1px solid #e5e7eb;
-                        border-radius: 8px;
-                        padding: 15px;
-                    }
-                    .section-title {
-                        font-size: 16px;
-                        font-weight: bold;
-                        color: #dc2626;
-                        margin-bottom: 15px;
-                        border-bottom: 2px solid #fee2e2;
-                        padding-bottom: 8px;
-                    }
-                    .info-row {
-                        display: flex;
-                        padding: 8px 0;
-                        border-bottom: 1px solid #f3f4f6;
-                    }
-                    .info-row:last-child { border-bottom: none; }
-                    .info-label {
-                        font-weight: 600;
-                        width: 200px;
-                        color: #374151;
-                    }
-                    .info-value {
-                        flex: 1;
-                        color: #1f2937;
-                    }
-                    .status-badge {
-                        display: inline-block;
-                        padding: 4px 12px;
-                        border-radius: 12px;
-                        font-size: 12px;
-                        font-weight: 600;
-                        text-transform: uppercase;
-                    }
-                    .status-upcoming { background: #dbeafe; color: #1e40af; }
-                    .status-checkedin { background: #d1fae5; color: #065f46; }
-                    .status-checkedout { background: #f3f4f6; color: #374151; }
-                    .amount-section {
-                        background: #fef2f2;
-                        padding: 15px;
-                        border-radius: 8px;
-                        margin-top: 10px;
-                    }
-                    .amount-row {
-                        display: flex;
-                        justify-content: space-between;
-                        padding: 6px 0;
-                        font-size: 14px;
-                    }
-                    .total-row {
-                        font-size: 18px;
-                        font-weight: bold;
-                        color: #dc2626;
-                        border-top: 2px solid #dc2626;
-                        padding-top: 10px;
-                        margin-top: 10px;
-                    }
-                    .footer {
-                        margin-top: 40px;
-                        text-align: center;
-                        font-size: 11px;
-                        color: #6b7280;
-                        border-top: 1px solid #e5e7eb;
-                        padding-top: 20px;
-                    }
-                    @media print {
-                        body { padding: 20px; }
-                        .no-print { display: none; }
-                    }
-                </style>
+                <title>Summary_${bookingId || 'Booking'}</title>
+                <style>${getPrintStyle(printType)}</style>
             </head>
             <body>
-                <div class="header">
-                    <div class="hotel-name">Bireena Athithi Hotel</div>
-                    <div class="hotel-info">
-                        123 Hotel Street, City, State 12345<br>
-                        Phone: +91-1234-567890 | Email: info@bireena-athithi.com<br>
-                        GST: 22AACCU1234H1Z0
+                <div class="header"><h3>Booking Summary</h3></div>
+                <div class="content">
+                    <div class="row"><strong>Reservation No:</strong> <span>${bookingId || 'N/A'}</span></div>
+                    <div class="row"><strong>Guest:</strong> <span>${guestName || 'N/A'}</span></div>
+                    <div class="row"><strong>Check-in:</strong> <span>${checkInDate || 'N/A'}</span></div>
+                    <div class="row"><strong>Check-out:</strong> <span>${checkOutDate || 'N/A'}</span></div>
+                    <div class="row" style="margin-top: 10px; font-weight: bold;">
+                        <strong>Total Amount:</strong> <span>₹${totalAmount || 0}</span>
                     </div>
                 </div>
-
-                <div class="document-title">Booking Summary</div>
-
-                <div class="section">
-                    <div class="section-title">📋 Reservation Details</div>
-                    <div class="info-row">
-                        <div class="info-label">Booking ID:</div>
-                        <div class="info-value"><strong>${booking.bookingId || 'N/A'}</strong></div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">Reference Number:</div>
-                        <div class="info-value">${booking.referenceNumber || 'N/A'}</div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">Status:</div>
-                        <div class="info-value">
-                            <span class="status-badge status-${booking.status?.toLowerCase().replace(' ', '')}">${booking.status || 'N/A'}</span>
-                        </div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">Booking Date:</div>
-                        <div class="info-value">${new Date(booking.createdAt).toLocaleDateString('en-IN')}</div>
-                    </div>
-                </div>
-
-                <div class="section">
-                    <div class="section-title">👤 Guest Information</div>
-                    <div class="info-row">
-                        <div class="info-label">Guest Name:</div>
-                        <div class="info-value"><strong>${booking.guestName || 'N/A'}</strong></div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">Mobile Number:</div>
-                        <div class="info-value">${booking.mobileNumber || 'N/A'}</div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">Email:</div>
-                        <div class="info-value">${booking.email || 'N/A'}</div>
-                    </div>
-                </div>
-
-                <div class="section">
-                    <div class="section-title">🏨 Stay Details</div>
-                    <div class="info-row">
-                        <div class="info-label">Check-In Date:</div>
-                        <div class="info-value">${new Date(booking.checkInDate).toLocaleDateString('en-IN')}</div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">Check-Out Date:</div>
-                        <div class="info-value">${new Date(booking.checkOutDate).toLocaleDateString('en-IN')}</div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">Number of Nights:</div>
-                        <div class="info-value">${booking.numberOfNights || 0} Night(s)</div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">Room Type:</div>
-                        <div class="info-value">${booking.roomType || 'N/A'}</div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">Room Number:</div>
-                        <div class="info-value">${booking.roomNumber || 'Not Assigned'}</div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">Number of Guests:</div>
-                        <div class="info-value">${booking.numberOfGuests || 1} Guest(s)</div>
-                    </div>
-                </div>
-
-                <div class="section">
-                    <div class="section-title">💰 Payment Summary</div>
-                    <div class="amount-section">
-                        <div class="amount-row">
-                            <span>Room Charges (${booking.numberOfNights} × ₹${booking.pricePerNight}):</span>
-                            <span>₹${(booking.numberOfNights * booking.pricePerNight).toLocaleString('en-IN')}</span>
-                        </div>
-                        <div class="amount-row">
-                            <span>Price per Night:</span>
-                            <span>₹${booking.pricePerNight?.toLocaleString('en-IN') || '0'}</span>
-                        </div>
-                        <div class="amount-row total-row">
-                            <span>Total Amount:</span>
-                            <span>₹${booking.totalAmount?.toLocaleString('en-IN') || '0'}</span>
-                        </div>
-                        <div class="amount-row" style="color: #16a34a; font-weight: 600;">
-                            <span>Advance Paid:</span>
-                            <span>₹${booking.advancePaid?.toLocaleString('en-IN') || '0'}</span>
-                        </div>
-                        <div class="amount-row" style="color: #dc2626; font-weight: 600;">
-                            <span>Remaining Amount:</span>
-                            <span>₹${booking.remainingAmount?.toLocaleString('en-IN') || '0'}</span>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="footer">
-                    <p>Generated on: ${new Date().toLocaleString('en-IN')}</p>
-                    <p style="margin-top: 5px;">This is a computer-generated document. No signature required.</p>
-                    <p style="margin-top: 10px; font-weight: 600;">Thank you for choosing Bireena Athithi Hotel!</p>
+                    Thank you for staying with us!
                 </div>
             </body>
             </html>
         `;
     };
 
+    const handlePrint = () => {
+        const content = generatePrintContent();
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(content);
+        printWindow.document.close();
+
+        setTimeout(() => {
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+        }, 500);
+
+        if (onSubmit) {
+            onSubmit({ action: 'print-summary', timestamp: new Date().toISOString(), type: printType });
+        }
+    };
+
     return (
-        <div className="form-container">
-            <div className="form-section">
-                <h3 className="section-title">📄 Print Summary</h3>
-                <p className="form-description">
-                    This will print a detailed summary of the booking including guest information, 
-                    stay details, and payment information.
-                </p>
-                
-                <div className="booking-preview" style={{ 
-                    background: '#f9fafb', 
-                    padding: '20px', 
-                    borderRadius: '8px',
-                    marginTop: '20px'
-                }}>
-                    <h4 style={{ marginBottom: '10px', color: '#dc2626' }}>Preview:</h4>
-                    <p><strong>Booking ID:</strong> {booking.bookingId}</p>
-                    <p><strong>Guest:</strong> {booking.guestName}</p>
-                    <p><strong>Check-In:</strong> {new Date(booking.checkInDate).toLocaleDateString('en-IN')}</p>
-                    <p><strong>Check-Out:</strong> {new Date(booking.checkOutDate).toLocaleDateString('en-IN')}</p>
-                    <p><strong>Total Amount:</strong> ₹{booking.totalAmount?.toLocaleString('en-IN')}</p>
+        <div className="flex flex-col h-full bg-white">
+            {/* Main Content */}
+            <div className="flex-1 p-8 space-y-8">
+                {/* Reservation No Display */}
+                <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                    <p className="text-sm font-medium text-gray-500 mb-2">Reservation No</p>
+                    <h3 className="text-2xl font-bold text-gray-900">{booking?.bookingId || 'RES-000'}</h3>
+                </div>
+
+                {/* Print Type Dropdown */}
+                <div>
+                    <label className="block text-base font-semibold text-gray-700 mb-3">Print Type</label>
+                    <select
+                        value={printType}
+                        onChange={(e) => setPrintType(e.target.value)}
+                        className="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white"
+                    >
+                        {printOptions.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
-            <div className="form-actions">
-                <button 
-                    type="button" 
-                    className="btn-secondary"
-                    onClick={onCancel}
-                >
-                    Cancel
-                </button>
-                <button 
-                    type="button"
-                    className="btn-primary"
+            {/* Footer Action - Centered Green Print Button */}
+            <div className="p-6 border-t bg-gray-50">
+                <button
                     onClick={handlePrint}
+                    className="w-full py-3.5 bg-green-600 text-white text-base font-semibold rounded-lg shadow-md hover:bg-green-700 hover:shadow-lg transform transition-all duration-200 active:scale-98 flex items-center justify-center gap-2"
                 >
-                    🖨️ Print Summary
+                    <span className="text-xl">🖨️</span>
+                    <span>Print</span>
                 </button>
             </div>
         </div>

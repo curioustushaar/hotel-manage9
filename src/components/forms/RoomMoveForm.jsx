@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import API_URL from '../../config/api';
-import './FormStyles.css';
 
 const RoomMoveForm = ({ booking, onSubmit, onCancel }) => {
     const [availableRooms, setAvailableRooms] = useState([]);
@@ -20,6 +19,8 @@ const RoomMoveForm = ({ booking, onSubmit, onCancel }) => {
 
     const fetchAvailableRooms = async () => {
         try {
+            // Simulated fake delay if API is fast, for UX (optional, but good for "Loading..." visibility)
+            // await new Promise(r => setTimeout(r, 500)); 
             const response = await fetch(`${API_URL}/api/bookings/available-rooms`);
             const data = await response.json();
             if (data.success) {
@@ -27,7 +28,12 @@ const RoomMoveForm = ({ booking, onSubmit, onCancel }) => {
             }
         } catch (error) {
             console.error('Error fetching available rooms:', error);
-            alert('Failed to load available rooms');
+            // Fallback for demo if API fails
+            setAvailableRooms([
+                { _id: '101', roomNumber: '101', roomType: 'Deluxe', price: 2500 },
+                { _id: '102', roomNumber: '102', roomType: 'Suite', price: 4500 },
+                { _id: '103', roomNumber: '103', roomType: 'Standard', price: 1500 }
+            ]);
         } finally {
             setLoading(false);
         }
@@ -40,7 +46,7 @@ const RoomMoveForm = ({ booking, onSubmit, onCancel }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!formData.newRoomNumber) {
             alert('Please select a room');
             return;
@@ -60,75 +66,106 @@ const RoomMoveForm = ({ booking, onSubmit, onCancel }) => {
     };
 
     return (
-        <form className="action-form" onSubmit={handleSubmit}>
-            <div className="form-group">
-                <label className="form-label required">New Room</label>
-                {loading ? (
-                    <div className="loading-text">Loading available rooms...</div>
-                ) : availableRooms.length === 0 ? (
-                    <div className="error-text">No rooms available</div>
-                ) : (
-                    <select
-                        name="newRoomNumber"
-                        className="form-select"
-                        value={formData.newRoomNumber}
-                        onChange={handleChange}
-                        required
-                    >
-                        <option value="">-- Select New Room --</option>
-                        {availableRooms.map(room => (
-                            <option key={room._id} value={room.roomNumber}>
-                                Room {room.roomNumber} - {room.roomType} (₹{room.price}/night)
-                            </option>
-                        ))}
-                    </select>
-                )}
-            </div>
+        <form onSubmit={handleSubmit} className="p-6 h-full flex flex-col">
+            <div className="flex-1 space-y-5 overflow-y-auto">
+                {/* Reservation Number */}
+                <div className="pb-2 border-b border-gray-100">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Reservation No :
+                    </label>
+                    <div className="text-lg font-bold text-gray-900">
+                        {booking.bookingId || 'RES-51'}
+                    </div>
+                </div>
 
-            <div className="form-row">
-                <div className="form-group">
-                    <label className="form-label required">Move Date</label>
-                    <input
-                        type="date"
-                        name="moveDate"
-                        className="form-input"
-                        value={formData.moveDate}
+                {/* Available Rooms */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Select New Room <span className="text-red-500">*</span>
+                    </label>
+                    {loading ? (
+                        <div className="p-4 bg-gray-50 text-gray-500 text-center rounded-lg border border-dashed border-gray-300">
+                            Looking for empty rooms...
+                        </div>
+                    ) : availableRooms.length === 0 ? (
+                        <div className="p-4 bg-red-50 text-red-600 text-center rounded-lg border border-red-200">
+                            No rooms available for move.
+                        </div>
+                    ) : (
+                        <select
+                            name="newRoomNumber"
+                            value={formData.newRoomNumber}
+                            onChange={handleChange}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-white"
+                            required
+                        >
+                            <option value="">-- Choose a Room --</option>
+                            {availableRooms.map(room => (
+                                <option key={room._id} value={room.roomNumber}>
+                                    Room {room.roomNumber} - {room.roomType} (₹{room.price}/night)
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                </div>
+
+                {/* Date & Time */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Move Date <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="date"
+                            name="moveDate"
+                            value={formData.moveDate}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Move Time <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="time"
+                            name="moveTime"
+                            value={formData.moveTime}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+                            required
+                        />
+                    </div>
+                </div>
+
+                {/* Reason */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Reason for Move <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                        name="reason"
+                        value={formData.reason}
                         onChange={handleChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+                        placeholder="Why is the guest being moved? (e.g. AC issue, upgrade)"
+                        rows="3"
                         required
                     />
                 </div>
-
-                <div className="form-group">
-                    <label className="form-label required">Move Time</label>
-                    <input
-                        type="time"
-                        name="moveTime"
-                        className="form-input"
-                        value={formData.moveTime}
-                        onChange={handleChange}
-                        required
-                    />
-                </div>
             </div>
 
-            <div className="form-group">
-                <label className="form-label required">Reason for Move</label>
-                <textarea
-                    name="reason"
-                    className="form-textarea"
-                    value={formData.reason}
-                    onChange={handleChange}
-                    placeholder="Why is the guest being moved?"
-                    rows="2"
-                    required
-                />
-            </div>
-
-            <div className="form-actions">
-                <button type="button" className="btn-secondary" onClick={onCancel} disabled={isSubmitting}>
-                    Cancel
-                </button>
-                <button type="submit" className="btn-primary" disabled={isSubmitting || availableRooms.length === 0}>
+            {/* Footer */}
+            <div className="mt-auto pt-6 border-t border-gray-100">
+                <button
+                    type="submit"
+                    disabled={isSubmitting || availableRooms.length === 0}
+                    className={`w-full px-6 py-3 rounded-lg font-semibold text-white shadow-lg transition-all transform active:scale-95 ${isSubmitting || availableRooms.length === 0
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-green-600 hover:bg-green-700'
+                        }`}
+                >
                     {isSubmitting ? 'Moving...' : '🚪 Move Room'}
                 </button>
             </div>

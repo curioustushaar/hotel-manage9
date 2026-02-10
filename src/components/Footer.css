@@ -75,9 +75,19 @@
     gap: 2rem;
 }
 
-.footer-logo img {
-    height: 50px;
-    width: auto;
+.footer-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+    text-transform: uppercase;
+}
+
+.footer-logo svg {
+    width: 32px;
+    height: 32px;
 }
 
 .footer-social {
