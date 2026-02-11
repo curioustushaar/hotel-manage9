@@ -1,18 +1,221 @@
+import { useState } from 'react';
 import './FormStyles.css';
 
 const PrintInvoiceForm = ({ booking, onSubmit, onCancel }) => {
-    
+    const [printType, setPrintType] = useState('Dot Matrix');
+
+    const printOptions = [
+        'Dot Matrix', 'Thermal', 'A4', 'A5', '2 inch', '3 inch'
+    ];
+
+    const getPrintStyle = (type) => {
+        const reset = `
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { color: #000; line-height: 1.4; }
+            .text-right { text-align: right; }
+            .text-center { text-align: center; }
+            .bold { font-weight: bold; }
+            .row { display: flex; justify-content: space-between; }
+            .flex-col { flex-direction: column; }
+        `;
+
+        // A4 and A5 specific styles (Standard Invoice)
+        if (type === 'A4' || type === 'A5') {
+            return `
+                ${reset}
+                body { 
+                    font-family: Arial, Helvetica, sans-serif; 
+                    padding: 40px; 
+                    font-size: ${type === 'A5' ? '11px' : '14px'};
+                }
+                .invoice-container { 
+                    border: 1px solid #ccc; 
+                    padding: 20px; 
+                    height: 100%; 
+                }
+                .header { 
+                    border-bottom: 2px solid #333; 
+                    padding-bottom: 10px; 
+                    margin-bottom: 20px; 
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                .hotel-name { 
+                    font-size: 24px; 
+                    font-weight: 800; 
+                    color: #000;
+                }
+                .invoice-title { 
+                    text-align: center; 
+                    font-size: 20px; 
+                    font-weight: bold; 
+                    margin: 10px 0 20px 0; 
+                    text-transform: uppercase; 
+                    background: #f8f8f8;
+                    padding: 5px;
+                    border: 1px solid #ddd;
+                }
+                .section { margin-bottom: 20px; }
+                .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                .table th { 
+                    background: #f3f4f6; 
+                    padding: 10px; 
+                    border: 1px solid #ddd; 
+                    font-weight: bold; 
+                    text-align: left;
+                }
+                .table td { 
+                    padding: 10px; 
+                    border: 1px solid #ddd; 
+                }
+                .total-section { 
+                    float: right; 
+                    width: 300px; 
+                    border: 1px solid #ddd; 
+                    padding: 10px;
+                    background: #f9f9f9;
+                }
+                .grand-total { 
+                    font-size: 16px; 
+                    font-weight: bold; 
+                    border-top: 2px solid #000; 
+                    margin-top: 5px; 
+                    padding-top: 5px;
+                }
+                @page { size: ${type}; margin: 10mm; }
+            `;
+        }
+
+        // Dot Matrix (Courier, dashed lines)
+        if (type === 'Dot Matrix') {
+            return `
+                ${reset}
+                body { 
+                    font-family: 'Courier New', Courier, monospace; 
+                    font-size: 13px; 
+                    padding: 20px;
+                }
+                .invoice-container { 
+                    padding: 10px; 
+                    border: 1px dashed #000;
+                }
+                .header { 
+                    text-align: center; 
+                    border-bottom: 1px dashed #000; 
+                    padding-bottom: 10px; 
+                    margin-bottom: 15px; 
+                }
+                .hotel-name { 
+                    font-size: 18px; 
+                    font-weight: bold; 
+                    text-transform: uppercase;
+                }
+                .invoice-title { 
+                    text-align: center; 
+                    font-weight: bold; 
+                    margin: 15px 0; 
+                    border-top: 1px dashed #000;
+                    border-bottom: 1px dashed #000;
+                    padding: 5px;
+                }
+                .table { width: 100%; margin: 15px 0; }
+                .table th { 
+                    border-bottom: 1px dashed #000; 
+                    padding: 5px 0; 
+                    text-align: left;
+                }
+                .table td { padding: 5px 0; }
+                .total-section { 
+                    border-top: 1px dashed #000; 
+                    margin-top: 10px; 
+                    padding-top: 10px;
+                }
+                .grand-total { font-weight: bold; font-size: 15px; }
+                @page { size: auto; margin: 5mm; }
+            `;
+        }
+
+        // Thermal, 3 inch, 2 inch (Receipt style)
+        // 2 inch = 58mm, 3 inch/Thermal = 80mm
+        const isSmall = type === '2 inch';
+        const width = isSmall ? '56mm' : '78mm'; // slightly less than 58/80 for safety
+        const fontSize = isSmall ? '10px' : '12px';
+
+        return `
+            ${reset}
+            body { 
+                font-family: 'Roboto Mono', monospace;
+                font-size: ${fontSize};
+                width: ${width};
+                background: #fff;
+            }
+            .invoice-container { padding: 0; }
+            .header { 
+                text-align: center; 
+                margin-bottom: 10px; 
+            }
+            .hotel-name { 
+                font-size: ${isSmall ? '14px' : '16px'}; 
+                font-weight: bold; 
+                margin-bottom: 5px;
+            }
+            .header div { margin-bottom: 2px; }
+            .invoice-title { 
+                text-align: center; 
+                font-weight: bold; 
+                border-top: 1px dashed #000; 
+                border-bottom: 1px dashed #000; 
+                padding: 4px 0;
+                margin: 10px 0;
+            }
+            .section { margin-bottom: 10px; }
+            .row { 
+                display: flex; 
+                justify-content: space-between; 
+                ${isSmall ? 'flex-direction: column; margin-bottom: 4px;' : 'margin-bottom: 2px;'}
+            }
+            .table { width: 100%; margin: 10px 0; border-collapse: collapse; }
+            .table th { 
+                text-align: left; 
+                border-bottom: 1px solid #000; 
+                font-size: ${isSmall ? '9px' : '11px'};
+                padding: 2px 0;
+            }
+            .table td { 
+                padding: 2px 0; 
+                vertical-align: top;
+            }
+            .total-section { 
+                border-top: 1px dashed #000; 
+                padding-top: 5px; 
+                margin-top: 10px; 
+            }
+            .grand-total { 
+                font-weight: bold; 
+                font-size: ${isSmall ? '12px' : '14px'}; 
+                margin-top: 5px;
+            }
+            .footer { 
+                text-align: center; 
+                margin-top: 15px; 
+                font-size: ${isSmall ? '9px' : '10px'};
+            }
+            @page { size: ${width} auto; margin: 0; }
+        `;
+    };
+
     const handlePrint = () => {
         const printContent = generateInvoice();
-        
+
         const printWindow = window.open('', '', 'width=800,height=600');
         printWindow.document.write(printContent);
         printWindow.document.close();
         printWindow.focus();
         printWindow.print();
         printWindow.close();
-        
-        onSubmit({ action: 'print-invoice', timestamp: new Date().toISOString() });
+
+        onSubmit({ action: 'print-invoice', timestamp: new Date().toISOString(), type: printType });
     };
 
     const generateInvoice = () => {
@@ -27,81 +230,7 @@ const PrintInvoiceForm = ({ booking, onSubmit, onCancel }) => {
             <head>
                 <title>Invoice - ${booking.bookingId}</title>
                 <style>
-                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body { 
-                        font-family: 'Courier New', monospace; 
-                        padding: 30px; 
-                        color: #000;
-                    }
-                    .invoice-container {
-                        border: 2px solid #000;
-                        padding: 20px;
-                    }
-                    .header {
-                        text-align: center;
-                        border-bottom: 2px solid #000;
-                        padding-bottom: 15px;
-                        margin-bottom: 20px;
-                    }
-                    .hotel-name {
-                        font-size: 24px;
-                        font-weight: bold;
-                        margin-bottom: 5px;
-                    }
-                    .invoice-title {
-                        font-size: 20px;
-                        font-weight: bold;
-                        margin: 15px 0;
-                        text-align: center;
-                        text-decoration: underline;
-                    }
-                    .section {
-                        margin: 15px 0;
-                    }
-                    .row {
-                        display: flex;
-                        justify-content: space-between;
-                        padding: 5px 0;
-                    }
-                    .label { font-weight: bold; }
-                    .table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin: 15px 0;
-                    }
-                    .table th, .table td {
-                        border: 1px solid #000;
-                        padding: 8px;
-                        text-align: left;
-                    }
-                    .table th {
-                        background: #f0f0f0;
-                        font-weight: bold;
-                    }
-                    .text-right { text-align: right; }
-                    .total-section {
-                        margin-top: 20px;
-                        border-top: 2px solid #000;
-                        padding-top: 10px;
-                    }
-                    .grand-total {
-                        font-size: 18px;
-                        font-weight: bold;
-                        background: #000;
-                        color: #fff;
-                        padding: 10px;
-                        margin-top: 10px;
-                    }
-                    .footer {
-                        margin-top: 30px;
-                        text-align: center;
-                        font-size: 12px;
-                        border-top: 1px solid #000;
-                        padding-top: 15px;
-                    }
-                    @media print {
-                        body { padding: 10px; }
-                    }
+                    ${getPrintStyle(printType)}
                 </style>
             </head>
             <body>
@@ -197,50 +326,39 @@ const PrintInvoiceForm = ({ booking, onSubmit, onCancel }) => {
     };
 
     return (
-        <div className="form-container">
-            <div className="form-section">
-                <h3 className="section-title">🧾 Print Tax Invoice</h3>
-                <p className="form-description">
-                    This will generate and print a detailed tax invoice with GST breakdown.
-                </p>
-                
-                <div className="booking-preview" style={{ 
-                    background: '#f9fafb', 
-                    padding: '20px', 
-                    borderRadius: '8px',
-                    marginTop: '20px',
-                    border: '2px solid #e5e7eb'
-                }}>
-                    <h4 style={{ marginBottom: '15px', color: '#dc2626' }}>Invoice Details:</h4>
-                    <div style={{ display: 'grid', gap: '10px' }}>
-                        <p><strong>Invoice No:</strong> {booking.bookingId || 'INV-' + Date.now()}</p>
-                        <p><strong>Guest Name:</strong> {booking.guestName}</p>
-                        <p><strong>Room Type:</strong> {booking.roomType}</p>
-                        <p><strong>Duration:</strong> {booking.numberOfNights} Night(s)</p>
-                        <hr style={{ margin: '10px 0' }} />
-                        <p><strong>Subtotal:</strong> ₹{(booking.totalAmount || 0).toLocaleString('en-IN')}</p>
-                        <p><strong>GST (12%):</strong> ₹{((booking.totalAmount || 0) * 0.12).toLocaleString('en-IN')}</p>
-                        <p style={{ fontSize: '18px', color: '#dc2626' }}>
-                            <strong>Grand Total:</strong> ₹{((booking.totalAmount || 0) * 1.12).toLocaleString('en-IN')}
-                        </p>
-                    </div>
+        <div className="flex flex-col h-full bg-white">
+            {/* Main Content */}
+            <div className="flex-1 p-8 space-y-8">
+                {/* Reservation Number */}
+                <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                    <p className="text-sm font-medium text-gray-500 mb-2">Reservation No</p>
+                    <h3 className="text-2xl font-bold text-gray-900">{booking.bookingId || 'RES-51'}</h3>
+                </div>
+
+                {/* Print Type Dropdown */}
+                <div>
+                    <label className="block text-base font-semibold text-gray-700 mb-3">Print Type</label>
+                    <select
+                        value={printType}
+                        onChange={(e) => setPrintType(e.target.value)}
+                        className="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white"
+                    >
+                        {printOptions.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
-            <div className="form-actions">
-                <button 
-                    type="button" 
-                    className="btn-secondary"
-                    onClick={onCancel}
-                >
-                    Cancel
-                </button>
-                <button 
+            {/* Footer Action - Centered Green Print Button */}
+            <div className="p-6 border-t bg-gray-50">
+                <button
                     type="button"
-                    className="btn-primary"
                     onClick={handlePrint}
+                    className="w-full py-3.5 bg-green-600 text-white text-base font-semibold rounded-lg shadow-md hover:bg-green-700 hover:shadow-lg transform transition-all duration-200 active:scale-98 flex items-center justify-center gap-2"
                 >
-                    🖨️ Print Invoice
+                    <span className="text-xl">🖨️</span>
+                    <span>Print Invoice</span>
                 </button>
             </div>
         </div>

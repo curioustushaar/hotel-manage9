@@ -107,6 +107,9 @@
 }
 
 /* Cards Grid */
+
+
+/* Cards Grid - Vertical List Layout */
 .reservation-content-layout {
     display: flex;
     gap: 1.5rem;
@@ -115,15 +118,18 @@
 
 .reservation-cards-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.5rem;
     width: 100%;
     transition: all 0.3s ease;
 }
 
 .reservation-cards-grid.with-details {
-    width: calc(100% - 470px);
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    width: calc(100% - 400px);
+    grid-template-columns: 1fr 1fr;
+    /* Force 2 columns when sidebar is open if space allows, or use auto-fill logic */
+    /* Often better to keep auto-fill but rely on width reduction */
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }
 
 .no-data-message {
@@ -145,60 +151,273 @@
    RESERVATION CARD
    ============================================================ */
 
-.reservation-card-compact {
+/* ============================================================
+   RESERVATION CARD (Box Style)
+   ============================================================ */
+
+.reservation-card {
     background-color: #ffffff;
     border: 1px solid #e5e7eb;
-    border-radius: 0.6rem;
-    padding: 1.25rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
     display: flex;
     flex-direction: column;
-    gap: 0.95rem;
-}
-
-.reservation-card-compact:hover {
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-    transform: translateY(-3px);
-}
-
-.clickable-header {
+    gap: 1rem;
+    transition: all 0.3s ease;
     cursor: pointer;
-    transition: all 0.2s ease;
-    border-radius: 0.4rem;
-    padding: 0.5rem;
-    margin: -0.5rem;
+    position: relative;
+    border-left: 4px solid transparent;
 }
 
-.clickable-header:hover {
-    background-color: rgba(220, 53, 69, 0.05);
+.reservation-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.08);
+    border-color: #d1d5db;
 }
 
-.compact-header {
+.reservation-card.selected {
+    border-color: #dc3545;
+    border-left-color: #dc3545;
+    background-color: #fffbfc;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1);
+}
+
+/* Header */
+.res-card-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 0.75rem;
-}
-
-.name-section {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.75rem;
-    width: 100%;
 }
 
 .guest-name {
-    font-size: 1.05rem;
-    font-weight: 800;
-    color: #1a1a1a;
     margin: 0;
-    letter-spacing: -0.01em;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1.3;
 }
 
-.guest-name:hover {
-    color: #1a1a1a;
+.status-text {
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-text.reserved {
+    color: #374151;
+    /* Or keep standard color, Image 2 has dark/black text for RESERVED? */
+}
+
+.status-text.in_house {
+    color: #10b981;
+}
+
+.status-text.checked_out {
+    color: #6b7280;
+}
+
+/* Ref */
+.res-card-ref {
+    font-size: 0.85rem;
+    color: #9ca3af;
+    font-weight: 600;
+    margin-top: -0.5rem;
+}
+
+/* Dates */
+.res-card-dates {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-top: 0.25rem;
+}
+
+.res-card-dates .arrow {
+    color: #d1d5db;
+    font-weight: 400;
+}
+
+.res-card-dates .nights {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: #9ca3af;
+    font-weight: 600;
+}
+
+/* Room Info */
+.res-card-rooms {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.room-icon {
+    font-size: 1.1rem;
+    color: #4f46e5;
+}
+
+/* Financials */
+.res-card-financials {
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid #f3f4f6;
+    border-bottom: 1px solid #f3f4f6;
+    padding: 1rem 0;
+    margin-top: 0.25rem;
+}
+
+.fin-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.fin-col label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: #9ca3af;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.amount {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #374151;
+}
+
+.amount.text-green {
+    color: #10b981;
+}
+
+.amount.text-red {
+    color: #ef4444;
+}
+
+.fin-col label.text-green {
+    color: #10b981;
+}
+
+.fin-col label.text-red {
+    color: #ef4444;
+}
+
+/* Contact */
+.res-card-contact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.contact-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.contact-row .icon {
+    color: #dc3545;
+    font-size: 0.9rem;
+    width: 16px;
+    text-align: center;
+}
+
+.email-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+/* Footer */
+.res-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.btn-main-action {
+    flex: 1;
+    border: none;
+    border-radius: 6px;
+    padding: 0.9rem;
+    font-weight: 800;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+}
+
+.btn-main-action.btn-check-in {
+    background-color: #dc3545;
+}
+
+.btn-main-action.btn-check-in:hover {
+    background-color: #c82333;
+}
+
+.btn-main-action.btn-check-out {
+    background-color: #dc3545;
+}
+
+.btn-main-action.btn-check-out:hover {
+    background-color: #c82333;
+}
+
+.btn-main-action.btn-invoice {
+    background-color: #dc3545;
+}
+
+.btn-main-action.btn-invoice:hover {
+    background-color: #c82333;
+}
+
+/* More Options Menu */
+.more-options-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.details-menu-btn {
+    background: transparent !important;
+    color: #9ca3af !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    font-size: 1.5rem !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: none !important;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.details-menu-btn:hover {
+    color: #374151 !important;
+    background-color: #f3f4f6 !important;
+}
+
+@media (max-width: 768px) {
+    .reservation-cards-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* ============================================================

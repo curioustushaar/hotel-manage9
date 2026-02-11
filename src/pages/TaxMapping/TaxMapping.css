@@ -23,11 +23,9 @@
 }
 
 /* Main Content Layout - 70/30 Split */
+/* Main Content Layout - FULL WIDTH */
 .tax-mapping-content {
-    display: grid;
-    grid-template-columns: 70% 30%;
-    gap: 24px;
-    align-items: start;
+    display: block;
 }
 
 /* Section Headers */
@@ -60,6 +58,119 @@
     border-radius: 12px;
     padding: 20px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    width: 100%;
+}
+
+/* ====================================
+   SIDEBAR (SLIDE-IN FORM)
+   ==================================== */
+
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    opacity: 0;
+    animation: fadeIn 0.3s forwards;
+}
+
+.mapping-sidebar {
+    position: fixed;
+    top: 0;
+    right: -550px;
+    width: 500px;
+    height: 100vh;
+    background: #f3f4f6;
+    z-index: 1001;
+    box-shadow: -4px 0 25px rgba(0, 0, 0, 0.15);
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+.mapping-sidebar.open {
+    right: 0;
+}
+
+.sidebar-header {
+    padding: 24px 30px;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.sidebar-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.close-sidebar-btn {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    font-size: 28px;
+    color: #9ca3af;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.close-sidebar-btn:hover {
+    color: #ef4444;
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 30px;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+    }
+}
+
+/* ====================================
+   SPACIOUS FORM STYLING (IMAGE 2 STYLE)
+   ==================================== */
+
+.tax-mapping-form-section {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    /* Full width inside sidebar */
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .tax-mapping-page {
+        padding: 16px;
+    }
+
+    .mapping-sidebar {
+        width: 100%;
+        right: -100%;
+    }
 }
 
 .table-container {

@@ -51,7 +51,7 @@ const AddPaymentDrawer = ({ isOpen, onClose, reservation }) => {
     };
 
     return (
-        <BaseDrawer isOpen={isOpen} onClose={onClose} title="Add Payment" size="md">
+        <BaseDrawer isOpen={isOpen} onClose={onClose} title="Add Payment" size="sm">
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 {/* Payment Date */}
                 <div>
@@ -97,9 +97,8 @@ const AddPaymentDrawer = ({ isOpen, onClose, reservation }) => {
                             value={formData.amount}
                             onChange={(e) => handleChange('amount', e.target.value)}
                             placeholder="0.00"
-                            className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                                errors.amount ? 'border-red-500' : 'border-gray-300'
-                            }`}
+                            className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.amount ? 'border-red-500' : 'border-gray-300'
+                                }`}
                         />
                     </div>
                     {errors.amount && (
@@ -118,9 +117,8 @@ const AddPaymentDrawer = ({ isOpen, onClose, reservation }) => {
                             value={formData.referenceId}
                             onChange={(e) => handleChange('referenceId', e.target.value)}
                             placeholder="Enter reference number"
-                            className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                                errors.referenceId ? 'border-red-500' : 'border-gray-300'
-                            }`}
+                            className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.referenceId ? 'border-red-500' : 'border-gray-300'
+                                }`}
                         />
                         {errors.referenceId && (
                             <p className="text-red-500 text-sm mt-1">{errors.referenceId}</p>

@@ -15,7 +15,6 @@ import MoreOptionsMenu from './MoreOptionsMenu';
 import BookingActionsManager from './BookingActionsManager';
 import HousekeepingView from './HousekeepingView';
 import RoomService from './RoomService';
-import PrintPreviewModal from './PrintPreviewModal';
 
 const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [view, setView] = useState(viewMode); // 'dashboard', 'form', 'housekeeping', or 'roomservice'
@@ -42,6 +41,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     useEffect(() => {
         fetchReservationsFromAPI();
         fetchGuestsFromAPI();
+        fetchMealTypes();
     }, []);
 
     const fetchReservationsFromAPI = async () => {
@@ -195,11 +195,25 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [selectedGuest, setSelectedGuest] = useState(null);
     const [showGuestModal, setShowGuestModal] = useState(false);
     const [guests, setGuests] = useState([]);
+    const [mealTypes, setMealTypes] = useState([]);
+
+    // Fetch meal types from API
+    const fetchMealTypes = async () => {
+        try {
+            const response = await fetch(`${API_URL_CONFIG}/api/meal-types/list`);
+            const data = await response.json();
+            if (data.success && data.data) {
+                setMealTypes(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching meal types:', error);
+        }
+    };
 
     // Fetch guests from API
     const fetchGuestsFromAPI = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/guests/list');
+            const response = await fetch('http://localhost:5001/api/guests/list');
             const data = await response.json();
 
             if (data.success && data.data) {
@@ -244,6 +258,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [showPrintModal, setShowPrintModal] = useState(false);
     const [printType, setPrintType] = useState('');
     const [printBooking, setPrintBooking] = useState(null);
+    const [showPrintMenu, setShowPrintMenu] = useState(false);
 
     // Room Categories
     const roomCategories = useMemo(() => ({
@@ -296,18 +311,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     }, [invoices]);
 
     // Handle More Options action selection
-    // Handle More Options action selection
     const handleMoreOptionsAction = (actionType, bookingSpec) => {
         const targetReservation = bookingSpec || selectedReservation;
         if (!targetReservation) return;
-
-        // Check if it's a print or send action
-        if (actionType.startsWith('print-') || actionType === 'send-invoice') {
-            setPrintType(actionType);
-            setPrintBooking(targetReservation);
-            setShowPrintModal(true);
-            return;
-        }
 
         // Convert reservation to booking format for the actions
         const bookingData = {
@@ -332,6 +338,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             transactions: []
         };
 
+        // Open BookingActionsManager drawer for all actions (including print)
         setCurrentAction(actionType);
         setActionBooking(bookingData);
         setActionDrawerOpen(true);
@@ -845,6 +852,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                                 setRooms(newRooms);
                                             }}
                                             onRemove={(idx) => setRooms(rooms.filter((_, i) => i !== idx))}
+                                            mealTypes={mealTypes}
                                         />
                                     ))}
                                 </div>
@@ -1034,7 +1042,58 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                             ]}
                                         />
                                     </div>
-                                    <button className="tab-option tab-print">Print</button>
+                                    <div className="relative">
+                                        <button
+                                            className="tab-option tab-print"
+                                            onClick={() => setShowPrintMenu(!showPrintMenu)}
+                                        >
+                                            Print ▼
+                                        </button>
+                                        {showPrintMenu && (
+                                            <div className="absolute right-0 mt-2 w-52 bg-white rounded-lg shadow-xl py-2 z-50 border border-gray-100">
+                                                <button
+                                                    className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 transition-colors duration-150"
+                                                    onClick={() => {
+                                                        setShowPrintMenu(false);
+                                                        handleMoreOptionsAction('print-summary', selectedReservation);
+                                                    }}
+                                                >
+                                                    <span className="mr-3 text-base">📄</span>
+                                                    <span className="font-medium">Print Summary</span>
+                                                </button>
+                                                <button
+                                                    className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 transition-colors duration-150"
+                                                    onClick={() => {
+                                                        setShowPrintMenu(false);
+                                                        handleMoreOptionsAction('print-invoice', selectedReservation);
+                                                    }}
+                                                >
+                                                    <span className="mr-3 text-base">🧾</span>
+                                                    <span className="font-medium">Print Invoice</span>
+                                                </button>
+                                                <button
+                                                    className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 transition-colors duration-150"
+                                                    onClick={() => {
+                                                        setShowPrintMenu(false);
+                                                        handleMoreOptionsAction('print-grc', selectedReservation);
+                                                    }}
+                                                >
+                                                    <span className="mr-3 text-base">📋</span>
+                                                    <span className="font-medium">Print GRC</span>
+                                                </button>
+                                                <button
+                                                    className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 transition-colors duration-150"
+                                                    onClick={() => {
+                                                        setShowPrintMenu(false);
+                                                        handleMoreOptionsAction('print-grc-all', selectedReservation);
+                                                    }}
+                                                >
+                                                    <span className="mr-3 text-base">📋</span>
+                                                    <span className="font-medium">Print GRC All</span>
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1206,14 +1265,6 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                 actionType={currentAction}
                 booking={actionBooking}
                 onSuccess={handleActionSuccess}
-            />
-            {/* Print Preview Modal */}
-            <PrintPreviewModal
-                isOpen={showPrintModal}
-                onClose={() => setShowPrintModal(false)}
-                onPrint={handlePrintConfirm}
-                type={printType}
-                booking={printBooking}
             />
         </div>
     );
@@ -1549,3 +1600,4 @@ function getDummyGuests() {
 }
 
 export default ReservationStayManagement;
+

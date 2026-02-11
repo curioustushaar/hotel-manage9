@@ -26,17 +26,16 @@
 }
 
 /* ====================================
-   MAIN LAYOUT (70-30 SPLIT)
+   MAIN LAYOUT (FULL WIDTH)
    ==================================== */
 
 .discount-main-layout {
-    display: grid;
-    grid-template-columns: 70% 30%;
-    gap: 20px;
+    display: block;
+    /* Changed from grid to block for full width */
 }
 
 /* ====================================
-   LEFT SECTION - DISCOUNT LIST
+   LEFT SECTION - DISCOUNT LIST (FULL WIDTH)
    ==================================== */
 
 .discount-left-section {
@@ -44,6 +43,86 @@
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     overflow: hidden;
+    width: 100%;
+    /* Full width */
+}
+
+/* ====================================
+   SIDEBAR (SLIDE-IN FORM)
+   ==================================== */
+
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    opacity: 0;
+    animation: fadeIn 0.3s forwards;
+}
+
+.discount-sidebar {
+    position: fixed;
+    top: 0;
+    right: -450px;
+    /* Hidden initially */
+    width: 400px;
+    height: 100vh;
+    background: white;
+    z-index: 1001;
+    box-shadow: -4px 0 15px rgba(0, 0, 0, 0.15);
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+.discount-sidebar.open {
+    right: 0;
+}
+
+.sidebar-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+}
+
+.sidebar-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+}
+
+.close-sidebar-btn {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.close-sidebar-btn:hover {
+    color: #ef4444;
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+    }
 }
 
 .discount-list-header {
@@ -700,6 +779,141 @@
 }
 
 /* ====================================
+   APPLIES TO DROPDOWN
+   ==================================== */
+
+.applies-to-dropdown {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 8px;
+}
+
+.applies-to-dropdown:hover {
+    border-color: #9ca3af;
+    background: #f9fafb;
+}
+
+.dropdown-text {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.dropdown-arrow {
+    font-size: 10px;
+    color: #9ca3af;
+}
+
+/* ====================================
+   FORM GROUP ROW (2 COLUMNS)
+   ==================================== */
+
+.form-group-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.form-group-half {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group-half .toggle-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.form-group-half .form-hint {
+    font-size: 11px;
+    color: #9ca3af;
+    margin: 4px 0 0 0;
+    line-height: 1.3;
+}
+
+/* ====================================
+   COMPACT BUTTONS
+   ==================================== */
+
+.btn-reset,
+.btn-save {
+    flex: 1;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+
+/* ====================================
+   CHECKBOX GRID STYLES (HORIZONTAL LAYOUT)
+   ==================================== */
+
+.checkbox-grid-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, max-content));
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.checkbox-grid-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.checkbox-grid-item:hover {
+    border-color: #9ca3af;
+    background: #f9fafb;
+}
+
+.checkbox-grid-item:has(input[type="checkbox"]:checked) {
+    background: #d1fae5;
+    border-color: #10b981;
+}
+
+.checkbox-grid-item input[type="checkbox"] {
+    width: 13px;
+    height: 13px;
+    cursor: pointer;
+    accent-color: #10b981;
+    flex-shrink: 0;
+}
+
+.checkbox-grid-item .checkbox-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+    line-height: 1.2;
+}
+
+.checkbox-grid-item input[type="checkbox"]:checked+.checkbox-label {
+    color: #065f46;
+    font-weight: 600;
+}
+
+/* ====================================
    RESPONSIVE DESIGN
    ==================================== */
 
@@ -735,4 +949,157 @@
     .form-actions {
         flex-direction: column;
     }
+}
+
+/* ====================================
+   SIDEBAR (SLIDE-IN FORM)
+   ==================================== */
+
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    opacity: 0;
+    animation: fadeIn 0.3s forwards;
+}
+
+.discount-sidebar {
+    position: fixed;
+    top: 0;
+    right: -550px;
+    /* Hidden initially */
+    width: 500px;
+    /* Wider for card look */
+    height: 100vh;
+    background: #f3f4f6;
+    /* Light gray background like image */
+    z-index: 1001;
+    box-shadow: -4px 0 25px rgba(0, 0, 0, 0.15);
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+.discount-sidebar.open {
+    right: 0;
+}
+
+.sidebar-header {
+    padding: 24px 30px;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: center;
+    /* Center align */
+    align-items: center;
+    position: relative;
+}
+
+.sidebar-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.close-sidebar-btn {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    font-size: 28px;
+    color: #9ca3af;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.close-sidebar-btn:hover {
+    color: #ef4444;
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 30px;
+    /* More padding */
+}
+
+/* ====================================
+   SPACIOUS FORM STYLING (IMAGE 2 STYLE)
+   ==================================== */
+
+.discount-form {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    /* Spacious gap */
+}
+
+.discount-form .form-group {
+    margin-bottom: 0;
+}
+
+.discount-form label {
+    margin-bottom: 8px;
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.discount-form label .required {
+    color: #ef4444;
+    margin-left: 4px;
+}
+
+.discount-form input[type="text"],
+.discount-form input[type="number"],
+.discount-form select,
+.discount-form textarea {
+    width: 100%;
+    padding: 12px 16px;
+    /* Larger padding */
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #374151;
+    transition: all 0.2s;
+    background: #fff;
+}
+
+.discount-form input:focus,
+.discount-form select:focus,
+.discount-form textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.discount-form textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.discount-form .label-hint {
+    font-size: 12px;
+    color: #ef4444;
+    font-weight: 600;
+    margin-left: 6px;
+    text-transform: none;
 }

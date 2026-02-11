@@ -51,7 +51,7 @@ const CheckInDrawer = ({ isOpen, onClose, reservation }) => {
     };
 
     return (
-        <BaseDrawer isOpen={isOpen} onClose={onClose} title="Check-In Guest" size="md">
+        <BaseDrawer isOpen={isOpen} onClose={onClose} title="Check-In Guest" size="sm">
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 {/* Arrival Date & Time */}
                 <div className="grid grid-cols-2 gap-4">
@@ -105,9 +105,8 @@ const CheckInDrawer = ({ isOpen, onClose, reservation }) => {
                             value={formData.idNumber}
                             onChange={(e) => handleChange('idNumber', e.target.value)}
                             placeholder="Enter ID number"
-                            className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                                errors.idNumber ? 'border-red-500' : 'border-gray-300'
-                            }`}
+                            className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.idNumber ? 'border-red-500' : 'border-gray-300'
+                                }`}
                         />
                         {errors.idNumber && (
                             <p className="text-red-500 text-sm mt-1">{errors.idNumber}</p>

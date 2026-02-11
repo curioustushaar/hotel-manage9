@@ -7,11 +7,11 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
     const getPrimaryAction = (status) => {
         switch (status) {
             case 'RESERVED':
-                return { label: 'CHECK-IN', action: 'IN_HOUSE', type: 'checkIn' };
+                return { label: 'CHECK-IN', action: 'IN_HOUSE', type: 'checkIn', className: 'btn-check-in' };
             case 'IN_HOUSE':
-                return { label: 'CHECK-OUT', action: 'CHECKED_OUT', type: 'checkOut' };
+                return { label: 'CHECK-OUT', action: 'CHECKED_OUT', type: 'checkOut', className: 'btn-check-out' };
             case 'CHECKED_OUT':
-                return { label: 'VIEW INVOICE', action: 'viewInvoice', type: 'invoice' };
+                return { label: 'VIEW INVOICE', action: 'viewInvoice', type: 'invoice', className: 'btn-invoice' };
             default:
                 return null;
         }
@@ -19,7 +19,8 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
 
     const primaryAction = getPrimaryAction(reservation.status);
 
-    const handlePrimaryAction = () => {
+    const handlePrimaryAction = (e) => {
+        e.stopPropagation();
         if (primaryAction.type === 'checkOut') {
             onGenerateInvoice(reservation);
         } else if (primaryAction.type === 'invoice') {
@@ -29,93 +30,86 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
         }
     };
 
-    const nights = reservation.nights || 0;
-    const checkInDate = new Date(reservation.checkInDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-    const checkOutDate = new Date(reservation.checkOutDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+    };
 
     return (
         <div
-            className={`reservation-card-compact ${isSelected ? 'selected' : ''}`}
+            className={`reservation-card ${isSelected ? 'selected' : ''}`}
+            onClick={() => onSelect && onSelect(reservation)}
         >
-            {/* Compact Header */}
-            <div
-                className="compact-header clickable-header"
-                onClick={() => onSelect && onSelect(reservation)}
-            >
-                <div className="name-section">
-                    <h3
-                        className="guest-name"
-                    >
-                        {reservation.guestName}
-                    </h3>
-                    <StatusBadge status={reservation.status} />
-                </div>
+            <div className="res-card-header">
+                <h3 className="guest-name">{reservation.guestName}</h3>
+                <span className={`status-text ${reservation.status.toLowerCase()}`}>
+                    {reservation.status === 'IN_HOUSE' ? 'IN_HOUSE' :
+                        reservation.status === 'CHECKED_OUT' ? 'CHECKED_OUT' : 'RESERVED'}
+                </span>
             </div>
 
-            {/* Reservation ID */}
-            <p className="res-id-compact">Ref: {reservation.id.substring(0, 8)}...</p>
+            <div className="res-card-ref">
+                Ref: {reservation.referenceNumber || reservation.id?.substring(0, 10) + '...'}
+            </div>
 
-            {/* Dates and Nights */}
-            <div className="dates-row">
-                <span className="date">{checkInDate}</span>
+            <div className="res-card-dates">
+                <span className="date">{formatDate(reservation.checkInDate)}</span>
                 <span className="arrow">→</span>
-                <span className="date">{checkOutDate}</span>
-                <span className="nights">{nights} night(s)</span>
+                <span className="date">{formatDate(reservation.checkOutDate)}</span>
+                <span className="nights">{reservation.nights} night(s)</span>
             </div>
 
-            {/* Rooms */}
-            <p className="rooms-row">
-                🛏️ {reservation.rooms?.length || 1} Room(s)
-            </p>
-
-            {/* Billing Summary */}
-            <div className="billing-row">
-                <div className="billing-item">
-                    <span className="billing-label">Amount</span>
-                    <span className="billing-value">₹{reservation.totalAmount?.toLocaleString('en-IN', { maximumFractionDigits: 0 }) || '0'}</span>
-                </div>
-                <div className="billing-item">
-                    <span className="billing-label billing-label-green">Paid</span>
-                    <span className="billing-value billing-green">₹{reservation.paidAmount?.toLocaleString('en-IN', { maximumFractionDigits: 0 }) || '0'}</span>
-                </div>
-                <div className="billing-item">
-                    <span className="billing-label billing-label-red">Balance</span>
-                    <span className="billing-value billing-red">₹{(reservation.balanceDue || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                </div>
+            <div className="res-card-rooms">
+                <span className="room-icon">🛏</span>
+                <span>{reservation.rooms?.length || 1} Room(s)</span>
             </div>
 
-            {/* Contact Info */}
-            <div className="contact-row">
-                <div className="contact-item">
-                    <span className="contact-icon">📞</span>
-                    <span className="contact-value">{reservation.guestPhone || 'N/A'}</span>
+            <div className="res-card-financials">
+                <div className="fin-col">
+                    <label>AMOUNT</label>
+                    <span className="amount">₹{reservation.totalAmount?.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="contact-item">
-                    <span className="contact-icon">📧</span>
-                    <span className="contact-value" title={reservation.guestEmail}>{reservation.guestEmail || 'N/A'}</span>
+                <div className="fin-col">
+                    <label className="text-green">PAID</label>
+                    <span className="amount text-green">₹{reservation.paidAmount?.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="fin-col">
+                    <label className="text-red">BALANCE</label>
+                    <span className="amount text-red">₹{reservation.balanceDue?.toLocaleString('en-IN')}</span>
                 </div>
             </div>
 
-            {/* Actions */}
-            <div className="compact-actions">
+            <div className="res-card-contact">
+                <div className="contact-row">
+                    <span className="icon">📞</span>
+                    <span>{reservation.guestPhone}</span>
+                </div>
+                <div className="contact-row">
+                    <span className="icon">📧</span>
+                    <span className="email-text">{reservation.guestEmail || 'No Email'}</span>
+                </div>
+            </div>
+
+            <div className="res-card-footer">
                 {primaryAction && (
                     <button
-                        className="btn-primary-action"
+                        className={`btn-main-action ${primaryAction.className}`}
                         onClick={handlePrimaryAction}
                     >
                         {primaryAction.label}
                     </button>
                 )}
-                <div className="menu-container">
+                <div className="more-options-wrapper" onClick={e => e.stopPropagation()}>
                     <MoreOptionsMenu
                         booking={reservation}
                         onActionSelect={onActionSelect}
                         buttonLabel="⋮"
+                        buttonClassName="details-menu-btn"
                         options={[
                             { id: 'print-summary', label: '📄 Print Summary', color: '#6366f1', disabled: false },
                             { id: 'print-invoice', label: '🧾 Print Invoice', color: '#8b5cf6', disabled: false },
                             { id: 'print-grc', label: '📋 Print GRC', color: '#0ea5e9', disabled: false },
-                            { id: 'print-grc-all', label: '📋 Print GRC All', color: '#06b6d4', disabled: false },
                             { id: 'send-invoice', label: '📧 Send Invoice', color: '#14b8a6', disabled: !reservation.guestEmail }
                         ]}
                     />

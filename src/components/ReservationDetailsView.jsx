@@ -5,6 +5,18 @@ import './ReservationDetailsView.css';
 const ReservationDetailsView = ({ reservation, onClose, onUpdate }) => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('roomCharges');
+    const [showPrintMenu, setShowPrintMenu] = useState(false);
+
+    const handlePrintAction = (action) => {
+        setShowPrintMenu(false);
+        // Trigger the action via onUpdate
+        // Assuming onUpdate can handle action requests
+        if (onUpdate) {
+            onUpdate({ type: 'OPEN_ACTION', action, reservation });
+        } else {
+            console.warn('onUpdate prop is missing in ReservationDetailsView');
+        }
+    };
     const [charges, setCharges] = useState([
         {
             id: 1,
@@ -43,7 +55,7 @@ const ReservationDetailsView = ({ reservation, onClose, onUpdate }) => {
         const subTotal = charges.reduce((sum, charge) => sum + charge.amount, 0);
         const grandTotal = subTotal;
         const balance = grandTotal;
-        
+
         return { subTotal, grandTotal, balance, paid: 0 };
     };
 
@@ -62,8 +74,43 @@ const ReservationDetailsView = ({ reservation, onClose, onUpdate }) => {
                             👤 {reservation?.guestName || 'Mr. Shahrukh Ahmed'}
                         </h2>
                     </div>
-                    <div className="header-actions">
-                        <button className="action-btn">🖨️ Print / Send</button>
+                    <div className="header-actions relative">
+                        <div className="relative">
+                            <button
+                                className="action-btn"
+                                onClick={() => setShowPrintMenu(!showPrintMenu)}
+                            >
+                                🖨️ Print / Send ▼
+                            </button>
+                            {showPrintMenu && (
+                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                                    <button
+                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                        onClick={() => handlePrintAction('print-summary')}
+                                    >
+                                        📄 Print Summary
+                                    </button>
+                                    <button
+                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                        onClick={() => handlePrintAction('print-invoice')}
+                                    >
+                                        🧾 Print Invoice
+                                    </button>
+                                    <button
+                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                        onClick={() => handlePrintAction('print-grc')}
+                                    >
+                                        📋 Print GRC
+                                    </button>
+                                    <button
+                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                        onClick={() => handlePrintAction('print-grc-all')}
+                                    >
+                                        📋 Print GRC All
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                         <button className="close-btn" onClick={onClose}>✕</button>
                     </div>
                 </div>
@@ -73,8 +120,8 @@ const ReservationDetailsView = ({ reservation, onClose, onUpdate }) => {
                     <div className="info-item">
                         <label>Booking Date</label>
                         <div className="info-value">
-                            {reservation?.checkInDate ? 
-                                new Date(reservation.checkInDate).toLocaleDateString('en-GB') + ' ' + 
+                            {reservation?.checkInDate ?
+                                new Date(reservation.checkInDate).toLocaleDateString('en-GB') + ' ' +
                                 new Date(reservation.checkInDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
                                 : '03-02-2026 01:32 PM'}
                         </div>
@@ -82,8 +129,8 @@ const ReservationDetailsView = ({ reservation, onClose, onUpdate }) => {
                     <div className="info-item">
                         <label>Arrival</label>
                         <div className="info-value">
-                            {reservation?.checkInDate ? 
-                                new Date(reservation.checkInDate).toLocaleDateString('en-GB') + ' ' + 
+                            {reservation?.checkInDate ?
+                                new Date(reservation.checkInDate).toLocaleDateString('en-GB') + ' ' +
                                 new Date(reservation.checkInDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
                                 : '03-02-2026 01:28 PM'}
                         </div>
@@ -91,7 +138,7 @@ const ReservationDetailsView = ({ reservation, onClose, onUpdate }) => {
                     <div className="info-item">
                         <label>Departure</label>
                         <div className="info-value">
-                            {reservation?.checkOutDate ? 
+                            {reservation?.checkOutDate ?
                                 new Date(reservation.checkOutDate).toLocaleDateString('en-GB') + ' 12:00 PM'
                                 : '04-02-2026 12:00 PM'}
                         </div>
@@ -318,7 +365,7 @@ const ReservationDetailsView = ({ reservation, onClose, onUpdate }) => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

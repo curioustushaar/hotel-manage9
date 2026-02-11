@@ -15,15 +15,19 @@ const TaxMapping = () => {
     });
     const [formErrors, setFormErrors] = useState({});
     const [openMenuId, setOpenMenuId] = useState(null);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const menuRef = useRef(null);
 
-    const serviceTypeOptions = [
+    const [serviceOptions, setServiceOptions] = useState([
         { value: 'ROOM', label: 'Room Charges' },
         { value: 'FOOD', label: 'Food & Beverage' },
         { value: 'LAUNDRY', label: 'Laundry' },
         { value: 'SPA', label: 'Spa / Services' },
         { value: 'BILL', label: 'Entire Bill' }
-    ];
+    ]);
+
+    const [isAddingService, setIsAddingService] = useState(false);
+    const [newService, setNewService] = useState('');
 
     // Load tax mappings from localStorage on mount
     useEffect(() => {
@@ -95,6 +99,25 @@ const TaxMapping = () => {
         localStorage.setItem('taxMappings', JSON.stringify(data));
     };
 
+    const handleAddService = () => {
+        if (!newService.trim()) return;
+        const val = newService.trim().toUpperCase().replace(/\s+/g, '_');
+
+        // Check if exists
+        if (serviceOptions.some(opt => opt.value === val)) {
+            setFormData({ ...formData, serviceType: val });
+            setIsAddingService(false);
+            setNewService('');
+            return;
+        }
+
+        const newOption = { value: val, label: newService.trim() };
+        setServiceOptions([...serviceOptions, newOption]);
+        setFormData({ ...formData, serviceType: val });
+        setIsAddingService(false);
+        setNewService('');
+    };
+
     const validateForm = () => {
         const errors = {};
 
@@ -158,9 +181,11 @@ const TaxMapping = () => {
         setTaxMappings(updatedMappings);
         saveToLocalStorage(updatedMappings);
         handleResetForm();
+        setIsSidebarOpen(false);
     };
 
     const handleEditMapping = (mapping) => {
+        setIsSidebarOpen(true);
         setSelectedMapping(mapping);
         setIsEditMode(true);
         setFormData({
@@ -171,6 +196,11 @@ const TaxMapping = () => {
             description: mapping.description
         });
         setFormErrors({});
+    };
+
+    const handleCreateMapping = () => {
+        handleResetForm();
+        setIsSidebarOpen(true);
     };
 
     const handleToggleStatus = (id) => {
@@ -210,6 +240,8 @@ const TaxMapping = () => {
         setSelectedMapping(null);
         setIsEditMode(false);
         setFormErrors({});
+        setIsAddingService(false);
+        setNewService('');
     };
 
     const handleTaxCheckboxChange = (taxId) => {
@@ -222,7 +254,7 @@ const TaxMapping = () => {
     };
 
     const getServiceTypeLabel = (value) => {
-        return serviceTypeOptions.find(opt => opt.value === value)?.label || value;
+        return serviceOptions.find(opt => opt.value === value)?.label || value;
     };
 
     const getTaxName = (taxId) => {
@@ -238,12 +270,23 @@ const TaxMapping = () => {
     return (
         <div className="tax-mapping-page">
             <div className="tax-mapping-page-header">
-                <h1>Tax Mapping</h1>
-                <p>Map taxes to services for accurate billing and invoicing</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <h1>Tax Mapping</h1>
+                        <p>Map taxes to services for accurate billing and invoicing</p>
+                    </div>
+                    <button
+                        className="btn-primary"
+                        onClick={handleCreateMapping}
+                        style={{ maxWidth: '200px' }}
+                    >
+                        + Create Tax Mapping
+                    </button>
+                </div>
             </div>
 
             <div className="tax-mapping-content">
-                {/* Left Section - Tax Mapping List */}
+                {/* Full Width - Tax Mapping List */}
                 <div className="tax-mapping-list-section">
                     <div className="section-header">
                         <h2>Tax Mappings</h2>
@@ -333,7 +376,7 @@ const TaxMapping = () => {
                                             <div className="no-data-content">
                                                 <span className="no-data-icon">📋</span>
                                                 <p className="no-data-text">No tax mappings found</p>
-                                                <p className="no-data-subtext">Create your first tax mapping using the form</p>
+                                                <p className="no-data-subtext">Create your first tax mapping using the button above</p>
                                             </div>
                                         </td>
                                     </tr>
@@ -343,141 +386,196 @@ const TaxMapping = () => {
                     </div>
                 </div>
 
-                {/* Right Section - Create / Edit Form */}
-                <div className="tax-mapping-form-section">
-                    <div className="section-header">
-                        <h2>{isEditMode ? 'Edit Tax Mapping' : 'Create Tax Mapping'}</h2>
+                {/* SIDEBAR OVERLAY */}
+                {isSidebarOpen && (
+                    <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)} style={{ opacity: 1 }}></div>
+                )}
+
+                {/* SIDEBAR FORM */}
+                <div className={`mapping-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+                    <div className="sidebar-header">
+                        <h2>
+                            <span style={{ color: '#ef4444', marginRight: '8px', fontSize: '24px' }}>+</span>
+                            {isEditMode ? 'Edit Tax Mapping' : 'Create Tax Mapping'}
+                        </h2>
+                        <button className="close-sidebar-btn" onClick={() => setIsSidebarOpen(false)}>×</button>
                     </div>
-                    <p className="form-subtitle">Manage how taxes apply to each service</p>
 
-                    <div className="form-container">
-                        {/* Service Type */}
-                        <div className="form-group">
-                            <label className="form-label">
-                                Service Type <span className="required">*</span>
-                            </label>
-                            <select
-                                className={`form-select ${formErrors.serviceType ? 'error' : ''}`}
-                                value={formData.serviceType}
-                                onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
-                            >
-                                <option value="">Select Service Type</option>
-                                {serviceTypeOptions.map(option => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                            {formErrors.serviceType && (
-                                <span className="error-message">{formErrors.serviceType}</span>
-                            )}
-                        </div>
+                    <div className="sidebar-content">
+                        <div className="tax-mapping-form-section">
+                            <p className="form-subtitle">Manage how taxes apply to each service</p>
 
-                        {/* Applicable Taxes */}
-                        <div className="form-group">
-                            <label className="form-label">
-                                Applicable Taxes <span className="required">*</span>
-                            </label>
-                            {taxes.length > 0 ? (
-                                <div className="tax-checkbox-card-group">
-                                    {taxes.map(tax => (
-                                        <label key={tax.id} className={`tax-checkbox-card ${formData.taxIds.includes(tax.id) ? 'checked' : ''}`}>
+                            <div className="form-container">
+                                {/* Service Type */}
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        Service Type <span className="required">*</span>
+                                    </label>
+
+                                    {!isAddingService ? (
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <select
+                                                className={`form-select ${formErrors.serviceType ? 'error' : ''}`}
+                                                value={formData.serviceType}
+                                                onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
+                                                style={{ flex: 1 }}
+                                            >
+                                                <option value="">Select Service Type</option>
+                                                {serviceOptions.map(option => (
+                                                    <option key={option.value} value={option.value}>
+                                                        {option.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <button
+                                                className="btn-secondary"
+                                                onClick={() => setIsAddingService(true)}
+                                                title="Add New Service Type"
+                                                style={{ width: '42px', padding: '0', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                            >
+                                                +
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <input
+                                                type="text"
+                                                className="form-input"
+                                                placeholder="Enter new service type..."
+                                                value={newService}
+                                                onChange={(e) => setNewService(e.target.value)}
+                                                autoFocus
+                                                style={{ flex: 1 }}
+                                            />
+                                            <button
+                                                className="btn-primary"
+                                                onClick={handleAddService}
+                                                style={{ width: '42px', padding: '0' }}
+                                            >
+                                                ✓
+                                            </button>
+                                            <button
+                                                className="btn-secondary"
+                                                onClick={() => { setIsAddingService(false); setNewService(''); }}
+                                                style={{ width: '42px', padding: '0' }}
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {formErrors.serviceType && (
+                                        <span className="error-message">{formErrors.serviceType}</span>
+                                    )}
+                                </div>
+
+                                {/* Applicable Taxes */}
+                                <div className="form-group">
+                                    <label className="form-label">
+                                        Applicable Taxes <span className="required">*</span>
+                                    </label>
+                                    {taxes.length > 0 ? (
+                                        <div className="tax-checkbox-card-group">
+                                            {taxes.map(tax => (
+                                                <label key={tax.id} className={`tax-checkbox-card ${formData.taxIds.includes(tax.id) ? 'checked' : ''}`}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={formData.taxIds.includes(tax.id)}
+                                                        onChange={() => handleTaxCheckboxChange(tax.id)}
+                                                    />
+                                                    <div className="tax-checkbox-card-content">
+                                                        <span className="tax-checkbox-card-icon">📋</span>
+                                                        <div className="tax-checkbox-card-text">
+                                                            <span className="tax-checkbox-card-label">{tax.name}</span>
+                                                            <span className="tax-checkbox-card-desc">
+                                                                {tax.type === 'PERCENTAGE' ? `${tax.value}% government tax` : `₹${tax.value} additional service fee`}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="no-taxes-message">
+                                            <p>No active taxes available. Please create taxes in Tax Configuration first.</p>
+                                        </div>
+                                    )}
+                                    {formErrors.taxIds && (
+                                        <span className="error-message">{formErrors.taxIds}</span>
+                                    )}
+                                </div>
+
+                                {/* Default Mapping Toggle */}
+                                <div className="form-group">
+                                    <label className="form-label">Default Mapping</label>
+                                    <div className="toggle-wrapper">
+                                        <label className="toggle-switch">
                                             <input
                                                 type="checkbox"
-                                                checked={formData.taxIds.includes(tax.id)}
-                                                onChange={() => handleTaxCheckboxChange(tax.id)}
+                                                checked={formData.isDefault}
+                                                onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
                                             />
-                                            <div className="tax-checkbox-card-content">
-                                                <span className="tax-checkbox-card-icon">📋</span>
-                                                <div className="tax-checkbox-card-text">
-                                                    <span className="tax-checkbox-card-label">{tax.name}</span>
-                                                    <span className="tax-checkbox-card-desc">
-                                                        {tax.type === 'PERCENTAGE' ? `${tax.value}% government tax` : `₹${tax.value} additional service fee`}
-                                                    </span>
-                                                </div>
-                                            </div>
+                                            <span className="toggle-slider"></span>
                                         </label>
-                                    ))}
+                                        <span className="toggle-label">
+                                            {formData.isDefault ? 'Yes' : 'No'}
+                                        </span>
+                                    </div>
+                                    {formErrors.isDefault && (
+                                        <span className="error-message">{formErrors.isDefault}</span>
+                                    )}
+                                    <p className="field-hint">Only one default mapping allowed per service type</p>
                                 </div>
-                            ) : (
-                                <div className="no-taxes-message">
-                                    <p>No active taxes available. Please create taxes in Tax Configuration first.</p>
+
+                                {/* Status Toggle */}
+                                <div className="form-group">
+                                    <label className="form-label">Status</label>
+                                    <div className="toggle-wrapper">
+                                        <label className="toggle-switch">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.status === 'ACTIVE'}
+                                                onChange={(e) => setFormData({
+                                                    ...formData,
+                                                    status: e.target.checked ? 'ACTIVE' : 'INACTIVE'
+                                                })}
+                                            />
+                                            <span className="toggle-slider"></span>
+                                        </label>
+                                        <span className="toggle-label">
+                                            {formData.status === 'ACTIVE' ? 'Active' : 'Inactive'}
+                                        </span>
+                                    </div>
                                 </div>
-                            )}
-                            {formErrors.taxIds && (
-                                <span className="error-message">{formErrors.taxIds}</span>
-                            )}
-                        </div>
 
-                        {/* Default Mapping Toggle */}
-                        <div className="form-group">
-                            <label className="form-label">Default Mapping</label>
-                            <div className="toggle-wrapper">
-                                <label className="toggle-switch">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.isDefault}
-                                        onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
+                                {/* Description */}
+                                <div className="form-group">
+                                    <label className="form-label">Description (Optional)</label>
+                                    <textarea
+                                        className="form-textarea"
+                                        placeholder="Add notes about this tax mapping..."
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        rows={3}
                                     />
-                                    <span className="toggle-slider"></span>
-                                </label>
-                                <span className="toggle-label">
-                                    {formData.isDefault ? 'Yes' : 'No'}
-                                </span>
+                                </div>
+
+                                {/* Form Actions */}
+                                <div className="form-actions">
+                                    <button
+                                        className="btn-primary"
+                                        onClick={handleSaveMapping}
+                                    >
+                                        {isEditMode ? 'Update Mapping' : 'Save Mapping'}
+                                    </button>
+                                    <button
+                                        className="btn-secondary"
+                                        onClick={handleResetForm}
+                                    >
+                                        Reset
+                                    </button>
+                                </div>
                             </div>
-                            {formErrors.isDefault && (
-                                <span className="error-message">{formErrors.isDefault}</span>
-                            )}
-                            <p className="field-hint">Only one default mapping allowed per service type</p>
-                        </div>
-
-                        {/* Status Toggle */}
-                        <div className="form-group">
-                            <label className="form-label">Status</label>
-                            <div className="toggle-wrapper">
-                                <label className="toggle-switch">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.status === 'ACTIVE'}
-                                        onChange={(e) => setFormData({
-                                            ...formData,
-                                            status: e.target.checked ? 'ACTIVE' : 'INACTIVE'
-                                        })}
-                                    />
-                                    <span className="toggle-slider"></span>
-                                </label>
-                                <span className="toggle-label">
-                                    {formData.status === 'ACTIVE' ? 'Active' : 'Inactive'}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Description */}
-                        <div className="form-group">
-                            <label className="form-label">Description (Optional)</label>
-                            <textarea
-                                className="form-textarea"
-                                placeholder="Add notes about this tax mapping..."
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                rows={3}
-                            />
-                        </div>
-
-                        {/* Form Actions */}
-                        <div className="form-actions">
-                            <button
-                                className="btn-primary"
-                                onClick={handleSaveMapping}
-                            >
-                                {isEditMode ? 'Update Mapping' : 'Save Mapping'}
-                            </button>
-                            <button
-                                className="btn-secondary"
-                                onClick={handleResetForm}
-                            >
-                                Reset
-                            </button>
                         </div>
                     </div>
                 </div>

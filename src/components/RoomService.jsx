@@ -231,89 +231,60 @@ const RoomService = () => {
                         const checkOutData = formatDateTime(room.checkOut);
 
                         return (
-                            <div key={room.id} className="room-card">
-                                {/* Left Section - Room & Guest Info */}
-                                <div className="room-info-section">
-                                    <div className="room-number">{room.roomNumber}</div>
-                                    <div className="guest-name">{room.guestName}</div>
+                            <div key={room.id} className="room-card-list-item">
+                                {/* Left Section - Room & Guest */}
+                                <div className="card-left">
+                                    <div className="room-badge">
+                                        <span>{room.roomNumber}</span>
+                                    </div>
+                                    <h4 className="guest-name-list">{room.guestName}</h4>
                                 </div>
 
-                                {/* Middle Section - Details */}
-                                <div className="room-details-section">
-                                    {/* Check-in */}
-                                    <div className="detail-item">
-                                        <div className="detail-label">Check-in</div>
-                                        <div className="detail-value">
-                                            <span className="detail-date">{checkInData.date}</span>
-                                            <span className="detail-time">{checkInData.time}</span>
-                                        </div>
+                                {/* Middle Section - Info Columns */}
+                                <div className="card-middle">
+                                    <div className="info-col">
+                                        <label>CHECK-IN</label>
+                                        <span className="info-val-date">{checkInData.date}</span>
+                                        <span className="info-val-time">{checkInData.time}</span>
                                     </div>
-
-                                    {/* Check-out */}
-                                    <div className="detail-item">
-                                        <div className="detail-label">Check-out</div>
-                                        <div className="detail-value">
-                                            <span className="detail-date">{checkOutData.date}</span>
-                                            <span className="detail-time">{checkOutData.time}</span>
-                                        </div>
+                                    <div className="info-col">
+                                        <label>CHECK-OUT</label>
+                                        <span className="info-val-date">{checkOutData.date}</span>
+                                        <span className="info-val-time">{checkOutData.time}</span>
                                     </div>
-
-                                    {/* Rate */}
-                                    <div className="detail-item">
-                                        <div className="detail-label">Rate</div>
-                                        <div className="detail-value rate-value">
-                                            ₹{room.rate.toLocaleString()}
-                                        </div>
+                                    <div className="info-col">
+                                        <label>RATE</label>
+                                        <span className="info-val-rate">₹{room.rate.toLocaleString()}</span>
                                     </div>
-
-                                    {/* Guests */}
-                                    <div className="detail-item">
-                                        <div className="detail-label">Guests</div>
-                                        <div className="detail-value guests-icons">
-                                            {room.maleGuests > 0 && (
-                                                <span className="guest-icon">
-                                                    👨 × {room.maleGuests}
-                                                </span>
-                                            )}
-                                            {room.femaleGuests > 0 && (
-                                                <span className="guest-icon">
-                                                    👩 × {room.femaleGuests}
-                                                </span>
-                                            )}
+                                    <div className="info-col">
+                                        <label>GUESTS</label>
+                                        <div className="guest-display">
+                                            {room.maleGuests > 0 && <span title="Male">👨 × {room.maleGuests}</span>}
+                                            {room.femaleGuests > 0 && <span title="Female">👩 × {room.femaleGuests}</span>}
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Right Section - Services & Action */}
-                                <div className="room-actions-section">
-                                    {/* Service Icons */}
-                                    <div className="service-icons">
-                                        {room.services.includes('wifi') && (
-                                            <span className="service-icon" title="WiFi">📶</span>
-                                        )}
-                                        {room.services.includes('breakfast') && (
-                                            <span className="service-icon" title="Breakfast">🍳</span>
-                                        )}
-                                        {room.services.includes('laundry') && (
-                                            <span className="service-icon" title="Laundry">👔</span>
-                                        )}
-                                        {room.services.includes('spa') && (
-                                            <span className="service-icon" title="Spa">💆</span>
-                                        )}
+                                {/* Right Section - Actions */}
+                                <div className="card-right">
+                                    <div className="action-icons-list">
+                                        <button className="icon-btn-list blue" title="Stats">📊</button>
+                                        <button className="icon-btn-list dark" title="Inspect">🔍</button>
+                                        <button className="icon-btn-list blue" title="Laundry">👔</button>
+                                        <button className="icon-btn-list orange" title="Profile">👤</button>
                                     </div>
 
-                                    {/* Action Button - Show View Order or Add Service */}
                                     {foodOrders.includes(room.id) ? (
                                         <button
-                                            className="btn-view-order"
+                                            className="btn-view-order-list"
                                             onClick={() => handleAddService(room)}
                                             title="View Order"
                                         >
-                                            🍽️ View Order
+                                            View Order
                                         </button>
                                     ) : (
                                         <button
-                                            className="btn-room-action"
+                                            className="btn-add-service-list"
                                             onClick={() => handleAddService(room)}
                                             title="Add Service"
                                         >
