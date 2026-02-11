@@ -22,6 +22,7 @@ const Icons = {
 const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) => {
     const [openConfigDropdown, setOpenConfigDropdown] = useState(false);
     const [openReservationDropdown, setOpenReservationDropdown] = useState(false);
+    const [openPropertyConfigDropdown, setOpenPropertyConfigDropdown] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
     const toggleDropdown = (id) => {
@@ -29,6 +30,8 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
             setOpenConfigDropdown(!openConfigDropdown);
         } else if (id === 'reservations') {
             setOpenReservationDropdown(!openReservationDropdown);
+        } else if (id === 'property-configuration') {
+            setOpenPropertyConfigDropdown(!openPropertyConfigDropdown);
         }
     };
 
@@ -68,6 +71,31 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
                 { id: 'taxes', label: 'Taxes', iconVal: <Icons.Dot /> },
                 { id: 'tax-mapping', label: 'Tax Mapping', iconVal: <Icons.Dot /> },
                 { id: 'generate-room-qr', label: 'Generate Room QR', iconVal: <Icons.Dot /> }
+            ]
+        },
+        {
+            id: 'property-configuration',
+            iconVal: <Icons.Config />,
+            label: 'Property Configuration',
+            hasDropdown: true,
+            dropdownItems: [
+                { id: 'room-setup', label: 'Room Setup', iconVal: <Icons.Dot /> },
+                { id: 'floor-setup', label: 'Floor Setup', iconVal: <Icons.Dot /> },
+                { id: 'bed-type', label: 'Bed Type', iconVal: <Icons.Dot /> },
+                { id: 'room-facilities', label: 'Room Facilities', iconVal: <Icons.Dot /> },
+                { id: 'room-facilities-type', label: 'Room Facilities Type', iconVal: <Icons.Dot /> },
+                { id: 'meal-type', label: 'Meal Type', iconVal: <Icons.Dot /> },
+                { id: 'reservation-type', label: 'Reservation Type', iconVal: <Icons.Dot /> },
+                { id: 'extra-charges', label: 'Extra Charges', iconVal: <Icons.Dot /> },
+                { id: 'complimentary-services', label: 'Complimentary Services', iconVal: <Icons.Dot /> },
+                { id: 'customer-identity', label: 'Customer Identity', iconVal: <Icons.Dot /> },
+                { id: 'booking-source', label: 'Booking Source', iconVal: <Icons.Dot /> },
+                { id: 'business-source', label: 'Business Source', iconVal: <Icons.Dot /> },
+                { id: 'hotel-customer', label: 'Hotel Customer', iconVal: <Icons.Dot /> },
+                { id: 'housekeeping-config', label: 'House Keeping', iconVal: <Icons.Dot /> },
+                { id: 'maintenance-block', label: 'Maintenance Block', iconVal: <Icons.Dot /> },
+                { id: 'screen-field-rule', label: 'Screen Field Rule', iconVal: <Icons.Dot /> },
+                { id: 'company', label: 'Company', iconVal: <Icons.Dot /> }
             ]
         },
         { id: 'customers', iconVal: <Icons.Users />, label: 'Customer List' },
@@ -125,7 +153,8 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
             <nav className="sidebar-nav">
                 {filteredItems.map((item) => {
                     const isOpenDropdown = item.id === 'proper-configuration' ? openConfigDropdown :
-                        item.id === 'reservations' ? openReservationDropdown : false;
+                        item.id === 'reservations' ? openReservationDropdown :
+                            item.id === 'property-configuration' ? openPropertyConfigDropdown : false;
 
                     // If searching, auto-expand if matched
                     const isSearchMatch = searchQuery && item.hasDropdown && item.dropdownItems.some(sub => sub.label.toLowerCase().includes(searchQuery.toLowerCase()));

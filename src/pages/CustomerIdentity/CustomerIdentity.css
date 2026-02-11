@@ -1,0 +1,123 @@
+/* CustomerIdentity.css */
+.customer-identity-container {
+    padding: 20px;
+    background-color: #f9fafb;
+    min-height: 100vh;
+}
+
+.customer-identity-header {
+    background-color: transparent;
+    color: #f83a4d;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.customer-identity-header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.add-btn {
+    background-color: #f83a4d;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+}
+
+.table-container {
+    background-color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.common-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.common-table th {
+    background-color: #dc2626;
+    color: white;
+    padding: 12px 20px;
+    text-align: left;
+}
+
+.common-table td {
+    padding: 12px 20px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #4b5563;
+}
+
+.checkbox-display input {
+    height: 18px;
+    width: 18px;
+    accent-color: #dc2626;
+}
+
+.action-btns {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    background-color: white;
+    cursor: pointer;
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 400px;
+}
+
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.checkbox-label input {
+    height: 16px;
+    width: 16px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}

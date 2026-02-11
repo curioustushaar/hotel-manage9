@@ -16,6 +16,20 @@ import DiscountManagement from '../DiscountManagement/DiscountManagement';
 import TaxConfiguration from '../TaxConfiguration/TaxConfiguration';
 import TaxMapping from '../TaxMapping/TaxMapping';
 import CashierReport from '../CashierReport/CashierReport';
+import RoomSetup from '../RoomSetup/RoomSetup';
+import RoomFacilities from '../RoomFacilities/RoomFacilities';
+import RoomFacilityType from '../RoomFacilityType/RoomFacilityType';
+import MealType from '../MealType/MealType';
+import ReservationType from '../ReservationType/ReservationType';
+import ExtraCharge from '../ExtraCharge/ExtraCharge';
+import ComplimentaryService from '../ComplimentaryService/ComplimentaryService';
+import CustomerIdentity from '../CustomerIdentity/CustomerIdentity';
+import BookingSource from '../BookingSource/BookingSource';
+import BusinessSource from '../BusinessSource/BusinessSource';
+import MaintenanceBlock from '../MaintenanceBlock/MaintenanceBlock';
+
+import BedType from '../BedType/BedType';
+import FloorSetup from '../FloorSetup/FloorSetup';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -895,6 +909,99 @@ const AdminDashboard = () => {
                             </table>
                         </div>
                     </div>
+                )
+            }
+
+            {/* Room Setup View */}
+            {
+                activeMenu === 'room-setup' && (
+                    <RoomSetup />
+                )
+            }
+
+            {/* Room Facilities View */}
+            {
+                activeMenu === 'room-facilities' && (
+                    <RoomFacilities />
+                )
+            }
+
+            {/* Room Facilities Type View */}
+            {
+                activeMenu === 'room-facilities-type' && (
+                    <RoomFacilityType />
+                )
+            }
+
+            {/* Meal Type View */}
+            {
+                activeMenu === 'meal-type' && (
+                    <MealType />
+                )
+            }
+
+            {/* Reservation Type View */}
+            {
+                activeMenu === 'reservation-type' && (
+                    <ReservationType />
+                )
+            }
+
+            {/* Extra Charges View */}
+            {
+                activeMenu === 'extra-charges' && (
+                    <ExtraCharge />
+                )
+            }
+
+            {/* Complimentary Services View */}
+            {
+                activeMenu === 'complimentary-services' && (
+                    <ComplimentaryService />
+                )
+            }
+
+            {/* Customer Identity View */}
+            {
+                activeMenu === 'customer-identity' && (
+                    <CustomerIdentity />
+                )
+            }
+
+            {/* Booking Source View */}
+            {
+                activeMenu === 'booking-source' && (
+                    <BookingSource />
+                )
+            }
+
+            {/* Business Source View */}
+            {
+                activeMenu === 'business-source' && (
+                    <BusinessSource />
+                )
+            }
+
+            {/* Maintenance Block View */}
+            {
+                activeMenu === 'maintenance-block' && (
+                    <MaintenanceBlock />
+                )
+            }
+
+
+
+            {/* Floor Setup View */}
+            {
+                activeMenu === 'floor-setup' && (
+                    <FloorSetup />
+                )
+            }
+
+            {/* Bed Type View */}
+            {
+                activeMenu === 'bed-type' && (
+                    <BedType />
                 )
             }
 

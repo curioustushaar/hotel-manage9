@@ -1,0 +1,267 @@
+/* MealType.css */
+.meal-type-container {
+    padding: 20px;
+    background-color: #f9fafb;
+    min-height: 100%;
+}
+
+.meal-type-header {
+    background-color: transparent;
+    color: #f83a4d;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.meal-type-header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.add-meal-btn {
+    background-color: #f83a4d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.add-meal-btn:hover {
+    background-color: #dc2626;
+}
+
+.meal-type-table-container {
+    background-color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.meal-type-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.meal-type-table thead tr {
+    background-color: #dc2626;
+    color: white;
+}
+
+.meal-type-table th {
+    padding: 12px 20px;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.meal-type-table td {
+    padding: 12px 20px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #4b5563;
+    font-size: 14px;
+}
+
+.meal-type-table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+.meal-tag {
+    display: block;
+    margin-bottom: 2px;
+}
+
+.action-btns {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.icon-button {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    background-color: white;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.icon-button:hover {
+    background-color: #fef2f2;
+    color: #ef4444;
+    border-color: #fecaca;
+}
+
+/* Modal and Form Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 500px;
+    max-width: 90%;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 10px;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #111827;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.form-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #f83a4d;
+    box-shadow: 0 0 0 3px #fecaca;
+}
+
+.checkbox-group {
+    display: flex;
+    gap: 12px;
+    flex-direction: row;
+    /* Horizontal alignment */
+    flex-wrap: wrap;
+    /* Allow wrap if screen is very small, but mostly row */
+}
+
+.checkbox-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    background-color: white;
+    transition: all 0.2s;
+    user-select: none;
+    min-width: 100px;
+    /* Ensure consistency */
+}
+
+.checkbox-card:hover {
+    border-color: #f83a4d;
+    background-color: #fef2f2;
+}
+
+.checkbox-card.selected {
+    background-color: #fef2f2;
+    border-color: #f83a4d;
+    color: #f83a4d;
+    font-weight: 500;
+}
+
+.checkbox-icon {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d1d5db;
+    border-radius: 3px;
+    background: white;
+    font-size: 12px;
+    line-height: 1;
+}
+
+.checkbox-card.selected .checkbox-icon {
+    border-color: #f83a4d;
+    background-color: #f83a4d;
+    color: white;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    font-size: 14px;
+}
+
+.btn-secondary {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.btn-secondary:hover {
+    background-color: #e5e7eb;
+}
+
+.btn-primary {
+    background-color: #f83a4d;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #dc2626;
+}

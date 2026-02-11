@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove }) => {
+const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = [] }) => {
     const handleChange = (field, value) => {
         onUpdate(index, { ...room, [field]: value });
     };
@@ -51,9 +51,21 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove }) => {
                         value={room.mealPlan}
                         onChange={(e) => handleChange('mealPlan', e.target.value)}
                     >
-                        <option value="CP">CP (Room Only)</option>
-                        <option value="MAP">MAP (B + D)</option>
-                        <option value="AP">AP (All Meals)</option>
+                        <option value="">Select Plan</option>
+                        {mealTypes && mealTypes.length > 0 ? (
+                            mealTypes.map(mt => (
+                                <option key={mt._id} value={mt.shortCode}>
+                                    {mt.shortCode} ({mt.name})
+                                </option>
+                            ))
+                        ) : (
+                            // Fallback if no meal types fetched
+                            <>
+                                <option value="CP">CP (Room Only)</option>
+                                <option value="MAP">MAP (B + D)</option>
+                                <option value="AP">AP (All Meals)</option>
+                            </>
+                        )}
                     </select>
                 </div>
 
