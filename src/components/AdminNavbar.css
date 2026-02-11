@@ -89,6 +89,11 @@
     background: transparent;
 }
 
+.top-icon-btn[title="Settings"] {
+    color: #4f46e5;
+    /* Indigo color to match Image */
+}
+
 .top-icon-btn svg {
     width: 22px;
     height: 22px;

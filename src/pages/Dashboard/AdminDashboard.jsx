@@ -16,6 +16,7 @@ import DiscountManagement from '../DiscountManagement/DiscountManagement';
 import TaxConfiguration from '../TaxConfiguration/TaxConfiguration';
 import TaxMapping from '../TaxMapping/TaxMapping';
 import CashierReport from '../CashierReport/CashierReport';
+import StayOverview from '../../components/StayOverview';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -106,10 +107,15 @@ const AdminDashboard = () => {
     useEffect(() => {
         const path = location.pathname;
 
-        // Priority to state passed via navigation (e.g. from RoomService)
+        // Priority to state passed via navigation (e.g. from RoomService or StayOverview)
         if (location.state && location.state.activeMenu) {
             setActiveMenu(location.state.activeMenu);
             return;
+        }
+
+        // Handle viewMode from navigation state
+        if (location.state && location.state.viewMode) {
+            setReservationView(location.state.viewMode);
         }
 
         if (path.includes('/reservations')) {
@@ -124,6 +130,14 @@ const AdminDashboard = () => {
             setActiveMenu('customers');
         } else if (path.includes('/settings')) {
             setActiveMenu('settings');
+        } else if (path.includes('/stay-overview')) {
+            setActiveMenu('stay-overview');
+        } else if (path.includes('/reservation-stay-management')) {
+            setActiveMenu('reservations');
+        } else if (path.includes('/view-reservation')) {
+            setActiveMenu('reservations');
+        } else if (path.includes('/room-service')) {
+            setActiveMenu('guest-meal-service');
         } else if (path.includes('/dashboard')) {
             setActiveMenu('dashboard');
         }
@@ -533,6 +547,7 @@ const AdminDashboard = () => {
             activeMenu={activeMenu}
             onMenuClick={handleMenuClick}
             onLogout={handleLogout}
+            noPadding={activeMenu === 'stay-overview'}
         >
 
 
@@ -754,6 +769,11 @@ const AdminDashboard = () => {
             {/* Cashier Report View */}
             {activeMenu === 'cashier-report' && (
                 <CashierReport />
+            )}
+
+            {/* Stay Overview View (Image 1) */}
+            {activeMenu === 'stay-overview' && (
+                <StayOverview />
             )}
 
             {/* Proper Configuration Options */}

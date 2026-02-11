@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import API_URL_CONFIG from '../config/api';
 import './ReservationStayManagement.css';
@@ -17,14 +18,36 @@ import HousekeepingView from './HousekeepingView';
 import RoomService from './RoomService';
 
 const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const API_URL = 'http://localhost:5001/api/bookings';
     const [view, setView] = useState(viewMode); // 'dashboard', 'form', 'housekeeping', or 'roomservice'
+    const [prefilledData, setPrefilledData] = useState(null);
 
     // Sync internal view state with prop changes
     useEffect(() => {
         if (viewMode) {
             setView(viewMode);
         }
-    }, [viewMode]);
+
+        // Check for pre-filled data from navigation state
+        if (location.state && location.state.prefilledData) {
+            setPrefilledData(location.state.prefilledData);
+        }
+
+        // Auto-open guest modal if requested
+        if (location.state && location.state.autoOpenGuestModal) {
+            console.log('🎯 Auto-opening Create Guest modal...');
+            // Delay to ensure form is rendered first
+            setTimeout(() => {
+                setShowGuestModal(true);
+                // Update navigation state: remove autoOpenGuestModal but keep viewMode and prefilledData
+                const newState = { ...location.state };
+                delete newState.autoOpenGuestModal;
+                navigate('.', { replace: true, state: newState });
+            }, 300);
+        }
+    }, [viewMode, location, navigate]);
     const [activeTab, setActiveTab] = useState('all'); // 'all', 'reserved', 'in-house', 'checked-out'
     const [showEditModal, setShowEditModal] = useState(false); // Edit Reservation Modal state
 
@@ -34,8 +57,6 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [editingReservationId, setEditingReservationId] = useState(null);
     const [selectedReservation, setSelectedReservation] = useState(null);
     const [loading, setLoading] = useState(true);
-
-    const API_URL = `${API_URL_CONFIG}/api/bookings`;
 
     // Fetch reservations from MongoDB
     useEffect(() => {
@@ -163,6 +184,18 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         }
     };
 
+    // Helper function to convert room type name to category ID
+    const getCategoryIdFromRoomType = (roomType) => {
+        const typeMapping = {
+            'Deluxe Room': 'deluxe-ac-double',
+            'Club AC Double Room': 'club-ac-double',
+            'Suite Double Room': 'suite-double',
+            'Suite Single Room': 'suite-single',
+            'Standard Room': 'standard-room'
+        };
+        return typeMapping[roomType] || 'deluxe-ac-double';
+    };
+
     // Form State - Reservation Meta
     const [reservationType, setReservationType] = useState('Confirm');
     const [bookingSource, setBookingSource] = useState('Direct');
@@ -171,18 +204,18 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [arrivalFrom, setArrivalFrom] = useState('');
     const [purposeOfVisit, setPurposeOfVisit] = useState('');
 
-    // Form State - Stay Details
-    const [checkInDate, setCheckInDate] = useState('');
-    const [checkInTime, setCheckInTime] = useState('14:00');
-    const [checkOutDate, setCheckOutDate] = useState('');
-    const [checkOutTime, setCheckOutTime] = useState('11:00');
+    // Form State - Stay Details (with pre-fill support)
+    const [checkInDate, setCheckInDate] = useState(prefilledData?.checkInDate || '');
+    const [checkInTime, setCheckInTime] = useState(prefilledData?.checkInTime || '14:00');
+    const [checkOutDate, setCheckOutDate] = useState(prefilledData?.checkOutDate || '');
+    const [checkOutTime, setCheckOutTime] = useState(prefilledData?.checkOutTime || '11:00');
     const [flexibleCheckout, setFlexibleCheckout] = useState(false);
 
-    // Form State - Room Details
+    // Form State - Room Details (with pre-fill support)
     const [rooms, setRooms] = useState([{
         id: 1,
-        categoryId: 'deluxe-ac-double',
-        roomNumber: '',
+        categoryId: prefilledData?.roomType ? getCategoryIdFromRoomType(prefilledData.roomType) : 'deluxe-ac-double',
+        roomNumber: prefilledData?.roomNumber || '',
         mealPlan: 'CP',
         adultsCount: 1,
         childrenCount: 0,
@@ -238,6 +271,31 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [amendDepartureDate, setAmendDepartureDate] = useState('');
     const [amendDepartureTime, setAmendDepartureTime] = useState('');
     const [amendDeparturePeriod, setAmendDeparturePeriod] = useState('AM');
+
+    // Update form fields when prefilledData changes
+    useEffect(() => {
+        if (prefilledData) {
+            console.log('📝 Pre-filling form with data:', prefilledData);
+
+            if (prefilledData.checkInDate) setCheckInDate(prefilledData.checkInDate);
+            if (prefilledData.checkInTime) setCheckInTime(prefilledData.checkInTime);
+            if (prefilledData.checkOutDate) setCheckOutDate(prefilledData.checkOutDate);
+            if (prefilledData.checkOutTime) setCheckOutTime(prefilledData.checkOutTime);
+
+            if (prefilledData.roomType || prefilledData.roomNumber) {
+                setRooms([{
+                    id: 1,
+                    categoryId: prefilledData.roomType ? getCategoryIdFromRoomType(prefilledData.roomType) : 'deluxe-ac-double',
+                    roomNumber: prefilledData.roomNumber || '',
+                    mealPlan: 'CP',
+                    adultsCount: 1,
+                    childrenCount: 0,
+                    ratePerNight: 3000,
+                    discount: 0
+                }]);
+            }
+        }
+    }, [prefilledData]);
 
     // Print Modal State
     const [showPrintModal, setShowPrintModal] = useState(false);
@@ -465,8 +523,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     }, []);
 
     // Handle Save Reservation
-    const handleSaveReservation = async (e) => {
-        e.preventDefault();
+    const handleSaveReservation = async (e, status = 'RESERVED') => {
+        if (e && e.preventDefault) e.preventDefault();
 
         if (!selectedGuest) {
             alert('Please select a guest');
@@ -497,7 +555,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             pricePerNight: rooms[0].ratePerNight,
             totalAmount: billingData.totalAmount,
             advancePaid: billingData.paidAmount || 0,
-            status: 'Upcoming'
+            status: status === 'IN_HOUSE' ? 'Checked-in' : 'Upcoming'
         };
 
         try {
@@ -716,7 +774,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                         </button>
                         <h1>{isEditingMode ? 'Edit Reservation' : 'Create New Reservation'}</h1>
 
-                        <form onSubmit={handleSaveReservation} className="reservation-form-view">
+                        <div className="reservation-form-view">
                             {/* Reservation Details Section */}
                             <div className="form-section">
                                 <h3 className="section-title">📋 Reservation Details</h3>
@@ -791,6 +849,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                     onSelectGuest={setSelectedGuest}
                                     guests={guests}
                                     onRefreshGuests={fetchGuestsFromAPI}
+                                    autoOpenCreate={location.state?.autoOpenGuestModal || false}
                                 />
                             </div>
 
@@ -863,11 +922,23 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                 <button type="button" className="btn btn-outline" onClick={() => { resetForm(); setView('dashboard'); }}>
                                     Cancel
                                 </button>
-                                <button type="submit" className="btn btn-primary">
+                                <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    style={{ backgroundColor: '#28a745', borderColor: '#28a745', marginRight: '1rem' }}
+                                    onClick={(e) => handleSaveReservation(e, 'IN_HOUSE')}
+                                >
+                                    ✓ Check-In
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={(e) => handleSaveReservation(e, 'RESERVED')}
+                                >
                                     {isEditingMode ? 'Update Reservation' : 'Create Reservation'}
                                 </button>
                             </div>
-                        </form>
+                        </div>
                     </div>
 
                     {/* Billing Summary Panel */}

@@ -1,10 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import CreateGuestForm from './CreateGuestForm';
 import './GuestModal.css';
 
-const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGuests }) => {
-    const [view, setView] = useState('selection'); // 'selection' or 'create'
+const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGuests, autoOpenCreate = false }) => {
+    const [view, setView] = useState(autoOpenCreate ? 'create' : 'selection'); // 'selection' or 'create'
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Update view when autoOpenCreate changes
+    useEffect(() => {
+        if (autoOpenCreate && isOpen) {
+            setView('create');
+        } else if (!autoOpenCreate && isOpen) {
+            setView('selection');
+        }
+    }, [autoOpenCreate, isOpen]);
 
     if (!isOpen) return null;
 

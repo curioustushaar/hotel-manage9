@@ -3,7 +3,7 @@ import Sidebar from './Sidebar';
 import AdminNavbar from './AdminNavbar';
 import './AdminLayout.css';
 
-const AdminLayout = ({ children, activeMenu, onMenuClick, onLogout }) => {
+const AdminLayout = ({ children, activeMenu, onMenuClick, onLogout, noPadding = false }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     return (
@@ -21,8 +21,8 @@ const AdminLayout = ({ children, activeMenu, onMenuClick, onLogout }) => {
                 onLogout={onLogout}
             />
 
-            <div className={`main-content ${sidebarOpen ? '' : 'full-width'}`}>
-                <div className="layout-content">
+            <div className={`main-content ${sidebarOpen ? '' : 'full-width'} ${noPadding ? 'no-padding' : ''}`}>
+                <div className={`layout-content ${noPadding ? 'no-padding' : ''}`}>
                     {children}
                 </div>
             </div>
