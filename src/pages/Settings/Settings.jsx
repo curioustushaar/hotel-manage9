@@ -18,17 +18,40 @@ const Settings = () => {
         permissions: []
     });
 
-    const permissionOptions = [
+    const [availablePermissions, setAvailablePermissions] = useState([
         'Dashboard',
         'Rooms',
         'Bookings',
         'Food Menu',
-
         'Customers',
         'Settings',
         'Cashier Report',
         'Food Payment Report'
-    ];
+    ]);
+    const [isPermissionsOpen, setIsPermissionsOpen] = useState(false);
+    const [isAddingPermission, setIsAddingPermission] = useState(false);
+    const [newPermission, setNewPermission] = useState('');
+
+    const handleAddPermission = () => {
+        if (!newPermission.trim()) return;
+        const permission = newPermission.trim();
+        if (!availablePermissions.includes(permission)) {
+            setAvailablePermissions([...availablePermissions, permission]);
+            setFormData(prev => ({
+                ...prev,
+                permissions: [...prev.permissions, permission]
+            }));
+        } else {
+            if (!formData.permissions.includes(permission)) {
+                setFormData(prev => ({
+                    ...prev,
+                    permissions: [...prev.permissions, permission]
+                }));
+            }
+        }
+        setIsAddingPermission(false);
+        setNewPermission('');
+    };
 
     // Load staff from localStorage
     useEffect(() => {
@@ -199,6 +222,9 @@ const Settings = () => {
             confirmPassword: '',
             permissions: []
         });
+        setIsPermissionsOpen(false);
+        setIsAddingPermission(false);
+        setNewPermission('');
     };
 
     const filteredStaff = staffData.filter(staff =>
@@ -327,7 +353,7 @@ const Settings = () => {
                                                     onClick={() => handleToggleActive(staff.id)}
                                                     title={staff.active ? 'Deactivate Staff' : 'Activate Staff'}
                                                 >
-                                                    {staff.active ? '✗' : '✓'}
+                                                    {staff.active ? '✓' : '✗'}
                                                 </button>
                                             </td>
                                         </tr>
@@ -356,7 +382,7 @@ const Settings = () => {
                     </div>
 
                     <div className="permissions-management-grid">
-                        {permissionOptions.map((permission, index) => {
+                        {availablePermissions.map((permission, index) => {
                             const isChecked = managingPermissions.permissions?.includes(permission) || false;
                             return (
                                 <div key={index} className="permission-checkbox-card">
@@ -399,7 +425,7 @@ const Settings = () => {
                 <div className="permissions-info-section">
                     <h2>Available Permissions</h2>
                     <div className="permissions-grid">
-                        {permissionOptions.map((permission, index) => {
+                        {availablePermissions.map((permission, index) => {
                             const staffWithPermission = staffData.filter(staff =>
                                 staff.permissions.includes(permission)
                             );
@@ -507,17 +533,107 @@ const Settings = () => {
 
                                 <div className="form-group">
                                     <label>Permissions</label>
-                                    <div className="permissions-checkbox-grid">
-                                        {permissionOptions.map((permission) => (
-                                            <label key={permission} className="permission-checkbox">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={formData.permissions.includes(permission)}
-                                                    onChange={() => handlePermissionToggle(permission)}
-                                                />
-                                                <span>{permission}</span>
-                                            </label>
-                                        ))}
+                                    <div className="permissions-dropdown-container" style={{ position: 'relative' }}>
+                                        <div
+                                            className="permissions-dropdown-trigger"
+                                            onClick={() => setIsPermissionsOpen(!isPermissionsOpen)}
+                                            style={{
+                                                padding: '10px',
+                                                border: '1px solid #ddd',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                background: '#fff'
+                                            }}
+                                        >
+                                            <span className="selected-count">
+                                                {formData.permissions.length > 0
+                                                    ? `${formData.permissions.length} Permissions Selected`
+                                                    : 'Select Permissions'}
+                                            </span>
+                                            <span className={`dropdown-arrow`}>{isPermissionsOpen ? '▲' : '▼'}</span>
+                                        </div>
+
+                                        {isPermissionsOpen && (
+                                            <div className="permissions-dropdown-content" style={{
+                                                position: 'absolute',
+                                                top: '100%',
+                                                left: 0,
+                                                right: 0,
+                                                background: '#fff',
+                                                border: '1px solid #ddd',
+                                                borderRadius: '4px',
+                                                marginTop: '5px',
+                                                zIndex: 1000,
+                                                padding: '10px',
+                                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                            }}>
+                                                <div className="permissions-list" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                                                    {availablePermissions.map(permission => (
+                                                        <div
+                                                            key={permission}
+                                                            className={`permission-item ${formData.permissions.includes(permission) ? 'selected' : ''}`}
+                                                            onClick={() => handlePermissionToggle(permission)}
+                                                            style={{
+                                                                background: formData.permissions.includes(permission) ? '#dcfce7' : 'transparent',
+                                                                color: formData.permissions.includes(permission) ? '#166534' : 'inherit',
+                                                                cursor: 'pointer',
+                                                                padding: '8px',
+                                                                margin: '4px 0',
+                                                                borderRadius: '4px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'space-between',
+                                                                border: formData.permissions.includes(permission) ? '1px solid #bbf7d0' : '1px solid transparent'
+                                                            }}
+                                                        >
+                                                            <span>{permission}</span>
+                                                            {formData.permissions.includes(permission) && <span>✓</span>}
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                {/* Add New Permission Section */}
+                                                {!isAddingPermission ? (
+                                                    <button
+                                                        type="button"
+                                                        className="add-permission-btn"
+                                                        onClick={(e) => { e.stopPropagation(); setIsAddingPermission(true); }}
+                                                        style={{ width: '100%', padding: '8px', marginTop: '8px', border: '1px dashed #ccc', background: 'transparent', cursor: 'pointer', borderRadius: '4px' }}
+                                                    >
+                                                        + Add New Permission
+                                                    </button>
+                                                ) : (
+                                                    <div className="add-permission-input" style={{ display: 'flex', gap: '5px', marginTop: '8px' }}>
+                                                        <input
+                                                            type="text"
+                                                            value={newPermission}
+                                                            onChange={(e) => setNewPermission(e.target.value)}
+                                                            placeholder="New Permission..."
+                                                            autoFocus
+                                                            style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); handleAddPermission(); }}
+                                                            style={{ background: '#22c55e', color: 'white', border: 'none', padding: '0 12px', borderRadius: '4px', cursor: 'pointer' }}
+                                                        >
+                                                            ✓
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); setIsAddingPermission(false); setNewPermission(''); }}
+                                                            style={{ background: '#ef4444', color: 'white', border: 'none', padding: '0 12px', borderRadius: '4px', cursor: 'pointer' }}
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

@@ -21,6 +21,13 @@ const app = express();
 // CORS configuration - Allow production and development origins
 const allowedOrigins = [
     'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:5176',
+    'http://localhost:5177',
+    'http://localhost:5178',
+    'http://localhost:5179',
+    'http://localhost:5180',
     'http://localhost:3000',
     process.env.FRONTEND_URL || 'http://localhost:5173'
 ].filter(Boolean);
@@ -56,9 +63,9 @@ const connectDB = async () => {
     try {
         console.log('🔄 Connecting to MongoDB...');
         console.log('📍 URI:', process.env.MONGODB_URI ? 'Found in .env' : 'Using default localhost');
-        
+
         const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bareena-atithi');
-        
+
         console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
         console.log(`📊 Database: ${conn.connection.name}`);
         cachedDb = conn;

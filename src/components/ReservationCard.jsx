@@ -7,11 +7,11 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
     const getPrimaryAction = (status) => {
         switch (status) {
             case 'RESERVED':
-                return { label: 'Check In', action: 'IN_HOUSE', type: 'checkIn', icon: '🏨' };
+                return { label: 'CHECK-IN', action: 'IN_HOUSE', type: 'checkIn', className: 'btn-check-in' };
             case 'IN_HOUSE':
-                return { label: 'Check Out', action: 'CHECKED_OUT', type: 'checkOut', icon: '👋' };
+                return { label: 'CHECK-OUT', action: 'CHECKED_OUT', type: 'checkOut', className: 'btn-check-out' };
             case 'CHECKED_OUT':
-                return { label: 'View Invoice', action: 'viewInvoice', type: 'invoice', icon: '🧾' };
+                return { label: 'VIEW INVOICE', action: 'viewInvoice', type: 'invoice', className: 'btn-invoice' };
             default:
                 return null;
         }
@@ -30,89 +30,86 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
         }
     };
 
-    const checkInDateObj = new Date(reservation.checkInDate);
-    const checkOutDateObj = new Date(reservation.checkOutDate);
-
-    const formatDate = (date) => date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-    const formatTime = (time) => {
-        if (!time) return '';
-        const [hours, minutes] = time.split(':');
-        const h = parseInt(hours, 10);
-        const period = h >= 12 ? 'PM' : 'AM';
-        const h12 = h % 12 || 12;
-        return `${h12}:${minutes} ${period}`;
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
     };
-
-    const roomNumber = reservation.rooms?.[0]?.roomNumber || 'N/A';
-    const adults = reservation.rooms?.[0]?.adultsCount || 0;
-    const children = reservation.rooms?.[0]?.childrenCount || 0;
 
     return (
         <div
-            className={`reservation-card-list-item ${isSelected ? 'selected' : ''}`}
+            className={`reservation-card ${isSelected ? 'selected' : ''}`}
             onClick={() => onSelect && onSelect(reservation)}
         >
-            <div className="card-left-section">
-                <div className="room-number-box">
-                    <span>{roomNumber}</span>
+            <div className="res-card-header">
+                <h3 className="guest-name">{reservation.guestName}</h3>
+                <span className={`status-text ${reservation.status.toLowerCase()}`}>
+                    {reservation.status === 'IN_HOUSE' ? 'IN_HOUSE' :
+                        reservation.status === 'CHECKED_OUT' ? 'CHECKED_OUT' : 'RESERVED'}
+                </span>
+            </div>
+
+            <div className="res-card-ref">
+                Ref: {reservation.referenceNumber || reservation.id?.substring(0, 10) + '...'}
+            </div>
+
+            <div className="res-card-dates">
+                <span className="date">{formatDate(reservation.checkInDate)}</span>
+                <span className="arrow">→</span>
+                <span className="date">{formatDate(reservation.checkOutDate)}</span>
+                <span className="nights">{reservation.nights} night(s)</span>
+            </div>
+
+            <div className="res-card-rooms">
+                <span className="room-icon">🛏</span>
+                <span>{reservation.rooms?.length || 1} Room(s)</span>
+            </div>
+
+            <div className="res-card-financials">
+                <div className="fin-col">
+                    <label>AMOUNT</label>
+                    <span className="amount">₹{reservation.totalAmount?.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="guest-info-box">
-                    <h4 className="guest-name">{reservation.guestName}</h4>
-                    {/* <span className="guest-id">Ref: {reservation.id.substring(0, 8)}</span> */}
+                <div className="fin-col">
+                    <label className="text-green">PAID</label>
+                    <span className="amount text-green">₹{reservation.paidAmount?.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="fin-col">
+                    <label className="text-red">BALANCE</label>
+                    <span className="amount text-red">₹{reservation.balanceDue?.toLocaleString('en-IN')}</span>
                 </div>
             </div>
 
-            <div className="card-middle-section">
-                <div className="info-col">
-                    <label>CHECK-IN</label>
-                    <span className="info-date">{formatDate(checkInDateObj)}</span>
-                    <span className="info-time">{formatTime(reservation.checkInTime)}</span>
+            <div className="res-card-contact">
+                <div className="contact-row">
+                    <span className="icon">📞</span>
+                    <span>{reservation.guestPhone}</span>
                 </div>
-                <div className="info-col">
-                    <label>CHECK-OUT</label>
-                    <span className="info-date">{formatDate(checkOutDateObj)}</span>
-                    <span className="info-time">{formatTime(reservation.checkOutTime)}</span>
-                </div>
-                <div className="info-col">
-                    <label>RATE</label>
-                    <span className="info-rate">₹{reservation.totalAmount?.toLocaleString('en-IN') || '0'}</span>
-                </div>
-                <div className="info-col">
-                    <label>GUESTS</label>
-                    <div className="guest-counts">
-                        <span title="Adults">👨 × {adults}</span>
-                        {children > 0 && <span title="Children">👶 × {children}</span>}
-                    </div>
+                <div className="contact-row">
+                    <span className="icon">📧</span>
+                    <span className="email-text">{reservation.guestEmail || 'No Email'}</span>
                 </div>
             </div>
 
-            <div className="card-right-section">
-                <div className="action-icons">
-                    <button className="icon-btn" title="Statistics">📊</button>
-                    <button className="icon-btn" title="Inspect" onClick={(e) => { e.stopPropagation(); onSelect && onSelect(reservation); }}>�</button>
-                    <button className="icon-btn" title="Services">👔</button>
-                </div>
-
+            <div className="res-card-footer">
                 {primaryAction && (
                     <button
-                        className="view-order-btn"
+                        className={`btn-main-action ${primaryAction.className}`}
                         onClick={handlePrimaryAction}
                     >
-                        {/* <span className="btn-icon">{primaryAction.icon}</span> */}
                         {primaryAction.label}
                     </button>
                 )}
-                <div className="menu-container" onClick={e => e.stopPropagation()}>
+                <div className="more-options-wrapper" onClick={e => e.stopPropagation()}>
                     <MoreOptionsMenu
                         booking={reservation}
                         onActionSelect={onActionSelect}
-                        buttonLabel="+"
-                        buttonClassName="plus-menu-btn"
+                        buttonLabel="⋮"
+                        buttonClassName="details-menu-btn"
                         options={[
                             { id: 'print-summary', label: '📄 Print Summary', color: '#6366f1', disabled: false },
                             { id: 'print-invoice', label: '🧾 Print Invoice', color: '#8b5cf6', disabled: false },
                             { id: 'print-grc', label: '📋 Print GRC', color: '#0ea5e9', disabled: false },
-                            { id: 'print-grc-all', label: '📋 Print GRC All', color: '#06b6d4', disabled: false },
                             { id: 'send-invoice', label: '📧 Send Invoice', color: '#14b8a6', disabled: !reservation.guestEmail }
                         ]}
                     />

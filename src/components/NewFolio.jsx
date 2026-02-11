@@ -20,7 +20,7 @@ const NewFolio = ({ onClose, onSave }) => {
     const fetchGuests = async () => {
         try {
             setLoading(true);
-            const response = await fetch('http://localhost:5000/api/bookings/list');
+            const response = await fetch('http://localhost:5001/api/bookings/list');
             const data = await response.json();
             
             if (data.success && data.data) {
@@ -118,3 +118,4 @@ const NewFolio = ({ onClose, onSave }) => {
 };
 
 export default NewFolio;
+

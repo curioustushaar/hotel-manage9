@@ -198,7 +198,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     // Fetch guests from API
     const fetchGuestsFromAPI = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/guests/list');
+            const response = await fetch('http://localhost:5001/api/guests/list');
             const data = await response.json();
 
             if (data.success && data.data) {
@@ -1584,3 +1584,4 @@ function getDummyGuests() {
 }
 
 export default ReservationStayManagement;
+

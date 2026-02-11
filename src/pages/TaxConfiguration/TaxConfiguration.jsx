@@ -16,15 +16,18 @@ const TaxConfiguration = () => {
     });
     const [formErrors, setFormErrors] = useState({});
     const [openMenuId, setOpenMenuId] = useState(null);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const menuRef = useRef(null);
 
-    const applyToOptions = [
+    const [applyToOptions, setApplyToOptions] = useState([
         { value: 'ROOM', label: 'Room Charges' },
         { value: 'FOOD', label: 'Food & Beverage' },
         { value: 'LAUNDRY', label: 'Laundry' },
         { value: 'SPA', label: 'Spa / Services' },
         { value: 'BILL', label: 'Entire Bill' }
-    ];
+    ]);
+    const [isAddingApplyTo, setIsAddingApplyTo] = useState(false);
+    const [newApplyTo, setNewApplyTo] = useState('');
 
     // Load taxes from localStorage on mount
     useEffect(() => {
@@ -91,6 +94,24 @@ const TaxConfiguration = () => {
         localStorage.setItem('taxes', JSON.stringify(data));
     };
 
+    const handleAddApplyTo = () => {
+        if (!newApplyTo.trim()) return;
+        const val = newApplyTo.trim().toUpperCase().replace(/\s+/g, '_');
+
+        if (applyToOptions.some(opt => opt.value === val)) {
+            setFormData({ ...formData, appliesTo: val });
+            setIsAddingApplyTo(false);
+            setNewApplyTo('');
+            return;
+        }
+
+        const newOption = { value: val, label: newApplyTo.trim() };
+        setApplyToOptions([...applyToOptions, newOption]);
+        setFormData({ ...formData, appliesTo: val });
+        setIsAddingApplyTo(false);
+        setNewApplyTo('');
+    };
+
     const validateForm = () => {
         const errors = {};
 
@@ -138,9 +159,11 @@ const TaxConfiguration = () => {
         setTaxes(updatedTaxes);
         saveToLocalStorage(updatedTaxes);
         handleResetForm();
+        setIsSidebarOpen(false);
     };
 
     const handleEditTax = (tax) => {
+        setIsSidebarOpen(true);
         setSelectedTax(tax);
         setIsEditMode(true);
         setFormData({
@@ -153,6 +176,11 @@ const TaxConfiguration = () => {
             description: tax.description
         });
         setFormErrors({});
+    };
+
+    const handleCreateTax = () => {
+        handleResetForm();
+        setIsSidebarOpen(true);
     };
 
     const handleToggleStatus = (id) => {
@@ -194,6 +222,8 @@ const TaxConfiguration = () => {
         setSelectedTax(null);
         setIsEditMode(false);
         setFormErrors({});
+        setIsAddingApplyTo(false);
+        setNewApplyTo('');
     };
 
     const getApplyToLabel = (value) => {
@@ -204,12 +234,23 @@ const TaxConfiguration = () => {
     return (
         <div className="tax-configuration-page">
             <div className="tax-page-header">
-                <h1>Tax Configuration</h1>
-                <p>Configure and manage tax rules for your hotel services</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <h1>Tax Configuration</h1>
+                        <p>Configure and manage tax rules for your hotel services</p>
+                    </div>
+                    <button
+                        className="btn-save"
+                        onClick={handleCreateTax}
+                        style={{ maxWidth: '160px' }}
+                    >
+                        + Create Tax
+                    </button>
+                </div>
             </div>
 
             <div className="tax-main-layout">
-                {/* LEFT SECTION - Tax List */}
+                {/* FULL WIDTH - Tax List */}
                 <div className="tax-left-section">
                     <div className="tax-list-header">
                         <h2>Tax Rules</h2>
@@ -309,7 +350,7 @@ const TaxConfiguration = () => {
                                             <div className="no-data-content">
                                                 <span className="no-data-icon">🧾</span>
                                                 <p>No taxes configured yet</p>
-                                                <p className="no-data-hint">Create your first tax using the form on the right</p>
+                                                <p className="no-data-hint">Create your first tax using the button above</p>
                                             </div>
                                         </td>
                                     </tr>
@@ -319,137 +360,188 @@ const TaxConfiguration = () => {
                     </div>
                 </div>
 
-                {/* RIGHT SECTION - Create/Edit Form */}
-                <div className="tax-right-section">
-                    <div className="tax-form-header">
-                        <h2>{isEditMode ? '✏️ Edit Tax' : '➕ Create Tax'}</h2>
+                {/* SIDEBAR OVERLAY */}
+                {isSidebarOpen && (
+                    <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)} style={{ opacity: 1 }}></div>
+                )}
+
+                {/* SIDEBAR FORM */}
+                <div className={`tax-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+                    <div className="sidebar-header">
+                        <h2>
+                            <span style={{ color: '#ef4444', marginRight: '8px', fontSize: '24px' }}>+</span>
+                            {isEditMode ? 'Edit Tax' : 'Create Tax'}
+                        </h2>
+                        <button className="close-sidebar-btn" onClick={() => setIsSidebarOpen(false)}>×</button>
                     </div>
 
-                    <div className="tax-form">
-                        {/* Tax Name */}
-                        <div className="form-group">
-                            <label>Tax Name <span className="required">*</span></label>
-                            <input
-                                type="text"
-                                placeholder="e.g., GST, Service Tax"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                className={formErrors.name ? 'error' : ''}
-                            />
-                            {formErrors.name && <span className="error-message">{formErrors.name}</span>}
-                        </div>
-
-                        {/* Tax Type */}
-                        <div className="form-group">
-                            <label>Tax Type <span className="required">*</span></label>
-                            <select
-                                value={formData.type}
-                                onChange={(e) => setFormData({ ...formData, type: e.target.value, value: '' })}
-                            >
-                                <option value="PERCENTAGE">Percentage (%)</option>
-                                <option value="FLAT">Flat Amount (₹)</option>
-                            </select>
-                        </div>
-
-                        {/* Tax Value */}
-                        <div className="form-group">
-                            <label>
-                                Tax Value <span className="required">*</span>
-                                {formData.type === 'PERCENTAGE' && <span className="label-hint">(0-100%)</span>}
-                            </label>
-                            <div className="input-with-prefix">
-                                {formData.type === 'FLAT' && <span className="input-prefix">₹</span>}
+                    <div className="sidebar-content">
+                        <div className="tax-form">
+                            {/* Tax Name */}
+                            <div className="form-group">
+                                <label>Tax Name <span className="required">*</span></label>
                                 <input
-                                    type="number"
-                                    placeholder={formData.type === 'PERCENTAGE' ? 'Enter percentage' : 'Enter amount'}
-                                    value={formData.value}
-                                    onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                                    min="0"
-                                    max={formData.type === 'PERCENTAGE' ? '100' : undefined}
-                                    step="0.01"
-                                    className={formErrors.value ? 'error' : ''}
+                                    type="text"
+                                    placeholder="e.g., GST, Service Tax"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    className={formErrors.name ? 'error' : ''}
                                 />
-                                {formData.type === 'PERCENTAGE' && <span className="input-suffix">%</span>}
+                                {formErrors.name && <span className="error-message">{formErrors.name}</span>}
                             </div>
-                            {formErrors.value && <span className="error-message">{formErrors.value}</span>}
-                        </div>
 
-                        {/* Applies To */}
-                        <div className="form-group">
-                            <label>Applies To <span className="required">*</span></label>
-                            <select
-                                value={formData.appliesTo}
-                                onChange={(e) => setFormData({ ...formData, appliesTo: e.target.value })}
-                            >
-                                {applyToOptions.map(option => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                            {/* Tax Type */}
+                            <div className="form-group">
+                                <label>Tax Type <span className="required">*</span></label>
+                                <select
+                                    value={formData.type}
+                                    onChange={(e) => setFormData({ ...formData, type: e.target.value, value: '' })}
+                                >
+                                    <option value="PERCENTAGE">Percentage (%)</option>
+                                    <option value="FLAT">Flat Amount (₹)</option>
+                                </select>
+                            </div>
 
-                        {/* Compound Tax */}
-                        <div className="form-group">
-                            <label className="toggle-label">
-                                <span>Compound Tax</span>
-                                <div className="toggle-switch">
+                            {/* Tax Value */}
+                            <div className="form-group">
+                                <label>
+                                    Tax Value <span className="required">*</span>
+                                    {formData.type === 'PERCENTAGE' && <span className="label-hint">(0-100%)</span>}
+                                </label>
+                                <div className="input-with-prefix">
+                                    {formData.type === 'FLAT' && <span className="input-prefix">₹</span>}
                                     <input
-                                        type="checkbox"
-                                        checked={formData.isCompound}
-                                        onChange={(e) => setFormData({ ...formData, isCompound: e.target.checked })}
+                                        type="number"
+                                        placeholder={formData.type === 'PERCENTAGE' ? 'Enter percentage' : 'Enter amount'}
+                                        value={formData.value}
+                                        onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+                                        min="0"
+                                        max={formData.type === 'PERCENTAGE' ? '100' : undefined}
+                                        step="0.01"
+                                        className={formErrors.value ? 'error' : ''}
                                     />
-                                    <span className="toggle-slider"></span>
+                                    {formData.type === 'PERCENTAGE' && <span className="input-suffix">%</span>}
                                 </div>
-                            </label>
-                            <p className="form-hint">Apply tax on top of other taxes (compound tax calculation)</p>
-                        </div>
+                                {formErrors.value && <span className="error-message">{formErrors.value}</span>}
+                            </div>
 
-                        {/* Status */}
-                        <div className="form-group">
-                            <label className="toggle-label">
-                                <span>Status</span>
-                                <div className="toggle-switch">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.status === 'ACTIVE'}
-                                        onChange={(e) => setFormData({ ...formData, status: e.target.checked ? 'ACTIVE' : 'INACTIVE' })}
-                                    />
-                                    <span className="toggle-slider"></span>
-                                </div>
-                            </label>
-                            <p className="form-hint">
-                                {formData.status === 'ACTIVE' ? 'Tax is active and will be applied' : 'Tax is inactive'}
-                            </p>
-                        </div>
+                            {/* Applies To */}
+                            <div className="form-group">
+                                <label>Applies To <span className="required">*</span></label>
+                                {!isAddingApplyTo ? (
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <select
+                                            value={formData.appliesTo}
+                                            onChange={(e) => setFormData({ ...formData, appliesTo: e.target.value })}
+                                            style={{ flex: 1 }}
+                                        >
+                                            {applyToOptions.map(option => (
+                                                <option key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            className="btn-save"
+                                            type="button"
+                                            onClick={() => setIsAddingApplyTo(true)}
+                                            style={{ width: '42px', padding: '0', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <input
+                                            type="text"
+                                            placeholder="Enter new category..."
+                                            value={newApplyTo}
+                                            onChange={(e) => setNewApplyTo(e.target.value)}
+                                            autoFocus
+                                            style={{ flex: 1 }}
+                                        />
+                                        <button
+                                            className="btn-save"
+                                            type="button"
+                                            onClick={handleAddApplyTo}
+                                            style={{ width: '42px', padding: '0' }}
+                                        >
+                                            ✓
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn-reset"
+                                            onClick={() => { setIsAddingApplyTo(false); setNewApplyTo(''); }}
+                                            style={{ width: '42px', padding: '0' }}
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
 
-                        {/* Description */}
-                        <div className="form-group">
-                            <label>Description</label>
-                            <textarea
-                                placeholder="Add description or notes about this tax..."
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                rows="3"
-                            />
-                        </div>
+                            {/* Compound Tax */}
+                            <div className="form-group">
+                                <label className="toggle-label">
+                                    <span>Compound Tax</span>
+                                    <div className="toggle-switch">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.isCompound}
+                                            onChange={(e) => setFormData({ ...formData, isCompound: e.target.checked })}
+                                        />
+                                        <span className="toggle-slider"></span>
+                                    </div>
+                                </label>
+                                <p className="form-hint">Apply tax on top of other taxes (compound tax calculation)</p>
+                            </div>
 
-                        {/* Form Actions */}
-                        <div className="form-actions">
-                            <button
-                                type="button"
-                                className="btn-reset"
-                                onClick={handleResetForm}
-                            >
-                                Reset
-                            </button>
-                            <button
-                                type="button"
-                                className="btn-save"
-                                onClick={handleSaveTax}
-                            >
-                                {isEditMode ? 'Update Tax' : 'Save Tax'}
-                            </button>
+                            {/* Status */}
+                            <div className="form-group">
+                                <label className="toggle-label">
+                                    <span>Status</span>
+                                    <div className="toggle-switch">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.status === 'ACTIVE'}
+                                            onChange={(e) => setFormData({ ...formData, status: e.target.checked ? 'ACTIVE' : 'INACTIVE' })}
+                                        />
+                                        <span className="toggle-slider"></span>
+                                    </div>
+                                </label>
+                                <p className="form-hint">
+                                    {formData.status === 'ACTIVE' ? 'Tax is active and will be applied' : 'Tax is inactive'}
+                                </p>
+                            </div>
+
+                            {/* Description */}
+                            <div className="form-group">
+                                <label>Description</label>
+                                <textarea
+                                    placeholder="Add description or notes about this tax..."
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    rows="3"
+                                />
+                            </div>
+
+                            {/* Form Actions */}
+                            <div className="form-actions">
+                                <button
+                                    type="button"
+                                    className="btn-reset"
+                                    onClick={handleResetForm}
+                                >
+                                    Reset
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn-save"
+                                    onClick={handleSaveTax}
+                                >
+                                    {isEditMode ? 'Update Tax' : 'Save Tax'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

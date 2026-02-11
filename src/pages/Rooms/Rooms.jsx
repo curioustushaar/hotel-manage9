@@ -50,6 +50,15 @@ const Rooms = () => {
 
     const statusOptions = ['All Status', 'Available', 'Booked', 'Occupied', 'Under Maintenance'];
 
+    // Custom Room Types State
+    const [customRoomTypes, setCustomRoomTypes] = useState([]);
+    const [isAddingRoomType, setIsAddingRoomType] = useState(false);
+    const [newRoomType, setNewRoomType] = useState('');
+
+    // Filter Add State
+    const [isAddingFilterType, setIsAddingFilterType] = useState(false);
+    const [newFilterType, setNewFilterType] = useState('');
+
     // Load rooms from MongoDB API
     useEffect(() => {
         fetchRoomsFromAPI();
@@ -80,7 +89,7 @@ const Rooms = () => {
         try {
             // Clear old localStorage data first
             localStorage.removeItem('hotelRooms');
-            
+
             const response = await fetch(`${API_URL}/api/rooms/list`);
             const data = await response.json();
             if (data.success) {
@@ -130,7 +139,38 @@ const Rooms = () => {
         Object.values(roomTypeCategories).forEach(category => {
             types.push(...category);
         });
+        types.push(...customRoomTypes);
         return types;
+    };
+
+
+    const handleAddRoomType = () => {
+        if (!newRoomType.trim()) return;
+        const type = newRoomType.trim();
+        // Check if exists in predefined or custom
+        const allTypes = getAllRoomTypes();
+        if (!allTypes.includes(type)) {
+            setCustomRoomTypes([...customRoomTypes, type]);
+            setFormData({ ...formData, roomType: type });
+        } else {
+            setFormData({ ...formData, roomType: type });
+        }
+        setIsAddingRoomType(false);
+        setNewRoomType('');
+    };
+
+    const handleAddFilterType = () => {
+        if (!newFilterType.trim()) return;
+        const type = newFilterType.trim();
+        const allTypes = getAllRoomTypes();
+        if (!allTypes.includes(type)) {
+            setCustomRoomTypes([...customRoomTypes, type]);
+            setSelectedType(type);
+        } else {
+            setSelectedType(type);
+        }
+        setIsAddingFilterType(false);
+        setNewFilterType('');
     };
 
     const handleAddRoom = () => {
@@ -181,7 +221,7 @@ const Rooms = () => {
                 });
 
                 const data = await response.json();
-                
+
                 if (!data.success) {
                     setErrorMessage(data.message || 'Failed to add room');
                     return;
@@ -205,7 +245,7 @@ const Rooms = () => {
                 });
 
                 const data = await response.json();
-                
+
                 if (!data.success) {
                     setErrorMessage(data.message || 'Failed to update room');
                     return;
@@ -220,6 +260,8 @@ const Rooms = () => {
             setFormData(emptyForm);
             localStorage.setItem('roomFormDraft', JSON.stringify(emptyForm));
             setCurrentRoom(null);
+            setIsAddingRoomType(false);
+            setNewRoomType('');
         } catch (error) {
             console.error('Error submitting room:', error);
             setErrorMessage('Failed to save room. Please try again.');
@@ -271,15 +313,54 @@ const Rooms = () => {
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <select
-                    className="filter-select"
-                    value={selectedType}
-                    onChange={(e) => setSelectedType(e.target.value)}
-                >
-                    {getAllRoomTypes().map(type => (
-                        <option key={type} value={type}>{type}</option>
-                    ))}
-                </select>
+                {!isAddingFilterType ? (
+                    <div style={{ display: 'flex', gap: '8px', minWidth: '200px' }}>
+                        <select
+                            className="filter-select"
+                            value={selectedType}
+                            onChange={(e) => setSelectedType(e.target.value)}
+                            style={{ flex: 1 }}
+                        >
+                            {getAllRoomTypes().map(type => (
+                                <option key={type} value={type}>{type}</option>
+                            ))}
+                        </select>
+                        <button
+                            className="add-room-btn"
+                            onClick={() => setIsAddingFilterType(true)}
+                            style={{ width: '42px', padding: '0', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            title="Add Filter Type"
+                        >
+                            +
+                        </button>
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', gap: '8px', minWidth: '200px' }}>
+                        <input
+                            type="text"
+                            className="filter-select"
+                            placeholder="New type..."
+                            value={newFilterType}
+                            onChange={(e) => setNewFilterType(e.target.value)}
+                            autoFocus
+                            style={{ flex: 1, padding: '8px' }}
+                        />
+                        <button
+                            className="add-room-btn"
+                            onClick={handleAddFilterType}
+                            style={{ width: '42px', padding: '0', background: '#22c55e' }}
+                        >
+                            ✓
+                        </button>
+                        <button
+                            className="add-room-btn"
+                            onClick={() => { setIsAddingFilterType(false); setNewFilterType(''); }}
+                            style={{ width: '42px', padding: '0', background: '#ef4444' }}
+                        >
+                            ✕
+                        </button>
+                    </div>
+                )}
                 <select
                     className="filter-select"
                     value={selectedStatus}
@@ -368,20 +449,68 @@ const Rooms = () => {
 
                             <div className="form-group">
                                 <label>ROOM TYPE *</label>
-                                <select
-                                    className="form-input"
-                                    value={formData.roomType}
-                                    onChange={(e) => setFormData({ ...formData, roomType: e.target.value })}
-                                >
-                                    <option value="">-- Select Room Type --</option>
-                                    {Object.entries(roomTypeCategories).map(([category, types]) => (
-                                        <optgroup key={category} label={category}>
-                                            {types.map(type => (
-                                                <option key={type} value={type}>{type}</option>
+                                {!isAddingRoomType ? (
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <select
+                                            className="form-input"
+                                            value={formData.roomType}
+                                            onChange={(e) => setFormData({ ...formData, roomType: e.target.value })}
+                                            style={{ flex: 1 }}
+                                        >
+                                            <option value="">-- Select Room Type --</option>
+                                            {Object.entries(roomTypeCategories).map(([category, types]) => (
+                                                <optgroup key={category} label={category}>
+                                                    {types.map(type => (
+                                                        <option key={type} value={type}>{type}</option>
+                                                    ))}
+                                                </optgroup>
                                             ))}
-                                        </optgroup>
-                                    ))}
-                                </select>
+                                            {customRoomTypes.length > 0 && (
+                                                <optgroup label="Custom Types">
+                                                    {customRoomTypes.map(type => (
+                                                        <option key={type} value={type}>{type}</option>
+                                                    ))}
+                                                </optgroup>
+                                            )}
+                                        </select>
+                                        <button
+                                            type="button"
+                                            className="add-room-btn"
+                                            onClick={() => setIsAddingRoomType(true)}
+                                            style={{ width: '42px', padding: '0', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            placeholder="Enter new room type..."
+                                            value={newRoomType}
+                                            onChange={(e) => setNewRoomType(e.target.value)}
+                                            autoFocus
+                                            style={{ flex: 1 }}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="btn-submit"
+                                            onClick={handleAddRoomType}
+                                            style={{ width: '42px', padding: '0' }}
+                                        >
+                                            ✓
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn-cancel"
+                                            onClick={() => { setIsAddingRoomType(false); setNewRoomType(''); }}
+                                            style={{ width: '42px', padding: '0' }}
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="form-group">
@@ -455,20 +584,68 @@ const Rooms = () => {
 
                             <div className="form-group">
                                 <label>ROOM TYPE *</label>
-                                <select
-                                    className="form-input"
-                                    value={formData.roomType}
-                                    onChange={(e) => setFormData({ ...formData, roomType: e.target.value })}
-                                >
-                                    <option value="">-- Select Room Type --</option>
-                                    {Object.entries(roomTypeCategories).map(([category, types]) => (
-                                        <optgroup key={category} label={category}>
-                                            {types.map(type => (
-                                                <option key={type} value={type}>{type}</option>
+                                {!isAddingRoomType ? (
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <select
+                                            className="form-input"
+                                            value={formData.roomType}
+                                            onChange={(e) => setFormData({ ...formData, roomType: e.target.value })}
+                                            style={{ flex: 1 }}
+                                        >
+                                            <option value="">-- Select Room Type --</option>
+                                            {Object.entries(roomTypeCategories).map(([category, types]) => (
+                                                <optgroup key={category} label={category}>
+                                                    {types.map(type => (
+                                                        <option key={type} value={type}>{type}</option>
+                                                    ))}
+                                                </optgroup>
                                             ))}
-                                        </optgroup>
-                                    ))}
-                                </select>
+                                            {customRoomTypes.length > 0 && (
+                                                <optgroup label="Custom Types">
+                                                    {customRoomTypes.map(type => (
+                                                        <option key={type} value={type}>{type}</option>
+                                                    ))}
+                                                </optgroup>
+                                            )}
+                                        </select>
+                                        <button
+                                            type="button"
+                                            className="add-room-btn"
+                                            onClick={() => setIsAddingRoomType(true)}
+                                            style={{ width: '42px', padding: '0', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            placeholder="Enter new room type..."
+                                            value={newRoomType}
+                                            onChange={(e) => setNewRoomType(e.target.value)}
+                                            autoFocus
+                                            style={{ flex: 1 }}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="btn-submit"
+                                            onClick={handleAddRoomType}
+                                            style={{ width: '42px', padding: '0' }}
+                                        >
+                                            ✓
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn-cancel"
+                                            onClick={() => { setIsAddingRoomType(false); setNewRoomType(''); }}
+                                            style={{ width: '42px', padding: '0' }}
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="form-group">

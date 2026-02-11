@@ -20,18 +20,32 @@ const GuestMealService = () => {
         { tableId: 'T12', tableName: 'T12', status: 'Available', amount: 0, duration: 0, capacity: 4 },
     ];
 
+    const [tables, setTables] = useState(dummyTables);
     const [filteredTables, setFilteredTables] = useState(dummyTables);
     const [statusFilter, setStatusFilter] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
+    const [showAddTableModal, setShowAddTableModal] = useState(false);
+
+    // Table Types State
+    const [tableTypes, setTableTypes] = useState(['2 Seater', '4 Seater', '6 Seater', '8 Seater', 'Family']);
+    const [isAddingTableType, setIsAddingTableType] = useState(false);
+    const [newTableType, setNewTableType] = useState('');
+
+    const [newTableData, setNewTableData] = useState({
+        tableName: '',
+        type: '',
+        capacity: ''
+    });
+
     const [stats, setStats] = useState({
-        total: dummyTables.length,
-        available: dummyTables.filter(t => t.status === 'Available').length,
-        running: dummyTables.filter(t => t.status === 'Running').length,
-        billed: dummyTables.filter(t => t.status === 'Billed').length
+        total: tables.length,
+        available: tables.filter(t => t.status === 'Available').length,
+        running: tables.filter(t => t.status === 'Running').length,
+        billed: tables.filter(t => t.status === 'Billed').length
     });
 
     useEffect(() => {
-        let filtered = dummyTables;
+        let filtered = tables;
         if (statusFilter !== 'All') {
             filtered = filtered.filter(table => table.status === statusFilter);
         }
@@ -41,7 +55,15 @@ const GuestMealService = () => {
             );
         }
         setFilteredTables(filtered);
-    }, [statusFilter, searchQuery]);
+
+        // Update stats
+        setStats({
+            total: tables.length,
+            available: tables.filter(t => t.status === 'Available').length,
+            running: tables.filter(t => t.status === 'Running').length,
+            billed: tables.filter(t => t.status === 'Billed').length
+        });
+    }, [statusFilter, searchQuery, tables]);
 
     const formatDuration = (minutes) => {
         if (minutes === 0) return '--';
@@ -65,6 +87,35 @@ const GuestMealService = () => {
         });
     };
 
+    const handleAddTableType = () => {
+        if (!newTableType.trim()) return;
+        const type = newTableType.trim();
+        if (!tableTypes.includes(type)) {
+            setTableTypes([...tableTypes, type]);
+            setNewTableData({ ...newTableData, type: type });
+        }
+        setIsAddingTableType(false);
+        setNewTableType('');
+    };
+
+    const handleCreateTable = () => {
+        if (!newTableData.tableName || !newTableData.capacity) return;
+
+        const newTable = {
+            tableId: `T${Date.now()}`,
+            tableName: newTableData.tableName,
+            status: 'Available',
+            amount: 0,
+            duration: 0,
+            capacity: parseInt(newTableData.capacity),
+            type: newTableData.type
+        };
+
+        setTables([...tables, newTable]);
+        setShowAddTableModal(false);
+        setNewTableData({ tableName: '', type: '', capacity: '' });
+    };
+
     return (
         <div className="gms-wrapper">
             {/* Header */}
@@ -74,9 +125,19 @@ const GuestMealService = () => {
                         <h1 className="gms-title">Table Service Suite</h1>
                         <p className="gms-subtitle">Manage dining operations in real-time</p>
                     </div>
-                    <button className="gms-refresh-btn" onClick={() => window.location.reload()} title="Refresh data">
-                        ↻
-                    </button>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button
+                            className="gms-refresh-btn"
+                            onClick={() => setShowAddTableModal(true)}
+                            title="Add New Table"
+                            style={{ width: 'auto', padding: '0 15px', borderRadius: '8px', fontSize: '14px' }}
+                        >
+                            + Add Table
+                        </button>
+                        <button className="gms-refresh-btn" onClick={() => window.location.reload()} title="Refresh data">
+                            ↻
+                        </button>
+                    </div>
                 </div>
 
                 {/* Stats Grid */}
@@ -161,7 +222,7 @@ const GuestMealService = () => {
 
                             <div className="table-body">
                                 <div className="capacity-badge">👥 {table.capacity}</div>
-                                
+
                                 {table.status === 'Running' && (
                                     <div className="table-metrics">
                                         <div className="metric">
@@ -174,7 +235,7 @@ const GuestMealService = () => {
                                         </div>
                                     </div>
                                 )}
-                                
+
                                 {table.status === 'Billed' && (
                                     <div className="table-metrics">
                                         <div className="metric full">
@@ -183,7 +244,7 @@ const GuestMealService = () => {
                                         </div>
                                     </div>
                                 )}
-                                
+
                                 {table.status === 'Available' && (
                                     <div className="available-badge">Ready to serve</div>
                                 )}
@@ -199,6 +260,114 @@ const GuestMealService = () => {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Add Table Modal */}
+            {showAddTableModal && (
+                <div className="sidebar-overlay" style={{ opacity: 1, zIndex: 1000 }} onClick={() => setShowAddTableModal(false)}>
+                    <div className="modal-content" style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        background: 'white',
+                        padding: '24px',
+                        borderRadius: '12px',
+                        width: '400px',
+                        maxWidth: '90%'
+                    }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h2 style={{ margin: 0 }}>Add New Table</h2>
+                            <button onClick={() => setShowAddTableModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>×</button>
+                        </div>
+
+                        <div className="form-group" style={{ marginBottom: '16px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Table Name/Number</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                placeholder="e.g., T15, VIP-1"
+                                value={newTableData.tableName}
+                                onChange={e => setNewTableData({ ...newTableData, tableName: e.target.value })}
+                                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}
+                            />
+                        </div>
+
+                        <div className="form-group" style={{ marginBottom: '16px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Capacity</label>
+                            <input
+                                type="number"
+                                className="form-input"
+                                placeholder="e.g., 4"
+                                value={newTableData.capacity}
+                                onChange={e => setNewTableData({ ...newTableData, capacity: e.target.value })}
+                                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}
+                            />
+                        </div>
+
+                        <div className="form-group" style={{ marginBottom: '24px' }}>
+                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Table Type</label>
+                            {!isAddingTableType ? (
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <select
+                                        value={newTableData.type}
+                                        onChange={e => setNewTableData({ ...newTableData, type: e.target.value })}
+                                        style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}
+                                    >
+                                        <option value="">Select Type</option>
+                                        {tableTypes.map(type => (
+                                            <option key={type} value={type}>{type}</option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        onClick={() => setIsAddingTableType(true)}
+                                        style={{ padding: '0 12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '18px' }}
+                                    >
+                                        +
+                                    </button>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <input
+                                        type="text"
+                                        placeholder="New type..."
+                                        value={newTableType}
+                                        onChange={e => setNewTableType(e.target.value)}
+                                        autoFocus
+                                        style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}
+                                    />
+                                    <button
+                                        onClick={handleAddTableType}
+                                        style={{ padding: '0 12px', background: '#22c55e', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                                    >
+                                        ✓
+                                    </button>
+                                    <button
+                                        onClick={() => setIsAddingTableType(false)}
+                                        style={{ padding: '0 12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                            <button
+                                onClick={handleCreateTable}
+                                style={{ flex: 1, padding: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
+                            >
+                                Create Table
+                            </button>
+                            <button
+                                onClick={() => setShowAddTableModal(false)}
+                                style={{ flex: 1, padding: '12px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

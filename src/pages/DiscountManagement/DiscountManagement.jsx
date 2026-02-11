@@ -16,15 +16,19 @@ const DiscountManagement = () => {
     });
     const [formErrors, setFormErrors] = useState({});
     const [openMenuId, setOpenMenuId] = useState(null);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [showAppliesTo, setShowAppliesTo] = useState(false);
     const menuRef = useRef(null);
 
-    const applyToOptions = [
+    const [applyToOptions, setApplyToOptions] = useState([
         { id: 'ROOM', label: 'Room Charges' },
         { id: 'FOOD', label: 'Food & Beverage' },
         { id: 'LAUNDRY', label: 'Laundry' },
         { id: 'SPA', label: 'Spa / Services' },
         { id: 'BILL', label: 'Entire Bill' }
-    ];
+    ]);
+    const [isAddingApplyTo, setIsAddingApplyTo] = useState(false);
+    const [newApplyTo, setNewApplyTo] = useState('');
 
     // Load discounts from localStorage on mount
     useEffect(() => {
@@ -91,6 +95,27 @@ const DiscountManagement = () => {
         localStorage.setItem('discounts', JSON.stringify(data));
     };
 
+    const handleAddApplyTo = () => {
+        if (!newApplyTo.trim()) return;
+        const id = newApplyTo.trim().toUpperCase().replace(/\s+/g, '_');
+
+        if (applyToOptions.some(opt => opt.id === id)) {
+            // Already exists, just select it if not selected
+            if (!formData.appliesTo.includes(id)) {
+                setFormData({ ...formData, appliesTo: [...formData.appliesTo, id] });
+            }
+            setIsAddingApplyTo(false);
+            setNewApplyTo('');
+            return;
+        }
+
+        const newOption = { id: id, label: newApplyTo.trim() };
+        setApplyToOptions([...applyToOptions, newOption]);
+        setFormData({ ...formData, appliesTo: [...formData.appliesTo, id] });
+        setIsAddingApplyTo(false);
+        setNewApplyTo('');
+    };
+
     const validateForm = () => {
         const errors = {};
 
@@ -140,9 +165,11 @@ const DiscountManagement = () => {
         setDiscounts(updatedDiscounts);
         saveToLocalStorage(updatedDiscounts);
         handleResetForm();
+        setIsSidebarOpen(false);
     };
 
     const handleEditDiscount = (discount) => {
+        setIsSidebarOpen(true);
         setSelectedDiscount(discount);
         setIsEditMode(true);
         setFormData({
@@ -155,6 +182,12 @@ const DiscountManagement = () => {
             description: discount.description
         });
         setFormErrors({});
+        setOpenMenuId(null);
+    };
+
+    const handleCreateDiscount = () => {
+        handleResetForm();
+        setIsSidebarOpen(true);
     };
 
     const handleToggleStatus = (id) => {
@@ -196,6 +229,8 @@ const DiscountManagement = () => {
         setSelectedDiscount(null);
         setIsEditMode(false);
         setFormErrors({});
+        setIsAddingApplyTo(false);
+        setNewApplyTo('');
     };
 
     const handleCheckboxChange = (optionId) => {
@@ -210,12 +245,23 @@ const DiscountManagement = () => {
     return (
         <div className="discount-management-page">
             <div className="discount-page-header">
-                <h1>Discount Management</h1>
-                <p>Manage discount rules and offers for your hotel</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                        <h1>Discount Management</h1>
+                        <p>Manage discount rules and offers for your hotel</p>
+                    </div>
+                    <button
+                        className="btn-save"
+                        onClick={handleCreateDiscount}
+                        style={{ maxWidth: '180px' }}
+                    >
+                        + Create Discount
+                    </button>
+                </div>
             </div>
 
             <div className="discount-main-layout">
-                {/* LEFT SECTION - Discount List */}
+                {/* FULL WIDTH - Discount List */}
                 <div className="discount-left-section">
                     <div className="discount-list-header">
                         <h2>Discount Rules</h2>
@@ -316,7 +362,7 @@ const DiscountManagement = () => {
                                             <div className="no-data-content">
                                                 <span className="no-data-icon">📋</span>
                                                 <p>No discounts created yet</p>
-                                                <p className="no-data-hint">Create your first discount using the form on the right</p>
+                                                <p className="no-data-hint">Create your first discount using the button above</p>
                                             </div>
                                         </td>
                                     </tr>
@@ -326,142 +372,205 @@ const DiscountManagement = () => {
                     </div>
                 </div>
 
-                {/* RIGHT SECTION - Create/Edit Form */}
-                <div className="discount-right-section">
-                    <div className="discount-form-header">
-                        <h2>{isEditMode ? '✏️ Edit Discount' : '➕ Create Discount'}</h2>
+                {/* SIDEBAR OVERLAY */}
+                {isSidebarOpen && (
+                    <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)} style={{ opacity: 1 }}></div>
+                )}
+
+                <div className={`discount-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+                    <div className="sidebar-header">
+                        <h2>
+                            <span style={{ color: '#ef4444', marginRight: '8px', fontSize: '24px' }}>+</span>
+                            {isEditMode ? 'Edit Discount' : 'Create Discount'}
+                        </h2>
+                        <button className="close-sidebar-btn" onClick={() => setIsSidebarOpen(false)}>×</button>
                     </div>
 
-                    <div className="discount-form">
-                        {/* Discount Name */}
-                        <div className="form-group">
-                            <label>Discount Name <span className="required">*</span></label>
-                            <input
-                                type="text"
-                                placeholder="e.g., Early Bird Special"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                className={formErrors.name ? 'error' : ''}
-                            />
-                            {formErrors.name && <span className="error-message">{formErrors.name}</span>}
-                        </div>
-
-                        {/* Discount Type */}
-                        <div className="form-group">
-                            <label>Discount Type <span className="required">*</span></label>
-                            <select
-                                value={formData.type}
-                                onChange={(e) => setFormData({ ...formData, type: e.target.value, value: '' })}
-                            >
-                                <option value="PERCENTAGE">Percentage (%)</option>
-                                <option value="FLAT">Flat Amount (₹)</option>
-                            </select>
-                        </div>
-
-                        {/* Discount Value */}
-                        <div className="form-group">
-                            <label>
-                                Discount Value <span className="required">*</span>
-                                {formData.type === 'PERCENTAGE' && <span className="label-hint">(0-100%)</span>}
-                            </label>
-                            <div className="input-with-prefix">
-                                {formData.type === 'FLAT' && <span className="input-prefix">₹</span>}
+                    <div className="sidebar-content">
+                        <div className="discount-form">
+                            {/* Discount Name */}
+                            <div className="form-group">
+                                <label>Discount Name <span className="required">*</span></label>
                                 <input
-                                    type="number"
-                                    placeholder={formData.type === 'PERCENTAGE' ? 'Enter percentage' : 'Enter amount'}
-                                    value={formData.value}
-                                    onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                                    min="0"
-                                    max={formData.type === 'PERCENTAGE' ? '100' : undefined}
-                                    className={formErrors.value ? 'error' : ''}
+                                    type="text"
+                                    placeholder="e.g., Early Bird Special"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    className={formErrors.name ? 'error' : ''}
                                 />
-                                {formData.type === 'PERCENTAGE' && <span className="input-suffix">%</span>}
+                                {formErrors.name && <span className="error-message">{formErrors.name}</span>}
                             </div>
-                            {formErrors.value && <span className="error-message">{formErrors.value}</span>}
-                        </div>
 
-                        {/* Applies To */}
-                        <div className="form-group">
-                            <label>Applies To <span className="required">*</span></label>
-                            <div className="checkbox-simple-group">
-                                {applyToOptions.map(option => (
-                                    <label key={option.id} className="checkbox-simple-item">
+                            {/* Discount Type */}
+                            <div className="form-group">
+                                <label>Discount Type <span className="required">*</span></label>
+                                <select
+                                    value={formData.type}
+                                    onChange={(e) => setFormData({ ...formData, type: e.target.value, value: '' })}
+                                >
+                                    <option value="PERCENTAGE">Percentage (%)</option>
+                                    <option value="FLAT">Flat Amount (₹)</option>
+                                </select>
+                            </div>
+
+                            {/* Discount Value */}
+                            <div className="form-group">
+                                <label>
+                                    Discount Value <span className="required">*</span>
+                                    {formData.type === 'PERCENTAGE' && <span className="label-hint">(0-100%)</span>}
+                                </label>
+                                <div className="input-with-prefix">
+                                    {formData.type === 'FLAT' && <span className="input-prefix">₹</span>}
+                                    <input
+                                        type="number"
+                                        placeholder={formData.type === 'PERCENTAGE' ? 'Enter percentage' : 'Enter amount'}
+                                        value={formData.value}
+                                        onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+                                        min="0"
+                                        max={formData.type === 'PERCENTAGE' ? '100' : undefined}
+                                        className={formErrors.value ? 'error' : ''}
+                                    />
+                                    {formData.type === 'PERCENTAGE' && <span className="input-suffix">%</span>}
+                                </div>
+                                {formErrors.value && <span className="error-message">{formErrors.value}</span>}
+                            </div>
+
+                            {/* Applies To - Dropdown */}
+                            <div className="form-group">
+                                <label>Applies To <span className="required">*</span></label>
+
+                                {!isAddingApplyTo ? (
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <div
+                                            className="applies-to-dropdown"
+                                            onClick={() => setShowAppliesTo(!showAppliesTo)}
+                                            style={{ flex: 1 }}
+                                        >
+                                            <span className="dropdown-text">
+                                                {formData.appliesTo.length > 0
+                                                    ? `${formData.appliesTo.length} selected`
+                                                    : 'Select categories'}
+                                            </span>
+                                            <span className="dropdown-arrow">{showAppliesTo ? '▲' : '▼'}</span>
+                                        </div>
+                                        <button
+                                            className="btn-save"
+                                            onClick={() => setIsAddingApplyTo(true)}
+                                            style={{ width: '42px', padding: '0', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', gap: '8px' }}>
                                         <input
-                                            type="checkbox"
-                                            checked={formData.appliesTo.includes(option.id)}
-                                            onChange={() => handleCheckboxChange(option.id)}
+                                            type="text"
+                                            placeholder="Enter new category..."
+                                            value={newApplyTo}
+                                            onChange={(e) => setNewApplyTo(e.target.value)}
+                                            autoFocus
+                                            style={{ flex: 1 }}
                                         />
-                                        <div className="checkbox-simple-content">
-                                            <span className="checkbox-simple-label">{option.label}</span>
-                                            <span className="checkbox-simple-desc">Apply discount to {option.label.toLowerCase()}</span>
+                                        <button
+                                            className="btn-save"
+                                            onClick={handleAddApplyTo}
+                                            style={{ width: '42px', padding: '0' }}
+                                        >
+                                            ✓
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn-reset"
+                                            onClick={() => { setIsAddingApplyTo(false); setNewApplyTo(''); }}
+                                            style={{ width: '42px', padding: '0' }}
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                )}
+
+                                {showAppliesTo && !isAddingApplyTo && (
+                                    <div className="checkbox-grid-group">
+                                        {applyToOptions.map(option => (
+                                            <label key={option.id} className="checkbox-grid-item">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.appliesTo.includes(option.id)}
+                                                    onChange={() => handleCheckboxChange(option.id)}
+                                                />
+                                                <span className="checkbox-label">{option.label}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
+                                {formErrors.appliesTo && <span className="error-message">{formErrors.appliesTo}</span>}
+                            </div>
+
+                            {/* Auto Apply and Status - Single Row */}
+                            <div className="form-group-row">
+                                {/* Auto Apply */}
+                                <div className="form-group-half">
+                                    <label className="toggle-label">
+                                        <span>Auto Apply</span>
+                                        <div className="toggle-switch">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.autoApply}
+                                                onChange={(e) => setFormData({ ...formData, autoApply: e.target.checked })}
+                                            />
+                                            <span className="toggle-slider"></span>
                                         </div>
                                     </label>
-                                ))}
+                                    <p className="form-hint">Automatically apply this discount when conditions are met</p>
+                                </div>
+
+                                {/* Status */}
+                                <div className="form-group-half">
+                                    <label className="toggle-label">
+                                        <span>Status</span>
+                                        <div className="toggle-switch">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.status === 'ACTIVE'}
+                                                onChange={(e) => setFormData({ ...formData, status: e.target.checked ? 'ACTIVE' : 'INACTIVE' })}
+                                            />
+                                            <span className="toggle-slider"></span>
+                                        </div>
+                                    </label>
+                                    <p className="form-hint">
+                                        {formData.status === 'ACTIVE' ? 'Active' : 'Inactive'}
+                                    </p>
+                                </div>
                             </div>
-                            {formErrors.appliesTo && <span className="error-message">{formErrors.appliesTo}</span>}
-                        </div>
 
-                        {/* Auto Apply */}
-                        <div className="form-group">
-                            <label className="toggle-label">
-                                <span>Auto Apply</span>
-                                <div className="toggle-switch">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.autoApply}
-                                        onChange={(e) => setFormData({ ...formData, autoApply: e.target.checked })}
-                                    />
-                                    <span className="toggle-slider"></span>
-                                </div>
-                            </label>
-                            <p className="form-hint">Automatically apply this discount when conditions are met</p>
-                        </div>
+                            {/* Description */}
+                            <div className="form-group">
+                                <label>Description</label>
+                                <textarea
+                                    placeholder="Add description or terms and conditions..."
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    rows="2"
+                                />
+                            </div>
 
-                        {/* Status */}
-                        <div className="form-group">
-                            <label className="toggle-label">
-                                <span>Status</span>
-                                <div className="toggle-switch">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.status === 'ACTIVE'}
-                                        onChange={(e) => setFormData({ ...formData, status: e.target.checked ? 'ACTIVE' : 'INACTIVE' })}
-                                    />
-                                    <span className="toggle-slider"></span>
-                                </div>
-                            </label>
-                            <p className="form-hint">
-                                {formData.status === 'ACTIVE' ? 'Discount is active and can be applied' : 'Discount is inactive'}
-                            </p>
-                        </div>
-
-                        {/* Description */}
-                        <div className="form-group">
-                            <label>Description</label>
-                            <textarea
-                                placeholder="Add description or terms and conditions..."
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                rows="3"
-                            />
-                        </div>
-
-                        {/* Form Actions */}
-                        <div className="form-actions">
-                            <button
-                                type="button"
-                                className="btn-reset"
-                                onClick={handleResetForm}
-                            >
-                                Reset
-                            </button>
-                            <button
-                                type="button"
-                                className="btn-save"
-                                onClick={handleSaveDiscount}
-                            >
-                                {isEditMode ? 'Update Discount' : 'Save Discount'}
-                            </button>
+                            {/* Form Actions */}
+                            <div className="form-actions">
+                                <button
+                                    type="button"
+                                    className="btn-reset"
+                                    onClick={handleResetForm}
+                                >
+                                    Reset
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn-save"
+                                    onClick={handleSaveDiscount}
+                                >
+                                    {isEditMode ? 'Update' : 'Save'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
