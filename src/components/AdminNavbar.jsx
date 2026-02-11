@@ -55,29 +55,41 @@ const AdminNavbar = ({
                     </svg>
                 </button>
 
-                {/* 2. Gear Icon */}
+                {/* 2. View Order Icon */}
+                <button className="top-icon-btn" title="View Order" onClick={() => alert('Coming Soon...')}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                        <path d="M3 6h18" />
+                        <path d="M16 10a4 4 0 0 1-8 0" />
+                    </svg>
+                </button>
+
+                {/* 3. Registration Icon */}
+                <button className="top-icon-btn" title="Registration Card" onClick={() => navigate('/admin/stay-overview')}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-4" />
+                        <path d="M8 9h8" />
+                        <path d="M8 13h4" />
+                        <path d="M15 13h1" />
+                        <path d="M17 17h.01" />
+                    </svg>
+                </button>
+
+                {/* 4. Sync Icon */}
+                <button className="top-icon-btn" title="Sync Data" onClick={() => alert('Coming Soon...')}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                        <path d="M21 3v5h-5" />
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                        <path d="M3 21v-5h5" />
+                    </svg>
+                </button>
+
+                {/* 5. Gear Icon */}
                 <button className="top-icon-btn" title="Settings" onClick={() => navigate('/admin/settings')}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
                         <circle cx="12" cy="12" r="3"></circle>
                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                    </svg>
-                </button>
-
-                {/* 3. H Icon (History?) */}
-                <button className="top-icon-btn" title="History">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                        <path d="M9 21V3"></path>
-                        <path d="M15 21V3"></path>
-                        <path d="M9 12h6"></path>
-                    </svg>
-                </button>
-
-                {/* 4. Envelope Icon */}
-                <button className="top-icon-btn" title="Messages">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                        <polyline points="22,6 12,13 2,6"></polyline>
                     </svg>
                 </button>
 
