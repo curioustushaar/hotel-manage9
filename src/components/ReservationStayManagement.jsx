@@ -20,7 +20,7 @@ import RoomService from './RoomService';
 const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const location = useLocation();
     const navigate = useNavigate();
-    const API_URL = 'http://localhost:5001/api/bookings';
+    const API_URL = `${API_URL_CONFIG}/api/bookings`;
     const [view, setView] = useState(viewMode); // 'dashboard', 'form', 'housekeeping', or 'roomservice'
     const [prefilledData, setPrefilledData] = useState(null);
 
