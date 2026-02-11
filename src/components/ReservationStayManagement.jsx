@@ -62,6 +62,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     useEffect(() => {
         fetchReservationsFromAPI();
         fetchGuestsFromAPI();
+        fetchMealTypes();
     }, []);
 
     const fetchReservationsFromAPI = async () => {
@@ -227,6 +228,20 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [selectedGuest, setSelectedGuest] = useState(null);
     const [showGuestModal, setShowGuestModal] = useState(false);
     const [guests, setGuests] = useState([]);
+    const [mealTypes, setMealTypes] = useState([]);
+
+    // Fetch meal types from API
+    const fetchMealTypes = async () => {
+        try {
+            const response = await fetch(`${API_URL_CONFIG}/api/meal-types/list`);
+            const data = await response.json();
+            if (data.success && data.data) {
+                setMealTypes(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching meal types:', error);
+        }
+    };
 
     // Fetch guests from API
     const fetchGuestsFromAPI = async () => {
@@ -896,6 +911,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                                 setRooms(newRooms);
                                             }}
                                             onRemove={(idx) => setRooms(rooms.filter((_, i) => i !== idx))}
+                                            mealTypes={mealTypes}
                                         />
                                     ))}
                                 </div>

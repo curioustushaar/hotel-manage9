@@ -14,6 +14,9 @@ const qrCodeRoutes = require('./routes/qrCodeRoutes');
 const guestRoutes = require('./routes/guestRoutes');
 const cashierRoutes = require('./routes/cashierRoutes');
 const reservationRoutes = require('./routes/reservationRoutes');
+const roomFacilityRoutes = require('./routes/roomFacilityRoutes');
+const bedTypeRoutes = require('./routes/bedTypeRoutes');
+const floorRoutes = require('./routes/floorRoutes');
 
 // Initialize express app
 const app = express();
@@ -96,6 +99,35 @@ app.use('/api/qr', qrCodeRoutes);
 app.use('/api/guests', guestRoutes);
 app.use('/api/cashier', cashierRoutes);
 app.use('/api/reservations', reservationRoutes);
+app.use('/api/facilities', roomFacilityRoutes);
+app.use('/api/bed-types', bedTypeRoutes);
+app.use('/api/floors', floorRoutes);
+const roomFacilityTypeRoutes = require('./routes/roomFacilityTypeRoutes');
+app.use('/api/facility-types', roomFacilityTypeRoutes);
+const mealTypeRoutes = require('./routes/mealTypeRoutes');
+app.use('/api/meal-types', mealTypeRoutes);
+const reservationTypeRoutes = require('./routes/reservationTypeRoutes');
+app.use('/api/reservation-types', reservationTypeRoutes);
+
+const extraChargeRoutes = require('./routes/extraChargeRoutes');
+app.use('/api/extra-charges', extraChargeRoutes);
+
+const complimentaryServiceRoutes = require('./routes/complimentaryServiceRoutes');
+app.use('/api/complimentary-services', complimentaryServiceRoutes);
+
+const customerIdentityRoutes = require('./routes/customerIdentityRoutes');
+app.use('/api/customer-identities', customerIdentityRoutes);
+
+const bookingSourceRoutes = require('./routes/bookingSourceRoutes');
+app.use('/api/booking-sources', bookingSourceRoutes);
+
+const businessSourceRoutes = require('./routes/businessSourceRoutes');
+app.use('/api/business-sources', businessSourceRoutes);
+
+const maintenanceBlockRoutes = require('./routes/maintenanceBlockRoutes');
+app.use('/api/maintenance-blocks', maintenanceBlockRoutes);
+
+
 
 // Root route
 app.get('/', (req, res) => {

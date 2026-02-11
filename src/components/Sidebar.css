@@ -180,10 +180,34 @@
 }
 
 .nav-dropdown-menu.show {
-    max-height: 500px;
-    /* Allow more height */
+    max-height: 400px;
+    /* Allow scrolling after 400px */
+    overflow-y: auto;
+    /* Enable vertical scrolling */
     margin-top: 2px;
     margin-bottom: 5px;
+    /* Custom scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db #f3f4f6;
+}
+
+/* Webkit scrollbar styling for Chrome/Safari */
+.nav-dropdown-menu.show::-webkit-scrollbar {
+    width: 6px;
+}
+
+.nav-dropdown-menu.show::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 3px;
+}
+
+.nav-dropdown-menu.show::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+}
+
+.nav-dropdown-menu.show::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
 }
 
 .nav-dropdown-item {
