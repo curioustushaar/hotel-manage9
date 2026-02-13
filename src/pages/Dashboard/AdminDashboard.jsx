@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import API_URL from '../../config/api';
 import FoodMenuDashboard from '../FoodMenu/FoodMenuDashboard';
 import FoodOrderPage from '../../components/FoodOrderPage';
+import ViewOrderPage from '../../components/ViewOrderPage';
 import AdminLayout from '../../components/AdminLayout';
 import FoodPaymentReport from '../FoodPaymentReport/FoodPaymentReport';
 import Settings from '../Settings/Settings';
@@ -164,6 +165,8 @@ const AdminDashboard = () => {
             setActiveMenu('reservations');
         } else if (path.includes('/room-service')) {
             setActiveMenu('guest-meal-service');
+        } else if (path.includes('/view-order')) {
+            setActiveMenu('view-order');
         } else if (path.includes('/dashboard')) {
             setActiveMenu('dashboard');
         }
@@ -641,7 +644,7 @@ const AdminDashboard = () => {
             activeMenu={activeMenu}
             onMenuClick={handleMenuClick}
             onLogout={handleLogout}
-            noPadding={activeMenu === 'stay-overview'}
+            noPadding={activeMenu === 'stay-overview' || activeMenu === 'view-order'}
         >
 
 
@@ -811,6 +814,13 @@ const AdminDashboard = () => {
             {
                 activeMenu === 'discount' && (
                     <DiscountManagement />
+                )
+            }
+
+            {/* View Order Page */}
+            {
+                activeMenu === 'view-order' && (
+                    <ViewOrderPage />
                 )
             }
 

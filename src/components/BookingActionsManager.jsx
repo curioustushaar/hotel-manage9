@@ -9,6 +9,7 @@ import AddVisitorForm from './forms/AddVisitorForm';
 import NoShowForm from './forms/NoShowForm';
 import VoidReservationForm from './forms/VoidReservationForm';
 import CancelReservationForm from './forms/CancelReservationForm';
+
 import PrintSummaryForm from './forms/PrintSummaryForm';
 import PrintInvoiceForm from './forms/PrintInvoiceForm';
 import PrintGRCForm from './forms/PrintGRCForm';
@@ -57,7 +58,10 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
             // Determine endpoint based on action type
             switch (actionType) {
                 case 'check-in':
-                    endpoint = `/api/bookings/check-in/${booking._id}`;
+                    if (!booking._id) throw new Error("Invalid booking ID");
+                    endpoint = `/api/reservations/checkin/${booking._id}`;
+                    console.log("Calling URL:", endpoint);
+                    method = 'PUT';
                     break;
                 case 'add-payment':
                     endpoint = `/api/bookings/add-payment/${booking._id}`;
@@ -83,9 +87,8 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
                 case 'cancel':
                     endpoint = `/api/bookings/cancel/${booking._id}`;
                     break;
-                default:
-                    throw new Error('Invalid action type');
             }
+
 
             const response = await fetch(`${API_URL}${endpoint}`, {
                 method: method,
@@ -102,16 +105,34 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
             }
 
             if (data.success) {
-                alert(`✅ ${getActionTitle()} completed successfully!`);
-                onSuccess?.(data.data); // Notify parent component
-                onClose(); // Close drawer
+                console.log("Response data for Check-In:", data);
+                if (actionType !== 'check-in') {
+                    alert(`✅ ${getActionTitle()} completed successfully!`);
+                }
+                const updatedData = data.data || data.updatedReservation;
+                if (updatedData) {
+                    console.log("Calling onSuccess with:", updatedData);
+                    onSuccess?.(updatedData); // Notify parent component
+                } else {
+                    console.error("Updated reservation data missing in response!");
+                }
+                onClose(); // Close sidebar
             } else {
+                console.error("Action failed with message:", data.message);
                 throw new Error(data.message || 'Action failed');
             }
 
         } catch (error) {
             console.error(`Error performing ${actionType}:`, error);
-            alert(`❌ Error: ${error.message}`);
+            if (actionType !== 'check-in') {
+                alert(`❌ Error: ${error.message}`);
+            } else {
+                if (error.response?.data?.message) {
+                    console.error("Server error message:", error.response.data.message);
+                } else {
+                    console.error("Unknown error details:", error);
+                }
+            }
             throw error; // Re-throw to let form handle it
         } finally {
             setIsSubmitting(false);
@@ -138,6 +159,14 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
                 return <RoomMoveForm {...formProps} />;
             case 'exchange-room':
                 return <ExchangeRoomForm {...formProps} />;
+            case 'add-visitor':
+                return <AddVisitorForm {...formProps} />;
+            case 'no-show':
+                return <NoShowForm {...formProps} />;
+            case 'void':
+                return <VoidReservationForm {...formProps} />;
+            case 'cancel':
+                return <CancelReservationForm {...formProps} />;
             case 'print-summary':
                 return <PrintSummaryForm {...formProps} />;
             case 'print-invoice':
@@ -148,14 +177,7 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
                 return <PrintGRCAllForm {...formProps} />;
             case 'send-invoice':
                 return <SendInvoiceForm {...formProps} />;
-            case 'add-visitor':
-                return <AddVisitorForm {...formProps} />;
-            case 'no-show':
-                return <NoShowForm {...formProps} />;
-            case 'void':
-                return <VoidReservationForm {...formProps} />;
-            case 'cancel':
-                return <CancelReservationForm {...formProps} />;
+
             default:
                 return <div>Invalid action type</div>;
         }

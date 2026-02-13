@@ -134,6 +134,9 @@ const FoodOrderPage = ({ onClose }) => {
     const [printMode, setPrintMode] = useState(null); // 'BILL' or 'KOT' triggers window.print()
     const [printModal, setPrintModal] = useState(null); // 'BILL' or 'KOT' shows Modal
 
+    // Order Type State ( Default: Dine In )
+    const [activeOrderType, setActiveOrderType] = useState('dinein');
+
     useEffect(() => {
         if (printMode) {
             // Small delay to ensure render
@@ -375,10 +378,30 @@ const FoodOrderPage = ({ onClose }) => {
                     <div className="pos-right-panel">
                         {/* A. Mode Buttons */}
                         <div className="pos-mode-bar">
-                            <button className="pos-mode-btn">Dine In (F1)</button>
-                            <button className="pos-mode-btn">Sell (F3)</button>
-                            <button className="pos-mode-btn">Delivery (F5)</button>
-                            <button className="pos-mode-btn">Room Service</button>
+                            <button
+                                className={`pos-mode-btn ${activeOrderType === 'dinein' ? 'active' : ''}`}
+                                onClick={() => setActiveOrderType('dinein')}
+                            >
+                                Dine In (F1)
+                            </button>
+                            <button
+                                className={`pos-mode-btn ${activeOrderType === 'takeaway' ? 'active' : ''}`}
+                                onClick={() => setActiveOrderType('takeaway')}
+                            >
+                                Take Away (F3)
+                            </button>
+                            <button
+                                className={`pos-mode-btn ${activeOrderType === 'online' ? 'active' : ''}`}
+                                onClick={() => setActiveOrderType('online')}
+                            >
+                                Online Order (F5)
+                            </button>
+                            <button
+                                className={`pos-mode-btn ${activeOrderType === 'roomservice' ? 'active' : ''}`}
+                                onClick={() => setActiveOrderType('roomservice')}
+                            >
+                                Room Service
+                            </button>
                         </div>
 
                         {/* B. Stats Row */}
@@ -482,7 +505,9 @@ const FoodOrderPage = ({ onClose }) => {
                                     <div className="pos-row-btns">
                                         <button className="pos-footer-btn" onClick={handleSaveBill}>Save(B)</button>
                                         <button className="pos-footer-btn" onClick={handleSavePrintBill}>Save & Print(F8)</button>
-                                        <button className="pos-footer-btn" onClick={handleRoomPosting}>Room Posting</button>
+                                        {(activeOrderType === 'dinein' || activeOrderType === 'roomservice') && (
+                                            <button className="pos-footer-btn" onClick={handleRoomPosting}>Room Posting</button>
+                                        )}
                                     </div>
                                 </div>
                             </div>

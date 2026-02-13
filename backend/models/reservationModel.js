@@ -50,7 +50,16 @@ const reservationSchema = new mongoose.Schema({
     email: {
         type: String,
         required: true
-    }
+    },
+    // Check-In fields
+    checkInTime: { type: String },
+    idProofType: { type: String },
+    idNumber: { type: String },
+    adults: { type: Number },
+    children: { type: Number },
+    vehicleNumber: { type: String },
+    securityDeposit: { type: Number },
+    remarks: { type: String }
 }, {
     timestamps: true
 });

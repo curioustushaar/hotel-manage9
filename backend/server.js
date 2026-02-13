@@ -77,6 +77,7 @@ const connectDB = async () => {
 
         console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
         console.log(`📊 Database: ${conn.connection.name}`);
+        console.log("Connected to DB:", conn.connection.name);
         cachedDb = conn;
         return conn;
     } catch (error) {
@@ -159,11 +160,29 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 5000;
 
 // Only listen if not in serverless environment (Vercel)
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-    app.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
-        console.log(`API available at http://localhost:${PORT}`);
+// Function to start server with port fallback
+// Function to start server with port fallback
+const startServer = (port) => {
+    const numericPort = parseInt(port, 10);
+    const server = app.listen(numericPort, () => {
+        console.log(`Server running on port ${numericPort}`);
+        console.log(`API available at http://localhost:${numericPort}`);
     });
+
+    server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            const nextPort = numericPort + 1;
+            console.error(`ERROR: Port ${numericPort} is already in use.`);
+            console.log(`⚠️  Trying next available port: ${nextPort}...`);
+            startServer(nextPort);
+        } else {
+            console.error('Server error:', err);
+        }
+    });
+};
+
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    startServer(PORT);
 }
 
 // Export for Vercel serverless
