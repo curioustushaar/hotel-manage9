@@ -29,6 +29,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                         value={room.categoryId}
                         onChange={(e) => handleChange('categoryId', e.target.value)}
                     >
+                        <option value="">Select Room Category</option>
                         {Object.entries(roomCategories).map(([id, cat]) => (
                             <option key={id} value={id}>{cat.name}</option>
                         ))}

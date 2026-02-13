@@ -63,8 +63,19 @@ const AdminDashboard = () => {
     const [rooms, setRooms] = useState([]);
     const [filteredRooms, setFilteredRooms] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedType, setSelectedType] = useState('All Types');
-    const [selectedStatus, setSelectedStatus] = useState('All Status');
+
+    // Dynamic Filter State
+    const [filters, setFilters] = useState({
+        floor: 'All',
+        roomType: 'All',
+        bedType: 'All',
+        status: 'All'
+    });
+
+    // Dynamic Data State
+    const [roomTypes, setRoomTypes] = useState([]);
+    const [bedTypes, setBedTypes] = useState([]);
+    const [floors, setFloors] = useState([]);
     const [showAddRoomModal, setShowAddRoomModal] = useState(false);
     const [showEditRoomModal, setShowEditRoomModal] = useState(false);
     const [currentRoom, setCurrentRoom] = useState(null);
@@ -72,7 +83,8 @@ const AdminDashboard = () => {
         roomNumber: '',
         roomType: '',
         price: '',
-        capacity: ''
+        capacity: '',
+        floor: ''
     });
     const [roomErrorMessage, setRoomErrorMessage] = useState('');
 
@@ -202,10 +214,57 @@ const AdminDashboard = () => {
         }
     };
 
+    // Fetch Room Types
+    const fetchRoomTypes = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/facility-types/list`);
+            const data = await response.json();
+            if (data.success) {
+                setRoomTypes(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching room types:', error);
+        }
+    };
+
+    // Fetch Bed Types
+    const fetchBedTypes = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/bed-types/list`);
+            const data = await response.json();
+            if (data.success) {
+                setBedTypes(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching bed types:', error);
+        }
+    };
+
+    // Fetch Floors
+    const fetchFloors = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/floors/list`);
+            const data = await response.json();
+            if (data.success) {
+                setFloors(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching floors:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchRoomTypes();
+        fetchBedTypes();
+        fetchFloors();
+    }, [activeMenu]);
+
+    // Filter rooms based on search and filters
     // Filter rooms based on search and filters
     useEffect(() => {
         let filtered = [...rooms];
 
+        // Search filter
         if (searchQuery) {
             filtered = filtered.filter(room =>
                 room.roomNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -213,16 +272,30 @@ const AdminDashboard = () => {
             );
         }
 
-        if (selectedType !== 'All Types') {
-            filtered = filtered.filter(room => room.roomType === selectedType);
+        // Floor Filter
+        if (filters.floor !== 'All') {
+            filtered = filtered.filter(room => room.floor === filters.floor);
         }
 
-        if (selectedStatus !== 'All Status') {
-            filtered = filtered.filter(room => room.status === selectedStatus);
+        // Room Type Filter
+        if (filters.roomType !== 'All') {
+            filtered = filtered.filter(room => room.roomType === filters.roomType);
+        }
+
+        // Bed Type Filter
+        if (filters.bedType !== 'All') {
+            filtered = filtered.filter(room => room.bedType === filters.bedType);
+        }
+
+
+
+        // Status filter
+        if (filters.status !== 'All') {
+            filtered = filtered.filter(room => room.status === filters.status);
         }
 
         setFilteredRooms(filtered);
-    }, [rooms, searchQuery, selectedType, selectedStatus]);
+    }, [rooms, searchQuery, filters]);
 
     // Filter QR rooms based on search and category
     useEffect(() => {
@@ -387,8 +460,12 @@ const AdminDashboard = () => {
         // Reset search and filters when switching menus
         if (menuId === 'rooms') {
             setSearchQuery('');
-            setSelectedType('All Types');
-            setSelectedStatus('All Status');
+            setFilters({
+                floor: 'All',
+                roomType: 'All',
+                bedType: 'All',
+                status: 'All'
+            });
         }
     };
 
@@ -452,7 +529,7 @@ const AdminDashboard = () => {
     };
 
     const handleAddRoom = () => {
-        setRoomFormData({ roomNumber: '', roomType: '', price: '', capacity: '' });
+        setRoomFormData({ roomNumber: '', roomType: '', price: '', capacity: '', floor: '' });
         setRoomErrorMessage('');
         setShowAddRoomModal(true);
     };
@@ -463,7 +540,8 @@ const AdminDashboard = () => {
             roomNumber: room.roomNumber,
             roomType: room.roomType,
             price: room.price.toString(),
-            capacity: room.capacity.toString()
+            capacity: room.capacity.toString(),
+            floor: room.floor || ''
         });
         setRoomErrorMessage('');
         setShowEditRoomModal(true);
@@ -473,7 +551,7 @@ const AdminDashboard = () => {
         e.preventDefault();
         setRoomErrorMessage('');
 
-        if (!roomFormData.roomNumber || !roomFormData.roomType || !roomFormData.price || !roomFormData.capacity) {
+        if (!roomFormData.roomNumber || !roomFormData.roomType || !roomFormData.price || !roomFormData.capacity || !roomFormData.floor) {
             setRoomErrorMessage('All fields are required');
             return;
         }
@@ -483,6 +561,7 @@ const AdminDashboard = () => {
                 const newRoom = {
                     roomNumber: roomFormData.roomNumber,
                     roomType: roomFormData.roomType,
+                    floor: roomFormData.floor,
                     capacity: parseInt(roomFormData.capacity),
                     price: parseInt(roomFormData.price),
                     status: 'Available'
@@ -507,6 +586,7 @@ const AdminDashboard = () => {
                 const updatedRoom = {
                     roomNumber: roomFormData.roomNumber,
                     roomType: roomFormData.roomType,
+                    floor: roomFormData.floor,
                     capacity: parseInt(roomFormData.capacity),
                     price: parseInt(roomFormData.price)
                 };
@@ -528,7 +608,7 @@ const AdminDashboard = () => {
                 setShowEditRoomModal(false);
             }
 
-            setRoomFormData({ roomNumber: '', roomType: '', price: '', capacity: '' });
+            setRoomFormData({ roomNumber: '', roomType: '', price: '', capacity: '', floor: '' });
             setCurrentRoom(null);
         } catch (error) {
             console.error('Error submitting room:', error);
@@ -585,6 +665,7 @@ const AdminDashboard = () => {
                         </div>
 
                         {/* Search and Filters */}
+                        {/* Search and Filters */}
                         <div className="rooms-controls">
                             <div className="search-box">
                                 <span className="search-icon">🔍</span>
@@ -595,24 +676,38 @@ const AdminDashboard = () => {
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
-                            <select
-                                className="filter-select"
-                                value={selectedType}
-                                onChange={(e) => setSelectedType(e.target.value)}
-                            >
-                                {getAllRoomTypes().map(type => (
-                                    <option key={type} value={type}>{type}</option>
-                                ))}
-                            </select>
-                            <select
-                                className="filter-select"
-                                value={selectedStatus}
-                                onChange={(e) => setSelectedStatus(e.target.value)}
-                            >
-                                {statusOptions.map(status => (
-                                    <option key={status} value={status}>{status}</option>
-                                ))}
-                            </select>
+
+                            <div className="filters-row" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                <select className="filter-select" value={filters.floor} onChange={(e) => setFilters({ ...filters, floor: e.target.value })}>
+                                    <option value="All">Floor: All</option>
+                                    {floors.map(floor => (
+                                        <option key={floor._id} value={floor.name}>{floor.name}</option>
+                                    ))}
+                                </select>
+
+                                <select className="filter-select" value={filters.roomType} onChange={(e) => setFilters({ ...filters, roomType: e.target.value })}>
+                                    <option value="All">Room Type: All</option>
+                                    {roomTypes.map(type => (
+                                        <option key={type._id} value={type.name}>{type.name}</option>
+                                    ))}
+                                </select>
+
+                                <select className="filter-select" value={filters.bedType} onChange={(e) => setFilters({ ...filters, bedType: e.target.value })}>
+                                    <option value="All">Bed Type: All</option>
+                                    {bedTypes.map(type => (
+                                        <option key={type._id} value={type.name}>{type.name}</option>
+                                    ))}
+                                </select>
+
+                                <select className="filter-select" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
+                                    <option value="All">Status: All</option>
+                                    <option value="Available">Available</option>
+                                    <option value="Booked">Booked</option>
+                                    <option value="Occupied">Occupied</option>
+                                    <option value="Under Maintenance">Maintenance</option>
+                                </select>
+                            </div>
+
                             <button className="add-room-btn" onClick={handleAddRoom}>
                                 + Add Room
                             </button>
@@ -662,85 +757,7 @@ const AdminDashboard = () => {
                 )
             }
 
-            {/* Add/Edit Room Modal */}
-            {(showAddRoomModal || showEditRoomModal) && (
-                <div className="modal-overlay" onClick={() => { setShowAddRoomModal(false); setShowEditRoomModal(false); }}>
-                    <motion.div
-                        className="modal-content"
-                        onClick={(e) => e.stopPropagation()}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3 }}
-                    >
-                        <div className="modal-header">
-                            <h2>{showAddRoomModal ? 'Add New Room' : 'Edit Room'}</h2>
-                            <button className="modal-close" onClick={() => { setShowAddRoomModal(false); setShowEditRoomModal(false); }}>
-                                ✕
-                            </button>
-                        </div>
-                        <form onSubmit={handleRoomSubmit}>
-                            <div className="modal-body">
-                                {roomErrorMessage && <p className="error-message">{roomErrorMessage}</p>}
-                                <div className="form-group">
-                                    <label>ROOM NUMBER *</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        placeholder="e.g., 101, 102"
-                                        value={roomFormData.roomNumber}
-                                        onChange={(e) => setRoomFormData({ ...roomFormData, roomNumber: e.target.value })}
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>ROOM TYPE *</label>
-                                    <select
-                                        className="form-input"
-                                        value={roomFormData.roomType}
-                                        onChange={(e) => setRoomFormData({ ...roomFormData, roomType: e.target.value })}
-                                    >
-                                        <option value="">Select Room Type</option>
-                                        {Object.entries(roomTypeCategories).map(([category, types]) => (
-                                            <optgroup key={category} label={category}>
-                                                {types.map(type => (
-                                                    <option key={type} value={type}>{type}</option>
-                                                ))}
-                                            </optgroup>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>PRICE (per night) *</label>
-                                    <input
-                                        type="number"
-                                        className="form-input"
-                                        placeholder="e.g., 1500"
-                                        value={roomFormData.price}
-                                        onChange={(e) => setRoomFormData({ ...roomFormData, price: e.target.value })}
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>CAPACITY (persons) *</label>
-                                    <input
-                                        type="number"
-                                        className="form-input"
-                                        placeholder="e.g., 2"
-                                        value={roomFormData.capacity}
-                                        onChange={(e) => setRoomFormData({ ...roomFormData, capacity: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={() => { setShowAddRoomModal(false); setShowEditRoomModal(false); }}>
-                                    Cancel
-                                </button>
-                                <button type="submit" className="btn btn-primary">
-                                    {showAddRoomModal ? 'Add Room' : 'Save Changes'}
-                                </button>
-                            </div>
-                        </form>
-                    </motion.div>
-                </div>
-            )}
+
 
             {/* Reservation & Stay Management View */}
             {
@@ -1209,7 +1226,6 @@ const AdminDashboard = () => {
 
                             <form onSubmit={handleRoomSubmit}>
                                 <div className="form-group">
-                                    <label>ROOM NUMBER *</label>
                                     <input
                                         type="text"
                                         className="form-input"
@@ -1220,6 +1236,20 @@ const AdminDashboard = () => {
                                 </div>
 
                                 <div className="form-group">
+                                    <label>FLOOR *</label>
+                                    <select
+                                        className="form-input"
+                                        value={roomFormData.floor}
+                                        onChange={(e) => setRoomFormData({ ...roomFormData, floor: e.target.value })}
+                                    >
+                                        <option value="">-- Select Floor --</option>
+                                        {floors.map(floor => (
+                                            <option key={floor._id} value={floor.name}>{floor.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="form-group">
                                     <label>ROOM TYPE *</label>
                                     <select
                                         className="form-input"
@@ -1227,12 +1257,8 @@ const AdminDashboard = () => {
                                         onChange={(e) => setRoomFormData({ ...roomFormData, roomType: e.target.value })}
                                     >
                                         <option value="">-- Select Room Type --</option>
-                                        {Object.entries(roomTypeCategories).map(([category, types]) => (
-                                            <optgroup key={category} label={category}>
-                                                {types.map(type => (
-                                                    <option key={type} value={type}>{type}</option>
-                                                ))}
-                                            </optgroup>
+                                        {roomTypes.map(type => (
+                                            <option key={type._id} value={type.name}>{type.name}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -1317,12 +1343,8 @@ const AdminDashboard = () => {
                                         onChange={(e) => setRoomFormData({ ...roomFormData, roomType: e.target.value })}
                                     >
                                         <option value="">-- Select Room Type --</option>
-                                        {Object.entries(roomTypeCategories).map(([category, types]) => (
-                                            <optgroup key={category} label={category}>
-                                                {types.map(type => (
-                                                    <option key={type} value={type}>{type}</option>
-                                                ))}
-                                            </optgroup>
+                                        {roomTypes.map(type => (
+                                            <option key={type._id} value={type.name}>{type.name}</option>
                                         ))}
                                     </select>
                                 </div>

@@ -88,17 +88,23 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                         bookingSource: 'Direct',
                         businessSource: 'Walk-In',
                         referenceNumber: booking.bookingId || '',
-                        arrivalFrom: '',
-                        purposeOfVisit: '',
                         guestId: booking._id,
                         guestName: booking.guestName,
                         guestEmail: booking.email || '',
                         guestPhone: booking.mobileNumber,
-                        checkInDate: new Date(booking.checkInDate).toISOString().split('T')[0],
-                        checkInTime: '14:00',
-                        checkOutDate: new Date(booking.checkOutDate).toISOString().split('T')[0],
-                        checkOutTime: '11:00',
+                        reservationType: booking.reservationType || 'Confirm',
+                        bookingSource: booking.bookingSource || 'Direct',
+                        businessSource: booking.businessSource || 'Walk-In',
+                        referenceNumber: booking.referenceId || booking.id,
+                        arrivalFrom: booking.arrivalFrom || '',
+                        purposeOfVisit: booking.purposeOfVisit || '',
+                        checkInDate: booking.checkInDate ? new Date(booking.checkInDate).toISOString().split('T')[0] : '',
+                        checkInTime: booking.scheduledCheckInTime || '14:00',
+                        checkOutDate: booking.checkOutDate ? new Date(booking.checkOutDate).toISOString().split('T')[0] : '',
+                        checkOutTime: booking.scheduledCheckOutTime || '11:00',
                         flexibleCheckout: false,
+                        roomNumber: booking.roomNumber,
+                        roomType: booking.roomType,
                         rooms: [{
                             id: 1,
                             categoryId: booking.roomType?.toLowerCase().replace(/ /g, '-') || 'deluxe-ac-double',
@@ -121,6 +127,15 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                         balanceDue: booking.remainingAmount || 0,
                         paymentMode: 'Cash',
                         taxExempt: false,
+                        idProofType: booking.idProofType,
+                        idProofNumber: booking.idProofNumber,
+                        vehicleNumber: booking.vehicleNumber,
+                        auditTrail: booking.auditTrail || [],
+                        transactions: booking.transactions || [],
+                        notes: booking.checkInRemarks || '',
+                        cancellationDetails: booking.cancellationDetails || {},
+                        noShowDetails: booking.noShowDetails || {},
+                        voidDetails: booking.voidDetails || {},
                         createdAt: booking.createdAt || new Date().toISOString(),
                         updatedAt: booking.updatedAt || new Date().toISOString()
                     }));
@@ -134,11 +149,12 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                 if (reservationsData.success && reservationsData.data) {
                     const mappedReservations = reservationsData.data.map(reservation => ({
                         id: reservation._id,
-                        reservationType: 'Confirm',
-                        bookingSource: 'Direct',
-                        businessSource: 'Walk-In',
+                        reservationType: reservation.reservationType || 'Confirm',
+                        bookingSource: reservation.bookingSource || 'Direct',
+                        businessSource: reservation.businessSource || 'Walk-In',
                         referenceNumber: reservation.referenceId,
-                        arrivalFrom: '',
+                        arrivalFrom: reservation.arrivalFrom || '',
+                        purposeOfVisit: reservation.purposeOfVisit || '',
                         purposeOfVisit: '',
                         guestId: reservation._id,
                         guestName: reservation.guestName,
@@ -149,6 +165,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                         checkOutDate: new Date(reservation.checkOutDate).toISOString().split('T')[0],
                         checkOutTime: '11:00',
                         flexibleCheckout: false,
+                        roomNumber: reservation.roomNumber, // Assuming reservation object might have it, or it will be undefined which is fine
+                        roomType: reservation.roomType,
                         rooms: [{
                             id: 1,
                             categoryId: 'deluxe-ac-double',
@@ -186,49 +204,27 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         }
     };
 
-    // Helper function to convert room type name to category ID
-    const getCategoryIdFromRoomType = (roomType) => {
-        const typeMapping = {
-            'Deluxe Room': 'deluxe-ac-double',
-            'Club AC Double Room': 'club-ac-double',
-            'Suite Double Room': 'suite-double',
-            'Suite Single Room': 'suite-single',
-            'Standard Room': 'standard-room'
-        };
-        return typeMapping[roomType] || 'deluxe-ac-double';
+    // Room Facility Types
+    const [facilityTypes, setFacilityTypes] = useState([]);
+
+    // Fetch facility types
+    const fetchFacilityTypes = async () => {
+        try {
+            const response = await fetch(`${API_URL_CONFIG}/api/facility-types/list`);
+            const data = await response.json();
+            if (data.success) {
+                setFacilityTypes(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching facility types:', error);
+        }
     };
 
-    // Form State - Reservation Meta
-    const [reservationType, setReservationType] = useState('Confirm');
-    const [bookingSource, setBookingSource] = useState('Direct');
-    const [businessSource, setBusinessSource] = useState('Walk-In');
-    const [referenceNumber, setReferenceNumber] = useState('');
-    const [arrivalFrom, setArrivalFrom] = useState('');
-    const [purposeOfVisit, setPurposeOfVisit] = useState('');
+    useEffect(() => {
+        fetchFacilityTypes();
+    }, []);
 
-    // Form State - Stay Details (with pre-fill support)
-    const [checkInDate, setCheckInDate] = useState(prefilledData?.checkInDate || '');
-    const [checkInTime, setCheckInTime] = useState(prefilledData?.checkInTime || '14:00');
-    const [checkOutDate, setCheckOutDate] = useState(prefilledData?.checkOutDate || '');
-    const [checkOutTime, setCheckOutTime] = useState(prefilledData?.checkOutTime || '11:00');
-    const [flexibleCheckout, setFlexibleCheckout] = useState(false);
-
-    // Form State - Room Details (with pre-fill support)
-    const [rooms, setRooms] = useState([{
-        id: 1,
-        categoryId: prefilledData?.roomType ? getCategoryIdFromRoomType(prefilledData.roomType) : 'deluxe-ac-double',
-        roomNumber: prefilledData?.roomNumber || '',
-        mealPlan: 'CP',
-        adultsCount: 1,
-        childrenCount: 0,
-        ratePerNight: 3000,
-        discount: 0
-    }]);
-
-    // Form State - Guest Information
-    const [selectedGuest, setSelectedGuest] = useState(null);
-    const [showGuestModal, setShowGuestModal] = useState(false);
-    const [guests, setGuests] = useState([]);
+    // Meal Types
     const [mealTypes, setMealTypes] = useState([]);
 
     // Fetch meal types from API
@@ -243,6 +239,141 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             console.error('Error fetching meal types:', error);
         }
     };
+
+    useEffect(() => {
+        fetchMealTypes();
+    }, []);
+
+    // Booking Sources
+    const [bookingSources, setBookingSources] = useState([]);
+
+    const fetchBookingSources = async () => {
+        try {
+            const response = await fetch(`${API_URL_CONFIG}/api/booking-sources/list`);
+            const data = await response.json();
+            if (data.success) {
+                setBookingSources(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching booking sources:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchBookingSources();
+    }, []);
+
+    // Validate booking source when booking sources load
+    useEffect(() => {
+        if (bookingSources.length > 0) {
+            const isCurrentValid = bookingSources.some(source => source.name === bookingSource);
+            if (bookingSource !== '' && !isCurrentValid) {
+                setBookingSource(''); // Invalidate if not found
+            }
+        }
+    }, [bookingSources]);
+
+    // Reservation Types (Dynamic)
+    const [reservationTypesList, setReservationTypesList] = useState([]);
+
+    const fetchReservationTypesList = async () => {
+        try {
+            const response = await fetch(`${API_URL_CONFIG}/api/reservation-types/list`);
+            const data = await response.json();
+            if (data.success) {
+                setReservationTypesList(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching reservation types:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchReservationTypesList();
+    }, []);
+
+    // Validate reservation type when list loads
+    useEffect(() => {
+        if (reservationTypesList.length > 0) {
+            const isCurrentValid = reservationTypesList.some(type => type.name === reservationType);
+            if (reservationType !== '' && !isCurrentValid) {
+                setReservationType('');
+            }
+        }
+    }, [reservationTypesList]);
+
+    // Business Sources (Dynamic)
+    const [businessSourcesList, setBusinessSourcesList] = useState([]);
+
+    const fetchBusinessSourcesList = async () => {
+        try {
+            const response = await fetch(`${API_URL_CONFIG}/api/business-sources/list`);
+            const data = await response.json();
+            if (data.success) {
+                setBusinessSourcesList(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching business sources:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchBusinessSourcesList();
+    }, []);
+
+    // Validate business source when list loads
+    useEffect(() => {
+        if (businessSourcesList.length > 0) {
+            const isCurrentValid = businessSourcesList.some(source => source.name === businessSource);
+            if (businessSource !== '' && !isCurrentValid) {
+                setBusinessSource('');
+            }
+        }
+    }, [businessSourcesList]);
+
+    // Helper function to convert room type name to category ID
+    const getCategoryIdFromRoomType = (roomType) => {
+        const typeMapping = {
+            'Deluxe Room': 'deluxe-ac-double',
+            'Club AC Double Room': 'club-ac-double',
+            'Suite Double Room': 'suite-double',
+            'Suite Single Room': 'suite-single',
+            'Standard Room': 'standard-room'
+        };
+        return typeMapping[roomType] || 'deluxe-ac-double';
+    };
+
+    // Form State - Reservation Meta
+    const [reservationType, setReservationType] = useState('');
+    const [bookingSource, setBookingSource] = useState('');
+    const [businessSource, setBusinessSource] = useState('');
+    const [referenceNumber, setReferenceNumber] = useState('');
+    const [arrivalFrom, setArrivalFrom] = useState('');
+    const [purposeOfVisit, setPurposeOfVisit] = useState('');
+
+    // Form State - Stay Details (with pre-fill support)
+    const [checkInDate, setCheckInDate] = useState(prefilledData?.checkInDate || '');
+    const [checkInTime, setCheckInTime] = useState(prefilledData?.checkInTime || '14:00');
+    const [checkOutDate, setCheckOutDate] = useState(prefilledData?.checkOutDate || '');
+    const [checkOutTime, setCheckOutTime] = useState(prefilledData?.checkOutTime || '11:00');
+    const [flexibleCheckout, setFlexibleCheckout] = useState(false);
+
+    // Form State - Room Details (with pre-fill support)
+    const [rooms, setRooms] = useState([{
+        id: 1,
+        categoryId: prefilledData?.roomType ? getCategoryIdFromRoomType(prefilledData.roomType) : '',
+        roomNumber: prefilledData?.roomNumber || '',
+        mealPlan: mealTypes.length > 0 ? mealTypes[0].shortCode : 'CP',
+        adultsCount: 1,
+        childrenCount: 0,
+        ratePerNight: 3000,
+        discount: 0
+    }]);
+
+    // Form State - Guest Information
+    const [selectedGuest, setSelectedGuest] = useState(null);
+    const [showGuestModal, setShowGuestModal] = useState(false);
+    const [guests, setGuests] = useState([]);
 
     // Fetch guests from API
     const fetchGuestsFromAPI = async () => {
@@ -315,15 +446,31 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [printBooking, setPrintBooking] = useState(null);
     const [showPrintMenu, setShowPrintMenu] = useState(false);
 
-    // Room Categories
-    const roomCategories = useMemo(() => ({
-        'deluxe-ac-double': { name: 'Deluxe AC Double', baseRate: 3000 },
-        'deluxe-ac-single': { name: 'Deluxe AC Single', baseRate: 2000 },
-        'deluxe-non-ac': { name: 'Deluxe Non-AC', baseRate: 1500 },
-        'club-ac-double': { name: 'Club AC Double', baseRate: 4000 },
-        'club-ac-single': { name: 'Club AC Single', baseRate: 2800 },
-        'suite': { name: 'Executive Suite', baseRate: 5500 }
-    }), []);
+    // Room Categories (using facility types from above)
+    const roomCategories = useMemo(() => {
+        if (facilityTypes.length === 0) {
+            // Fallback to hardcoded if no dynamic types loaded yet, to prevent crashes
+            return {
+                'deluxe-ac-double': { name: 'Deluxe AC Double', baseRate: 3000 },
+                'deluxe-ac-single': { name: 'Deluxe AC Single', baseRate: 2000 },
+                'deluxe-non-ac': { name: 'Deluxe Non-AC', baseRate: 1500 },
+                'club-ac-double': { name: 'Club AC Double', baseRate: 4000 },
+                'club-ac-single': { name: 'Club AC Single', baseRate: 2800 },
+                'suite': { name: 'Executive Suite', baseRate: 5500 }
+            };
+        }
+
+        const categories = {};
+        facilityTypes.forEach(type => {
+            // Using name as key for simplicity and mapping
+            // In a real app with prices, we might need more data from backend
+            categories[type.name] = {
+                name: type.name,
+                baseRate: 0 // Default rate as we don't have it in facility type model
+            };
+        });
+        return categories;
+    }, [facilityTypes]);
 
     // Calculate nights
     const calculateNights = useCallback(() => {
@@ -334,6 +481,52 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     }, [checkInDate, checkOutDate]);
 
     const nights = calculateNights();
+
+    // Validate room categories when facility types load
+    useEffect(() => {
+        if (facilityTypes.length > 0) {
+            setRooms(prevRooms => {
+                return prevRooms.map(room => {
+                    // Check if current categoryId (which acts as key) exists in the new facilityTypes list
+                    const isValid = facilityTypes.some(t => t.name === room.categoryId);
+
+                    if (room.categoryId !== '' && !isValid) {
+                        // If invalid (e.g. was using hardcoded ID), switch to empty
+                        return {
+                            ...room,
+                            categoryId: ''
+                        };
+                    }
+                    return room;
+                });
+            });
+        }
+    }, [facilityTypes]);
+
+    // Validate meal plans when meal types load
+    useEffect(() => {
+        if (mealTypes.length > 0) {
+            setRooms(prevRooms => {
+                return prevRooms.map(room => {
+                    if (!room.mealPlan) {
+                        return {
+                            ...room,
+                            mealPlan: mealTypes[0].shortCode
+                        };
+                    }
+                    // Optionally check if the current mealPlan exists in mealTypes
+                    // But usually shortCodes are stable. If you want strict validation:
+                    /*
+                    const isValid = mealTypes.some(mt => mt.shortCode === room.mealPlan);
+                    if (!isValid) {
+                        return { ...room, mealPlan: mealTypes[0].shortCode };
+                    }
+                    */
+                    return room;
+                });
+            });
+        }
+    }, [mealTypes]);
 
     // Calculate billing
     const billingData = useMemo(() => {
@@ -528,9 +721,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const resetForm = useCallback(() => {
         setIsEditingMode(false);
         setEditingReservationId(null);
-        setReservationType('Confirm');
-        setBookingSource('Direct');
-        setBusinessSource('Walk-In');
+        setReservationType('');
+        setBookingSource('');
+        setBusinessSource('');
         setReferenceNumber('');
         setArrivalFrom('');
         setPurposeOfVisit('');
@@ -539,7 +732,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         setCheckOutDate('');
         setCheckOutTime('11:00');
         setFlexibleCheckout(false);
-        setRooms([{ id: 1, categoryId: 'deluxe-ac-double', roomNumber: '', mealPlan: 'CP', adultsCount: 1, childrenCount: 0, ratePerNight: 3000, discount: 0 }]);
+        setRooms([{ id: 1, categoryId: '', roomNumber: '', mealPlan: mealTypes.length > 0 ? mealTypes[0].shortCode : 'CP', adultsCount: 1, childrenCount: 0, ratePerNight: 3000, discount: 0 }]);
         setSelectedGuest(null);
         setPaidAmount(0);
         setPaymentMode('Cash');
@@ -569,21 +762,35 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         }
 
         // Map reservation data to MongoDB booking format
+        const totalGuests = (rooms[0].adultsCount || 0) + (rooms[0].childrenCount || 0);
+        const validGuests = totalGuests > 0 ? totalGuests : 1; // Ensure at least 1 guest
+
         const bookingData = {
-            guestName: selectedGuest.fullName || selectedGuest.name,
-            mobileNumber: selectedGuest.mobile || selectedGuest.phone,
-            email: selectedGuest.email,
-            roomType: rooms[0].categoryId.replace(/-/g, ' ').toUpperCase(),
+            guestName: selectedGuest.fullName || selectedGuest.name || selectedGuest.guestName, // robust check
+            mobileNumber: selectedGuest.mobile || selectedGuest.phone || selectedGuest.mobileNumber,
+            email: selectedGuest.email || selectedGuest.guestEmail,
+            roomType: rooms[0].categoryId?.replace(/-/g, ' ').toUpperCase() || 'STANDARD',
             roomNumber: rooms[0].roomNumber || 'TBD',
-            numberOfGuests: rooms[0].adultsCount + rooms[0].childrenCount,
+            numberOfGuests: validGuests,
+            checkInDate,
             checkInDate,
             checkOutDate,
-            numberOfNights: nights,
-            pricePerNight: rooms[0].ratePerNight,
-            totalAmount: billingData.totalAmount,
-            advancePaid: billingData.paidAmount || 0,
-            status: status === 'IN_HOUSE' ? 'Checked-in' : 'Upcoming'
+            numberOfNights: Number(nights) || 1,
+            pricePerNight: Number(rooms[0].ratePerNight) || 0,
+            totalAmount: Number(billingData.totalAmount) || 0,
+            advancePaid: Number(billingData.paidAmount) || 0,
+            status: status === 'IN_HOUSE' ? 'Checked-in' : 'Upcoming',
+            reservationType: reservationType || 'Confirm',
+            bookingSource: bookingSource || 'Direct',
+            businessSource: businessSource || 'Walk-In',
+            arrivalFrom: arrivalFrom || '',
+            purposeOfVisit: purposeOfVisit || '',
+            scheduledCheckInTime: checkInTime,
+            scheduledCheckOutTime: checkOutTime,
+            referenceId: referenceNumber || `REF-${Date.now()}`
         };
+
+        console.log('Sending booking data:', bookingData);
 
         try {
             if (isEditingMode) {
@@ -612,19 +819,19 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
                 const data = await response.json();
                 if (data.success) {
-                    await fetchReservationsFromAPI();
+                    await fetchReservationsFromAPI(); // Refresh list
                     alert('Reservation created successfully!');
                 } else {
-                    alert(`Error: ${data.message}`);
+                    console.error('Server returned error:', data);
+                    alert(`Error creating reservation: ${data.message || 'Unknown error'}`);
                     return;
                 }
             }
 
             resetForm();
-            setView('dashboard');
         } catch (error) {
             console.error('Error saving reservation:', error);
-            alert('Failed to save reservation. Please check if the server is running.');
+            alert(`Failed to save reservation: ${error.message}`);
         }
     };
 
@@ -682,11 +889,14 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
     // Filter reservations
     const filteredReservations = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
         return reservations.filter(r => {
             if (activeTab === 'all') return true;
             if (activeTab === 'reserved') return r.status === 'RESERVED';
             if (activeTab === 'in-house') return r.status === 'IN_HOUSE';
             if (activeTab === 'checked-out') return r.status === 'CHECKED_OUT';
+            if (activeTab === 'arrival') return r.checkInDate === today && r.status === 'RESERVED';
+            if (activeTab === 'departure') return r.checkOutDate === today && r.status === 'IN_HOUSE';
             return true;
         });
     }, [reservations, activeTab]);
@@ -755,27 +965,60 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                     <div className="form-row">
                                         <label>Reservation Type</label>
                                         <select value={reservationType} onChange={(e) => setReservationType(e.target.value)}>
-                                            <option value="Confirm">Confirm</option>
-                                            <option value="Provisional">Provisional</option>
-                                            <option value="Tentative">Tentative</option>
+                                            <option value="">Select Reservation Type</option>
+                                            {reservationTypesList.length > 0 ? (
+                                                reservationTypesList.map((type) => (
+                                                    <option key={type._id} value={type.name}>
+                                                        {type.name}
+                                                    </option>
+                                                ))
+                                            ) : (
+                                                <>
+                                                    <option value="Confirm">Confirm</option>
+                                                    <option value="Provisional">Provisional</option>
+                                                    <option value="Tentative">Tentative</option>
+                                                </>
+                                            )}
                                         </select>
                                     </div>
                                     <div className="form-row">
                                         <label>Booking Source</label>
                                         <select value={bookingSource} onChange={(e) => setBookingSource(e.target.value)}>
-                                            <option value="Direct">Direct</option>
-                                            <option value="OTA">OTA</option>
-                                            <option value="Travel Agent">Travel Agent</option>
-                                            <option value="Corporate">Corporate</option>
+                                            <option value="">Select Booking Source</option>
+                                            {bookingSources.length > 0 ? (
+                                                bookingSources.map((source) => (
+                                                    <option key={source._id} value={source.name}>
+                                                        {source.name}
+                                                    </option>
+                                                ))
+                                            ) : (
+                                                <>
+                                                    <option value="Direct">Direct</option>
+                                                    <option value="OTA">OTA</option>
+                                                    <option value="Travel Agent">Travel Agent</option>
+                                                    <option value="Corporate">Corporate</option>
+                                                </>
+                                            )}
                                         </select>
                                     </div>
                                     <div className="form-row">
                                         <label>Business Source</label>
                                         <select value={businessSource} onChange={(e) => setBusinessSource(e.target.value)}>
-                                            <option value="Walk-In">Walk-In</option>
-                                            <option value="Phone">Phone</option>
-                                            <option value="Email">Email</option>
-                                            <option value="Website">Website</option>
+                                            <option value="">Select Business Source</option>
+                                            {businessSourcesList.length > 0 ? (
+                                                businessSourcesList.map((source) => (
+                                                    <option key={source._id} value={source.name}>
+                                                        {source.name}
+                                                    </option>
+                                                ))
+                                            ) : (
+                                                <>
+                                                    <option value="Walk-In">Walk-In</option>
+                                                    <option value="Phone">Phone</option>
+                                                    <option value="Email">Email</option>
+                                                    <option value="Website">Website</option>
+                                                </>
+                                            )}
                                         </select>
                                     </div>
                                     <div className="form-row">
@@ -878,9 +1121,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                     className="btn btn-secondary btn-add-room"
                                     onClick={() => setRooms([...rooms, {
                                         id: rooms.length + 1,
-                                        categoryId: 'deluxe-ac-double',
+                                        categoryId: '',
                                         roomNumber: '',
-                                        mealPlan: 'CP',
+                                        mealPlan: mealTypes.length > 0 ? mealTypes[0].shortCode : 'CP',
                                         adultsCount: 1,
                                         childrenCount: 0,
                                         ratePerNight: 3000,
@@ -979,7 +1222,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
             {/* Tabs */}
             <div className="reservation-tabs">
-                {['all', 'reserved', 'in-house', 'checked-out'].map(tab => (
+                {['all', 'reserved', 'in-house', 'checked-out', 'arrival', 'departure'].map(tab => (
                     <button
                         key={tab}
                         className={`tab-btn ${activeTab === tab ? 'active' : ''}`}

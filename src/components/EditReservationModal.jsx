@@ -4,6 +4,11 @@ import ReservationHeader from './ReservationHeader';
 import ReservationTabs from './ReservationTabs';
 import FolioOperations from './FolioOperations';
 
+import BookingDetails from './BookingDetails';
+import GuestDetails from './GuestDetails';
+import RoomCharges from './RoomCharges';
+import AuditTrail from './AuditTrail';
+
 const EditReservationModal = ({ isOpen, onClose, reservation }) => {
     const [activeTab, setActiveTab] = useState('folio-operations');
 
@@ -40,30 +45,30 @@ const EditReservationModal = ({ isOpen, onClose, reservation }) => {
                         <div className="summary-col">
                             <span className="summary-label-modal">BOOKING DATE</span>
                             <span className="summary-value-modal">
-                                {new Date(reservation.createdAt).toLocaleDateString('en-GB', { 
-                                    day: '2-digit', 
-                                    month: '2-digit', 
-                                    year: 'numeric' 
+                                {new Date(reservation.createdAt).toLocaleDateString('en-GB', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric'
                                 })}
                             </span>
                         </div>
                         <div className="summary-col">
                             <span className="summary-label-modal">ARRIVAL</span>
                             <span className="summary-value-modal">
-                                {new Date(reservation.checkInDate).toLocaleDateString('en-GB', { 
-                                    day: '2-digit', 
-                                    month: '2-digit', 
-                                    year: 'numeric' 
+                                {new Date(reservation.checkInDate).toLocaleDateString('en-GB', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric'
                                 })}
                             </span>
                         </div>
                         <div className="summary-col">
                             <span className="summary-label-modal">DEPARTURE</span>
                             <span className="summary-value-modal">
-                                {new Date(reservation.checkOutDate).toLocaleDateString('en-GB', { 
-                                    day: '2-digit', 
-                                    month: '2-digit', 
-                                    year: 'numeric' 
+                                {new Date(reservation.checkOutDate).toLocaleDateString('en-GB', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric'
                                 })}
                             </span>
                         </div>
@@ -76,7 +81,7 @@ const EditReservationModal = ({ isOpen, onClose, reservation }) => {
                         <div className="summary-col">
                             <span className="summary-label-modal">ROOM / ROOM TYPE</span>
                             <span className="summary-value-modal">
-                                102 / Deluxe
+                                {reservation.roomNumber || 'TBD'} / {reservation.roomType || 'Pending'}
                             </span>
                         </div>
                         <div className="summary-col">
@@ -97,9 +102,9 @@ const EditReservationModal = ({ isOpen, onClose, reservation }) => {
 
                 {/* Tab Navigation */}
                 <div className="modal-tabs-section">
-                    <ReservationTabs 
-                        activeTab={activeTab} 
-                        onTabChange={setActiveTab} 
+                    <ReservationTabs
+                        activeTab={activeTab}
+                        onTabChange={setActiveTab}
                     />
                 </div>
 
@@ -109,28 +114,16 @@ const EditReservationModal = ({ isOpen, onClose, reservation }) => {
                         <FolioOperations reservation={reservation} />
                     )}
                     {activeTab === 'booking-details' && (
-                        <div className="tab-placeholder-modal">
-                            <h3>Booking Details</h3>
-                            <p>Booking details content coming soon...</p>
-                        </div>
+                        <BookingDetails reservation={reservation} />
                     )}
                     {activeTab === 'guest-details' && (
-                        <div className="tab-placeholder-modal">
-                            <h3>Guest Details</h3>
-                            <p>Guest details content coming soon...</p>
-                        </div>
+                        <GuestDetails reservation={reservation} />
                     )}
                     {activeTab === 'room-charges' && (
-                        <div className="tab-placeholder-modal">
-                            <h3>Room Charges</h3>
-                            <p>Room charges content coming soon...</p>
-                        </div>
+                        <RoomCharges reservation={reservation} />
                     )}
                     {activeTab === 'audit-trail' && (
-                        <div className="tab-placeholder-modal">
-                            <h3>Audit Trail</h3>
-                            <p>Audit trail content coming soon...</p>
-                        </div>
+                        <AuditTrail reservation={reservation} />
                     )}
                 </div>
             </div>

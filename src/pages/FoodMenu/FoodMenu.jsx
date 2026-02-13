@@ -214,6 +214,7 @@ const FoodMenu = () => {
                             <thead>
                                 <tr>
                                     <th>#</th>
+                                    <th>Code</th>
                                     <th>Item Name</th>
                                     <th>Category</th>
                                     <th>Description</th>
@@ -226,6 +227,7 @@ const FoodMenu = () => {
                                 {currentItems.map((item, index) => (
                                     <tr key={item._id}>
                                         <td>{indexOfFirstItem + index + 1}</td>
+                                        <td><span className="code-badge">{item.foodCode || '-'}</span></td>
                                         <td>{item.itemName}</td>
                                         <td>{getCategoryWithIcon(item.category)}</td>
                                         <td>{item.description || '---'}</td>
@@ -326,6 +328,7 @@ const FoodMenu = () => {
 const AddItemForm = ({ onSubmit, onCancel }) => {
     const [formData, setFormData] = useState({
         itemName: '',
+        foodCode: '',
         category: '',
         price: '',
         description: '',
@@ -352,6 +355,7 @@ const AddItemForm = ({ onSubmit, onCancel }) => {
             });
             setFormData({
                 itemName: '',
+                foodCode: '',
                 category: '',
                 price: '',
                 description: '',
@@ -375,6 +379,16 @@ const AddItemForm = ({ onSubmit, onCancel }) => {
                             placeholder="e.g. Paneer Butter Masala"
                             value={formData.itemName}
                             onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>FOOD CODE <span className="required">*</span></label>
+                        <input
+                            type="text"
+                            placeholder="e.g. 101"
+                            value={formData.foodCode}
+                            onChange={(e) => setFormData({ ...formData, foodCode: e.target.value })}
                             required
                         />
                     </div>
@@ -430,6 +444,7 @@ const AddItemForm = ({ onSubmit, onCancel }) => {
 const EditItemModal = ({ item, onSave, onCancel }) => {
     const [formData, setFormData] = useState({
         itemName: item.itemName,
+        foodCode: item.foodCode || '',
         category: item.category,
         price: item.price,
         description: item.description || '',
@@ -469,6 +484,15 @@ const EditItemModal = ({ item, onSave, onCancel }) => {
                             type="text"
                             value={formData.itemName}
                             onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>FOOD CODE <span className="required">*</span></label>
+                        <input
+                            type="text"
+                            value={formData.foodCode}
+                            onChange={(e) => setFormData({ ...formData, foodCode: e.target.value })}
                             required
                         />
                     </div>

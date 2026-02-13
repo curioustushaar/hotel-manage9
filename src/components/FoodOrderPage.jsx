@@ -2,56 +2,20 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import API_URL_CONFIG from '../config/api';
 import './FoodOrderPage.css';
 
 const FoodOrderPage = ({ onClose }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { room, source } = location.state || {}; // room might be passed in props too? 
-    // Wait, AdminDashboard passes room prop: room={{...}}. 
-    // So I should destructure room from props if not in state?
-    // Let's refine the component signature. 
-
+    const { room, source } = location.state || {};
 
     const handleMenuClick = (menuId) => {
-        // Map menu IDs to routes
-        if (menuId === 'dashboard') navigate('/admin/dashboard');
-        else if (menuId === 'rooms') navigate('/admin/rooms');
-        else if (menuId === 'new-reservation') navigate('/admin/reservations/new'); // Example mapping
-        else if (menuId === 'room-service') navigate('/admin/reservations/room-service');
-        else if (menuId === 'food-order') { /* Already here */ }
-        else {
-            // Default fallthrough - in a real app, map all IDs
-            // For now, since we are in a standalone route, navigate to dashboard with state?
-            // Actually, AdminDashboard handles all these views via state ActiveMenu.
-            // So if we click "rooms", we should go to /admin/dashboard and set state?
-            // Or does AdminDashboard parse URL?
-            // AdminDashboard `useEffect` sets `activeMenu` based on URL location.pathname!
-            // So checking lines 104-122 of AdminDashboard:
-            // if path includes '/rooms', activeMenu = 'rooms'.
-            // So I just need to navigate to the correct URL.
-
-            if (menuId === 'rooms') navigate('/admin/rooms'); // Route /admin/rooms doesn't exist in snippets?
-            // Wait, App.jsx was not fully viewed but AdminDashboard says:
-            // if (path.includes('/rooms')) ...
-            // Let's assume the routes exist or AdminDashboard is mounted at /admin/*?
-            // Usually AdminDashboard is `/admin/dashboard`.
-            // If I navigate to `/admin/dashboard`, it shows dashboard.
-
-            // If I want to show Rooms, I might need to pass state or query param?
-            // "Set active menu based on URL path" implies there ARE routes like /admin/rooms?
-            // Or maybe query params.
-            // Let's look at AdminDashboard again.
-        }
-
-        // Simpler approach: Navigate to dashboard for everything else for now, the user can verify Sidebar works.
-        // But for 'dashboard', 'rooms', etc.
-
         const routeMap = {
             'dashboard': '/admin/dashboard',
             'rooms': '/admin/rooms',
             'reservations': '/admin/reservations',
-            'new-reservation': '/admin/reservations', // logic in Dash handles view
+            'new-reservation': '/admin/reservations',
             'housekeeping': '/admin/reservations',
             'room-service': '/admin/reservations',
             'guest-meal-service': '/admin/guest-meal-service',
@@ -75,16 +39,17 @@ const FoodOrderPage = ({ onClose }) => {
 
     const handleClose = () => {
         if (source === 'room-service') {
-            navigate(-1); // Return to Room Service
+            navigate(-1);
         } else {
-            navigate('/admin/dashboard'); // Default to dashboard
+            navigate('/admin/dashboard');
         }
     };
-    // Categories
+
+    // Categories - matching database categories
     const categories = [
         { id: 1, name: 'Starters' },
         { id: 2, name: 'Main Course' },
-        { id: 3, name: 'Breads' },
+        { id: 3, name: 'Breakfast' },
         { id: 4, name: 'Rice' },
         { id: 5, name: 'Desserts' },
         { id: 6, name: 'Beverages' },
@@ -92,113 +57,75 @@ const FoodOrderPage = ({ onClose }) => {
         { id: 8, name: 'Continental' }
     ];
 
-    // Food Items
-    const foodItems = {
-        1: [ // Starters
-            { id: 101, name: 'Paneer Tikka', price: 500, quantityAvailable: 8 },
-            { id: 102, name: 'Veg Spring Roll', price: 220, quantityAvailable: 5 },
-            { id: 103, name: 'Chicken Tikka', price: 320, quantityAvailable: 6 },
-            { id: 104, name: 'Fish Fingers', price: 350, quantityAvailable: 4 },
-            { id: 105, name: 'Mushroom Soup', price: 180, quantityAvailable: 10 },
-            { id: 106, name: 'Tomato Soup', price: 150, quantityAvailable: 7 },
-            { id: 107, name: 'Corn Soup', price: 160, quantityAvailable: 9 },
-            { id: 108, name: 'Veg Manchurian', price: 240, quantityAvailable: 5 },
-            { id: 109, name: 'Chilli Paneer', price: 260, quantityAvailable: 6 },
-            { id: 110, name: 'Crispy Corn', price: 200, quantityAvailable: 8 }
-        ],
-        2: [ // Main Course
-            { id: 201, name: 'Paneer Butter Masala', price: 320, quantityAvailable: 7 },
-            { id: 202, name: 'Dal Makhani', price: 280, quantityAvailable: 10 },
-            { id: 203, name: 'Chicken Curry', price: 380, quantityAvailable: 5 },
-            { id: 204, name: 'Mutton Rogan Josh', price: 450, quantityAvailable: 4 },
-            { id: 205, name: 'Fish Curry', price: 400, quantityAvailable: 6 },
-            { id: 206, name: 'Veg Kolhapuri', price: 300, quantityAvailable: 8 },
-            { id: 207, name: 'Kadai Paneer', price: 340, quantityAvailable: 9 },
-            { id: 208, name: 'Palak Paneer', price: 310, quantityAvailable: 7 },
-            { id: 209, name: 'Butter Chicken', price: 420, quantityAvailable: 5 },
-            { id: 210, name: 'Mixed Veg Curry', price: 270, quantityAvailable: 10 }
-        ],
-        3: [ // Breads
-            { id: 301, name: 'Butter Naan', price: 60, quantityAvailable: 15 },
-            { id: 302, name: 'Garlic Naan', price: 70, quantityAvailable: 12 },
-            { id: 303, name: 'Tandoori Roti', price: 40, quantityAvailable: 20 },
-            { id: 304, name: 'Butter Roti', price: 50, quantityAvailable: 18 },
-            { id: 305, name: 'Cheese Naan', price: 90, quantityAvailable: 8 },
-            { id: 306, name: 'Kulcha', price: 65, quantityAvailable: 10 },
-            { id: 307, name: 'Paratha', price: 55, quantityAvailable: 14 },
-            { id: 308, name: 'Lachha Paratha', price: 75, quantityAvailable: 9 },
-            { id: 309, name: 'Missi Roti', price: 60, quantityAvailable: 11 },
-            { id: 310, name: 'Roomali Roti', price: 45, quantityAvailable: 16 }
-        ],
-        4: [ // Rice
-            { id: 401, name: 'Veg Biryani', price: 280, quantityAvailable: 6 },
-            { id: 402, name: 'Chicken Biryani', price: 350, quantityAvailable: 5 },
-            { id: 403, name: 'Mutton Biryani', price: 420, quantityAvailable: 4 },
-            { id: 404, name: 'Jeera Rice', price: 180, quantityAvailable: 10 },
-            { id: 405, name: 'Veg Pulao', price: 220, quantityAvailable: 8 },
-            { id: 406, name: 'Steam Rice', price: 150, quantityAvailable: 12 },
-            { id: 407, name: 'Fried Rice', price: 240, quantityAvailable: 7 },
-            { id: 408, name: 'Schezwan Rice', price: 260, quantityAvailable: 6 },
-            { id: 409, name: 'Egg Fried Rice', price: 280, quantityAvailable: 5 },
-            { id: 410, name: 'Curd Rice', price: 160, quantityAvailable: 9 }
-        ],
-        5: [ // Desserts
-            { id: 501, name: 'Gulab Jamun', price: 120, quantityAvailable: 15 },
-            { id: 502, name: 'Rasgulla', price: 130, quantityAvailable: 12 },
-            { id: 503, name: 'Ice Cream', price: 150, quantityAvailable: 8 },
-            { id: 504, name: 'Brownie', price: 180, quantityAvailable: 6 },
-            { id: 505, name: 'Pastry', price: 160, quantityAvailable: 7 },
-            { id: 506, name: 'Kheer', price: 140, quantityAvailable: 10 },
-            { id: 507, name: 'Kulfi', price: 100, quantityAvailable: 14 },
-            { id: 508, name: 'Jalebi', price: 110, quantityAvailable: 16 },
-            { id: 509, name: 'Rasmalai', price: 150, quantityAvailable: 9 },
-            { id: 510, name: 'Gajar Halwa', price: 130, quantityAvailable: 11 }
-        ],
-        6: [ // Beverages
-            { id: 601, name: 'Tea', price: 40, quantityAvailable: 20 },
-            { id: 602, name: 'Coffee', price: 60, quantityAvailable: 18 },
-            { id: 603, name: 'Cold Coffee', price: 100, quantityAvailable: 10 },
-            { id: 604, name: 'Fresh Lime Soda', price: 80, quantityAvailable: 12 },
-            { id: 605, name: 'Mango Shake', price: 120, quantityAvailable: 8 },
-            { id: 606, name: 'Banana Shake', price: 110, quantityAvailable: 9 },
-            { id: 607, name: 'Lassi', price: 90, quantityAvailable: 11 },
-            { id: 608, name: 'Buttermilk', price: 60, quantityAvailable: 15 },
-            { id: 609, name: 'Soft Drink', price: 50, quantityAvailable: 25 },
-            { id: 610, name: 'Mineral Water', price: 30, quantityAvailable: 30 }
-        ],
-        7: [ // Chinese
-            { id: 701, name: 'Veg Noodles', price: 220, quantityAvailable: 8 },
-            { id: 702, name: 'Chicken Noodles', price: 280, quantityAvailable: 6 },
-            { id: 703, name: 'Veg Manchurian', price: 240, quantityAvailable: 7 },
-            { id: 704, name: 'Chilli Chicken', price: 320, quantityAvailable: 5 },
-            { id: 705, name: 'Spring Rolls', price: 200, quantityAvailable: 10 },
-            { id: 706, name: 'Momos', price: 180, quantityAvailable: 12 },
-            { id: 707, name: 'Hakka Noodles', price: 240, quantityAvailable: 7 },
-            { id: 708, name: 'Chowmein', price: 230, quantityAvailable: 8 },
-            { id: 709, name: 'Fried Rice', price: 250, quantityAvailable: 9 },
-            { id: 710, name: 'Sweet Corn Soup', price: 160, quantityAvailable: 11 }
-        ],
-        8: [ // Continental
-            { id: 801, name: 'Pasta Alfredo', price: 320, quantityAvailable: 6 },
-            { id: 802, name: 'Pizza Margherita', price: 380, quantityAvailable: 5 },
-            { id: 803, name: 'Burger', price: 220, quantityAvailable: 10 },
-            { id: 804, name: 'Sandwich', price: 180, quantityAvailable: 12 },
-            { id: 805, name: 'French Fries', price: 140, quantityAvailable: 15 },
-            { id: 806, name: 'Garlic Bread', price: 160, quantityAvailable: 11 },
-            { id: 807, name: 'Grilled Chicken', price: 400, quantityAvailable: 4 },
-            { id: 808, name: 'Fish & Chips', price: 420, quantityAvailable: 5 },
-            { id: 809, name: 'Caesar Salad', price: 280, quantityAvailable: 8 },
-            { id: 810, name: 'Club Sandwich', price: 240, quantityAvailable: 9 }
-        ]
-    };
-
     const [selectedCategory, setSelectedCategory] = useState(1);
     const [cart, setCart] = useState([]);
     const [searchName, setSearchName] = useState('');
     const [searchCode, setSearchCode] = useState('');
+    const [menuItems, setMenuItems] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Derived state for food items
-    const currentItems = foodItems[selectedCategory] || [];
+    // Fetch menu items from API
+    useEffect(() => {
+        fetchMenuItems();
+    }, []);
+
+    const fetchMenuItems = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch(`${API_URL_CONFIG}/api/menu/list`);
+            const data = await response.json();
+
+            if (data.success && data.data) {
+                // Filter only active items
+                const activeItems = data.data.filter(item => item.status === 'Active');
+                setMenuItems(activeItems);
+            }
+        } catch (error) {
+            console.error('Error fetching menu items:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Get current category name
+    const getCurrentCategoryName = () => {
+        const category = categories.find(cat => cat.id === selectedCategory);
+        return category ? category.name : '';
+    };
+
+    // Filter items based on search or category
+    const getFilteredItems = () => {
+        // Map items with code
+        const allItems = menuItems.map(item => ({
+            id: item._id,
+            code: item.foodCode || '',
+            name: item.itemName,
+            category: item.category,
+            price: item.price,
+            quantityAvailable: 10,
+            description: item.description
+        }));
+
+        // Priority 1: Search by Name
+        if (searchName) {
+            return allItems.filter(item =>
+                item.name.toLowerCase().includes(searchName.toLowerCase())
+            );
+        }
+
+        // Priority 2: Search by Code
+        if (searchCode) {
+            return allItems.filter(item =>
+                item.code.toLowerCase().includes(searchCode.toLowerCase())
+            );
+        }
+
+        // Priority 3: Filter by Category
+        const currentCatName = getCurrentCategoryName();
+        return allItems.filter(item => item.category === currentCatName);
+    };
+
+    const currentItems = getFilteredItems();
 
     // Toast State
     const [toasts, setToasts] = useState([]);
@@ -394,31 +321,55 @@ const FoodOrderPage = ({ onClose }) => {
 
                             {/* C. Food Items Grid */}
                             <div className="pos-food-grid-container">
-                                {currentItems.map(item => {
-                                    // Find current quantity in cart
-                                    const cartItem = cart.find(x => x.id === item.id);
-                                    const inCartQty = cartItem ? cartItem.quantity : 0;
+                                {loading ? (
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        height: '300px',
+                                        fontSize: '18px',
+                                        color: '#666'
+                                    }}>
+                                        Loading menu items...
+                                    </div>
+                                ) : currentItems.length === 0 ? (
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        height: '300px',
+                                        fontSize: '16px',
+                                        color: '#999'
+                                    }}>
+                                        No items available in this category
+                                    </div>
+                                ) : (
+                                    currentItems.map(item => {
+                                        // Find current quantity in cart
+                                        const cartItem = cart.find(x => x.id === item.id);
+                                        const inCartQty = cartItem ? cartItem.quantity : 0;
 
-                                    return (
-                                        <div
-                                            key={item.id}
-                                            className={`pos-food-card ${inCartQty > 0 ? 'has-qty' : ''}`}
-                                            onClick={() => addToCart(item)}
-                                        >
-                                            <div className="pos-card-code">#{item.id}</div>
-                                            {inCartQty > 0 && (
-                                                <div className="pos-card-badge">Qty: {inCartQty}</div>
-                                            )}
-                                            <div className="pos-card-content">
-                                                <div className="pos-card-name">{item.name}</div>
+                                        return (
+                                            <div
+                                                key={item.id}
+                                                className={`pos-food-card ${inCartQty > 0 ? 'has-qty' : ''}`}
+                                                onClick={() => addToCart(item)}
+                                            >
+                                                <div className="pos-card-code">#{item.code || item.id.substring(0, 6)}</div>
+                                                {inCartQty > 0 && (
+                                                    <div className="pos-card-badge">Qty: {inCartQty}</div>
+                                                )}
+                                                <div className="pos-card-content">
+                                                    <div className="pos-card-name">{item.name}</div>
+                                                </div>
+                                                <div className="pos-card-footer">
+                                                    <div className="pos-card-qty-available">Qty: {item.quantityAvailable}</div>
+                                                    <div className="pos-card-price">₹{item.price}</div>
+                                                </div>
                                             </div>
-                                            <div className="pos-card-footer">
-                                                <div className="pos-card-qty-available">Qty: {item.quantityAvailable}</div>
-                                                <div className="pos-card-price">₹{item.price}</div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })
+                                )}
                             </div>
                         </div>
                     </div>

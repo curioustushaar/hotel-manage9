@@ -6,7 +6,7 @@ const Room = require('../models/roomModel');
 const getRooms = async (req, res) => {
     try {
         const rooms = await Room.find().sort({ roomNumber: 1 });
-        
+
         res.status(200).json({
             success: true,
             count: rooms.length,
@@ -26,10 +26,10 @@ const getRooms = async (req, res) => {
 // @access  Private/Admin
 const addRoom = async (req, res) => {
     try {
-        const { roomNumber, roomType, price, capacity, status } = req.body;
+        const { roomNumber, roomType, price, capacity, floor, status } = req.body;
 
         // Validation
-        if (!roomNumber || !roomType || !price || !capacity) {
+        if (!roomNumber || !roomType || !price || !capacity || !floor) {
             return res.status(400).json({
                 success: false,
                 message: 'Please provide all required fields'
@@ -51,6 +51,7 @@ const addRoom = async (req, res) => {
             roomType,
             price,
             capacity,
+            floor,
             status: status || 'Available'
         });
 
@@ -74,11 +75,12 @@ const addRoom = async (req, res) => {
 const updateRoom = async (req, res) => {
     try {
         const { id } = req.params;
-        const updateData = req.body;
+        const updateData = req.body; // updateData might contain 'floor' too
+
 
         // If updating room number, check if new number already exists
         if (updateData.roomNumber) {
-            const existingRoom = await Room.findOne({ 
+            const existingRoom = await Room.findOne({
                 roomNumber: updateData.roomNumber,
                 _id: { $ne: id }
             });
