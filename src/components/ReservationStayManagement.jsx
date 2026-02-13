@@ -877,11 +877,14 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
     // Filter reservations
     const filteredReservations = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
         return reservations.filter(r => {
             if (activeTab === 'all') return true;
             if (activeTab === 'reserved') return r.status === 'RESERVED';
             if (activeTab === 'in-house') return r.status === 'IN_HOUSE';
             if (activeTab === 'checked-out') return r.status === 'CHECKED_OUT';
+            if (activeTab === 'arrival') return r.checkInDate === today && r.status === 'RESERVED';
+            if (activeTab === 'departure') return r.checkOutDate === today && r.status === 'IN_HOUSE';
             return true;
         });
     }, [reservations, activeTab]);
@@ -1261,7 +1264,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
             {/* Tabs */}
             <div className="reservation-tabs">
-                {['all', 'reserved', 'in-house', 'checked-out'].map(tab => (
+                {['all', 'reserved', 'in-house', 'checked-out', 'arrival', 'departure'].map(tab => (
                     <button
                         key={tab}
                         className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
