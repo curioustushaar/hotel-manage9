@@ -1,5 +1,4 @@
 import StatusBadge from './StatusBadge';
-import MoreOptionsMenu from './MoreOptionsMenu';
 
 const BookingRow = ({ booking, onEdit, onDelete, onMoreOptions }) => {
     return (
@@ -43,15 +42,9 @@ const BookingRow = ({ booking, onEdit, onDelete, onMoreOptions }) => {
                 >
                     👁️
                 </button>
-                
-                {/* More Options Menu */}
-                {onMoreOptions && (
-                    <MoreOptionsMenu 
-                        booking={booking} 
-                        onActionSelect={onMoreOptions}
-                    />
-                )}
-                
+
+
+
                 <button
                     className="action-btn delete-btn"
                     onClick={() => onDelete(booking._id || booking.id)}

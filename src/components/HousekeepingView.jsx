@@ -1,157 +1,101 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './HousekeepingView.css';
 
 const HousekeepingView = () => {
-    // Initial housekeeping statuses
+    // Initial housekeeping statuses with Room Number added
     const [statuses, setStatuses] = useState([
-        { id: 1, name: 'Dirty', color: '#dc3545', isActive: true, isDirty: false },
-        { id: 2, name: 'Clean', color: '#28a745', isActive: true, isDirty: false },
-        { id: 3, name: 'Maintenance', color: '#ffc107', isActive: true, isDirty: false },
-        { id: 4, name: 'Blocked', color: '#17a2b8', isActive: true, isDirty: false }
+        { id: 1, roomNumber: '101', name: 'Dirty', color: '#dc3545', isActive: true },
+        { id: 2, roomNumber: '102', name: 'Clean', color: '#28a745', isActive: true },
+        { id: 3, roomNumber: '201', name: 'Maintenance', color: '#ffc107', isActive: true },
+        { id: 4, roomNumber: '205', name: 'Blocked', color: '#17a2b8', isActive: false }
     ]);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [editingStatus, setEditingStatus] = useState(null);
+    const [showToast, setShowToast] = useState(false);
+
     const [formData, setFormData] = useState({
-        name: '',
-        color: '#dc3545',
-        colorCode: '#dc3545',
-        isActive: true,
-        isDirty: false
+        roomNumber: '',
+        name: 'Clean',
+        color: '#28a745',
+        isActive: true
     });
-    const [originalFormData, setOriginalFormData] = useState(null);
+
+    // Auto-hide toast after 3 seconds
+    useEffect(() => {
+        if (showToast) {
+            const timer = setTimeout(() => setShowToast(false), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [showToast]);
 
     // Filter statuses based on search query
     const filteredStatuses = statuses.filter(status =>
-        status.name.toLowerCase().includes(searchQuery.toLowerCase())
+        status.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        status.roomNumber.includes(searchQuery)
     );
 
     // Handle form input changes
     const handleInputChange = (e) => {
-        const { name, value, type, checked } = e.target;
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
 
-        if (name === 'name') {
-            // Auto-assign color and status based on name
-            const nameLower = value.toLowerCase().trim();
-            let autoColor = formData.color;
-            let autoStatus = formData.isActive;
+    // Handle Status Name Dropdown Change (Auto-set color)
+    const handleStatusNameChange = (e) => {
+        const name = e.target.value;
+        let color = formData.color;
 
-            if (nameLower === 'dirty') {
-                autoColor = '#dc3545'; // Red
-                autoStatus = false; // Inactive
-            } else if (nameLower === 'clean') {
-                autoColor = '#28a745'; // Green
-                autoStatus = true; // Active
-            } else if (nameLower === 'maintenance') {
-                autoColor = '#ffc107'; // Yellow
-                autoStatus = false; // Inactive
-            } else if (nameLower === 'blocked') {
-                autoColor = '#17a2b8'; // Blue/Cyan
-                autoStatus = false; // Inactive
-            }
+        if (name === 'Dirty') color = '#dc3545';
+        else if (name === 'Clean') color = '#28a745';
+        else if (name === 'Maintenance') color = '#ffc107';
+        else if (name === 'Blocked') color = '#17a2b8';
 
-            setFormData(prev => ({
-                ...prev,
-                name: value,
-                color: autoColor,
-                colorCode: autoColor,
-                isActive: autoStatus
-            }));
-        } else if (name === 'color') {
-            // Color picker changed - update both color and colorCode
-            setFormData(prev => ({
-                ...prev,
-                color: value,
-                colorCode: value
-            }));
-        } else if (name === 'colorCode') {
-            // Color code input changed - validate and update both
-            const hexValue = value.startsWith('#') ? value : `#${value}`;
-            setFormData(prev => ({
-                ...prev,
-                colorCode: hexValue,
-                color: /^#[0-9A-F]{6}$/i.test(hexValue) ? hexValue : prev.color
-            }));
-        } else if (name === 'isActive') {
-            // Active checkbox - set isActive to true
-            setFormData(prev => ({
-                ...prev,
-                isActive: true
-            }));
-        } else if (name === 'isInactive') {
-            // Inactive checkbox - set isActive to false
-            setFormData(prev => ({
-                ...prev,
-                isActive: false
-            }));
-        } else if (name === 'isDirty') {
-            setFormData(prev => ({
-                ...prev,
-                isDirty: checked
-            }));
-        } else {
-            setFormData(prev => ({
-                ...prev,
-                [name]: type === 'checkbox' ? checked : value
-            }));
-        }
+        setFormData(prev => ({ ...prev, name, color }));
+    };
+
+    // Handle Status Toggle (Active/Inactive)
+    const handleToggleStatus = (status) => {
+        setFormData(prev => ({ ...prev, isActive: status }));
     };
 
     // Open modal for adding new status
     const handleAddNew = () => {
-        const defaultData = {
-            name: '',
-            color: '#dc3545',
-            colorCode: '#dc3545',
-            isActive: true,
-            isDirty: false
-        };
         setEditingStatus(null);
-        setFormData(defaultData);
-        setOriginalFormData(defaultData);
+        setFormData({
+            roomNumber: '',
+            name: 'Clean',
+            color: '#28a745', // Default Green
+            isActive: true
+        });
         setShowModal(true);
     };
 
     // Open modal for editing existing status
     const handleEdit = (status) => {
-        const editData = {
+        setEditingStatus(status);
+        setFormData({
+            roomNumber: status.roomNumber,
             name: status.name,
             color: status.color,
-            colorCode: status.color,
-            isActive: status.isActive,
-            isDirty: status.isDirty || false
-        };
-        setEditingStatus(status);
-        setFormData(editData);
-        setOriginalFormData(editData);
+            isActive: status.isActive
+        });
         setShowModal(true);
-    };
-
-    // Reset form to default or original values
-    const handleReset = () => {
-        if (originalFormData) {
-            setFormData({ ...originalFormData });
-        }
     };
 
     // Save status (add or update)
     const handleSave = () => {
-        if (!formData.name.trim()) {
-            alert('Please enter a status name');
-            return;
-        }
-
-        if (!formData.colorCode || !/^#[0-9A-F]{6}$/i.test(formData.colorCode)) {
-            alert('Please enter a valid color code (e.g., #dc3545)');
+        if (!formData.roomNumber.trim()) {
+            alert('Please enter a Room Number');
             return;
         }
 
         const saveData = {
+            roomNumber: formData.roomNumber,
             name: formData.name,
             color: formData.color,
-            isActive: formData.isActive,
-            isDirty: formData.isDirty
+            isActive: formData.isActive
         };
 
         if (editingStatus) {
@@ -171,8 +115,7 @@ const HousekeepingView = () => {
         }
 
         setShowModal(false);
-        setFormData({ name: '', color: '#dc3545', colorCode: '#dc3545', isActive: true, isDirty: false });
-        setOriginalFormData(null);
+        setShowToast(true); // Show success toast
     };
 
     // Delete status
@@ -182,8 +125,8 @@ const HousekeepingView = () => {
         }
     };
 
-    // Toggle status active/inactive
-    const toggleStatus = (id) => {
+    // Toggle status active/inactive from list
+    const toggleStatusList = (id) => {
         setStatuses(statuses.map(status =>
             status.id === id
                 ? { ...status, isActive: !status.isActive }
@@ -201,20 +144,20 @@ const HousekeepingView = () => {
                 </div>
             </div>
 
-            {/* Search and Add Button */}
+            {/* Controls */}
             <div className="housekeeping-controls">
                 <div className="search-box">
                     <input
                         type="text"
-                        placeholder="Search by name..."
+                        placeholder="Search by name or room number..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="search-input"
                     />
                     <span className="search-icon">🔍</span>
                 </div>
-                <button className="btn btn-add" onClick={handleAddNew}>
-                    + Add Housekeeping Status
+                <button className="btn-add" onClick={handleAddNew}>
+                    <span>+</span> Add Room Status
                 </button>
             </div>
 
@@ -224,7 +167,8 @@ const HousekeepingView = () => {
                     <thead>
                         <tr>
                             <th>S.No</th>
-                            <th>Name</th>
+                            <th>Room No</th>
+                            <th>Status Name</th>
                             <th>Color</th>
                             <th>Status</th>
                             <th>Action</th>
@@ -235,6 +179,7 @@ const HousekeepingView = () => {
                             filteredStatuses.map((status, index) => (
                                 <tr key={status.id}>
                                     <td>{index + 1}</td>
+                                    <td className="room-no">{status.roomNumber}</td>
                                     <td className="status-name">{status.name}</td>
                                     <td>
                                         <div className="color-indicator-wrapper">
@@ -246,8 +191,9 @@ const HousekeepingView = () => {
                                     </td>
                                     <td>
                                         <span
-                                            className={`status-badge ${status.isActive ? 'active' : 'inactive'}`}
-                                            onClick={() => toggleStatus(status.id)}
+                                            className={`status-pill ${status.isActive ? 'active' : 'inactive'}`}
+                                            onClick={() => toggleStatusList(status.id)}
+                                            style={{ cursor: 'pointer' }}
                                         >
                                             {status.isActive ? 'Active' : 'Inactive'}
                                         </span>
@@ -274,7 +220,7 @@ const HousekeepingView = () => {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan="5" className="no-data">
+                                <td colSpan="6" className="no-data">
                                     {searchQuery ? 'No matching results found' : 'No housekeeping statuses available'}
                                 </td>
                             </tr>
@@ -294,94 +240,91 @@ const HousekeepingView = () => {
                             </button>
                         </div>
                         <div className="modal-body">
+                            {/* Room Number */}
+                            <div className="form-group">
+                                <label>Room Number *</label>
+                                <input
+                                    type="number"
+                                    name="roomNumber"
+                                    value={formData.roomNumber}
+                                    onChange={handleInputChange}
+                                    placeholder="Enter Room Number"
+                                    className="form-input"
+                                    autoFocus
+                                />
+                            </div>
+
+                            {/* Status Name Dropdown */}
                             <div className="form-group">
                                 <label>Status Name *</label>
-                                <input
-                                    type="text"
+                                <select
                                     name="name"
                                     value={formData.name}
-                                    onChange={handleInputChange}
-                                    placeholder="Enter status name"
-                                    className="form-input"
-                                />
+                                    onChange={handleStatusNameChange}
+                                    className="form-select"
+                                >
+                                    <option value="Clean">Clean</option>
+                                    <option value="Dirty">Dirty</option>
+                                    <option value="Maintenance">Maintenance</option>
+                                    <option value="Blocked">Blocked</option>
+                                </select>
                             </div>
 
-                            <div className="form-group">
-                                <label>Color Code *</label>
-                                <input
-                                    type="text"
-                                    name="colorCode"
-                                    value={formData.colorCode}
-                                    onChange={handleInputChange}
-                                    placeholder="#dc3545"
-                                    className="form-input"
-                                    maxLength="7"
-                                />
-                            </div>
-
+                            {/* Color Picker (Horizontal) */}
                             <div className="form-group">
                                 <label>Color *</label>
-                                <div className="color-picker-wrapper">
+                                <div className="color-picker-row">
                                     <input
                                         type="color"
                                         name="color"
                                         value={formData.color}
                                         onChange={handleInputChange}
-                                        className="color-input"
+                                        className="color-input-compact"
                                     />
-                                    <span className="color-preview" style={{ backgroundColor: formData.color }}></span>
+                                    <div className="color-preview-box" style={{ backgroundColor: formData.color }}>
+                                    </div>
+                                    <span className="color-value">{formData.color}</span>
                                 </div>
                             </div>
 
+                            {/* Status Toggle (Pills) */}
                             <div className="form-group">
                                 <label>Status *</label>
-                                <div className="status-checkboxes">
-                                    <label className="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            name="isActive"
-                                            checked={formData.isActive === true}
-                                            onChange={handleInputChange}
-                                        />
-                                        <span>Active</span>
-                                    </label>
-                                    <label className="checkbox-label">
-                                        <input
-                                            type="checkbox"
-                                            name="isInactive"
-                                            checked={formData.isActive === false}
-                                            onChange={handleInputChange}
-                                        />
-                                        <span>Inactive</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div className="form-group">
-                                <label>Additional Options</label>
-                                <div className="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        name="isDirty"
-                                        checked={formData.isDirty}
-                                        onChange={handleInputChange}
-                                    />
-                                    <span>Is Dirty</span>
+                                <div className="toggle-group">
+                                    <button
+                                        type="button"
+                                        className={`toggle-btn ${formData.isActive ? 'active' : ''}`}
+                                        onClick={() => handleToggleStatus(true)}
+                                    >
+                                        Active
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`toggle-btn ${!formData.isActive ? 'inactive-state' : ''}`}
+                                        onClick={() => handleToggleStatus(false)}
+                                    >
+                                        Inactive
+                                    </button>
                                 </div>
                             </div>
                         </div>
+
                         <div className="modal-footer">
-                            <button className="btn btn-cancel" onClick={() => setShowModal(false)}>
+                            <button className="btn-modal btn-modal-cancel" onClick={() => setShowModal(false)}>
                                 Cancel
                             </button>
-                            <button className="btn btn-reset" onClick={handleReset}>
-                                Reset
-                            </button>
-                            <button className="btn btn-save" onClick={handleSave}>
-                                {editingStatus ? 'Update' : 'Save'}
+                            <button className="btn-modal btn-modal-save" onClick={handleSave}>
+                                {editingStatus ? 'Update Status' : 'Save Status'}
                             </button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Success Toast */}
+            {showToast && (
+                <div className="toast-success">
+                    <span>✔️</span> Housekeeping status updated successfully
                 </div>
             )}
         </div>

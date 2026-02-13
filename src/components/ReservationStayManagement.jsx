@@ -13,6 +13,7 @@ import InvoiceView from './InvoiceView';
 import './InvoiceView.css';
 import EditReservationModal from './EditReservationModal';
 import MoreOptionsMenu from './MoreOptionsMenu';
+
 import BookingActionsManager from './BookingActionsManager';
 import HousekeepingView from './HousekeepingView';
 import RoomService from './RoomService';
@@ -271,8 +272,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [invoiceGenerationInProgress, setInvoiceGenerationInProgress] = useState(false);
 
     // More Options Menu State
-    const [showMoreOptions, setShowMoreOptions] = useState(false);
-    const [showAmendStayModal, setShowAmendStayModal] = useState(false);
+    // More Options Menu State (Removed)
+
 
     // Action Drawer State for More Options
     const [actionDrawerOpen, setActionDrawerOpen] = useState(false);
@@ -280,12 +281,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [actionBooking, setActionBooking] = useState(null);
 
     // Amend Stay State
-    const [amendArrivalDate, setAmendArrivalDate] = useState('');
-    const [amendArrivalTime, setAmendArrivalTime] = useState('');
-    const [amendArrivalPeriod, setAmendArrivalPeriod] = useState('PM');
-    const [amendDepartureDate, setAmendDepartureDate] = useState('');
-    const [amendDepartureTime, setAmendDepartureTime] = useState('');
-    const [amendDeparturePeriod, setAmendDeparturePeriod] = useState('AM');
+    // Amend Stay State (Removed)
+
 
     // Update form fields when prefilledData changes
     useEffect(() => {
@@ -423,16 +420,31 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         setShowPrintModal(false);
     };
 
-    // Handle action success - refresh reservations
-    const handleActionSuccess = async () => {
-        await fetchReservationsFromAPI();
-        // Update selected reservation if it's still in the list
-        if (selectedReservation) {
-            const updated = reservations.find(r => r.id === selectedReservation.id);
-            if (updated) {
-                setSelectedReservation(updated);
+    // Handle action success
+    const handleActionSuccess = async (updatedReservation) => {
+        // Optimistic UI update or full fetch
+        if (updatedReservation && updatedReservation._id) {
+            setReservations(prev =>
+                prev.map(r =>
+                    (r.id === updatedReservation._id || r._id === updatedReservation._id)
+                        ? { ...r, ...updatedReservation, id: updatedReservation._id, status: updatedReservation.status === 'IN_HOUSE' ? 'IN_HOUSE' : updatedReservation.status }
+                        : r
+                )
+            );
+
+            // Also update selectedReservation if it matches
+            if (selectedReservation && (selectedReservation.id === updatedReservation._id || selectedReservation._id === updatedReservation._id)) {
+                setSelectedReservation(prev => ({
+                    ...prev,
+                    ...updatedReservation,
+                    id: updatedReservation._id,
+                    status: updatedReservation.status === 'IN_HOUSE' ? 'IN_HOUSE' : updatedReservation.status
+                }));
             }
         }
+
+        // Fetch fresh data anyway to be sure about computed fields
+        await fetchReservationsFromAPI();
     };
 
     // Handle Generate Invoice
@@ -699,61 +711,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         return `${hour.toString().padStart(2, '0')}:${minutes}`;
     };
 
-    // Handle Amend Stay Submit
-    const handleAmendStaySubmit = () => {
-        if (!selectedReservation) return;
 
-        if (!amendArrivalDate || !amendDepartureDate) {
-            alert('Please enter both arrival and departure dates');
-            return;
-        }
-
-        if (!amendArrivalTime || !amendDepartureTime) {
-            alert('Please enter both arrival and departure times');
-            return;
-        }
-
-        if (new Date(amendDepartureDate) <= new Date(amendArrivalDate)) {
-            alert('Departure date must be after arrival date');
-            return;
-        }
-
-        // Convert to 24-hour format for storage
-        const arrivalTime24 = convertTo24Hour(amendArrivalTime, amendArrivalPeriod);
-        const departureTime24 = convertTo24Hour(amendDepartureTime, amendDeparturePeriod);
-
-        const updatedReservation = {
-            ...selectedReservation,
-            checkInDate: amendArrivalDate,
-            checkInTime: arrivalTime24,
-            checkOutDate: amendDepartureDate,
-            checkOutTime: departureTime24,
-            updatedAt: new Date().toISOString()
-        };
-
-        // Recalculate nights
-        const inDate = new Date(amendArrivalDate);
-        const outDate = new Date(amendDepartureDate);
-        const calculatedNights = Math.max(1, Math.ceil((outDate - inDate) / (1000 * 60 * 60 * 24)));
-
-        // Recalculate billing
-        const roomCharges = updatedReservation.rooms.reduce((sum, room) => sum + (room.ratePerNight * calculatedNights), 0);
-        const totalDiscount = updatedReservation.rooms.reduce((sum, room) => sum + (room.discount * calculatedNights), 0);
-        const subtotal = roomCharges - totalDiscount;
-        const taxAmount = updatedReservation.taxExempt ? 0 : Math.round(subtotal * 0.12);
-        const totalAmount = subtotal + taxAmount;
-        const balanceDue = Math.max(0, totalAmount - updatedReservation.paidAmount);
-
-        updatedReservation.nights = calculatedNights;
-        updatedReservation.roomCharges = roomCharges;
-        updatedReservation.totalAmount = totalAmount;
-        updatedReservation.balanceDue = balanceDue;
-
-        setReservations(reservations.map(r => r.id === selectedReservation.id ? updatedReservation : r));
-        setSelectedReservation(updatedReservation);
-        setShowAmendStayModal(false);
-        alert(`Stay updated successfully!\nCheck-in: ${amendArrivalDate} at ${amendArrivalTime} ${amendArrivalPeriod}\nCheck-out: ${amendDepartureDate} at ${amendDepartureTime} ${amendDeparturePeriod}\nTotal nights: ${calculatedNights}`);
-    };
 
     // Room Service View
     if (view === 'roomservice') {
@@ -1045,7 +1003,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                 onEdit={handleEditReservation}
                                 onDelete={handleDeleteReservation}
                                 onGenerateInvoice={handleGenerateInvoice}
-                                onActionSelect={handleMoreOptionsAction}
+
                                 onSelect={(res) => {
                                     setSelectedReservation(res);
                                     // setShowEditModal(true); // Disabled - modal won't open on card click
@@ -1088,31 +1046,14 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                     >
                                         Edit Reservation
                                     </button>
-                                    <div className="more-options-wrapper-stay">
+
+                                    <div className="relative inline-block ml-2 mr-2">
                                         <MoreOptionsMenu
-                                            booking={selectedReservation ? {
-                                                _id: selectedReservation.id,
-                                                status: selectedReservation.status === 'RESERVED' ? 'Upcoming' :
-                                                    selectedReservation.status === 'IN_HOUSE' ? 'Checked-in' :
-                                                        selectedReservation.status === 'CHECKED_OUT' ? 'Checked-out' : 'Upcoming',
-                                                advancePaid: selectedReservation.paidAmount || 0,
-                                                email: selectedReservation.guestEmail
-                                            } : {}}
-                                            onActionSelect={handleMoreOptionsAction}
                                             buttonLabel="More Options"
-                                            options={[
-                                                { id: 'check-in', label: '✓ Check-In', color: '#9ca3af', disabled: false },
-                                                { id: 'add-payment', label: '💳 Add Payment', color: '#10b981', disabled: false },
-                                                { id: 'amend-stay', label: '📅 Amend Stay', color: '#f59e0b', disabled: false },
-                                                { id: 'room-move', label: '🚪 Room Move', color: '#8b5cf6', disabled: false },
-                                                { id: 'exchange-room', label: '🔄 Exchange Room', color: '#3b82f6', disabled: false },
-                                                { id: 'add-visitor', label: '👤 Add Visitor', color: '#ec4899', disabled: false },
-                                                { id: 'no-show', label: '❌ No-Show', color: '#ef4444', disabled: false },
-                                                { id: 'void', label: '🗑 Void', color: '#6b7280', disabled: false },
-                                                { id: 'cancel', label: '⚠️ Cancel', color: '#dc2626', disabled: false }
-                                            ]}
+                                            buttonClassName="tab-option"
                                         />
                                     </div>
+
                                     <div className="relative">
                                         <button
                                             className="tab-option tab-print"
@@ -1219,104 +1160,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                 )}
             </div>
 
-            {/* Amend Stay Modal */}
-            {showAmendStayModal && (
-                <div className="amend-stay-modal-overlay" onClick={() => setShowAmendStayModal(false)}>
-                    <div className="amend-stay-modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="amend-stay-header">
-                            <h3>AmmendStay</h3>
-                            <button className="close-modal-btn" onClick={() => setShowAmendStayModal(false)}>✕</button>
-                        </div>
 
-                        <div className="amend-stay-content">
-                            <div className="amend-date-row">
-                                <label>Arrival Date</label>
-                                <div className="date-time-inputs-full">
-                                    <input
-                                        type="date"
-                                        value={amendArrivalDate}
-                                        onChange={(e) => setAmendArrivalDate(e.target.value)}
-                                        className="date-input"
-                                    />
-                                    <div className="time-with-period">
-                                        <select
-                                            value={amendArrivalPeriod}
-                                            onChange={(e) => setAmendArrivalPeriod(e.target.value)}
-                                            className="period-select-inline"
-                                        >
-                                            <option value="AM">AM</option>
-                                            <option value="PM">PM</option>
-                                        </select>
-                                        <input
-                                            type="time"
-                                            value={amendArrivalTime}
-                                            onChange={(e) => setAmendArrivalTime(e.target.value)}
-                                            className="time-input-12"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="amend-date-row">
-                                <label>Departure Date</label>
-                                <div className="date-time-inputs-full">
-                                    <input
-                                        type="date"
-                                        value={amendDepartureDate}
-                                        onChange={(e) => setAmendDepartureDate(e.target.value)}
-                                        className="date-input"
-                                    />
-                                    <div className="time-with-period">
-                                        <select
-                                            value={amendDeparturePeriod}
-                                            onChange={(e) => setAmendDeparturePeriod(e.target.value)}
-                                            className="period-select-inline"
-                                        >
-                                            <option value="AM">AM</option>
-                                            <option value="PM">PM</option>
-                                        </select>
-                                        <input
-                                            type="time"
-                                            value={amendDepartureTime}
-                                            onChange={(e) => setAmendDepartureTime(e.target.value)}
-                                            className="time-input-12"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="next-reservation-section">
-                                <h4>Next Reservation</h4>
-                                <div className="next-res-field">
-                                    <label>Reservation Number</label>
-                                    <input type="text" className="text-input" disabled />
-                                </div>
-                                <div className="next-res-field">
-                                    <label>Guest</label>
-                                    <input type="text" className="text-input" disabled />
-                                </div>
-                                <div className="next-res-field">
-                                    <label>Arrival</label>
-                                    <input type="text" className="text-input" disabled />
-                                </div>
-                                <div className="next-res-field">
-                                    <label>Departure</label>
-                                    <input type="text" className="text-input" disabled />
-                                </div>
-                            </div>
-
-                            <div className="amend-stay-actions">
-                                <button
-                                    className="btn-add-amend"
-                                    onClick={handleAmendStaySubmit}
-                                >
-                                    Add
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Edit Reservation Modal */}
             <EditReservationModal

@@ -23,22 +23,42 @@ const CheckInForm = ({ booking, onSubmit, onCancel }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+        console.log("Submitting Check-In form...", formData);
+
         if (!formData.idProofNumber.trim()) {
-            alert('ID Proof Number is required');
+            console.error('ID Proof Number is required');
+            // Allow native validation to show if possible, or just return
             return;
         }
 
+        const submitData = {
+            arrivalDate: formData.actualCheckInDate,
+            checkInTime: formData.actualCheckInTime,
+            idProofType: formData.idProofType,
+            idNumber: formData.idProofNumber,
+            adults: parseInt(formData.numberOfAdults, 10),
+            children: parseInt(formData.numberOfChildren, 10),
+            vehicleNumber: formData.vehicleNumber,
+            securityDeposit: parseFloat(formData.securityDeposit) || 0,
+            remarks: formData.checkInRemarks
+        };
+
+        console.log("Prepared submit data:", submitData);
+
         setIsSubmitting(true);
         try {
-            await onSubmit(formData);
+            await onSubmit(submitData);
+            console.log("Check-In submitted successfully from form");
+        } catch (error) {
+            console.error("Error submitting check-in form:", error);
+            // Alert is handled in BookingActionsManager but we can log here
         } finally {
             setIsSubmitting(false);
         }
     };
 
     return (
-        <form className="action-form" onSubmit={handleSubmit}>
+        <form className="action-form" onSubmit={handleSubmit} noValidate>
             <div className="form-group">
                 <label className="form-label required">Arrival Date</label>
                 <input

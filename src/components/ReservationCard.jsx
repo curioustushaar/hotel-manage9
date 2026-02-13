@@ -1,5 +1,4 @@
 import StatusBadge from './StatusBadge';
-import MoreOptionsMenu from './MoreOptionsMenu';
 
 const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGenerateInvoice = () => { }, onSelect, isSelected, onActionSelect }) => {
 
@@ -100,20 +99,7 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
                         {primaryAction.label}
                     </button>
                 )}
-                <div className="more-options-wrapper" onClick={e => e.stopPropagation()}>
-                    <MoreOptionsMenu
-                        booking={reservation}
-                        onActionSelect={onActionSelect}
-                        buttonLabel="⋮"
-                        buttonClassName="details-menu-btn"
-                        options={[
-                            { id: 'print-summary', label: '📄 Print Summary', color: '#6366f1', disabled: false },
-                            { id: 'print-invoice', label: '🧾 Print Invoice', color: '#8b5cf6', disabled: false },
-                            { id: 'print-grc', label: '📋 Print GRC', color: '#0ea5e9', disabled: false },
-                            { id: 'send-invoice', label: '📧 Send Invoice', color: '#14b8a6', disabled: !reservation.guestEmail }
-                        ]}
-                    />
-                </div>
+
             </div>
         </div>
     );

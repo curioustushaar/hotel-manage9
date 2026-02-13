@@ -44,4 +44,44 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+// PUT Check-In Reservation
+router.put('/checkin/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const reservation = await Reservation.findById(id);
+
+        if (!reservation) {
+            console.log("Reservation not found for ID:", id);
+            const all = await Reservation.find();
+            console.log("All IDs in DB:", all.map(r => r._id.toString()));
+            return res.status(500).json({ message: "Debug: ID mismatch" });
+        }
+
+        // Update fields from sidebar form
+        reservation.status = "IN_HOUSE";
+        reservation.checkInDate = req.body.arrivalDate;
+        reservation.checkInTime = req.body.checkInTime;
+        reservation.idProofType = req.body.idProofType;
+        reservation.idNumber = req.body.idNumber;
+        reservation.adults = req.body.adults;
+        reservation.children = req.body.children;
+        reservation.vehicleNumber = req.body.vehicleNumber;
+        reservation.securityDeposit = req.body.securityDeposit;
+        reservation.remarks = req.body.remarks;
+
+        await reservation.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Check-In successful",
+            updatedReservation: reservation
+        });
+
+    } catch (error) {
+        console.error('Error checking in reservation:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
 module.exports = router;
