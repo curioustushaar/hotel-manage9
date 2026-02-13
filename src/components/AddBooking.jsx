@@ -29,6 +29,9 @@ const AddBooking = () => {
     const [availableRooms, setAvailableRooms] = useState({});
     const [allRooms, setAllRooms] = useState([]);
 
+    // Room Facility Types
+    const [facilityTypes, setFacilityTypes] = useState([]);
+
     // Get today's date in YYYY-MM-DD format for min date restrictions
     const getTodayDate = () => {
         const today = new Date();
@@ -55,6 +58,7 @@ const AddBooking = () => {
     // Fetch available rooms from database
     useEffect(() => {
         fetchAvailableRooms();
+        fetchFacilityTypes();
     }, []);
 
     // Clear checkout date if it becomes invalid when check-in date changes
@@ -68,11 +72,23 @@ const AddBooking = () => {
         }
     }, [checkInDate]);
 
+    const fetchFacilityTypes = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/facility-types/list`);
+            const data = await response.json();
+            if (data.success) {
+                setFacilityTypes(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching facility types:', error);
+        }
+    };
+
     const fetchAvailableRooms = async () => {
         try {
             const response = await fetch(`${API_URL}/api/rooms/list`);
             const data = await response.json();
-            
+
             if (data.success) {
                 setAllRooms(data.data);
                 // Group rooms by type and filter only Available ones
@@ -87,7 +103,7 @@ const AddBooking = () => {
                     }
                 });
                 setAvailableRooms(roomsByType);
-                
+
                 // Set default room type to first available type
                 const firstRoomType = Object.keys(roomsByType)[0];
                 if (firstRoomType && !roomType) {
@@ -212,7 +228,7 @@ const AddBooking = () => {
 
     const handleIdProofNumberChange = (e) => {
         let value = e.target.value.toUpperCase();
-        
+
         // Apply format-specific restrictions
         switch (idProofType) {
             case 'Aadhaar':
@@ -228,7 +244,7 @@ const AddBooking = () => {
                 value = value.replace(/[^A-Z0-9]/g, '').slice(0, 15);
                 break;
         }
-        
+
         setIdProofNumber(value);
         if (errors.idProofNumber) {
             setErrors({ ...errors, idProofNumber: null });
@@ -274,7 +290,7 @@ const AddBooking = () => {
             if (data.success) {
                 alert('Booking saved successfully!');
                 console.log('Booking saved:', data.data);
-                
+
                 // Reset form first
                 setGuestName('');
                 setMobileNumber('');
@@ -288,7 +304,7 @@ const AddBooking = () => {
                 setCheckOutDate('');
                 setAdvancePaid('0');
                 setErrors({});
-                
+
                 // Refresh available rooms list
                 await fetchAvailableRooms();
             } else {
@@ -339,7 +355,7 @@ const AddBooking = () => {
             if (data.success) {
                 alert('Booking saved and guest checked in successfully!');
                 console.log('Booking saved with check-in:', data.data);
-                
+
                 // Reset form first
                 setGuestName('');
                 setMobileNumber('');
@@ -353,7 +369,7 @@ const AddBooking = () => {
                 setCheckOutDate('');
                 setAdvancePaid('0');
                 setErrors({});
-                
+
                 // Refresh available rooms list
                 await fetchAvailableRooms();
             } else {
@@ -509,9 +525,9 @@ const AddBooking = () => {
                                     onChange={handleRoomTypeChange}
                                 >
                                     <option key="empty-type" value="">-- Select Room Type --</option>
-                                    {Object.keys(availableRooms).map((type) => (
-                                        <option key={`type-${type}`} value={type}>
-                                            {type}
+                                    {facilityTypes.map((facility) => (
+                                        <option key={facility._id} value={facility.name}>
+                                            {facility.name}
                                         </option>
                                     ))}
                                 </select>
@@ -533,10 +549,10 @@ const AddBooking = () => {
                                     disabled={!roomType || !availableRooms[roomType]?.length}
                                 >
                                     <option key="empty-room" value="">
-                                        {!roomType 
-                                            ? '-- Select Room Type First --' 
-                                            : availableRooms[roomType]?.length 
-                                                ? '-- Select Room --' 
+                                        {!roomType
+                                            ? '-- Select Room Type First --'
+                                            : availableRooms[roomType]?.length
+                                                ? '-- Select Room --'
                                                 : '-- No Available Rooms --'}
                                     </option>
                                     {availableRooms[roomType]?.map((room) => (

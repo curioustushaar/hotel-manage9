@@ -40,19 +40,29 @@ const getMenuItems = async (req, res) => {
 // @access  Private/Admin
 const addMenuItem = async (req, res) => {
     try {
-        const { itemName, category, price, description, status } = req.body;
+        const { itemName, foodCode, category, price, description, status } = req.body;
 
         // Validation
-        if (!itemName || !category || !price) {
+        if (!itemName || !foodCode || !category || !price) {
             return res.status(400).json({
                 success: false,
-                message: 'Please provide item name, category, and price'
+                message: 'Please provide item name, food code, category, and price'
+            });
+        }
+
+        // Check if food code already exists
+        const existingItem = await MenuItem.findOne({ foodCode });
+        if (existingItem) {
+            return res.status(400).json({
+                success: false,
+                message: 'Food code must be unique'
             });
         }
 
         // Create new menu item
         const menuItem = await MenuItem.create({
             itemName,
+            foodCode,
             category,
             price,
             description: description || '',

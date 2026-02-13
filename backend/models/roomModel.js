@@ -22,6 +22,10 @@ const roomSchema = new mongoose.Schema({
         required: [true, 'Room price is required'],
         min: 0
     },
+    floor: {
+        type: String,
+        trim: true
+    },
     status: {
         type: String,
         enum: ['Available', 'Booked', 'Occupied', 'Under Maintenance'],

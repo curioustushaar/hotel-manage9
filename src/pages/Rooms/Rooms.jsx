@@ -9,55 +9,31 @@ const Rooms = () => {
     const [rooms, setRooms] = useState([]);
     const [filteredRooms, setFilteredRooms] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedType, setSelectedType] = useState('All Types');
-    const [selectedStatus, setSelectedStatus] = useState('All Status');
+
+    // Dynamic Filter State
+    const [filters, setFilters] = useState({
+        floor: 'All',
+        roomType: 'All',
+        bedType: 'All',
+        status: 'All'
+    });
+
+    // Dynamic Data State
+    const [roomTypes, setRoomTypes] = useState([]);
+    const [bedTypes, setBedTypes] = useState([]);
+    const [floors, setFloors] = useState([]);
+
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [currentRoom, setCurrentRoom] = useState(null);
-    // Load draft form data from localStorage
-    const loadDraftData = () => {
-        try {
-            const draft = localStorage.getItem('roomFormDraft');
-            return draft ? JSON.parse(draft) : { roomNumber: '', roomType: '', price: '', capacity: '' };
-        } catch {
-            return { roomNumber: '', roomType: '', price: '', capacity: '' };
-        }
-    };
 
-    const [formData, setFormData] = useState(loadDraftData());
-    const [errorMessage, setErrorMessage] = useState('');
+    // Status Options (Static for now, or match RoomSetup)
+    const statusOptions = ['Available', 'Booked', 'Occupied', 'Under Maintenance'];
 
-    // Room type categories
-    const roomTypeCategories = {
-        'Club Rooms': [
-            'Club AC Single Room',
-            'Club AC Double Room',
-            'Club Non-AC Single Room',
-            'Club Non-AC Double Room'
-        ],
-        'Deluxe Rooms': [
-            'Deluxe AC Single Room',
-            'Deluxe AC Double Room',
-            'Deluxe Non-AC Single Room',
-            'Deluxe Non-AC Double Room'
-        ],
-        'Suite Rooms': [
-            'Suite Single Room',
-            'Suite Double Room',
-            'Family Suite'
-        ]
-    };
-
-    const statusOptions = ['All Status', 'Available', 'Booked', 'Occupied', 'Under Maintenance'];
-
-    // Custom Room Types State
+    // Custom Room Types State (Deprecated in favor of dynamic types, but kept for modal compatibility if needed, though we will try to use dynamic)
     const [customRoomTypes, setCustomRoomTypes] = useState([]);
     const [isAddingRoomType, setIsAddingRoomType] = useState(false);
     const [newRoomType, setNewRoomType] = useState('');
-
-    // Filter Add State
-    const [isAddingFilterType, setIsAddingFilterType] = useState(false);
-    const [newFilterType, setNewFilterType] = useState('');
 
     // Load rooms from MongoDB API
     useEffect(() => {
@@ -101,6 +77,51 @@ const Rooms = () => {
         }
     };
 
+    // Fetch Room Types
+    const fetchRoomTypes = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/facility-types/list`);
+            const data = await response.json();
+            if (data.success) {
+                setRoomTypes(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching room types:', error);
+        }
+    };
+
+    // Fetch Bed Types
+    const fetchBedTypes = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/bed-types/list`);
+            const data = await response.json();
+            if (data.success) {
+                setBedTypes(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching bed types:', error);
+        }
+    };
+
+    // Fetch Floors
+    const fetchFloors = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/floors/list`);
+            const data = await response.json();
+            if (data.success) {
+                setFloors(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching floors:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchRoomTypes();
+        fetchBedTypes();
+        fetchFloors();
+    }, []);
+
     // Save draft form data to localStorage whenever it changes
     useEffect(() => {
         if (showAddModal) {
@@ -120,18 +141,30 @@ const Rooms = () => {
             );
         }
 
-        // Type filter
-        if (selectedType !== 'All Types') {
-            filtered = filtered.filter(room => room.roomType === selectedType);
+        // Floor Filter
+        if (filters.floor !== 'All') {
+            filtered = filtered.filter(room => room.floor === filters.floor);
         }
 
+        // Room Type Filter
+        if (filters.roomType !== 'All') {
+            filtered = filtered.filter(room => room.roomType === filters.roomType);
+        }
+
+        // Bed Type Filter
+        if (filters.bedType !== 'All') {
+            filtered = filtered.filter(room => room.bedType === filters.bedType);
+        }
+
+
+
         // Status filter
-        if (selectedStatus !== 'All Status') {
-            filtered = filtered.filter(room => room.status === selectedStatus);
+        if (filters.status !== 'All') {
+            filtered = filtered.filter(room => room.status === filters.status);
         }
 
         setFilteredRooms(filtered);
-    }, [rooms, searchQuery, selectedType, selectedStatus]);
+    }, [rooms, searchQuery, filters]);
 
     // Get all room types for filter dropdown
     const getAllRoomTypes = () => {
@@ -186,6 +219,7 @@ const Rooms = () => {
         setFormData({
             roomNumber: room.roomNumber,
             roomType: room.roomType,
+            floor: room.floor || '',
             price: room.price.toString(),
             capacity: room.capacity.toString()
         });
@@ -198,7 +232,7 @@ const Rooms = () => {
         setErrorMessage('');
 
         // Validate
-        if (!formData.roomNumber || !formData.roomType || !formData.price || !formData.capacity) {
+        if (!formData.roomNumber || !formData.roomType || !formData.price || !formData.capacity || !formData.floor) {
             setErrorMessage('All fields are required');
             return;
         }
@@ -211,7 +245,8 @@ const Rooms = () => {
                     roomType: formData.roomType,
                     capacity: parseInt(formData.capacity),
                     price: parseInt(formData.price),
-                    status: 'Available'
+                    status: 'Available',
+                    floor: formData.floor
                 };
 
                 const response = await fetch(`${API_URL}/api/rooms/add`, {
@@ -235,7 +270,8 @@ const Rooms = () => {
                     roomNumber: formData.roomNumber,
                     roomType: formData.roomType,
                     capacity: parseInt(formData.capacity),
-                    price: parseInt(formData.price)
+                    price: parseInt(formData.price),
+                    floor: formData.floor
                 };
 
                 const response = await fetch(`${API_URL}/api/rooms/update/${currentRoom._id}`, {
@@ -256,7 +292,7 @@ const Rooms = () => {
             }
 
             // Clear form data and draft only after successful submission
-            const emptyForm = { roomNumber: '', roomType: '', price: '', capacity: '' };
+            const emptyForm = { roomNumber: '', roomType: '', price: '', capacity: '', floor: '' };
             setFormData(emptyForm);
             localStorage.setItem('roomFormDraft', JSON.stringify(emptyForm));
             setCurrentRoom(null);
@@ -313,63 +349,39 @@ const Rooms = () => {
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                {!isAddingFilterType ? (
-                    <div style={{ display: 'flex', gap: '8px', minWidth: '200px' }}>
-                        <select
-                            className="filter-select"
-                            value={selectedType}
-                            onChange={(e) => setSelectedType(e.target.value)}
-                            style={{ flex: 1 }}
-                        >
-                            {getAllRoomTypes().map(type => (
-                                <option key={type} value={type}>{type}</option>
-                            ))}
-                        </select>
-                        <button
-                            className="add-room-btn"
-                            onClick={() => setIsAddingFilterType(true)}
-                            style={{ width: '42px', padding: '0', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                            title="Add Filter Type"
-                        >
-                            +
-                        </button>
-                    </div>
-                ) : (
-                    <div style={{ display: 'flex', gap: '8px', minWidth: '200px' }}>
-                        <input
-                            type="text"
-                            className="filter-select"
-                            placeholder="New type..."
-                            value={newFilterType}
-                            onChange={(e) => setNewFilterType(e.target.value)}
-                            autoFocus
-                            style={{ flex: 1, padding: '8px' }}
-                        />
-                        <button
-                            className="add-room-btn"
-                            onClick={handleAddFilterType}
-                            style={{ width: '42px', padding: '0', background: '#22c55e' }}
-                        >
-                            ✓
-                        </button>
-                        <button
-                            className="add-room-btn"
-                            onClick={() => { setIsAddingFilterType(false); setNewFilterType(''); }}
-                            style={{ width: '42px', padding: '0', background: '#ef4444' }}
-                        >
-                            ✕
-                        </button>
-                    </div>
-                )}
-                <select
-                    className="filter-select"
-                    value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
-                >
-                    {statusOptions.map(status => (
-                        <option key={status} value={status}>{status}</option>
-                    ))}
-                </select>
+
+                <div className="filters-row" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <select className="filter-select" value={filters.floor} onChange={(e) => setFilters({ ...filters, floor: e.target.value })}>
+                        <option value="All">Floor: All</option>
+                        {floors.map(floor => (
+                            <option key={floor._id} value={floor.name}>{floor.name}</option>
+                        ))}
+                    </select>
+
+                    <select className="filter-select" value={filters.roomType} onChange={(e) => setFilters({ ...filters, roomType: e.target.value })}>
+                        <option value="All">Room Type: All</option>
+                        {roomTypes.map(type => (
+                            <option key={type._id} value={type.name}>{type.name}</option>
+                        ))}
+                    </select>
+
+                    <select className="filter-select" value={filters.bedType} onChange={(e) => setFilters({ ...filters, bedType: e.target.value })}>
+                        <option value="All">Bed Type: All</option>
+                        {bedTypes.map(type => (
+                            <option key={type._id} value={type.name}>{type.name}</option>
+                        ))}
+                    </select>
+
+
+
+                    <select className="filter-select" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
+                        <option value="All">Status: All</option>
+                        <option value="Available">Available</option>
+                        <option value="Booked">Booked</option>
+                        <option value="Occupied">Occupied</option>
+                        <option value="Under Maintenance">Maintenance</option>
+                    </select>
+                </div>
             </div>
 
             {/* Rooms Grid */}
@@ -445,6 +457,20 @@ const Rooms = () => {
                                     value={formData.roomNumber}
                                     onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value })}
                                 />
+                            </div>
+
+                            <div className="form-group">
+                                <label>FLOOR *</label>
+                                <select
+                                    className="form-input"
+                                    value={formData.floor || ''}
+                                    onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
+                                >
+                                    <option value="">-- Select Floor --</option>
+                                    {floors.map(floor => (
+                                        <option key={floor._id} value={floor.name}>{floor.name}</option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="form-group">
@@ -580,6 +606,20 @@ const Rooms = () => {
                                     value={formData.roomNumber}
                                     onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value })}
                                 />
+                            </div>
+
+                            <div className="form-group">
+                                <label>FLOOR *</label>
+                                <select
+                                    className="form-input"
+                                    value={formData.floor || ''}
+                                    onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
+                                >
+                                    <option value="">-- Select Floor --</option>
+                                    {floors.map(floor => (
+                                        <option key={floor._id} value={floor.name}>{floor.name}</option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="form-group">
