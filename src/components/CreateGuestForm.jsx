@@ -116,30 +116,54 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
         switch (fieldName) {
             case 'fullName':
                 if (!value.trim()) error = 'Full Name is required';
-                else if (value.trim().length < 3) error = 'Full Name must be at least 3 characters';
+                else if (value.trim().length < 3) error = 'Full Name must be at least 3 characters (minimum)';
+                else if (value.trim().length > 50) error = 'Full Name should not exceed 50 characters';
+                else if (!/^[a-zA-Z\s.'-]+$/.test(value)) error = 'Full Name can only contain letters, spaces, and hyphens';
                 break;
 
             case 'mobile':
                 if (!value.trim()) error = 'Mobile Number is required';
-                else if (!/^[0-9]{10}$/.test(value.replace(/\s+/g, ''))) error = 'Mobile must be 10 digits';
-                else if (existingGuests.some(g => g.mobile === value)) error = 'This mobile number already exists';
+                else if (!/^[0-9]{10}$/.test(value.replace(/\s+/g, ''))) error = 'Mobile must be exactly 10 digits';
+                else if (existingGuests.some(g => g.mobile === value)) error = 'This mobile number is already registered';
                 break;
 
             case 'email':
-                if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = 'Invalid email format';
+                if (value && !/^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value)) error = 'Please enter a valid email address';
+                break;
+
+            case 'address':
+                if (value && value.trim().length < 5) error = 'Please enter a complete address (minimum 5 characters)';
+                break;
+
+            case 'city':
+                if (value && !/^[a-zA-Z\s'-]+$/.test(value)) error = 'City name should only contain letters';
+                break;
+
+            case 'state':
+                if (value && !/^[a-zA-Z\s'-]+$/.test(value)) error = 'State name should only contain letters';
                 break;
 
             case 'idNumber':
                 if (formData.idType && !value.trim()) error = 'ID Number is required when ID Type is selected';
+                else if (formData.idType && value.trim().length < 3) error = 'Please enter a valid ID number';
                 break;
 
             case 'dob':
             case 'anniversary':
-                if (value && new Date(value) > new Date()) error = `${fieldName === 'dob' ? 'DOB' : 'Anniversary'} cannot be a future date`;
+                if (value && new Date(value) > new Date()) error = `${fieldName === 'dob' ? 'Date of Birth' : 'Anniversary'} cannot be in the future`;
+                else if (fieldName === 'dob' && value) {
+                    const age = new Date().getFullYear() - new Date(value).getFullYear();
+                    if (age < 10) error = 'Guest must be at least 10 years old';
+                    if (age > 150) error = 'Please enter a valid date of birth';
+                }
                 break;
 
             case 'pinCode':
-                if (value && !/^[0-9]{6}$/.test(value)) error = 'PIN Code must be 6 digits';
+                if (value && !/^[0-9]{6}$/.test(value)) error = 'PIN Code must be exactly 6 digits';
+                break;
+
+            case 'gstNumber':
+                if (value && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(value)) error = 'Please enter a valid GST Number format';
                 break;
 
             default:
@@ -181,30 +205,76 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
     const validateForm = () => {
         const newErrors = {};
 
-        // Basic validation
-        if (!formData.fullName.trim()) newErrors.fullName = 'Full Name is required';
-        if (!formData.mobile.trim()) newErrors.mobile = 'Mobile Number is required';
-        else if (!/^[0-9]{10}$/.test(formData.mobile.replace(/\s+/g, ''))) newErrors.mobile = 'Mobile must be 10 digits';
-        else if (existingGuests.some(g => g.mobile === formData.mobile)) newErrors.mobile = 'This mobile number already exists';
-
-        if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            newErrors.email = 'Invalid email format';
+        // Basic Information Validation
+        if (!formData.fullName.trim()) {
+            newErrors.fullName = 'Full Name is required';
+        } else if (formData.fullName.trim().length < 3) {
+            newErrors.fullName = 'Full Name must be at least 3 characters';
+        } else if (formData.fullName.trim().length > 50) {
+            newErrors.fullName = 'Full Name should not exceed 50 characters';
+        } else if (!/^[a-zA-Z\s.'-]+$/.test(formData.fullName)) {
+            newErrors.fullName = 'Full Name can only contain letters, spaces, hyphens, and apostrophes';
         }
 
-        if (formData.idType && !formData.idNumber.trim()) {
-            newErrors.idNumber = 'ID Number is required when ID Type is selected';
+        if (!formData.mobile.trim()) {
+            newErrors.mobile = 'Mobile Number is required';
+        } else if (!/^[0-9]{10}$/.test(formData.mobile.replace(/\s+/g, ''))) {
+            newErrors.mobile = 'Mobile must be exactly 10 digits';
+        } else if (existingGuests.some(g => g.mobile === formData.mobile)) {
+            newErrors.mobile = 'This mobile number is already registered';
         }
 
-        if (formData.dob && new Date(formData.dob) > new Date()) {
-            newErrors.dob = 'DOB cannot be a future date';
+        if (formData.email) {
+            if (!/^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email)) {
+                newErrors.email = 'Please enter a valid email address';
+            }
         }
 
-        if (formData.anniversary && new Date(formData.anniversary) > new Date()) {
-            newErrors.anniversary = 'Anniversary cannot be a future date';
+        // Address Validation (optional but if provided, validate properly)
+        if (formData.address && formData.address.trim().length > 0 && formData.address.trim().length < 5) {
+            newErrors.address = 'Please enter a complete address (minimum 5 characters)';
+        }
+
+        if (formData.city && !/^[a-zA-Z\s'-]+$/.test(formData.city)) {
+            newErrors.city = 'City name should only contain letters';
+        }
+
+        if (formData.state && !/^[a-zA-Z\s'-]+$/.test(formData.state)) {
+            newErrors.state = 'State name should only contain letters';
         }
 
         if (formData.pinCode && !/^[0-9]{6}$/.test(formData.pinCode)) {
-            newErrors.pinCode = 'PIN Code must be 6 digits';
+            newErrors.pinCode = 'PIN Code must be exactly 6 digits';
+        }
+
+        // KYC Validation
+        if (formData.idType && !formData.idNumber.trim()) {
+            newErrors.idNumber = 'ID Number is required when ID Type is selected';
+        } else if (formData.idType && formData.idNumber.trim().length < 3) {
+            newErrors.idNumber = 'Please enter a valid ID number';
+        }
+
+        // Optional Fields Validation
+        if (formData.dob) {
+            if (new Date(formData.dob) > new Date()) {
+                newErrors.dob = 'Date of Birth cannot be in the future';
+            } else {
+                const age = new Date().getFullYear() - new Date(formData.dob).getFullYear();
+                if (age < 10) {
+                    newErrors.dob = 'Guest must be at least 10 years old';
+                }
+                if (age > 150) {
+                    newErrors.dob = 'Please enter a valid date of birth';
+                }
+            }
+        }
+
+        if (formData.anniversary && new Date(formData.anniversary) > new Date()) {
+            newErrors.anniversary = 'Anniversary date cannot be in the future';
+        }
+
+        if (formData.gstNumber && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.gstNumber)) {
+            newErrors.gstNumber = 'Please enter a valid GST Number (e.g., 27AABBS5055K2ZU)';
         }
 
         setErrors(newErrors);
@@ -315,35 +385,44 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                         <p className="section-subtitle">* Required fields</p>
 
                         <div className="form-group">
-                            <label>Full Name *</label>
+                            <div className="label-wrapper">
+                                <label>Full Name <span className="required-mark">*</span></label>
+                                <span className="char-count">{formData.fullName.length}/50</span>
+                            </div>
                             <input
                                 type="text"
                                 name="fullName"
                                 placeholder="e.g., John Doe"
                                 value={formData.fullName}
                                 onChange={handleChange}
+                                maxLength="50"
                                 className={errors.fullName ? 'input-error' : ''}
                             />
-                            {errors.fullName && <span className="error-text">{errors.fullName}</span>}
+                            {errors.fullName && <span className="error-text"><span className="error-icon">⚠️</span> {errors.fullName}</span>}
+                            {!errors.fullName && formData.fullName && <span className="success-text"><span className="success-icon">✓</span> Valid name</span>}
                         </div>
 
                         <div className="form-row-2">
                             <div className="form-group">
-                                <label>Mobile Number *</label>
+                                <div className="label-wrapper">
+                                    <label>Mobile Number <span className="required-mark">*</span></label>
+                                    <span className="char-count">{formData.mobile.length}/10</span>
+                                </div>
                                 <input
                                     type="tel"
                                     name="mobile"
-                                    placeholder="10 digit number"
+                                    placeholder="10 digit mobile number"
                                     value={formData.mobile}
                                     onChange={handleChange}
                                     maxLength="10"
                                     className={errors.mobile ? 'input-error' : ''}
                                 />
-                                {errors.mobile && <span className="error-text">{errors.mobile}</span>}
+                                {errors.mobile && <span className="error-text"><span className="error-icon">⚠️</span> {errors.mobile}</span>}
+                                {!errors.mobile && formData.mobile && <span className="success-text"><span className="success-icon">✓</span> Valid mobile number</span>}
                             </div>
 
                             <div className="form-group">
-                                <label>Email Address</label>
+                                <label>Email Address <span className="optional-mark">(Optional)</span></label>
                                 <input
                                     type="email"
                                     name="email"
@@ -352,7 +431,8 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                                     onChange={handleChange}
                                     className={errors.email ? 'input-error' : ''}
                                 />
-                                {errors.email && <span className="error-text">{errors.email}</span>}
+                                {errors.email && <span className="error-text"><span className="error-icon">⚠️</span> {errors.email}</span>}
+                                {!errors.email && formData.email && <span className="success-text"><span className="success-icon">✓</span> Valid email</span>}
                             </div>
                         </div>
 
@@ -387,51 +467,61 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                         <p className="section-subtitle">Recommended for KYC completion</p>
 
                         <div className="form-group">
-                            <label>Address Line</label>
+                            <label>Address Line <span className="optional-mark">(Optional)</span></label>
                             <input
                                 type="text"
                                 name="address"
-                                placeholder="Street address"
+                                placeholder="Street address (e.g., 123 Main Street)"
                                 value={formData.address}
                                 onChange={handleChange}
+                                className={errors.address ? 'input-error' : ''}
                             />
+                            {errors.address && <span className="error-text"><span className="error-icon">⚠️</span> {errors.address}</span>}
                         </div>
 
                         <div className="form-row-3">
                             <div className="form-group">
-                                <label>City</label>
+                                <label>City <span className="optional-mark">(Optional)</span></label>
                                 <input
                                     type="text"
                                     name="city"
-                                    placeholder="City"
+                                    placeholder="e.g., Mumbai"
                                     value={formData.city}
                                     onChange={handleChange}
+                                    className={errors.city ? 'input-error' : ''}
                                 />
+                                {errors.city && <span className="error-text"><span className="error-icon">⚠️</span> {errors.city}</span>}
                             </div>
 
                             <div className="form-group">
-                                <label>State</label>
+                                <label>State <span className="optional-mark">(Optional)</span></label>
                                 <input
                                     type="text"
                                     name="state"
-                                    placeholder="State"
+                                    placeholder="e.g., Maharashtra"
                                     value={formData.state}
                                     onChange={handleChange}
+                                    className={errors.state ? 'input-error' : ''}
                                 />
+                                {errors.state && <span className="error-text"><span className="error-icon">⚠️</span> {errors.state}</span>}
                             </div>
 
                             <div className="form-group">
-                                <label>PIN Code</label>
+                                <div className="label-wrapper">
+                                    <label>PIN Code <span className="optional-mark">(Optional)</span></label>
+                                    <span className="char-count">{formData.pinCode.length}/6</span>
+                                </div>
                                 <input
                                     type="text"
                                     name="pinCode"
-                                    placeholder="6 digits"
+                                    placeholder="6 digit postal code"
                                     value={formData.pinCode}
                                     onChange={handleChange}
                                     maxLength="6"
                                     className={errors.pinCode ? 'input-error' : ''}
                                 />
-                                {errors.pinCode && <span className="error-text">{errors.pinCode}</span>}
+                                {errors.pinCode && <span className="error-text"><span className="error-icon">⚠️</span> {errors.pinCode}</span>}
+                                {!errors.pinCode && formData.pinCode && <span className="success-text"><span className="success-icon">✓</span> Valid PIN Code</span>}
                             </div>
                         </div>
 
@@ -467,16 +557,18 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                             </div>
 
                             <div className="form-group">
-                                <label>ID Number {formData.idType && '*'}</label>
+                                <label>ID Number {formData.idType && <span className="required-mark">*</span>}</label>
                                 <input
                                     type="text"
                                     name="idNumber"
-                                    placeholder="ID number"
+                                    placeholder={formData.idType ? `Enter your ${formData.idType} number` : 'Select ID Type first'}
                                     value={formData.idNumber}
                                     onChange={handleChange}
+                                    disabled={!formData.idType}
                                     className={errors.idNumber ? 'input-error' : ''}
                                 />
-                                {errors.idNumber && <span className="error-text">{errors.idNumber}</span>}
+                                {errors.idNumber && <span className="error-text"><span className="error-icon">⚠️</span> {errors.idNumber}</span>}
+                                {!errors.idNumber && formData.idNumber && <span className="success-text"><span className="success-icon">✓</span> Valid ID number</span>}
                             </div>
                         </div>
 
@@ -532,7 +624,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
 
                         <div className="form-row-2">
                             <div className="form-group">
-                                <label>Date of Birth</label>
+                                <label>Date of Birth <span className="optional-mark">(Optional)</span></label>
                                 <input
                                     type="date"
                                     name="dob"
@@ -540,11 +632,12 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                                     onChange={handleChange}
                                     className={errors.dob ? 'input-error' : ''}
                                 />
-                                {errors.dob && <span className="error-text">{errors.dob}</span>}
+                                {errors.dob && <span className="error-text"><span className="error-icon">⚠️</span> {errors.dob}</span>}
+                                {!errors.dob && formData.dob && <span className="success-text"><span className="success-icon">✓</span> Valid date</span>}
                             </div>
 
                             <div className="form-group">
-                                <label>Anniversary</label>
+                                <label>Anniversary <span className="optional-mark">(Optional)</span></label>
                                 <input
                                     type="date"
                                     name="anniversary"
@@ -552,31 +645,35 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                                     onChange={handleChange}
                                     className={errors.anniversary ? 'input-error' : ''}
                                 />
-                                {errors.anniversary && <span className="error-text">{errors.anniversary}</span>}
+                                {errors.anniversary && <span className="error-text"><span className="error-icon">⚠️</span> {errors.anniversary}</span>}
+                                {!errors.anniversary && formData.anniversary && <span className="success-text"><span className="success-icon">✓</span> Valid date</span>}
                             </div>
                         </div>
 
                         <div className="form-row-2">
                             <div className="form-group">
-                                <label>Company Name</label>
+                                <label>Company Name <span className="optional-mark">(For corporate guests)</span></label>
                                 <input
                                     type="text"
                                     name="companyName"
-                                    placeholder="For corporate guests"
+                                    placeholder="e.g., Acme Corporation"
                                     value={formData.companyName}
                                     onChange={handleChange}
                                 />
                             </div>
 
                             <div className="form-group">
-                                <label>GST Number</label>
+                                <label>GST Number <span className="optional-mark">(If applicable)</span></label>
                                 <input
                                     type="text"
                                     name="gstNumber"
-                                    placeholder="If applicable"
+                                    placeholder="e.g., 27AABBS5055K2ZU"
                                     value={formData.gstNumber}
                                     onChange={handleChange}
+                                    className={errors.gstNumber ? 'input-error' : ''}
                                 />
+                                {errors.gstNumber && <span className="error-text"><span className="error-icon">⚠️</span> {errors.gstNumber}</span>}
+                                {!errors.gstNumber && formData.gstNumber && <span className="success-text"><span className="success-icon">✓</span> Valid GST Number</span>}
                             </div>
                         </div>
 
