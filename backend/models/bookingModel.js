@@ -13,6 +13,10 @@ const bookingSchema = new mongoose.Schema(
             required: [true, 'Mobile number is required'],
             match: [/^[6-9]\d{9}$/, 'Please enter a valid 10-digit mobile number']
         },
+        referenceId: {
+            type: String,
+            unique: true
+        },
         email: {
             type: String,
             trim: true,
@@ -27,7 +31,7 @@ const bookingSchema = new mongoose.Schema(
             type: String,
             trim: true
         },
-        
+
         // Check-in Details (for CHECK-IN action)
         actualCheckInDate: {
             type: Date
@@ -110,11 +114,39 @@ const bookingSchema = new mongoose.Schema(
             default: 'Upcoming'
         },
 
+        // Reservation Metadata
+        reservationType: {
+            type: String,
+            default: 'Confirm'
+        },
+        bookingSource: {
+            type: String,
+            default: 'Direct'
+        },
+        businessSource: {
+            type: String,
+            default: 'Walk-In'
+        },
+        arrivalFrom: {
+            type: String
+        },
+        purposeOfVisit: {
+            type: String
+        },
+        scheduledCheckInTime: {
+            type: String,
+            default: '14:00'
+        },
+        scheduledCheckOutTime: {
+            type: String,
+            default: '11:00'
+        },
+
         // Transactions (Charges and Payments)
         transactions: [{
             type: {
                 type: String,
-                enum: ['charge', 'payment'],
+                enum: ['charge', 'payment', 'discount', 'refund'],
                 required: true
             },
             day: {
@@ -166,7 +198,7 @@ const bookingSchema = new mongoose.Schema(
                 default: Date.now
             }
         }],
-        
+
         // Visitors Log (for ADD VISITOR action)
         visitors: [{
             visitorName: {
@@ -197,7 +229,7 @@ const bookingSchema = new mongoose.Schema(
                 type: Date
             }
         }],
-        
+
         // Cancellation / No-Show / Void Details
         cancellationDetails: {
             cancelledAt: {
@@ -219,7 +251,7 @@ const bookingSchema = new mongoose.Schema(
                 enum: ['Cash', 'Card', 'UPI', 'Bank Transfer', null]
             }
         },
-        
+
         noShowDetails: {
             noShowAt: {
                 type: Date
@@ -232,7 +264,7 @@ const bookingSchema = new mongoose.Schema(
                 default: 0
             }
         },
-        
+
         voidDetails: {
             voidedAt: {
                 type: Date
@@ -244,7 +276,7 @@ const bookingSchema = new mongoose.Schema(
                 type: String
             }
         },
-        
+
         // Audit Trail (for tracking all changes)
         auditTrail: [{
             action: {
@@ -281,7 +313,28 @@ const bookingSchema = new mongoose.Schema(
 );
 
 // Pre-save middleware to calculate remaining amount
-bookingSchema.pre('save', function(next) {
+bookingSchema.pre('save', function (next) {
+    if (this.transactions && this.transactions.length > 0) {
+        const charges = this.transactions
+            .filter(t => t.type === 'charge')
+            .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+        const discounts = this.transactions
+            .filter(t => t.type === 'discount')
+            .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+
+        const payments = this.transactions
+            .filter(t => t.type === 'payment')
+            .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+
+        const refunds = this.transactions
+            .filter(t => t.type === 'refund')
+            .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+
+        this.totalAmount = charges - discounts;
+        this.advancePaid = payments - refunds;
+    }
+
     this.remainingAmount = this.totalAmount - this.advancePaid;
     next();
 });

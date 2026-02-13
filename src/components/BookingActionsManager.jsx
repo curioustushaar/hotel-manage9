@@ -49,11 +49,11 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
         }
 
         setIsSubmitting(true);
-        
+
         try {
             let endpoint = '';
             let method = 'POST';
-            
+
             // Determine endpoint based on action type
             switch (actionType) {
                 case 'check-in':

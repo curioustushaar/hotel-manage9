@@ -39,6 +39,7 @@
         opacity: 0;
         transform: scale(0.96) translateY(-12px);
     }
+
     to {
         opacity: 1;
         transform: scale(1) translateY(0);
@@ -511,18 +512,224 @@
         width: 95%;
         max-height: 95vh;
     }
-    
+
     .summary-info-row {
         gap: 14px;
     }
-    
+
     .booking-summary-modal {
         flex-direction: column;
         align-items: flex-start;
         gap: 14px;
     }
-    
+
     .modal-content-area .room-folio-sidebar {
         width: 220px;
     }
+}
+
+/* Booking Details Styles */
+.booking-details-container {
+    padding: 24px;
+    background-color: #fff;
+}
+
+.details-section {
+    margin-bottom: 24px;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #f9fafb;
+}
+
+.details-section:last-child {
+    margin-bottom: 0;
+}
+
+.details-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.detail-value {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #111827;
+}
+
+.details-table-container {
+    overflow-x: auto;
+}
+
+.details-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.details-table th,
+.details-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.details-table th {
+    background-color: #f3f4f6;
+    font-weight: 600;
+    color: #374151;
+}
+
+.details-table td {
+    color: #4b5563;
+}
+
+.details-table .text-right {
+    text-align: right;
+}
+
+/* Billing Summary Grid */
+.billing-summary-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 400px;
+    margin-left: auto;
+}
+
+.billing-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+}
+
+.billing-label {
+    font-size: 0.875rem;
+    color: #4b5563;
+}
+
+.billing-value {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #111827;
+}
+
+.billing-value.discount {
+    color: #dc2626;
+}
+
+.billing-row.total-row {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #e5e7eb;
+    font-weight: 600;
+}
+
+.billing-row.total-row .billing-value {
+    font-size: 1rem;
+    color: #059669;
+}
+
+.billing-row.balance-row {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 2px solid #e5e7eb;
+    font-weight: 700;
+}
+
+.billing-row.balance-row .billing-value {
+    font-size: 1rem;
+    color: #dc2626;
+}
+
+/* Audit Trail Styles */
+.audit-timeline {
+    position: relative;
+    padding-left: 20px;
+    border-left: 2px solid #e5e7eb;
+    margin-left: 10px;
+}
+
+.audit-item {
+    margin-bottom: 24px;
+    position: relative;
+}
+
+.audit-item:last-child {
+    margin-bottom: 0;
+}
+
+.audit-item::before {
+    content: '';
+    position: absolute;
+    left: -26px;
+    top: 4px;
+    width: 10px;
+    height: 10px;
+    background-color: #3b82f6;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #e5e7eb;
+}
+
+.audit-time {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.audit-content {
+    background-color: #f9fafb;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+}
+
+.audit-action {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.audit-user {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #4b5563;
+}
+
+.audit-description {
+    font-size: 0.875rem;
+    color: #374151;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 24px;
+    color: #6b7280;
+    font-style: italic;
 }
