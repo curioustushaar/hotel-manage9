@@ -128,6 +128,9 @@ app.use('/api/business-sources', businessSourceRoutes);
 const maintenanceBlockRoutes = require('./routes/maintenanceBlockRoutes');
 app.use('/api/maintenance-blocks', maintenanceBlockRoutes);
 
+const guestMealRoutes = require('./routes/guestMealRoutes');
+app.use('/api/guest-meal', guestMealRoutes);
+
 
 
 // Root route
@@ -157,7 +160,7 @@ app.use((req, res) => {
 });
 
 // Server configuration
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Only listen if not in serverless environment (Vercel)
 // Function to start server with port fallback

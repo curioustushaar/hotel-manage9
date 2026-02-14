@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import API_URL from '../config/api';
 import './FolioOperations.css';
 import AddPayment from './AddPayment';
 import AddCharges from './AddCharges';
@@ -28,7 +29,7 @@ const FolioOperations = ({ reservation }) => {
     const [allBookings, setAllBookings] = useState([]);
     const [toast, setToast] = useState(null);
 
-    const API_URL = 'http://localhost:5001/api/bookings';
+    const BASE_API_URL = `${API_URL}/api/bookings`;
 
     // Fetch all bookings and current booking transactions on component load
     useEffect(() => {
@@ -41,15 +42,15 @@ const FolioOperations = ({ reservation }) => {
     // Fetch all IN_HOUSE bookings to populate folio list
     const fetchAllBookings = async () => {
         try {
-            const response = await fetch(`${API_URL}/list`);
+            const response = await fetch(`${BASE_API_URL}/list`);
             const data = await response.json();
-            
+
             if (data.success && data.data) {
                 const inHouseBookings = data.data.filter(
                     booking => booking.status === 'Checked-in' || booking.status === 'Upcoming'
                 );
                 setAllBookings(inHouseBookings);
-                
+
                 // Create folio list from bookings
                 const folios = inHouseBookings.map((booking, index) => ({
                     id: index,
@@ -58,7 +59,7 @@ const FolioOperations = ({ reservation }) => {
                     guestName: booking.guestName,
                     bookingId: booking._id
                 }));
-                
+
                 // Find current reservation's folio and make it first
                 const currentBookingId = reservation?.id || reservation?._id;
                 const currentIndex = folios.findIndex(f => f.bookingId === currentBookingId);
@@ -68,7 +69,7 @@ const FolioOperations = ({ reservation }) => {
                     // Update IDs to maintain order
                     folios.forEach((f, i) => f.id = i);
                 }
-                
+
                 setFolioList(folios);
                 console.log('Populated folio list:', folios);
             }
@@ -83,12 +84,12 @@ const FolioOperations = ({ reservation }) => {
             const bookingId = reservation.id || reservation._id;
             console.log('Fetching transactions for booking:', bookingId);
             console.log('Full reservation object:', reservation);
-            const response = await fetch(`${API_URL}/${bookingId}`);
+            const response = await fetch(`${BASE_API_URL}/${bookingId}`);
             const data = await response.json();
-            
+
             console.log('Fetched data:', data);
             console.log('Transactions from API:', data.data?.transactions);
-            
+
             if (data.success && data.data.transactions) {
                 // Add folioId to existing transactions that don't have one (default to folio 0)
                 const transactionsWithFolios = data.data.transactions.map(t => ({
@@ -126,9 +127,9 @@ const FolioOperations = ({ reservation }) => {
     const handleAddCharge = async (chargeData) => {
         const newTransaction = {
             type: 'charge',
-            day: new Date(chargeData.date).toLocaleDateString('en-GB', { 
-                day: '2-digit', 
-                month: '2-digit', 
+            day: new Date(chargeData.date).toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
                 year: 'numeric',
                 weekday: 'short'
             }),
@@ -141,17 +142,17 @@ const FolioOperations = ({ reservation }) => {
 
         try {
             const bookingId = reservation.id || reservation._id;
-            const response = await fetch(`${API_URL}/${bookingId}/transactions`, {
+            const response = await fetch(`${BASE_API_URL}/${bookingId}/transactions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newTransaction)
             });
-            
+
             const data = await response.json();
             if (data.success) {
                 await fetchTransactions();
                 setShowAddCharges(false);
-                
+
                 // Show success toast
                 setToast({
                     message: 'Charge added successfully!',
@@ -176,9 +177,9 @@ const FolioOperations = ({ reservation }) => {
     const handleAddPayment = async (paymentData) => {
         const newTransaction = {
             type: 'payment',
-            day: new Date(paymentData.date).toLocaleDateString('en-GB', { 
-                day: '2-digit', 
-                month: '2-digit', 
+            day: new Date(paymentData.date).toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
                 year: 'numeric',
                 weekday: 'short'
             }),
@@ -191,17 +192,17 @@ const FolioOperations = ({ reservation }) => {
 
         try {
             const bookingId = reservation.id || reservation._id;
-            const response = await fetch(`${API_URL}/${bookingId}/transactions`, {
+            const response = await fetch(`${BASE_API_URL}/${bookingId}/transactions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newTransaction)
             });
-            
+
             const data = await response.json();
             if (data.success) {
                 await fetchTransactions();
                 setShowAddPayment(false);
-                
+
                 // Show success toast
                 setToast({
                     message: 'Payment added successfully!',
@@ -231,7 +232,7 @@ const FolioOperations = ({ reservation }) => {
         // Calculate discount amount based on type
         const currentFolioTransactions = allTransactions.filter(t => t.folioId === selectedRoom);
         const currentCharges = currentFolioTransactions.filter(t => t.type === 'charge').reduce((sum, t) => sum + t.amount, 0);
-        
+
         let discountAmount = 0;
         if (discountData.discountType === 'percentage') {
             discountAmount = (currentCharges * parseFloat(discountData.discountValue)) / 100;
@@ -239,15 +240,15 @@ const FolioOperations = ({ reservation }) => {
             discountAmount = parseFloat(discountData.discountValue);
         }
 
-        const discountLabel = discountData.discountType === 'percentage' 
-            ? `${discountData.discountValue}%` 
+        const discountLabel = discountData.discountType === 'percentage'
+            ? `${discountData.discountValue}%`
             : `₹${discountData.discountValue}`;
 
         const newTransaction = {
             type: 'discount',
-            day: new Date(discountData.date).toLocaleDateString('en-GB', { 
-                day: '2-digit', 
-                month: '2-digit', 
+            day: new Date(discountData.date).toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
                 year: 'numeric',
                 weekday: 'short'
             }),
@@ -263,17 +264,17 @@ const FolioOperations = ({ reservation }) => {
 
         try {
             const bookingId = reservation.id || reservation._id;
-            const response = await fetch(`${API_URL}/${bookingId}/transactions`, {
+            const response = await fetch(`${BASE_API_URL}/${bookingId}/transactions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newTransaction)
             });
-            
+
             const data = await response.json();
             if (data.success) {
                 await fetchTransactions();
                 setShowApplyDiscount(false);
-                
+
                 // Show success toast
                 setToast({
                     message: 'Discount applied successfully!',
@@ -297,15 +298,15 @@ const FolioOperations = ({ reservation }) => {
     // Handler for saving new folio
     const handleSaveNewFolio = async (folioData) => {
         console.log('New Folio Data:', folioData);
-        
+
         try {
             // Find the selected guest
-            const response = await fetch('http://localhost:5001/api/bookings/list');
+            const response = await fetch(`${BASE_API_URL}/list`);
             const data = await response.json();
-            
+
             if (data.success && data.data) {
                 const selectedGuest = data.data.find(booking => booking._id === folioData.customer);
-                
+
                 if (selectedGuest) {
                     // Add new folio to the list
                     const newFolio = {
@@ -315,7 +316,7 @@ const FolioOperations = ({ reservation }) => {
                         guestName: selectedGuest.guestName,
                         registrationNo: folioData.registrationNo
                     };
-                    
+
                     setFolioList([...folioList, newFolio]);
                     setSelectedRoom(newFolio.id);
                 }
@@ -323,7 +324,7 @@ const FolioOperations = ({ reservation }) => {
         } catch (error) {
             console.error('Error saving folio:', error);
         }
-        
+
         setShowNewFolio(false);
     };
 
@@ -343,11 +344,11 @@ const FolioOperations = ({ reservation }) => {
 
         try {
             const bookingId = reservation.id || reservation._id;
-            
+
             // Get target folio's booking ID
             const targetFolio = folioList.find(f => f.id === pendingRouteData.targetFolioId);
             const targetBookingId = targetFolio?.bookingId;
-            
+
             console.log('Routing Configuration:');
             console.log('- Source Booking ID:', bookingId);
             console.log('- Target Booking ID:', targetBookingId);
@@ -355,8 +356,8 @@ const FolioOperations = ({ reservation }) => {
             console.log('- Target Folio ID:', pendingRouteData.targetFolioId);
             console.log('- Transaction IDs:', pendingRouteData.transactionIds);
             console.log('- Is Cross-Booking?', targetBookingId !== bookingId);
-            
-            const response = await fetch(`${API_URL}/${bookingId}/route-folio`, {
+
+            const response = await fetch(`${BASE_API_URL}/${bookingId}/route-folio`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -375,16 +376,16 @@ const FolioOperations = ({ reservation }) => {
                 // Refresh all bookings and transactions
                 await fetchAllBookings();
                 await fetchTransactions();
-                
+
                 // Switch to target folio to show routed transactions
                 setSelectedRoom(pendingRouteData.targetFolioId);
-                
+
                 // Show success toast
                 setToast({
                     message: `Successfully routed ${pendingRouteData.transactionCount} charge(s) to ${pendingRouteData.targetFolioName}. The charges are now visible in ${pendingRouteData.targetFolioName}'s folio.`,
                     type: 'success'
                 });
-                
+
                 // Hide routing section and show table
                 setShowRoutingSection(false);
             } else {
@@ -424,7 +425,7 @@ User:        ${item.user}
         Thank you for choosing us!
 ===========================================
         `;
-        
+
         // Create a downloadable text file
         const blob = new Blob([printContent], { type: 'text/plain' });
         const url = window.URL.createObjectURL(blob);
@@ -435,7 +436,7 @@ User:        ${item.user}
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
-        
+
         setActiveMenu(null);
     };
 
@@ -449,7 +450,7 @@ User:        ${item.user}
         if (editingItem && editingItem.transactionId) {
             try {
                 const bookingId = reservation.id || reservation._id;
-                const response = await fetch(`${API_URL}/${bookingId}/transactions/${editingItem.transactionId}`, {
+                const response = await fetch(`${BASE_API_URL}/${bookingId}/transactions/${editingItem.transactionId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -458,7 +459,7 @@ User:        ${item.user}
                         amount: editingItem.amount
                     })
                 });
-                
+
                 const data = await response.json();
                 if (data.success) {
                     await fetchTransactions();
@@ -477,10 +478,10 @@ User:        ${item.user}
         if (transaction._id) {
             try {
                 const bookingId = reservation.id || reservation._id;
-                const response = await fetch(`${API_URL}/${bookingId}/transactions/${transaction._id}`, {
+                const response = await fetch(`${BASE_API_URL}/${bookingId}/transactions/${transaction._id}`, {
                     method: 'DELETE'
                 });
-                
+
                 const data = await response.json();
                 if (data.success) {
                     await fetchTransactions();
@@ -547,8 +548,8 @@ User:        ${item.user}
                     <button className="folio-action-btn" onClick={() => setShowAddCharges(true)}>Add Charges</button>
                     <button className="folio-action-btn btn-apply-discount" onClick={() => setShowApplyDiscount(true)}>Apply Discount</button>
                     <div className="folio-ops-dropdown-container">
-                        <button 
-                            className="folio-action-btn btn-folio-ops" 
+                        <button
+                            className="folio-action-btn btn-folio-ops"
                             onClick={() => {
                                 setShowRoutingSection(!showRoutingSection);
                             }}
@@ -562,7 +563,7 @@ User:        ${item.user}
                 {showRoutingSection && (
                     <div className="folio-routing-section">
                         <div className="routing-header">
-                            <button 
+                            <button
                                 className="routing-back-btn"
                                 onClick={() => setShowRoutingSection(false)}
                             >
@@ -574,7 +575,7 @@ User:        ${item.user}
                             <div className="routing-option-text">
                                 Folio Routing Operation
                             </div>
-                            <button 
+                            <button
                                 className="routing-option-button"
                                 onClick={() => setShowRouteFolioSidebar(true)}
                             >
@@ -587,67 +588,67 @@ User:        ${item.user}
                 {/* Charges Table - Only show when routing section is hidden */}
                 {!showRoutingSection && (
                     <div className="folio-table-container">
-                    {loading ? (
-                        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                            Loading transactions...
-                        </div>
-                    ) : currentFolioTransactions.length === 0 ? (
-                        <div style={{ minHeight: '300px', background: 'white' }}>
-                            {/* Blank white space */}
-                        </div>
-                    ) : (
-                        <table className="folio-charges-table">
-                            <thead>
-                                <tr>
-                                    <th>
-                                        <input type="checkbox" />
-                                    </th>
-                                    <th>DAY</th>
-                                    <th>PARTICULARS</th>
-                                    <th>DESCRIPTION</th>
-                                    <th style={{ textAlign: 'right' }}>AMOUNT</th>
-                                    <th style={{ textAlign: 'right' }}>USER</th>
-                                    <th style={{ textAlign: 'center', width: '60px' }}>ACTION</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            {currentFolioTransactions.map((transaction, index) => (
-                                <tr key={transaction._id || index}>
-                                    <td>
-                                        <input type="checkbox" />
-                                    </td>
-                                    <td>{transaction.day}</td>
-                                    <td>
-                                        <span className={transaction.type === 'payment' ? 'payment-badge' : ''}>
-                                            {transaction.particulars}
-                                        </span>
-                                    </td>
-                                    <td>{transaction.description}</td>
-                                    <td className={`amount-cell ${transaction.amount < 0 ? 'payment-amount' : ''}`}>
-                                        {Math.abs(transaction.amount)}
-                                    </td>
-                                    <td>{transaction.user}</td>
-                                    <td style={{ textAlign: 'center', position: 'relative' }}>
-                                        <button 
-                                            className="action-menu-btn"
-                                            onClick={() => toggleMenu(index)}
-                                        >
-                                            ⋮
-                                        </button>
-                                        {activeMenu === index && (
-                                            <div className="action-dropdown">
-                                                <button onClick={() => handlePrint(index)}>🖨️ Print</button>
-                                                <button onClick={() => handleEdit(index)}>✏️ Edit</button>
-                                                <button onClick={() => handleVoid(index)}>🗑️ Void</button>
-                                            </div>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
+                        {loading ? (
+                            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                                Loading transactions...
+                            </div>
+                        ) : currentFolioTransactions.length === 0 ? (
+                            <div style={{ minHeight: '300px', background: 'white' }}>
+                                {/* Blank white space */}
+                            </div>
+                        ) : (
+                            <table className="folio-charges-table">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            <input type="checkbox" />
+                                        </th>
+                                        <th>DAY</th>
+                                        <th>PARTICULARS</th>
+                                        <th>DESCRIPTION</th>
+                                        <th style={{ textAlign: 'right' }}>AMOUNT</th>
+                                        <th style={{ textAlign: 'right' }}>USER</th>
+                                        <th style={{ textAlign: 'center', width: '60px' }}>ACTION</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {currentFolioTransactions.map((transaction, index) => (
+                                        <tr key={transaction._id || index}>
+                                            <td>
+                                                <input type="checkbox" />
+                                            </td>
+                                            <td>{transaction.day}</td>
+                                            <td>
+                                                <span className={transaction.type === 'payment' ? 'payment-badge' : ''}>
+                                                    {transaction.particulars}
+                                                </span>
+                                            </td>
+                                            <td>{transaction.description}</td>
+                                            <td className={`amount-cell ${transaction.amount < 0 ? 'payment-amount' : ''}`}>
+                                                {Math.abs(transaction.amount)}
+                                            </td>
+                                            <td>{transaction.user}</td>
+                                            <td style={{ textAlign: 'center', position: 'relative' }}>
+                                                <button
+                                                    className="action-menu-btn"
+                                                    onClick={() => toggleMenu(index)}
+                                                >
+                                                    ⋮
+                                                </button>
+                                                {activeMenu === index && (
+                                                    <div className="action-dropdown">
+                                                        <button onClick={() => handlePrint(index)}>🖨️ Print</button>
+                                                        <button onClick={() => handleEdit(index)}>✏️ Edit</button>
+                                                        <button onClick={() => handleVoid(index)}>🗑️ Void</button>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
                 )}
 
                 {/* Summary Footer - Only show when there are transactions */}
@@ -709,7 +710,7 @@ User:        ${item.user}
 
             {/* Add Payment Modal */}
             {showAddPayment && (
-                <AddPayment 
+                <AddPayment
                     onClose={() => setShowAddPayment(false)}
                     onAdd={handleAddPayment}
                     reservation={reservation}
@@ -718,7 +719,7 @@ User:        ${item.user}
 
             {/* Add Charges Modal */}
             {showAddCharges && (
-                <AddCharges 
+                <AddCharges
                     onClose={() => setShowAddCharges(false)}
                     onAdd={handleAddCharge}
                     reservation={reservation}
@@ -727,7 +728,7 @@ User:        ${item.user}
 
             {/* Apply Discount Sidebar */}
             {showApplyDiscount && (
-                <ApplyDiscountSidebar 
+                <ApplyDiscountSidebar
                     onClose={() => setShowApplyDiscount(false)}
                     onApply={handleApplyDiscount}
                     reservation={reservation}
@@ -736,7 +737,7 @@ User:        ${item.user}
 
             {/* New Folio Modal */}
             {showNewFolio && (
-                <NewFolio 
+                <NewFolio
                     onClose={() => setShowNewFolio(false)}
                     onSave={handleSaveNewFolio}
                 />
@@ -744,7 +745,7 @@ User:        ${item.user}
 
             {/* Route Folio Sidebar */}
             {showRouteFolioSidebar && (
-                <RouteFolioSidebar 
+                <RouteFolioSidebar
                     onClose={() => setShowRouteFolioSidebar(false)}
                     onSave={handleRouteFolioSave}
                     sourceFolioId={selectedRoom}
@@ -779,25 +780,25 @@ User:        ${item.user}
                         <div className="edit-form">
                             <div className="edit-field">
                                 <label>Particulars</label>
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     value={editingItem.particulars}
-                                    onChange={(e) => setEditingItem({...editingItem, particulars: e.target.value})}
+                                    onChange={(e) => setEditingItem({ ...editingItem, particulars: e.target.value })}
                                 />
                             </div>
                             <div className="edit-field">
                                 <label>Description</label>
-                                <textarea 
+                                <textarea
                                     value={editingItem.description}
-                                    onChange={(e) => setEditingItem({...editingItem, description: e.target.value})}
+                                    onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
                                 />
                             </div>
                             <div className="edit-field">
                                 <label>Amount</label>
-                                <input 
-                                    type="number" 
+                                <input
+                                    type="number"
                                     value={Math.abs(editingItem.amount)}
-                                    onChange={(e) => setEditingItem({...editingItem, amount: editingItem.amount < 0 ? -Math.abs(parseFloat(e.target.value)) : Math.abs(parseFloat(e.target.value))})}
+                                    onChange={(e) => setEditingItem({ ...editingItem, amount: editingItem.amount < 0 ? -Math.abs(parseFloat(e.target.value)) : Math.abs(parseFloat(e.target.value)) })}
                                 />
                             </div>
                             <div className="edit-actions">
@@ -811,7 +812,7 @@ User:        ${item.user}
 
             {/* Toast Notification */}
             {toast && (
-                <Toast 
+                <Toast
                     message={toast.message}
                     type={toast.type}
                     onClose={() => setToast(null)}

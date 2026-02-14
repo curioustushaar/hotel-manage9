@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import API_URL from '../config/api';
 
 const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
     const [activeSection, setActiveSection] = useState('basic'); // basic, address, kyc, optional
@@ -316,7 +317,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
         };
 
         try {
-            const response = await fetch('http://localhost:5001/api/guests/add', {
+            const response = await fetch(`${API_URL}/api/guests/add`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -12,17 +12,25 @@ exports.getAllTables = async (req, res) => {
             .populate('currentOrderId')
             .sort({ tableNumber: 1 });
 
-        // Enhance table data with calculated fields
+        // Enhance table data
         const enhancedTables = tables.map(table => ({
             _id: table._id,
+            tableId: table._id, // Frontend uses tableId
             tableNumber: table.tableNumber,
+            tableName: table.tableName || `T${table.tableNumber}`,
+            type: table.type,
             status: table.status,
             capacity: table.capacity,
+            guests: table.guests,
+            reservations: table.reservations || [],
             runningOrderAmount: table.runningOrderAmount,
             orderDuration: table.getOrderDuration(),
             formattedDuration: table.getFormattedDuration(),
             orderStartTime: table.orderStartTime,
             currentOrderId: table.currentOrderId,
+            mergedTableIds: table.mergedTableIds || [],
+            amount: table.runningOrderAmount || 0,
+            duration: table.getOrderDuration() || 0,
             createdAt: table.createdAt,
             updatedAt: table.updatedAt
         }));
@@ -70,6 +78,150 @@ exports.getTableById = async (req, res) => {
     }
 };
 
+// Create new table
+exports.createTable = async (req, res) => {
+    try {
+        const { tableName, capacity, type } = req.body;
+
+        if (!tableName) {
+            return res.status(400).json({ success: false, message: 'Table name is required' });
+        }
+
+        // Check if table name already exists
+        const existingTable = await Table.findOne({ tableName: { $regex: new RegExp(`^${tableName}$`, 'i') } });
+        if (existingTable) {
+            return res.status(400).json({ success: false, message: `Table "${tableName}" already exists` });
+        }
+
+        // Auto-generate table number
+        const lastTable = await Table.findOne({ tableNumber: { $exists: true } }).sort({ tableNumber: -1 });
+        let tableNumber = 1;
+        if (lastTable && typeof lastTable.tableNumber === 'number') {
+            tableNumber = lastTable.tableNumber + 1;
+        }
+
+        // Ensure tableNumber is unique by checking again
+        let isUnique = false;
+        while (!isUnique) {
+            const collision = await Table.findOne({ tableNumber });
+            if (collision) {
+                tableNumber++;
+            } else {
+                isUnique = true;
+            }
+        }
+
+        const table = new Table({
+            tableName,
+            tableNumber,
+            capacity: capacity || 4,
+            type: type || 'General',
+            status: 'Available'
+        });
+
+        await table.save();
+
+        res.status(201).json({
+            success: true,
+            data: table,
+            message: 'Table created successfully'
+        });
+    } catch (error) {
+        console.error('Error in createTable:', error);
+        res.status(400).json({
+            success: false,
+            message: error.message || 'Error creating table',
+            error: error.message
+        });
+    }
+};
+
+// Delete table
+exports.deleteTable = async (req, res) => {
+    try {
+        const table = await Table.findByIdAndDelete(req.params.tableId);
+
+        if (!table) {
+            return res.status(404).json({
+                success: false,
+                message: 'Table not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Table deleted successfully'
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: 'Error deleting table',
+            error: error.message
+        });
+    }
+};
+
+// Update table details (status, type, reservation, etc.)
+exports.updateTable = async (req, res) => {
+    try {
+        const { status, type, capacity, tableName, guests, reservation } = req.body;
+
+        let updateData = {};
+        if (status) updateData.status = status;
+        if (type) updateData.type = type;
+        if (capacity) updateData.capacity = capacity;
+        if (tableName) updateData.tableName = tableName;
+        if (guests !== undefined) updateData.guests = guests;
+        // Handle reservation: if explicit null sent, it clears it. If object, updates it.
+        // Handle reservation updates
+        if (req.body.reservations) {
+            updateData.reservations = req.body.reservations;
+        } else if (req.body.reservation) {
+            // If legacy single reservation or "add reservation" request, append to array
+            // We need to use $push for this if not replacing entire object
+            // But since we are using findByIdAndUpdate with $set, we can't easily mix.
+            // Strategy: First fetch table, modify array, then save. Or use specific update operator.
+            // Let's use specific operator logic below.
+        }
+
+        let updateOperation = { $set: updateData };
+
+        // If adding a single reservation (special validation or push)
+        if (req.body.newReservation) {
+            updateOperation.$push = { reservations: req.body.newReservation };
+        }
+        // If removing a reservation (by ID) which frontend might send as removeReservationId
+        if (req.body.removeReservationId) {
+            updateOperation.$pull = { reservations: { id: req.body.removeReservationId } };
+        }
+
+        const table = await Table.findByIdAndUpdate(
+            req.params.tableId,
+            updateOperation,
+            { new: true, runValidators: true }
+        );
+
+        if (!table) {
+            return res.status(404).json({
+                success: false,
+                message: 'Table not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: table,
+            message: 'Table updated successfully'
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: 'Error updating table',
+            error: error.message
+        });
+    }
+};
+
 // Initialize all tables (create default tables if they don't exist)
 exports.initializeTables = async (req, res) => {
     try {
@@ -111,7 +263,7 @@ exports.initializeTables = async (req, res) => {
 exports.getTablesByStatus = async (req, res) => {
     try {
         const { status } = req.params;
-        
+
         if (!['Available', 'Running', 'Billed'].includes(status)) {
             return res.status(400).json({
                 success: false,
@@ -137,9 +289,165 @@ exports.getTablesByStatus = async (req, res) => {
     }
 };
 
-// ============================================================================
-// ORDER MANAGEMENT CONTROLLERS
-// ============================================================================
+// Merge Multiple Tables
+exports.mergeTables = async (req, res) => {
+    try {
+        const { sourceTableId, targetTableIds } = req.body;
+
+        if (!sourceTableId || !targetTableIds || !Array.isArray(targetTableIds) || targetTableIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Source table and target tables (array) are required'
+            });
+        }
+
+        const sourceTable = await Table.findById(sourceTableId).populate('currentOrderId');
+        const targetTables = await Table.find({ _id: { $in: targetTableIds } }).populate('currentOrderId');
+
+        if (!sourceTable) {
+            return res.status(404).json({ success: false, message: 'Source table not found' });
+        }
+
+        // Combine logic
+        const allTables = [sourceTable, ...targetTables];
+        const combinedName = allTables.map(t => t.tableName.replace('_MERGED_', '')).join(', ');
+        const totalCapacity = allTables.reduce((sum, t) => sum + (t.capacity || 4), 0);
+        const totalGuests = allTables.reduce((sum, t) => sum + (t.guests || 0), 0);
+
+        // Merge Orders
+        let sourceOrder = sourceTable.currentOrderId;
+
+        // If source has no order but targets do, the first target with an order becomes the "base" or we create one.
+        if (!sourceOrder) {
+            const firstTargetWithOrder = targetTables.find(t => t.currentOrderId);
+            if (firstTargetWithOrder) {
+                sourceOrder = firstTargetWithOrder.currentOrderId;
+                sourceTable.currentOrderId = sourceOrder._id;
+            }
+        }
+
+        if (sourceOrder) {
+            for (const target of targetTables) {
+                if (target.currentOrderId && target.currentOrderId._id.toString() !== sourceOrder._id.toString()) {
+                    // Move items from target order to source order
+                    sourceOrder.items = [...(sourceOrder.items || []), ...(target.currentOrderId.items || [])];
+                    // Close target order as "Merged"
+                    target.currentOrderId.status = 'Closed';
+                    target.currentOrderId.closedAt = new Date();
+                    target.currentOrderId.note = `Merged into ${sourceTable.tableName}`;
+                    await target.currentOrderId.save();
+                }
+            }
+            // Recalculate source order totals (Order model should have a middleware or we do it here)
+            // For now, assume save() triggers any logic or we do it manually if needed.
+            await sourceOrder.save();
+            sourceTable.runningOrderAmount = sourceOrder.totalAmount || 0;
+        }
+
+        // Store original state if not already stored (to handle multiple merges)
+        if (!sourceTable.originalTableName) {
+            sourceTable.originalTableName = sourceTable.tableName.replace('_MERGED_', '');
+            sourceTable.originalCapacity = sourceTable.capacity;
+        }
+
+        // Update Source Table
+        sourceTable.tableName = combinedName;
+        sourceTable.capacity = totalCapacity;
+        sourceTable.guests = totalGuests;
+        sourceTable.status = 'Running';
+        sourceTable.mergedTableIds = Array.from(new Set([...(sourceTable.mergedTableIds || []), ...targetTableIds]));
+        await sourceTable.save();
+
+        // Update Target Tables
+        for (const target of targetTables) {
+            target.tableName = `_MERGED_${target.tableName}`;
+            target.status = 'Available'; // Or some hidden state
+            target.currentOrderId = null;
+            target.guests = 0;
+            target.runningOrderAmount = 0;
+            await target.save();
+        }
+
+        res.status(200).json({
+            success: true,
+            message: `Tables merged successfully into ${combinedName}`,
+            data: sourceTable
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error merging tables',
+            error: error.message
+        });
+    }
+};
+
+// Release/Unmerge Table
+exports.releaseTable = async (req, res) => {
+    try {
+        const { tableId } = req.params;
+        const table = await Table.findById(tableId);
+
+        if (!table) {
+            return res.status(404).json({ success: false, message: 'Table not found' });
+        }
+
+        // Identify target tables to release
+        let targetIds = table.mergedTableIds || [];
+
+        // If no explicit IDs, try to find by name for legacy merges
+        if (targetIds.length === 0 && table.tableName.includes(',')) {
+            const tableNames = table.tableName.split(',').map(n => n.trim());
+            // The first one is (likely) the source, others are targets
+            const potentialTargets = tableNames.slice(1);
+            const foundTargets = await Table.find({
+                tableName: { $in: potentialTargets.map(name => `_MERGED_${name}`) }
+            });
+            targetIds = foundTargets.map(t => t._id);
+        }
+
+        if (targetIds.length > 0) {
+            const mergedTables = await Table.find({ _id: { $in: targetIds } });
+            for (const target of mergedTables) {
+                target.tableName = target.tableName.replace('_MERGED_', '');
+                target.status = 'Available';
+                target.mergedTableIds = [];
+                await target.save();
+            }
+        }
+
+        // Restore source table
+        table.tableName = table.originalTableName || table.tableName.split(',')[0].trim();
+        table.capacity = table.originalCapacity || 4;
+        table.mergedTableIds = [];
+        table.originalTableName = null;
+        table.originalCapacity = null;
+
+        // If it was only a release (not a checkout), we keep the status as it is?
+        // But usually unmerging happens during checkout or when clearing a mess.
+        // Let's set it to 'Available' if it has no running order after unmerge.
+        if (!table.currentOrderId) {
+            table.status = 'Available';
+            table.guests = 0;
+            table.runningOrderAmount = 0;
+        }
+
+        await table.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Tables released successfully',
+            data: table
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error releasing table',
+            error: error.message
+        });
+    }
+};
 
 // Create new order for a table
 exports.createOrder = async (req, res) => {
@@ -450,7 +758,7 @@ exports.getDashboardStats = async (req, res) => {
         // Get today's revenue
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         const todayClosed = await GuestMealOrder.find({
             status: 'Closed',
             closedAt: { $gte: today }
