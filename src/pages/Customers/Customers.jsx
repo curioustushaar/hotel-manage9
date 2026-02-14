@@ -15,26 +15,82 @@ const Customers = () => {
     const fetchBookingsData = async () => {
         try {
             setIsLoading(true);
-            const response = await fetch(`${API_URL}/api/bookings/list`);
-            const data = await response.json();
-            
-            if (data.success) {
-                // Transform booking data to customer format
-                const customers = data.data.map(booking => ({
+
+            // Fetch from both endpoints to get all data
+            const [bookingsResponse, reservationsResponse] = await Promise.all([
+                fetch(`${API_URL}/api/bookings/list`).catch(err => ({ ok: false })),
+                fetch(`${API_URL}/api/reservations/list`).catch(err => ({ ok: false }))
+            ]);
+
+            let allBookings = [];
+
+            // Process Bookings API
+            if (bookingsResponse.ok) {
+                try {
+                    const bookingData = await bookingsResponse.json();
+                    if (bookingData.success && Array.isArray(bookingData.data)) {
+                        allBookings = [...allBookings, ...bookingData.data];
+                    }
+                } catch (e) { console.error("Error parsing bookings data", e); }
+            }
+
+            // Process Reservations API
+            if (reservationsResponse.ok) {
+                try {
+                    const reservationData = await reservationsResponse.json();
+                    if (reservationData.success && Array.isArray(reservationData.data)) {
+                        allBookings = [...allBookings, ...reservationData.data];
+                    }
+                } catch (e) { console.error("Error parsing reservations data", e); }
+            }
+
+            // Deduplicate by ID
+            const uniqueMap = new Map();
+            allBookings.forEach(item => {
+                const id = item._id || item.id;
+                if (id) uniqueMap.set(id, item);
+            });
+            const uniqueBookings = Array.from(uniqueMap.values());
+
+            // Transform booking data to customer format
+            const customers = uniqueBookings.map(booking => {
+                // Normalize status
+                let status = 'RESERVED';
+                const rawStatus = booking.status?.toUpperCase() || '';
+
+                if (rawStatus === 'CHECKED-IN' || rawStatus === 'IN_HOUSE' || rawStatus === 'CHECKED IN') {
+                    status = 'IN_HOUSE';
+                } else if (rawStatus === 'CHECKED-OUT' || rawStatus === 'CHECKED OUT') {
+                    status = 'CHECKED_OUT';
+                } else if (rawStatus === 'RESERVED' || rawStatus === 'CONFIRMED') {
+                    status = 'RESERVED';
+                } else if (rawStatus === 'CANCELLED') {
+                    status = 'CANCELLED';
+                }
+
+                // Get Room Number safely
+                const roomNum = booking.rooms?.[0]?.roomNumber || booking.roomNumber || 'TBD';
+
+                return {
                     id: booking._id || booking.id,
                     name: booking.guestName || 'N/A',
-                    email: booking.email || 'N/A',
-                    phone: booking.mobileNumber || 'N/A',
-                    room: booking.roomNumber || 'TBD',
+                    email: booking.email || booking.guestEmail || 'N/A',
+                    phone: booking.mobileNumber || booking.guestPhone || 'N/A',
+                    room: roomNum,
                     checkIn: booking.checkInDate,
                     checkOut: booking.checkOutDate,
-                    status: booking.status === 'Checked-in' ? 'Checked In' : booking.status === 'CHECKED_OUT' ? 'Checked Out' : booking.status,
-                    isCurrent: booking.status === 'Checked-in'
-                }));
-                setCustomersData(customers);
-            }
+                    status: status,
+                    // Use normalized status for boolean flags. 
+                    // Current Guest = IN_HOUSE
+                    isCurrent: status === 'IN_HOUSE',
+                    isPast: status === 'CHECKED_OUT'
+                };
+            }).filter(c => c.status === 'IN_HOUSE' || c.status === 'CHECKED_OUT'); // Only show Active or Past guests
+
+            setCustomersData(customers);
         } catch (error) {
             console.error('Error fetching bookings:', error);
+            setCustomersData([]);
         } finally {
             setIsLoading(false);
         }
@@ -70,14 +126,14 @@ const Customers = () => {
     };
 
     // Filter customers based on active tab
-    const filteredByTab = customersData.filter(customer => 
+    const filteredByTab = customersData.filter(customer =>
         activeTab === 'current' ? customer.isCurrent : !customer.isCurrent
     );
 
     // Apply search filter
     const filteredCustomers = filteredByTab.filter(customer => {
         // Search filter
-        const matchesSearch = !searchTerm || 
+        const matchesSearch = !searchTerm ||
             customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             customer.phone.includes(searchTerm);
@@ -85,10 +141,10 @@ const Customers = () => {
         // Date range filter
         const matchesDateRange = (() => {
             if (!startDate && !endDate) return true;
-            
+
             const checkInDate = new Date(customer.checkIn);
             checkInDate.setHours(0, 0, 0, 0); // Reset time for accurate comparison
-            
+
             if (startDate && endDate) {
                 const start = new Date(startDate);
                 const end = new Date(endDate);
@@ -164,8 +220,8 @@ const Customers = () => {
         <div className="customers-page">
             <div className="customers-header">
                 <h1>👥 Customers</h1>
-                <button 
-                    className="refresh-btn" 
+                <button
+                    className="refresh-btn"
                     onClick={handleResetFilters}
                     title="Refresh & Reset Filters"
                 >
@@ -295,8 +351,8 @@ const Customers = () => {
                                         </div>
                                     </td>
                                     <td>
-                                        <span className={`status-badge ${customer.status === 'Checked In' ? 'checked-in' : 'checked-out'}`}>
-                                            {customer.status}
+                                        <span className={`status-badge ${customer.status === 'IN_HOUSE' ? 'checked-in' : 'checked-out'}`}>
+                                            {customer.status === 'IN_HOUSE' ? 'CHECKED IN' : 'CHECKED OUT'}
                                         </span>
                                     </td>
                                     <td>

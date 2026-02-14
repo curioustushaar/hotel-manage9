@@ -573,7 +573,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             roomNumber: targetReservation.rooms?.[0]?.roomNumber || '',
             roomType: targetReservation.rooms?.[0]?.categoryId?.replace(/-/g, ' ').toUpperCase() || '',
             checkInDate: targetReservation.checkInDate,
+            checkInTime: targetReservation.checkInTime || '14:00',
             checkOutDate: targetReservation.checkOutDate,
+            checkOutTime: targetReservation.checkOutTime || '11:00',
             numberOfNights: targetReservation.nights,
             numberOfGuests: targetReservation.rooms?.[0]?.adultsCount || 1,
             pricePerNight: targetReservation.rooms?.[0]?.ratePerNight || 0,
@@ -1294,6 +1296,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                         <MoreOptionsMenu
                                             buttonLabel="More Options"
                                             buttonClassName="tab-option"
+                                            onAction={(action) => handleMoreOptionsAction(action)}
                                         />
                                     </div>
 

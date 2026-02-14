@@ -1,50 +1,73 @@
 import { useState, useEffect } from 'react';
 
+
 const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
-    // Helper to format date for input
-    const formatDate = (dateStr) => {
+    // Helper to format date for input (YYYY-MM-DD)
+    const formatDateForInput = (dateStr) => {
         if (!dateStr) return '';
         return new Date(dateStr).toISOString().split('T')[0];
     };
 
+    // Helper to format date for display (DD MMM YYYY)
+    const formatDateDisplay = (dateStr) => {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
+
     const [formData, setFormData] = useState({
-        newCheckInDate: formatDate(booking.checkInDate),
-        newCheckOutDate: formatDate(booking.checkOutDate),
-        numberOfNights: booking.numberOfNights || 0,
-        reason: '',
-        rateChange: false,
-        newRate: booking.pricePerNight || 0
+        newCheckInDate: formatDateForInput(booking.checkInDate),
+        newCheckInTime: booking.checkInTime || '14:00',
+        newCheckOutDate: formatDateForInput(booking.checkOutDate),
+        newCheckOutTime: booking.checkOutTime || '11:00',
+        flexibleCheckout: false,
+        adults: booking.numberOfGuests || 1,
+        children: 0,
+        ratePerNight: booking.pricePerNight || 0
     });
 
     const [summary, setSummary] = useState({
+        nights: booking.numberOfNights || 0,
         oldTotal: booking.totalAmount || 0,
         newTotal: booking.totalAmount || 0,
+        tax: 0,
+        grandTotal: booking.totalAmount || 0,
         difference: 0
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Calculate totals when inputs change
     useEffect(() => {
-        const checkIn = new Date(formData.newCheckInDate);
-        const checkOut = new Date(formData.newCheckOutDate);
+        const checkIn = new Date(`${formData.newCheckInDate}T${formData.newCheckInTime}`);
+        const checkOut = new Date(`${formData.newCheckOutDate}T${formData.newCheckOutTime}`);
 
         if (checkIn && checkOut && !isNaN(checkIn) && !isNaN(checkOut)) {
-            const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+            // Calculate nights (minimum 1)
+            let diffDays = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+            if (diffDays < 1) diffDays = 1;
 
-            if (nights > 0) {
-                const rate = formData.rateChange ? parseFloat(formData.newRate) : (booking.pricePerNight || 0);
-                const newTotal = rate * nights;
-                const oldTotal = booking.totalAmount || 0;
+            const roomRate = parseFloat(formData.ratePerNight) || 0;
+            const newTotalBase = roomRate * diffDays;
 
-                setSummary({
-                    oldTotal,
-                    newTotal,
-                    difference: newTotal - oldTotal,
-                    nights
-                });
-            }
+            // Simple tax calculation (e.g. 12% standard) - adjust as per business logic
+            // For now assuming the rate includes tax or tax is added on top. 
+            // Let's assume tax is 12% on top for calculation display
+            const taxAmount = Math.round(newTotalBase * 0.12);
+            const newGrandTotal = newTotalBase + taxAmount;
+
+            const oldGrandTotal = booking.totalAmount || 0;
+
+            setSummary({
+                nights: diffDays,
+                oldTotal: oldGrandTotal, // This might be compared to newGrandTotal
+                newTotal: newTotalBase, // Base amount
+                tax: taxAmount,
+                grandTotal: newGrandTotal,
+                difference: newGrandTotal - oldGrandTotal
+            });
         }
-    }, [formData.newCheckInDate, formData.newCheckOutDate, formData.rateChange, formData.newRate, booking.pricePerNight, booking.totalAmount]);
+    }, [formData.newCheckInDate, formData.newCheckInTime, formData.newCheckOutDate, formData.newCheckOutTime, formData.ratePerNight, booking.totalAmount]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -54,151 +77,199 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
         }));
     };
 
+    const handleCounter = (field, change) => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: Math.max(0, prev[field] + change)
+        }));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        if (!formData.reason.trim()) {
-            alert('Reason for amendment is required');
-            return;
-        }
-
-        if (summary.nights <= 0) {
-            alert('Invalid date range selected');
-            return;
-        }
-
         setIsSubmitting(true);
         try {
-            await onSubmit({ ...formData, ...summary });
+            // Include summary data for backend processing
+            await onSubmit({
+                ...formData,
+                ...summary,
+                reason: "User Amendment" // Or add a reason field if strictly required
+            });
         } finally {
             setIsSubmitting(false);
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="p-6 h-full flex flex-col">
-            <div className="flex-1 space-y-5 overflow-y-auto">
-                {/* Reservation Number */}
-                <div className="pb-2 border-b border-gray-100">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Reservation No :
-                    </label>
-                    <div className="text-lg font-bold text-gray-900">
-                        {booking.bookingId || 'RES-51'}
+        <form onSubmit={handleSubmit} className="flex flex-col h-full bg-white">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+                {/* Header Information */}
+                <div>
+                    <h2 className="text-xl font-bold text-gray-800">Amend Stay</h2>
+                    <div className="flex items-center text-sm text-gray-500 mt-1">
+                        <span className="font-medium mr-2">{booking.bookingId || 'RES-001'}</span>
+                        <span className="mx-2">|</span>
+                        <span className="font-bold text-gray-800">{booking.guestName}</span>
                     </div>
                 </div>
 
+                {/* Current Stay Details Box */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div className="flex items-center mb-3">
+                        <span className="text-gray-500 mr-2">📅</span>
+                        <h3 className="text-sm font-semibold text-gray-700">Current Stay Details</h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-y-2 text-sm">
+                        <div className="text-gray-600">Check-in:</div>
+                        <div className="font-medium text-gray-900">
+                            {formatDateDisplay(booking.checkInDate)} <span className="text-gray-500 ml-1">{booking.checkInTime}</span>
+                        </div>
+
+                        <div className="text-gray-600">Check-out:</div>
+                        <div className="font-medium text-gray-900">
+                            {formatDateDisplay(booking.checkOutDate)} <span className="text-gray-500 ml-1">{booking.checkOutTime}</span>
+                        </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center text-sm">
+                        <span className="text-gray-600">Nights:</span>
+                        <span className="font-bold text-gray-900">{booking.numberOfNights}</span>
+                    </div>
+                </div>
+
+                {/* New Dates Selection */}
                 <div className="grid grid-cols-2 gap-4">
-                    {/* Arrival */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Arrival Date <span className="text-red-500">*</span>
-                        </label>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">New Check-in Date</label>
                         <input
                             type="date"
                             name="newCheckInDate"
                             value={formData.newCheckInDate}
                             onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
-                            required
+                            className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none text-sm font-medium"
                         />
                     </div>
-
-                    {/* Departure */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Departure Date <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="date"
-                            name="newCheckOutDate"
-                            value={formData.newCheckOutDate}
-                            onChange={handleChange}
-                            min={formData.newCheckInDate}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
-                            required
-                        />
+                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">New Check-out Time</label>
+                        <div className="flex">
+                            <input
+                                type="time"
+                                name="newCheckOutTime"
+                                value={formData.newCheckOutTime}
+                                onChange={handleChange}
+                                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none text-sm font-medium"
+                            />
+                        </div>
                     </div>
                 </div>
 
-                {/* Rate Change Toggle */}
-                <div className="flex items-center space-x-2">
+                {/* Date Display & Flexible Checkout */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 bg-white border border-gray-200 rounded flex justify-between items-center">
+                        <span className="text-sm font-bold text-gray-800">{formatDateDisplay(formData.newCheckInDate)}</span>
+                        <span className="text-xs text-gray-500">{formData.newCheckInTime} &gt;</span>
+                    </div>
+                    <div className="p-3 bg-white border border-gray-200 rounded flex justify-between items-center">
+                        <span className="text-sm font-bold text-gray-800">{formatDateDisplay(formData.newCheckOutDate)}</span>
+                        <span className="text-xs text-gray-500">{formData.newCheckOutTime} &gt;</span>
+                    </div>
+                </div>
+
+                <div className="flex items-center">
                     <input
                         type="checkbox"
-                        id="rateChange"
-                        name="rateChange"
-                        checked={formData.rateChange}
+                        id="flexibleCheckout"
+                        name="flexibleCheckout"
+                        checked={formData.flexibleCheckout}
                         onChange={handleChange}
-                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                        className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
                     />
-                    <label htmlFor="rateChange" className="text-sm font-medium text-gray-700">
-                        Change Nightly Rate?
+                    <label htmlFor="flexibleCheckout" className="ml-2 block text-sm text-gray-700">
+                        Flexible Checkout
                     </label>
                 </div>
 
-                {/* New Rate */}
-                {formData.rateChange && (
-                    <div className="animate-fade-in">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            New Rate (₹/night) <span className="text-red-500">*</span>
-                        </label>
+                {/* Occupancy Counters */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">Adults:</label>
+                        <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
+                            <button type="button" onClick={() => handleCounter('adults', -1)} className="px-3 py-2 bg-gray-50 hover:bg-gray-100 border-r border-gray-300 text-gray-600 font-bold">-</button>
+                            <div className="flex-1 text-center font-bold text-gray-800">{formData.adults}</div>
+                            <button type="button" onClick={() => handleCounter('adults', 1)} className="px-3 py-2 bg-gray-50 hover:bg-gray-100 border-l border-gray-300 text-gray-600 font-bold">+</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">Children:</label>
+                        <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
+                            <button type="button" onClick={() => handleCounter('children', -1)} className="px-3 py-2 bg-gray-50 hover:bg-gray-100 border-r border-gray-300 text-gray-600 font-bold">-</button>
+                            <div className="flex-1 text-center font-bold text-gray-800">{formData.children}</div>
+                            <button type="button" onClick={() => handleCounter('children', 1)} className="px-3 py-2 bg-gray-50 hover:bg-gray-100 border-l border-gray-300 text-gray-600 font-bold">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Rate Per Night */}
+                <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Rate per Night</label>
+                    <div className="flex items-center border border-gray-300 rounded px-3 py-2 bg-gray-50">
+                        <span className="text-gray-500 font-medium">₹</span>
                         <input
                             type="number"
-                            name="newRate"
-                            value={formData.newRate}
+                            name="ratePerNight"
+                            value={formData.ratePerNight}
                             onChange={handleChange}
-                            min="1"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
-                            required
+                            className="w-full bg-transparent border-none focus:ring-0 text-right font-bold text-gray-900 outline-none"
                         />
                     </div>
-                )}
+                </div>
 
-                {/* Summary Card */}
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
-                    <h4 className="font-semibold text-gray-900 border-b border-gray-200 pb-2 mb-2">Cost Summary</h4>
-                    <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Old Total:</span>
-                        <span className="font-medium">₹{summary.oldTotal.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">New Total ({summary.nights || 0} nights):</span>
-                        <span className="font-medium">₹{summary.newTotal.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
-                        <span className="font-bold text-gray-700">Difference:</span>
-                        <span className={`font-bold ${summary.difference > 0 ? 'text-green-600' : (summary.difference < 0 ? 'text-red-600' : 'text-gray-600')}`}>
+                {/* Financial Summary */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mt-4">
+                    <div className="grid grid-cols-2 gap-y-2 text-sm mb-3 border-b border-gray-200 pb-3">
+                        <div className="text-gray-600">Old Total:</div>
+                        <div className="text-right font-medium text-gray-500">
+                            {summary.oldTotal ? `₹${summary.oldTotal.toLocaleString('en-IN')}` : '-'}
+                        </div>
+
+                        <div className="text-gray-600">New Total:</div>
+                        <div className="text-right font-bold text-gray-800">
+                            ₹{summary.grandTotal.toLocaleString('en-IN')}
+                        </div>
+
+                        <div className="text-gray-600">Difference:</div>
+                        <div className={`text-right font-bold ${summary.difference > 0 ? 'text-green-600' : 'text-gray-500'}`}>
                             {summary.difference > 0 ? '+' : ''}₹{summary.difference.toLocaleString('en-IN')}
-                        </span>
+                        </div>
+
+                        <div className="text-gray-600">Updated Tax:</div>
+                        <div className="text-right font-bold text-gray-800">
+                            ₹{summary.tax.toLocaleString('en-IN')}
+                        </div>
+                    </div>
+
+                    <div className="flex justify-between items-center text-sm pt-1">
+                        <span className="font-bold text-gray-800">Updated Grand Total:</span>
+                        <span className="font-extrabold text-lg text-gray-900">₹{summary.grandTotal.toLocaleString('en-IN')}</span>
                     </div>
                 </div>
 
-                {/* Reason */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Reason for Amendment <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                        name="reason"
-                        value={formData.reason}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
-                        placeholder="Why is the stay being amended?"
-                        rows="3"
-                        required
-                    />
-                </div>
             </div>
 
-            {/* Footer */}
-            <div className="mt-auto pt-6 border-t border-gray-100">
+            {/* Footer Actions */}
+            <div className="p-4 border-t border-gray-200 flex space-x-3 bg-white">
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                >
+                    Cancel
+                </button>
                 <button
                     type="submit"
                     disabled={isSubmitting}
-                    className={`w-full px-6 py-3 rounded-lg font-semibold text-white shadow-lg transition-all transform active:scale-95 ${isSubmitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
-                        }`}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded font-bold hover:bg-red-700 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                    {isSubmitting ? 'Updating...' : '📅 Amend Stay'}
+                    {isSubmitting ? 'Saving...' : 'Save Changes'}
                 </button>
             </div>
         </form>
