@@ -887,6 +887,24 @@ exports.getDashboardStats = async (req, res) => {
         const totalRevenue = todayClosed.reduce((sum, order) => sum + order.revenue, 0);
         const totalOrders = await GuestMealOrder.countDocuments({ status: 'Closed', closedAt: { $gte: today } });
 
+        // Calculate payment breakdowns for today
+        const collections = {
+            Cash: 0,
+            UPI: 0,
+            Card: 0,
+            Online: 0,
+            Room: 0
+        };
+
+        todayClosed.forEach(order => {
+            const method = order.paymentMethod;
+            if (method && collections.hasOwnProperty(method)) {
+                collections[method] += order.finalAmount || 0;
+            } else if (method === 'Room Billing') {
+                collections.Room += order.finalAmount || 0;
+            }
+        });
+
         res.status(200).json({
             success: true,
             data: {
@@ -895,7 +913,8 @@ exports.getDashboardStats = async (req, res) => {
                 runningTables,
                 billedTables,
                 totalRevenue,
-                totalOrders
+                totalOrders,
+                collections
             }
         });
     } catch (error) {
@@ -1034,6 +1053,109 @@ exports.getPendingOrders = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error fetching pending orders',
+            error: error.message
+        });
+    }
+};
+
+// Settle order (Cash, UPI, Card, or Post to Room)
+exports.settleOrder = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { paymentMethod, paymentMode, amount, roomNumber } = req.body;
+
+        const order = await GuestMealOrder.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        // 1. Handle "Post to Room" (Add to Folio)
+        if (paymentMethod === 'Add to Room') {
+            const Booking = require('../models/bookingModel');
+            // Find active booking for this room
+            const booking = await Booking.findOne({
+                roomNumber: roomNumber,
+                status: 'Checked-in'
+            });
+
+            if (!booking) {
+                return res.status(404).json({
+                    success: false,
+                    message: `No active check-in found for Room ${roomNumber}`
+                });
+            }
+
+            // Create folio transaction
+            const transactionData = {
+                type: 'charge',
+                day: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
+                particulars: `Restaurant Bill - Table ${order.tableNumber}`,
+                description: `Food Order #${orderId.toString().substr(-6).toUpperCase()}`,
+                amount: order.finalAmount,
+                user: 'cashier',
+                folioId: 0
+            };
+
+            booking.transactions.push(transactionData);
+            await booking.save();
+
+            order.paymentMethod = 'Room Billing';
+            order.paymentStatus = 'Completed';
+        } else {
+            // 2. Handle Direct Payment
+            order.paymentMethod = paymentMode; // Cash, Card, UPI
+            order.paymentStatus = 'Completed';
+
+            // Also record in overall cashier Transaction model
+            const Transaction = require('../models/transactionModel');
+
+            // Map paymentMode to transaction type enum
+            let transType = 'Collection Cash';
+            if (paymentMode === 'UPI') transType = 'Collection UPI';
+            else if (paymentMode === 'Card') transType = 'Collection Card';
+            else if (paymentMode === 'Bank Transfer') transType = 'Collection Bank Transfer';
+
+            await Transaction.create({
+                date: new Date(),
+                type: transType,
+                category: 'collection',
+                amount: order.finalAmount,
+                by: 'Cashier',
+                reference: `ORDER-${orderId.toString().substr(-6).toUpperCase()}`,
+                notes: `Restaurant Bill - Table ${order.tableNumber}`,
+                paymentMethod: paymentMode.toLowerCase()
+            });
+        }
+
+        // 3. Mark Order as Closed
+        order.status = 'Closed';
+        order.closedAt = new Date();
+        order.revenue = order.finalAmount;
+        await order.save();
+
+        // 4. Release Table
+        const Table = require('../models/tableModel');
+        const table = await Table.findById(order.tableId);
+        if (table) {
+            table.status = 'Available';
+            table.currentOrderId = null;
+            table.runningOrderAmount = 0;
+            table.orderStartTime = null;
+            table.orderDuration = 0;
+            await table.save();
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Order settled successfully',
+            data: { order, table }
+        });
+
+    } catch (error) {
+        console.error('Error settling order:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error settling order',
             error: error.message
         });
     }
