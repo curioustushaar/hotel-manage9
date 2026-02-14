@@ -67,6 +67,9 @@ router.post('/orders/:orderId/close', guestMealController.closeOrder);
 // Send to Cashier (Pending Payment)
 router.post('/orders/:orderId/send-to-cashier', guestMealController.sendToCashier);
 
+// Settle order (Payment processed by cashier)
+router.post('/orders/:orderId/settle', guestMealController.settleOrder);
+
 // Update order status (Pending, Preparing, Ready)
 router.patch('/orders/:orderId/status', guestMealController.updateOrderStatus);
 

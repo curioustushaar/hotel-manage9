@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import API_URL from '../../config/api';
 import './CashierSection.css';
 
 const CashierSection = () => {
@@ -12,38 +13,61 @@ const CashierSection = () => {
 
     // State for Orders
     const [orders, setOrders] = useState([]);
+    const [stats, setStats] = useState({
+        totalCollection: 0,
+        cash: 0,
+        upi: 0,
+        card: 0,
+        pending: 0
+    });
 
     // Fetch pending orders from API
     useEffect(() => {
         fetchPendingOrders();
+        fetchDashboardStats();
     }, []);
 
     // Listen for refresh triggers (e.g. from GuestMealService 'Send')
     useEffect(() => {
         if (location.state && location.state.refresh) {
             fetchPendingOrders();
-            // Clear the state so it doesn't re-trigger unnecessarily if we navigated back and forth differently?
-            // Actually, react-router state persists, so it's fine to just read it.
-            // Ideally we'd consume it, but for now just fetching is safe.
+            fetchDashboardStats();
         }
     }, [location.state]);
 
+    const fetchDashboardStats = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/guest-meal/analytics/dashboard`);
+            const data = await response.json();
+            if (data.success) {
+                const s = data.data;
+                setStats({
+                    totalCollection: s.totalRevenue || 0,
+                    cash: s.collections?.Cash || 0,
+                    upi: s.collections?.UPI || 0,
+                    card: s.collections?.Card || 0,
+                    pending: stats.pending // Handled by fetchPendingOrders
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching dashboard stats:", error);
+        }
+    };
+
     const fetchPendingOrders = async () => {
         try {
-            const response = await fetch('http://localhost:5002/api/guest-meal/orders/pending');
+            const response = await fetch(`${API_URL}/api/guest-meal/orders/pending`);
             const data = await response.json();
 
             if (data.success) {
-                // Map backend orders to UI format
-                // Backend fields: _id, tableNumber, roomNumber, orderType, guestName, finalAmount, items
-                // UI fields: id, type, name, guest, amount, status, time, items (name, qty, price, amount), billNo
-
                 const mappedOrders = data.data.map(order => ({
-                    id: order._id, // Use _id as unique key
+                    id: order._id,
                     type: order.orderType === 'Table Order' ? 'Table' :
                         order.orderType === 'Room Service' ? 'Room' :
                             order.orderType === 'Take Away' ? 'Take Away' : 'Table',
-                    name: order.orderType === 'Room Service' ? `Room ${order.roomNumber}` : `Table ${order.tableNumber}`,
+                    name: order.orderType === 'Table Order' ? `Table ${order.tableNumber}` :
+                        order.orderType === 'Room Service' ? `Room ${order.roomNumber}` :
+                            order.orderType === 'Take Away' ? `Take Away` : `Table ${order.tableNumber}`,
                     guest: order.guestName || 'Guest',
                     amount: order.finalAmount || 0,
                     status: 'Pending',
@@ -54,18 +78,14 @@ const CashierSection = () => {
                         price: item.price,
                         amount: item.subtotal
                     })),
-                    billNo: `#${order._id.substr(-6).toUpperCase()}`,
-                    kotInfo: `KOT - ${order._id.substr(-4)}`
+                    billNo: `#${order._id.toString().substr(-6).toUpperCase()}`,
+                    kotInfo: `KOT - ${order._id.toString().substr(-4)}`
                 }));
 
                 setOrders(mappedOrders);
-
-                // Update stats based on real data
-                const totalPendingAmt = mappedOrders.reduce((sum, o) => sum + o.amount, 0);
                 setStats(prev => ({
                     ...prev,
                     pending: mappedOrders.length,
-                    // Note: Cash/UPI collections would typically come from a separate 'daily collection' API, keeping dummy for now or 0
                 }));
             }
         } catch (error) {
@@ -73,37 +93,50 @@ const CashierSection = () => {
         }
     };
 
-    const [stats, setStats] = useState({
-        totalCollection: 8270.00,
-        cash: 7000.00,
-        upi: 1030.00,
-        card: 240.00,
-        pending: 4
-    });
-
     const handleOrderClick = (order) => {
         setSelectedOrder(order);
     };
 
-    const handlePaymentComplete = (orderId, amount, mode, type, roomNumber = null) => {
-        // Remove processed order from pending list
-        const updatedOrders = orders.filter(o => o.id !== orderId);
-        setOrders(updatedOrders);
-        setSelectedOrder(null);
+    const handlePaymentComplete = async (orderId, amount, mode, type, roomNumber = null) => {
+        try {
+            const response = await fetch(`${API_URL}/api/guest-meal/orders/${orderId}/settle`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    paymentMethod: type, // 'Direct Payment' or 'Add to Room'
+                    paymentMode: mode,   // 'Cash', 'UPI', etc.
+                    amount: amount,
+                    roomNumber: roomNumber
+                })
+            });
 
-        // Update Stats (Simulation)
-        setStats(prev => ({
-            ...prev,
-            totalCollection: prev.totalCollection + amount,
-            [mode.toLowerCase()]: (prev[mode.toLowerCase()] || 0) + amount,
-            pending: Math.max(0, prev.pending - 1)
-        }));
+            const data = await response.json();
 
-        // Different success messages based on type
-        if (type === 'Add to Room') {
-            alert(`✅ Successfully Added to Folio!\n\nTarget Room: ${roomNumber} \nAmount Posted: ₹${amount} `);
-        } else {
-            alert(`✅ Payment Processed Successfully!\n\nBill Amount: ₹${amount} \nPayment Mode: ${mode} \nStatus: Settled`);
+            if (data.success) {
+                // Remove processed order from pending list
+                const updatedOrders = orders.filter(o => o.id !== orderId);
+                setOrders(updatedOrders);
+                setSelectedOrder(null);
+
+                // Update Stats
+                setStats(prev => ({
+                    ...prev,
+                    totalCollection: prev.totalCollection + amount,
+                    [mode.toLowerCase()]: (prev[mode.toLowerCase()] || 0) + amount,
+                    pending: Math.max(0, prev.pending - 1)
+                }));
+
+                if (type === 'Add to Room') {
+                    alert(`✅ Successfully Added to Folio!\n\nTarget Room: ${roomNumber} \nAmount Posted: ₹${amount}`);
+                } else {
+                    alert(`✅ Payment Processed Successfully!\n\nBill Amount: ₹${amount} \nPayment Mode: ${mode} \nStatus: Settled`);
+                }
+            } else {
+                alert('Failed to settle order: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error settling order:', error);
+            alert('Error settling order. Please check connection.');
         }
     };
 
@@ -337,63 +370,99 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
         if (!order) return;
 
         const invoiceContent = `
-    < !DOCTYPE html >
+    <!DOCTYPE html>
         <html>
             <head>
-                <title>Invoice #${order.billNo}</title>
-                <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39+Text&display=swap" rel="stylesheet">
+                <title>Invoice ${order.billNo}</title>
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Libre+Barcode+39+Text&display=swap" rel="stylesheet">
                     <style>
-                        @page {size: 80mm auto; margin: 0; }
+                        @page { size: 80mm auto; margin: 0; }
                         body {
-                            font - family: 'Courier New', monospace;
-                        width: 76mm;
-                        margin: 2mm auto;
-                        background: white;
-                        color: #000;
-                        font-size: 12px;
+                            font-family: 'Inter', sans-serif;
+                            width: 72mm;
+                            margin: 4mm auto;
+                            background: white;
+                            color: #000;
+                            font-size: 11px;
+                            line-height: 1.4;
                         }
-                        .header {text - align: center; margin-bottom: 10px; border-bottom: 1px dashed #000; padding-bottom: 5px; }
-                        .hotel-name {font - size: 16px; font-weight: bold; margin-bottom: 4px; text-transform: uppercase; }
-                        .address {font - size: 10px; line-height: 1.2; }
-                        .bill-info {margin: 10px 0; border-bottom: 1px dashed #000; padding-bottom: 5px; }
-                        .row {display: flex; justify-content: space-between; margin-bottom: 2px; }
-                        .label {font - weight: bold; }
+                        .header { text-align: center; margin-bottom: 12px; }
+                        .logo-area { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 2px; }
+                        .subtitle { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #444; margin-bottom: 8px; }
+                        .contact-info { font-size: 9px; color: #666; line-height: 1.2; }
+                        
+                        .divider { border-top: 1px dashed #ccc; margin: 10px 0; }
+                        .bill-info { margin-bottom: 10px; }
+                        .info-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+                        .info-label { color: #666; }
+                        .info-value { font-weight: 700; }
 
-                        table {width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-                        th {text - align: left; border-bottom: 1px dashed #000; padding: 4px 0; font-size: 11px; }
-                        td {padding: 4px 0; vertical-align: top; }
-                        .col-qty {text - align: center; width: 15%; }
-                        .col-price {text - align: right; width: 25%; }
-                        .col-item {width: 60%; }
+                        table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+                        th { text-align: left; border-bottom: 1.5px solid #000; padding: 6px 0; font-size: 10px; text-transform: uppercase; }
+                        td { padding: 8px 0; vertical-align: top; border-bottom: 0.5px solid #eee; }
+                        .col-qty { text-align: center; width: 10%; }
+                        .col-amt { text-align: right; width: 30%; }
+                        .col-item { width: 60%; font-weight: 500; }
 
-                        .totals {border - top: 1px dashed #000; padding-top: 5px; }
-                        .total-row {display: flex; justify-content: space-between; margin-bottom: 3px; }
-                        .grand-total {font - weight: bold; font-size: 14px; border-top: 1px dashed #000; border-bottom: 1px dashed #000; margin-top: 5px; padding: 5px 0; }
+                        .totals { margin-top: 8px; }
+                        .total-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 10px; }
+                        .grand-total { 
+                            display: flex; 
+                            justify-content: space-between; 
+                            margin-top: 8px; 
+                            padding: 10px 0; 
+                            border-top: 2px solid #000; 
+                            border-bottom: 2.5px double #000;
+                            font-size: 15px; 
+                            font-weight: 800; 
+                        }
 
-                        .footer {margin - top: 15px; text-align: center; font-size: 10px; }
-                        .barcode {text - align: center; margin-top: 10px; letter-spacing: 5px; font-family: 'Libre Barcode 39 Text', cursive; font-size: 24px; }
+                        .footer { margin-top: 20px; text-align: center; }
+                        .thanks { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+                        .visit-again { font-size: 9px; color: #666; }
+                        .barcode { 
+                            text-align: center; 
+                            margin-top: 15px; 
+                            font-family: 'Libre Barcode 39 Text', cursive; 
+                            font-size: 32px; 
+                            opacity: 0.8;
+                        }
+                        .timestamp { font-size: 8px; color: #999; margin-top: 15px; text-align: center; }
                     </style>
             </head>
             <body>
                 <div class="header">
-                    <div class="hotel-name">BAREENA ATITHI</div>
-                    <div class="address">Near Railway Station, City Center</div>
-                    <div class="address">Ph: +91-9876543210 | GSTIN: 22AAAAA0000A1Z5</div>
+                    <div class="logo-area">BAREENA ATITHI</div>
+                    <div class="subtitle">Premium Hospitality</div>
+                    <div class="contact-info">
+                        Near Railway Station, City Center<br>
+                        Ph: +91-9876543210 | GSTIN: 22AAAAA0000A1Z5
+                    </div>
                 </div>
 
+                <div class="divider"></div>
+
                 <div class="bill-info">
-                    <div class="row"><span class="label">Bill No:</span> <span>${order.billNo}</span></div>
-                    <div class="row"><span class="label">Date:</span> <span>${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
-                    <div class="row"><span class="label">Guest:</span> <span>${order.guest}</span></div>
-                    <div class="row"><span class="label">Type:</span> <span>${order.type} - ${order.name}</span></div>
+                    <div class="info-row">
+                        <span class="info-label">Bill No:</span>
+                        <span class="info-value">${order.billNo}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Guest:</span>
+                        <span class="info-value">${order.guest}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Source:</span>
+                        <span class="info-value">${order.type} - ${order.name}</span>
+                    </div>
                 </div>
 
                 <table>
                     <thead>
                         <tr>
-                            <th class="col-item">Item</th>
+                            <th class="col-item">Item Description</th>
                             <th class="col-qty">Qty</th>
-                            <th class="col-price">Amt</th>
+                            <th class="col-amt">Amount</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -401,44 +470,48 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
                                 <tr>
                                     <td class="col-item">${item.name}</td>
                                     <td class="col-qty">${item.qty}</td>
-                                    <td class="col-price">${item.amount.toFixed(2)}</td>
+                                    <td class="col-amt">${item.amount.toFixed(2)}</td>
                                 </tr>
                             `).join('')}
                     </tbody>
                 </table>
 
                 <div class="totals">
-                    <div class="total-row"><span>Subtotal</span> <span>${order.items.reduce((sum, item) => sum + (item.price * item.qty), 0).toFixed(2)}</span></div>
-                    <div class="total-row"><span>CGST (2.5%)</span> <span>${(order.amount * 0.025).toFixed(2)}</span></div>
-                    <div class="total-row"><span>SGST (2.5%)</span> <span>${(order.amount * 0.025).toFixed(2)}</span></div>
-                    ${order.items.some(i => i.name === 'Discount') ? `<div class="total-row"><span>Discount</span> <span>-50.00</span></div>` : ''}
-
-                    <div class="total-row grand-total">
-                        <span>TOTAL</span>
-                        <span>Rs. ${order.amount.toFixed(2)}</span>
+                    <div class="total-row">
+                        <span>Subtotal</span>
+                        <span>₹ ${order.items.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</span>
                     </div>
-                    <div class="total-row" style="margin-top: 5px; font-size: 11px;">
-                        <span>Mode: ${paymentType === 'Add to Room' ? 'Room Folio' : paymentMode}</span>
+                    <div class="total-row">
+                        <span>Taxes (Included)</span>
+                        <span>₹ 0.00</span>
+                    </div>
+                    <div class="grand-total">
+                        <span>NET PAYABLE</span>
+                        <span>₹ ${order.amount.toFixed(2)}</span>
                     </div>
                 </div>
 
                 <div class="footer">
-                    <p>Thank you for dining with us!</p>
-                    <p>Plz Visit Again</p>
+                    <div class="thanks">Thank You!</div>
+                    <div class="visit-again">We hope to see you again soon.</div>
+                    <div class="barcode">${order.billNo.replace('#', '')}</div>
                 </div>
 
-                <div style="text-align: center; margin-top: 10px;">
-                    *** ${order.billNo} ***
+                <div class="timestamp">
+                    Printed on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </div>
 
                 <script>
-                    window.onload = function() {window.print(); }
+                    window.onload = function() {
+                        window.print();
+                        setTimeout(() => window.close(), 500);
+                    }
                 </script>
             </body>
         </html>
 `;
 
-        const printWindow = window.open('', '', 'height=600,width=400');
+        const printWindow = window.open('', '_blank', 'height=600,width=450');
         printWindow.document.write(invoiceContent);
         printWindow.document.close();
     };

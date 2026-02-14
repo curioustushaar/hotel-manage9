@@ -203,7 +203,7 @@ const GuestMealService = () => {
 
                 // Immediately navigate to Cashier Section
                 navigate('/admin/dashboard', {
-                    state: { activeMenu: 'cashier-section' }
+                    state: { activeMenu: 'cashier-section', refresh: true }
                 });
             } else {
                 alert('Failed to send: ' + data.message);
@@ -225,11 +225,16 @@ const GuestMealService = () => {
             const response = await fetch(`${API_URL}/api/guest-meal/analytics/dashboard`);
             const data = await response.json();
             if (data.success) {
-                setStats(prev => ({
-                    ...prev,
-                    revenue: data.data.totalRevenue || 0,
-                    // Use backend counts for consistency if desired, or keep local filter logic
-                }));
+                const s = data.data;
+                setStats({
+                    total: s.totalTables || 0,
+                    available: s.availableTables || 0,
+                    running: s.runningTables || 0,
+                    billed: s.billedTables || 0,
+                    revenue: s.totalRevenue || 0,
+                    upcomingCount: s.totalOrders || 0, // Using total orders today as proxy or similar
+                    reserved: s.billedTables || 0 // Assuming reserved might be mapped elsewhere or just keeping billed for now
+                });
             }
         } catch (error) {
             console.error('Error fetching stats:', error);
