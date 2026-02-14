@@ -368,77 +368,96 @@ const FoodPaymentReport = () => {
             {
                 activeTab === 'trends' && (
                     <div className="trends-section">
-                        <div className="trends-table-container">
-                            <table className="trends-table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Total Payments</th>
-                                        <th>Total Refunds</th>
-                                        <th>Net Collection</th>
-                                        <th>Cash Payments</th>
-                                        <th>Card Payments</th>
-                                        <th>UPI Payments</th>
-                                        <th>Bank Transfer</th>
-                                        <th>Others</th>
-                                        <th>Cash Refunds</th>
-                                        <th>Card Refunds</th>
-                                        <th>UPI Refunds</th>
-                                        <th>Bank Refunds</th>
-                                        <th>Others Refunds</th>
-                                        <th>Transactions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {trendsData.map((row, index) => (
-                                        <tr key={index}>
-                                            <td className="date-cell">{row.date}</td>
-                                            <td className={row.totalPayments > 0 ? 'positive-value' : 'zero-value'}>
-                                                ₹{row.totalPayments.toFixed(2)}
-                                            </td>
-                                            <td className={row.totalRefunds > 0 ? 'negative-value' : 'zero-value'}>
-                                                ₹{row.totalRefunds.toFixed(2)}
-                                            </td>
-                                            <td className={row.netCollection > 0 ? 'positive-value' : 'zero-value'}>
-                                                ₹{row.netCollection.toFixed(2)}
-                                            </td>
-                                            <td className={row.cashPayments > 0 ? 'positive-value' : 'zero-value'}>
-                                                ₹{row.cashPayments.toFixed(2)}
-                                            </td>
-                                            <td className={row.cardPayments > 0 ? 'positive-value' : 'zero-value'}>
-                                                ₹{row.cardPayments.toFixed(2)}
-                                            </td>
-                                            <td className={row.upiPayments > 0 ? 'positive-value' : 'zero-value'}>
-                                                ₹{row.upiPayments.toFixed(2)}
-                                            </td>
-                                            <td className={row.bankTransfer > 0 ? 'positive-value' : 'zero-value'}>
-                                                ₹{row.bankTransfer.toFixed(2)}
-                                            </td>
-                                            <td className={row.othersPayments > 0 ? 'positive-value' : 'zero-value'}>
-                                                ₹{row.othersPayments.toFixed(2)}
-                                            </td>
-                                            <td className={row.cashRefunds > 0 ? 'negative-value' : 'zero-value'}>
-                                                ₹{row.cashRefunds.toFixed(2)}
-                                            </td>
-                                            <td className={row.cardRefunds > 0 ? 'negative-value' : 'zero-value'}>
-                                                ₹{row.cardRefunds.toFixed(2)}
-                                            </td>
-                                            <td className={row.upiRefunds > 0 ? 'negative-value' : 'zero-value'}>
-                                                ₹{row.upiRefunds.toFixed(2)}
-                                            </td>
-                                            <td className={row.bankRefunds > 0 ? 'negative-value' : 'zero-value'}>
-                                                ₹{row.bankRefunds.toFixed(2)}
-                                            </td>
-                                            <td className={row.othersRefunds > 0 ? 'negative-value' : 'zero-value'}>
-                                                ₹{row.othersRefunds.toFixed(2)}
-                                            </td>
-                                            <td className="transactions-cell">
-                                                {row.transactions} ({row.paymentsCount} payments, {row.refundsCount} refunds)
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <div className="trends-grid-container">
+                            {trendsData.map((row, index) => (
+                                <div key={index} className="trends-dashboard-card">
+                                    {/* Section A: Header */}
+                                    <div className="trends-header">
+                                        <div className="trends-date">
+                                            <span className="icon">📅</span> {row.date}
+                                        </div>
+                                        <div className="trends-net-collection">
+                                            <span className="label">Net Collection:</span>
+                                            <span className={`value ${row.netCollection > 0 ? 'positive' : 'neutral'}`}>
+                                                ₹{row.netCollection.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="trends-card-body">
+                                        {/* Section B: Payments */}
+                                        <div className="trends-section-group payments-group">
+                                            <h4 className="trends-section-title">Payments Received</h4>
+                                            <div className="trends-metrics-grid">
+                                                <div className="metric-card total">
+                                                    <span className="metric-label">Total</span>
+                                                    <span className="metric-value">₹{row.totalPayments.toFixed(2)}</span>
+                                                </div>
+                                                <div className="metric-card">
+                                                    <span className="metric-label">Cash</span>
+                                                    <span className="metric-value">₹{row.cashPayments.toFixed(2)}</span>
+                                                </div>
+                                                <div className="metric-card">
+                                                    <span className="metric-label">Card</span>
+                                                    <span className="metric-value">₹{row.cardPayments.toFixed(2)}</span>
+                                                </div>
+                                                <div className="metric-card">
+                                                    <span className="metric-label">UPI</span>
+                                                    <span className="metric-value">₹{row.upiPayments.toFixed(2)}</span>
+                                                </div>
+                                                <div className="metric-card">
+                                                    <span className="metric-label">Bank</span>
+                                                    <span className="metric-value">₹{row.bankTransfer.toFixed(2)}</span>
+                                                </div>
+                                                <div className="metric-card">
+                                                    <span className="metric-label">Others</span>
+                                                    <span className="metric-value">₹{row.othersPayments.toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Section C: Refunds */}
+                                        <div className="trends-section-group refunds-group">
+                                            <h4 className="trends-section-title">Refunds Processed</h4>
+                                            <div className="trends-metrics-grid">
+                                                <div className="metric-card total-refund">
+                                                    <span className="metric-label">Total</span>
+                                                    <span className="metric-value">₹{row.totalRefunds.toFixed(2)}</span>
+                                                </div>
+                                                <div className="metric-card refund">
+                                                    <span className="metric-label">Cash</span>
+                                                    <span className="metric-value">₹{row.cashRefunds.toFixed(2)}</span>
+                                                </div>
+                                                <div className="metric-card refund">
+                                                    <span className="metric-label">Card</span>
+                                                    <span className="metric-value">₹{row.cardRefunds.toFixed(2)}</span>
+                                                </div>
+                                                <div className="metric-card refund">
+                                                    <span className="metric-label">UPI</span>
+                                                    <span className="metric-value">₹{row.upiRefunds.toFixed(2)}</span>
+                                                </div>
+                                                <div className="metric-card refund">
+                                                    <span className="metric-label">Bank</span>
+                                                    <span className="metric-value">₹{row.bankRefunds.toFixed(2)}</span>
+                                                </div>
+                                                <div className="metric-card refund">
+                                                    <span className="metric-label">Others</span>
+                                                    <span className="metric-value">₹{row.othersRefunds.toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Footer */}
+                                    <div className="trends-footer">
+                                        <div className="transaction-count">
+                                            <span className="icon">📊</span>
+                                            {row.transactions} Total Transactions
+                                            <span className="sub-text">({row.paymentsCount} payments, {row.refundsCount} refunds)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 )
@@ -448,34 +467,63 @@ const FoodPaymentReport = () => {
             {
                 activeTab === 'transactions' && (
                     <div className="transactions-section">
+                        {/* Summary Strip */}
+                        <div className="transactions-summary-strip">
+                            <div className="summary-strip-card">
+                                <span className="strip-icon blue-icon">📊</span>
+                                <div className="strip-info">
+                                    <div className="strip-label">Total Transactions</div>
+                                    <div className="strip-value">{transactionsData.length}</div>
+                                </div>
+                            </div>
+                            <div className="summary-strip-card">
+                                <span className="strip-icon green-icon">💰</span>
+                                <div className="strip-info">
+                                    <div className="strip-label">Total Amount</div>
+                                    <div className="strip-value">
+                                        ₹{transactionsData
+                                            .reduce((sum, t) => sum + (t.transaction === 'Payment' ? t.amount : 0), 0)
+                                            .toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="summary-strip-card">
+                                <span className="strip-icon purple-icon">✅</span>
+                                <div className="strip-info">
+                                    <div className="strip-label">Successful</div>
+                                    <div className="strip-value">
+                                        {transactionsData.filter(t => ['Success', 'Completed', 'Paid'].includes(t.status)).length}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="transactions-table-container">
-                            <table className="transactions-table">
-                                <thead>
-                                    <tr>
-                                        <th>Transaction ID</th>
-                                        <th>Date & Time</th>
-                                        <th>Food Order ID</th>
-                                        <th>Booking ID</th>
-                                        <th>Transaction</th>
-                                        <th>Amount</th>
-                                        <th>Mode</th>
-                                        <th>Status</th>
-                                        <th>Notes</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {transactionsData.length === 0 ? (
+                            {transactionsData.length === 0 ? (
+                                <div className="empty-state-container">
+                                    <div className="empty-state-icon">📝</div>
+                                    <h3 className="empty-state-title">No Transactions Found</h3>
+                                    <p className="empty-state-text">
+                                        There are no transactions available for the selected date range.
+                                    </p>
+                                </div>
+                            ) : (
+                                <table className="transactions-table">
+                                    <thead>
                                         <tr>
-                                            <td colSpan="9" className="no-data-cell">
-                                                <div className="no-data-message">
-                                                    <p style={{ fontSize: '18px', color: '#9ca3af', margin: '40px 0' }}>
-                                                        📋 No transactions found for the selected date range
-                                                    </p>
-                                                </div>
-                                            </td>
+                                            <th>Transaction ID</th>
+                                            <th>Date & Time</th>
+                                            <th>Food Order ID</th>
+                                            <th>Booking ID</th>
+                                            <th>Transaction</th>
+                                            <th>Amount</th>
+                                            <th>Mode</th>
+                                            <th>Status</th>
+                                            <th>Notes</th>
                                         </tr>
-                                    ) : (
-                                        transactionsData.map((row, index) => (
+                                    </thead>
+                                    <tbody>
+                                        {transactionsData.map((row, index) => (
                                             <tr key={index}>
                                                 <td className="transaction-id-cell">{row.transactionId}</td>
                                                 <td className="date-time-cell">{row.dateTime}</td>
@@ -495,10 +543,10 @@ const FoodPaymentReport = () => {
                                                 </td>
                                                 <td className="notes-cell">{row.notes || '---'}</td>
                                             </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
                         </div>
                     </div>
                 )

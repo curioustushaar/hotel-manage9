@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import API_URL from '../config/api';
 
-const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
+const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest = null }) => {
     const [activeSection, setActiveSection] = useState('basic'); // basic, address, kyc, optional
     const [errors, setErrors] = useState({});
     const [successMessage, setSuccessMessage] = useState('');
@@ -34,6 +34,33 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
         companyName: '',
         gstNumber: ''
     });
+
+    // Pre-fill form when editing
+    useEffect(() => {
+        if (editingGuest) {
+            setFormData({
+                fullName: editingGuest.fullName || editingGuest.name || '',
+                mobile: editingGuest.mobile || editingGuest.phone || '',
+                email: editingGuest.email || '',
+                gender: editingGuest.gender || 'Male',
+                nationality: editingGuest.nationality || 'Indian',
+                address: (typeof editingGuest.address === 'object' ? editingGuest.address?.line : editingGuest.address) || '',
+                city: editingGuest.city || '',
+                state: editingGuest.state || '',
+                country: editingGuest.country || 'India',
+                pinCode: editingGuest.pinCode || '',
+                idType: editingGuest.idType || '',
+                idNumber: editingGuest.idNumber || '',
+                idFrontFile: null,
+                idBackFile: null,
+                dob: editingGuest.dob || '',
+                anniversary: editingGuest.anniversary || '',
+                photoFile: null,
+                companyName: editingGuest.companyName || '',
+                gstNumber: editingGuest.gstNumber || ''
+            });
+        }
+    }, [editingGuest]);
 
     // Dummy guest history data
     const [showHistory, setShowHistory] = useState(false);
@@ -129,15 +156,18 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                 break;
 
             case 'email':
-                if (value && !/^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value)) error = 'Please enter a valid email address';
+                if (!value.trim()) error = 'Email Address is required';
+                else if (!/^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(value)) error = 'Please enter a valid email address';
                 break;
 
             case 'address':
-                if (value && value.trim().length < 5) error = 'Please enter a complete address (minimum 5 characters)';
+                if (!value.trim()) error = 'Address Line is required';
+                else if (value.trim().length < 5) error = 'Please enter a complete address (minimum 5 characters)';
                 break;
 
             case 'city':
-                if (value && !/^[a-zA-Z\s'-]+$/.test(value)) error = 'City name should only contain letters';
+                if (!value.trim()) error = 'City is required';
+                else if (!/^[a-zA-Z\s'-]+$/.test(value)) error = 'City name should only contain letters';
                 break;
 
             case 'state':
@@ -158,6 +188,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                     if (age > 150) error = 'Please enter a valid date of birth';
                 }
                 break;
+
 
             case 'pinCode':
                 if (value && !/^[0-9]{6}$/.test(value)) error = 'PIN Code must be exactly 6 digits';
@@ -225,24 +256,30 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
             newErrors.mobile = 'This mobile number is already registered';
         }
 
-        if (formData.email) {
-            if (!/^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email)) {
-                newErrors.email = 'Please enter a valid email address';
-            }
+        if (!formData.email.trim()) {
+            newErrors.email = 'Email Address is required';
+        } else if (!/^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email)) {
+            newErrors.email = 'Please enter a valid email address';
         }
 
-        // Address Validation (optional but if provided, validate properly)
-        if (formData.address && formData.address.trim().length > 0 && formData.address.trim().length < 5) {
+        // Address Validation
+        const addressVal = typeof formData.address === 'object' ? (formData.address?.line || '') : String(formData.address || '');
+        if (!addressVal.trim()) {
+            newErrors.address = 'Address Line is required';
+        } else if (addressVal.trim().length < 5) {
             newErrors.address = 'Please enter a complete address (minimum 5 characters)';
         }
 
-        if (formData.city && !/^[a-zA-Z\s'-]+$/.test(formData.city)) {
+        if (!formData.city.trim()) {
+            newErrors.city = 'City is required';
+        } else if (!/^[a-zA-Z\s'-]+$/.test(formData.city)) {
             newErrors.city = 'City name should only contain letters';
         }
 
         if (formData.state && !/^[a-zA-Z\s'-]+$/.test(formData.state)) {
             newErrors.state = 'State name should only contain letters';
         }
+
 
         if (formData.pinCode && !/^[0-9]{6}$/.test(formData.pinCode)) {
             newErrors.pinCode = 'PIN Code must be exactly 6 digits';
@@ -317,27 +354,86 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
         };
 
         try {
-            const response = await fetch(`${API_URL}/api/guests/add`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(newGuest)
-            });
+            let response;
 
+            // Extract guest ID from editingGuest
+            const guestId = editingGuest?._id || editingGuest?.id || editingGuest?.guestId;
+
+            console.log('🔍 ===== EDIT MODE DEBUG =====');
+            console.log('editingGuest prop:', editingGuest);
+            console.log('editingGuest._id:', editingGuest?._id);
+            console.log('editingGuest.id:', editingGuest?.id);
+            console.log('editingGuest.guestId:', editingGuest?.guestId);
+            console.log('Extracted guestId:', guestId);
+            console.log('Is Edit Mode?:', !!editingGuest && !!guestId);
+            console.log('Request Data:', newGuest);
+            console.log('=============================');
+
+            if (editingGuest && guestId) {
+                // ✅ EDIT MODE - Update existing guest
+                console.log('🔥 EDIT MODE TRIGGERED');
+                console.log('Guest ID:', guestId);
+                console.log('Form Data:', newGuest);
+
+                const updateUrl = `${API_URL}/api/guests/${guestId}`;
+                console.log('📝 PUT Request URL:', updateUrl);
+
+                response = await fetch(updateUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(newGuest)
+                });
+
+                console.log('📝 PUT Request sent successfully');
+            } else {
+                // ✅ CREATE MODE - Create new guest
+                console.log('➕ CREATE MODE TRIGGERED');
+                console.log('Form Data:', newGuest);
+
+                const createUrl = `${API_URL}/api/guests/add`;
+                console.log('➕ POST Request URL:', createUrl);
+
+                response = await fetch(createUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(newGuest)
+                });
+
+                console.log('➕ POST Request sent successfully');
+            }
+
+            console.log('📡 Response status:', response.status);
             const data = await response.json();
+            console.log('📦 Full Response data:', data);
+            console.log('📦 Response data.success:', data.success);
+            console.log('📦 Response data.data:', data.data);
 
             if (data.success) {
-                setSuccessMessage('Guest created successfully! ✓');
+                const successMsg = editingGuest ? 'Guest updated successfully! ✓' : 'Guest created successfully! ✓';
+                console.log('✅', successMsg);
+                console.log('✅ Updated Guest Object:', data.data);
+                console.log('✅ Guest _id:', data.data?._id);
+                console.log('✅ Guest fullName:', data.data?.fullName);
+                setSuccessMessage(successMsg);
+
+                // Call onSave immediately after showing success message
                 setTimeout(() => {
-                    onSave(data.data); // Pass the saved guest with _id from backend
-                }, 1000);
+                    console.log('🚀 Calling onSave with:', data.data);
+                    onSave(data.data); // Pass the saved/updated guest with _id from backend
+                }, 300); // Fast response for better UX
             } else {
-                setErrors({ submit: data.message || 'Failed to create guest' });
+                const errorMsg = data.message || (editingGuest ? 'Failed to update guest' : 'Failed to create guest');
+                console.error('❌ Error:', errorMsg);
+                setErrors({ submit: errorMsg });
             }
         } catch (error) {
-            console.error('Error creating guest:', error);
-            setErrors({ submit: 'Failed to create guest. Please try again.' });
+            const errorMsg = editingGuest ? 'Error updating guest:' : 'Error creating guest:';
+            console.error('❌', errorMsg, error);
+            setErrors({ submit: (editingGuest ? 'Failed to update guest.' : 'Failed to create guest.') + ' Please try again.' });
         }
     };
 
@@ -350,11 +446,13 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
 
     return (
         <div className="create-guest-form">
-            {/* Header */}
-            <div className="form-header-section">
-                <h3 className="form-title">🆕 Create New Guest Profile</h3>
-                <p className="form-subtitle">Fill in the guest details to create a new profile</p>
-            </div>
+            {/* Header - Only show when creating new guest */}
+            {!editingGuest && (
+                <div className="form-header-section">
+                    <h3 className="form-title">Create New Guest Profile</h3>
+                    <p className="form-subtitle">Fill in the guest details to create a new profile</p>
+                </div>
+            )}
 
             {/* Success Message */}
             {successMessage && (
@@ -362,6 +460,17 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                     {successMessage}
                 </div>
             )}
+
+            {/* Back Button */}
+            <div className="back-button-container">
+                <button
+                    type="button"
+                    className="btn-back-guest"
+                    onClick={onCancel}
+                >
+                    ← Back
+                </button>
+            </div>
 
             {/* Section Tabs */}
             <div className="form-section-tabs">
@@ -399,42 +508,40 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                                 maxLength="50"
                                 className={errors.fullName ? 'input-error' : ''}
                             />
-                            {errors.fullName && <span className="error-text"><span className="error-icon">⚠️</span> {errors.fullName}</span>}
-                            {!errors.fullName && formData.fullName && <span className="success-text"><span className="success-icon">✓</span> Valid name</span>}
+                            {errors.fullName && <span className="form-error-text"><span className="form-error-icon">⚠️</span> {errors.fullName}</span>}
+                            {!errors.fullName && formData.fullName && <span className="form-success-text"><span className="form-success-icon">✓</span> Valid name</span>}
                         </div>
 
-                        <div className="form-row-2">
-                            <div className="form-group">
-                                <div className="label-wrapper">
-                                    <label>Mobile Number <span className="required-mark">*</span></label>
-                                    <span className="char-count">{formData.mobile.length}/10</span>
-                                </div>
-                                <input
-                                    type="tel"
-                                    name="mobile"
-                                    placeholder="10 digit mobile number"
-                                    value={formData.mobile}
-                                    onChange={handleChange}
-                                    maxLength="10"
-                                    className={errors.mobile ? 'input-error' : ''}
-                                />
-                                {errors.mobile && <span className="error-text"><span className="error-icon">⚠️</span> {errors.mobile}</span>}
-                                {!errors.mobile && formData.mobile && <span className="success-text"><span className="success-icon">✓</span> Valid mobile number</span>}
+                        <div className="form-group">
+                            <div className="label-wrapper">
+                                <label>Mobile Number <span className="required-mark">*</span></label>
+                                <span className="char-count">{formData.mobile.length}/10</span>
                             </div>
+                            <input
+                                type="tel"
+                                name="mobile"
+                                placeholder="10 digit mobile number"
+                                value={formData.mobile}
+                                onChange={handleChange}
+                                maxLength="10"
+                                className={errors.mobile ? 'input-error' : ''}
+                            />
+                            {errors.mobile && <span className="form-error-text"><span className="form-error-icon">⚠️</span> {errors.mobile}</span>}
+                            {!errors.mobile && formData.mobile && <span className="form-success-text"><span className="form-success-icon">✓</span> Valid mobile number</span>}
+                        </div>
 
-                            <div className="form-group">
-                                <label>Email Address <span className="optional-mark">(Optional)</span></label>
-                                <input
-                                    type="email"
-                                    name="email"
-                                    placeholder="guest@example.com"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    className={errors.email ? 'input-error' : ''}
-                                />
-                                {errors.email && <span className="error-text"><span className="error-icon">⚠️</span> {errors.email}</span>}
-                                {!errors.email && formData.email && <span className="success-text"><span className="success-icon">✓</span> Valid email</span>}
-                            </div>
+                        <div className="form-group">
+                            <label>Email Address <span className="required-mark">*</span></label>
+                            <input
+                                type="email"
+                                name="email"
+                                placeholder="guest@example.com"
+                                value={formData.email}
+                                onChange={handleChange}
+                                className={errors.email ? 'input-error' : ''}
+                            />
+                            {errors.email && <span className="form-error-text"><span className="form-error-icon">⚠️</span> {errors.email}</span>}
+                            {!errors.email && formData.email && <span className="form-success-text"><span className="form-success-icon">✓</span> Valid email</span>}
                         </div>
 
                         <div className="form-row-2">
@@ -468,7 +575,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                         <p className="section-subtitle">Recommended for KYC completion</p>
 
                         <div className="form-group">
-                            <label>Address Line <span className="optional-mark">(Optional)</span></label>
+                            <label>Address Line <span className="required-mark">*</span></label>
                             <input
                                 type="text"
                                 name="address"
@@ -477,12 +584,14 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                                 onChange={handleChange}
                                 className={errors.address ? 'input-error' : ''}
                             />
-                            {errors.address && <span className="error-text"><span className="error-icon">⚠️</span> {errors.address}</span>}
+                            {errors.address && <span className="form-error-text"><span className="form-error-icon">⚠️</span> {errors.address}</span>}
                         </div>
 
                         <div className="form-row-3">
                             <div className="form-group">
-                                <label>City <span className="optional-mark">(Optional)</span></label>
+                                <div className="label-wrapper">
+                                    <label>City <span className="required-mark">*</span></label>
+                                </div>
                                 <input
                                     type="text"
                                     name="city"
@@ -491,11 +600,13 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                                     onChange={handleChange}
                                     className={errors.city ? 'input-error' : ''}
                                 />
-                                {errors.city && <span className="error-text"><span className="error-icon">⚠️</span> {errors.city}</span>}
+                                {errors.city && <span className="form-error-text"><span className="form-error-icon">⚠️</span> {errors.city}</span>}
                             </div>
 
                             <div className="form-group">
-                                <label>State <span className="optional-mark">(Optional)</span></label>
+                                <div className="label-wrapper">
+                                    <label>State</label>
+                                </div>
                                 <input
                                     type="text"
                                     name="state"
@@ -504,30 +615,32 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                                     onChange={handleChange}
                                     className={errors.state ? 'input-error' : ''}
                                 />
-                                {errors.state && <span className="error-text"><span className="error-icon">⚠️</span> {errors.state}</span>}
+                                {errors.state && <span className="form-error-text"><span className="form-error-icon">⚠️</span> {errors.state}</span>}
                             </div>
 
                             <div className="form-group">
                                 <div className="label-wrapper">
-                                    <label>PIN Code <span className="optional-mark">(Optional)</span></label>
-                                    <span className="char-count">{formData.pinCode.length}/6</span>
+                                    <label>PIN Code</label>
                                 </div>
                                 <input
                                     type="text"
                                     name="pinCode"
-                                    placeholder="6 digit postal code"
+                                    placeholder="6 digit code"
                                     value={formData.pinCode}
                                     onChange={handleChange}
                                     maxLength="6"
                                     className={errors.pinCode ? 'input-error' : ''}
                                 />
-                                {errors.pinCode && <span className="error-text"><span className="error-icon">⚠️</span> {errors.pinCode}</span>}
-                                {!errors.pinCode && formData.pinCode && <span className="success-text"><span className="success-icon">✓</span> Valid PIN Code</span>}
+                                {errors.pinCode && <span className="form-error-text"><span className="form-error-icon">⚠️</span> {errors.pinCode}</span>}
+                                {!errors.pinCode && formData.pinCode && <span className="form-success-text"><span className="form-success-icon">✓</span> Valid PIN Code</span>}
                             </div>
+
                         </div>
 
                         <div className="form-group">
-                            <label>Country</label>
+                            <div className="label-wrapper">
+                                <label>Country</label>
+                            </div>
                             <select name="country" value={formData.country} onChange={handleChange}>
                                 <option value="India">India</option>
                                 <option value="US">United States</option>
@@ -548,7 +661,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                         <div className="form-row-2">
                             <div className="form-group">
                                 <label>ID Type</label>
-                                <select name="idType" value={formData.idType} onChange={handleChange}>
+                                <select name="idType" value={formData.idType} onChange={handleChange} className="id-type-input">
                                     <option value="">-- Select ID Type --</option>
                                     <option value="Aadhaar">Aadhaar</option>
                                     <option value="Passport">Passport</option>
@@ -566,54 +679,62 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                                     value={formData.idNumber}
                                     onChange={handleChange}
                                     disabled={!formData.idType}
-                                    className={errors.idNumber ? 'input-error' : ''}
+                                    className={`id-number-input ${errors.idNumber ? 'input-error' : ''}`}
                                 />
-                                {errors.idNumber && <span className="error-text"><span className="error-icon">⚠️</span> {errors.idNumber}</span>}
-                                {!errors.idNumber && formData.idNumber && <span className="success-text"><span className="success-icon">✓</span> Valid ID number</span>}
+                                {errors.idNumber && <span className="form-error-text"><span className="form-error-icon">⚠️</span> {errors.idNumber}</span>}
+                                {!errors.idNumber && formData.idNumber && <span className="form-success-text"><span className="form-success-icon">✓</span> Valid ID number</span>}
                             </div>
                         </div>
 
                         <div className="form-row-2">
                             <div className="form-group">
                                 <label>ID Front (Upload)</label>
-                                <div className="file-input-wrapper">
-                                    <input
-                                        type="file"
-                                        name="idFrontFile"
-                                        accept="image/*"
-                                        onChange={handleChange}
-                                    />
-                                    <span className="file-label">
-                                        {formData.idFrontFile ? '✓ ' + formData.idFrontFile.name : 'Click to upload front page'}
-                                    </span>
+                                <input
+                                    type="file"
+                                    id="idFrontUpload"
+                                    name="idFrontFile"
+                                    accept="image/*"
+                                    onChange={handleChange}
+                                    style={{ display: 'none' }}
+                                />
+                                <div
+                                    className={`upload-box ${formData.idFrontFile ? 'uploaded' : ''}`}
+                                    onClick={() => document.getElementById('idFrontUpload').click()}
+                                >
+                                    {formData.idFrontFile ? `✔ ${formData.idFrontFile.name}` : 'Click to upload front page'}
                                 </div>
                             </div>
 
                             <div className="form-group">
                                 <label>ID Back (Upload)</label>
-                                <div className="file-input-wrapper">
-                                    <input
-                                        type="file"
-                                        name="idBackFile"
-                                        accept="image/*"
-                                        onChange={handleChange}
-                                    />
-                                    <span className="file-label">
-                                        {formData.idBackFile ? '✓ ' + formData.idBackFile.name : 'Click to upload back page'}
-                                    </span>
+                                <input
+                                    type="file"
+                                    id="idBackUpload"
+                                    name="idBackFile"
+                                    accept="image/*"
+                                    onChange={handleChange}
+                                    style={{ display: 'none' }}
+                                />
+                                <div
+                                    className={`upload-box ${formData.idBackFile ? 'uploaded' : ''}`}
+                                    onClick={() => document.getElementById('idBackUpload').click()}
+                                >
+                                    {formData.idBackFile ? `✔ ${formData.idBackFile.name}` : 'Click to upload back page'}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="kyc-info-box">
-                            <span className="info-icon">ℹ️</span>
-                            <div className="info-content">
-                                <p><strong>KYC Information</strong></p>
-                                <p style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.5rem' }}>
-                                    Upload clear, readable images of ID documents. Ensure all details are visible. Required for check-in completion.
-                                </p>
+                        {!(formData.idFrontFile && formData.idBackFile) && (
+                            <div className="kyc-info-box">
+                                <span className="info-icon">ℹ️</span>
+                                <div className="info-content">
+                                    <p><strong>KYC Information</strong></p>
+                                    <p style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.5rem' }}>
+                                        Upload clear, readable images of ID documents. Ensure all details are visible. Required for check-in completion.
+                                    </p>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 )}
 
@@ -625,7 +746,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
 
                         <div className="form-row-2">
                             <div className="form-group">
-                                <label>Date of Birth <span className="optional-mark">(Optional)</span></label>
+                                <label>Date of Birth</label>
                                 <input
                                     type="date"
                                     name="dob"
@@ -638,7 +759,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                             </div>
 
                             <div className="form-group">
-                                <label>Anniversary <span className="optional-mark">(Optional)</span></label>
+                                <label>Anniversary</label>
                                 <input
                                     type="date"
                                     name="anniversary"
@@ -653,7 +774,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
 
                         <div className="form-row-2">
                             <div className="form-group">
-                                <label>Company Name <span className="optional-mark">(For corporate guests)</span></label>
+                                <label>Company Name</label>
                                 <input
                                     type="text"
                                     name="companyName"
@@ -664,7 +785,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                             </div>
 
                             <div className="form-group">
-                                <label>GST Number <span className="optional-mark">(If applicable)</span></label>
+                                <label>GST Number</label>
                                 <input
                                     type="text"
                                     name="gstNumber"
@@ -693,41 +814,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                             </div>
                         </div>
 
-                        {/* Guest History Section (Mock Data) */}
-                        <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid #e5e7eb' }}>
-                            <button
-                                type="button"
-                                className="history-toggle-btn"
-                                onClick={() => setShowHistory(!showHistory)}
-                            >
-                                <span>{showHistory ? '▼' : '▶'}</span> Previous Booking History (if returning guest)
-                            </button>
 
-                            {showHistory && (
-                                <div className="history-section" style={{ marginTop: '1rem' }}>
-                                    <table className="history-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Reservation ID</th>
-                                                <th>Room Category</th>
-                                                <th>Stay Dates</th>
-                                                <th>Amount</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {bookingHistory.map(booking => (
-                                                <tr key={booking.id}>
-                                                    <td>{booking.id}</td>
-                                                    <td>{booking.roomCategory}</td>
-                                                    <td>{booking.checkIn} to {booking.checkOut}</td>
-                                                    <td className="amount">{booking.amount}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
                     </div>
                 )}
 
@@ -737,7 +824,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [] }) => {
                         Cancel
                     </button>
                     <button type="submit" className="btn-submit">
-                        Create Guest Profile
+                        {editingGuest ? 'Save' : 'Create Guest Profile'}
                     </button>
                 </div>
             </form>
