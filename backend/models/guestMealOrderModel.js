@@ -29,11 +29,11 @@ const guestMealOrderSchema = new mongoose.Schema({
         min: 1
     },
     items: [{
-        id: Number,
+        id: String,
         name: String,
         price: Number,
         quantity: Number,
-        category: Number,
+        category: String,
         image: String,
         subtotal: Number
     }],
@@ -62,11 +62,16 @@ const guestMealOrderSchema = new mongoose.Schema({
         default: 0,
         min: 0
     },
+    taxRate: {
+        type: Number,
+        default: 0
+    },
     status: {
         type: String,
-        enum: ['Active', 'Billed', 'Closed'],
+        enum: ['Active', 'Pending', 'Preparing', 'Ready', 'Served', 'Billed', 'Pending Payment', 'Closed'],
         default: 'Active'
     },
+
     paymentMethod: {
         type: String,
         enum: ['Cash', 'Card', 'Online', 'Room Billing', 'Pending'],
@@ -104,24 +109,24 @@ guestMealOrderSchema.index({ tableNumber: 1 });
 guestMealOrderSchema.index({ createdAt: -1 });
 
 // Calculate totals before saving
-guestMealOrderSchema.pre('save', function(next) {
+guestMealOrderSchema.pre('save', function (next) {
     // Calculate subtotal
-    this.subtotal = this.items.reduce((sum, item) => sum + item.subtotal, 0);
-    
-    // Calculate tax (5%)
-    this.tax = this.subtotal * 0.05;
-    
+    this.subtotal = this.items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+
+    // Calculate tax based on dynamic rate
+    this.tax = (this.subtotal * (this.taxRate || 0)) / 100;
+
     // Calculate total before discount
     this.totalAmount = this.subtotal + this.tax;
-    
+
     // Calculate final amount after discount
     this.finalAmount = this.totalAmount - (this.discountAmount || 0);
-    
+
     // Set revenue for analytics
     if (this.paymentStatus === 'Completed') {
         this.revenue = this.finalAmount;
     }
-    
+
     next();
 });
 

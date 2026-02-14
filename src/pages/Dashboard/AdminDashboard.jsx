@@ -138,7 +138,7 @@ const AdminDashboard = () => {
     useEffect(() => {
         const path = location.pathname;
 
-        // Priority to state passed via navigation (e.g. from RoomService or StayOverview or Cashier)
+        // Priority to state passed via navigation (e.g. from RoomService or StayOverview or Cashier or GuestMealService)
         if (location.state && location.state.activeMenu) {
             setActiveMenu(location.state.activeMenu);
 
@@ -149,6 +149,9 @@ const AdminDashboard = () => {
                     phoneNumber: location.state.customerPhone,
                     roomNumber: 'Take Away' // Distinct from POS generic
                 });
+            } else if (location.state.room) {
+                // From GuestMealService (Dining Dashboard)
+                setPosGuestDetails(location.state.room);
             }
             return;
         }

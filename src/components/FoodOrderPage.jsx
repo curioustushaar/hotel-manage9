@@ -138,6 +138,14 @@ const FoodOrderPage = ({ onClose }) => {
     const [activeOrderType, setActiveOrderType] = useState('dinein');
 
     useEffect(() => {
+        if (room?.id) {
+            setActiveOrderType('dinein');
+        } else if (source === 'room-service') {
+            setActiveOrderType('roomservice');
+        }
+    }, [room, source]);
+
+    useEffect(() => {
         if (printMode) {
             // Small delay to ensure render
             const timer = setTimeout(() => {
@@ -179,54 +187,157 @@ const FoodOrderPage = ({ onClose }) => {
         );
     };
 
+    const [orderId, setOrderId] = useState(null);
+    const [taxRate, setTaxRate] = useState(5); // Default 5%
+    const [isTaxApplied, setIsTaxApplied] = useState(false);
+
+    // Fetch existing order if available
+    useEffect(() => {
+        if (room?.id) {
+            fetchExistingOrder();
+        }
+    }, [room]);
+
+    const fetchExistingOrder = async () => {
+        try {
+            const response = await fetch(`${API_URL_CONFIG}/api/guest-meal/orders/table/${room.id}`);
+            const data = await response.json();
+            if (data.success && data.data) {
+                setOrderId(data.data._id);
+                setTaxRate(data.data.taxRate || 5);
+                setIsTaxApplied((data.data.tax || 0) > 0);
+                // Map items back to cart format
+                const mappedCart = data.data.items.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    quantity: item.quantity,
+                    category: item.category,
+                    subtotal: item.subtotal
+                }));
+                setCart(mappedCart);
+            }
+        } catch (error) {
+            console.error('Error fetching existing order:', error);
+        }
+    };
+
     // Calculations
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    // NO TAX as per requirement
-    const total = subtotal;
+    const taxAmount = isTaxApplied ? (subtotal * taxRate) / 100 : 0;
+    const total = subtotal + taxAmount;
 
     // Handlers
-    const saveOrderToStorage = () => {
-        if (!room) return;
-        const activeOrders = JSON.parse(localStorage.getItem('pos_active_orders') || '[]');
-        if (!activeOrders.includes(room.id)) {
-            activeOrders.push(room.id);
-            localStorage.setItem('pos_active_orders', JSON.stringify(activeOrders));
+    const saveOrderToBackend = async () => {
+        try {
+            if (!room) return false;
+
+            const tId = room.id || room._id;
+            const tNum = parseInt(room.roomNumber.replace(/\D/g, ''), 10) || 0;
+
+            if (!tId && !orderId) {
+                console.error('Missing table ID and order ID');
+                return false;
+            }
+
+            const orderData = {
+                tableId: tId,
+                tableNumber: tNum,
+                guestName: room.guestName || 'Walk-in',
+                roomNumber: room.roomNumber,
+                orderType: activeOrderType === 'roomservice' ? 'Post to Room' : 'Direct Payment',
+                taxRate: isTaxApplied ? taxRate : 0,
+                items: cart.map(item => ({
+                    ...item,
+                    subtotal: item.price * item.quantity
+                }))
+            };
+
+            let response;
+            if (orderId) {
+                response = await fetch(`${API_URL_CONFIG}/api/guest-meal/orders/${orderId}/items`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        items: orderData.items,
+                        taxRate: orderData.taxRate
+                    })
+                });
+            } else {
+                response = await fetch(`${API_URL_CONFIG}/api/guest-meal/orders/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(orderData)
+                });
+            }
+
+            const data = await response.json();
+            if (data.success) {
+                if (!orderId) {
+                    const newId = data.data.order ? data.data.order._id : (data.data._id || data.data.id);
+                    setOrderId(newId);
+                }
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Error saving order:', error);
+            return false;
         }
-        localStorage.setItem(`pos_cart_${room.id}`, JSON.stringify(cart));
     };
 
-    const handleSaveKOT = () => {
-        saveOrderToStorage();
-        addToast('KOT saved successfully');
-        setTimeout(() => {
-            if (onClose) onClose();
-        }, 1000);
+    const handleSaveKOT = async () => {
+        if (!room?.id && !orderId) {
+            addToast('Error: No table selected');
+            return;
+        }
+
+        const success = await saveOrderToBackend();
+        if (success) {
+            addToast('KOT saved successfully');
+            // Navigate immediately
+            navigate('/admin/dashboard', { state: { activeMenu: 'view-order' } });
+        } else {
+            addToast('Failed to save KOT');
+        }
     };
 
-    const handleSavePrintKOT = () => {
-        saveOrderToStorage();
-        setPrintModal('KOT');
+    const handleSavePrintKOT = async () => {
+        const success = await saveOrderToBackend();
+        if (success) {
+            setPrintModal('KOT');
+        } else {
+            addToast('Failed to save KOT');
+        }
     };
 
-    const handleSaveBill = () => {
-        saveOrderToStorage();
-        addToast('Bill saved successfully');
-        setTimeout(() => {
-            if (onClose) onClose();
-        }, 1000);
+    const handleSaveBill = async () => {
+        const success = await saveOrderToBackend();
+        if (success) {
+            addToast('Bill saved successfully');
+            navigate('/admin/dashboard', { state: { activeMenu: 'view-order' } });
+        } else {
+            addToast('Failed to save bill');
+        }
     };
 
-    const handleSavePrintBill = () => {
-        saveOrderToStorage();
-        setPrintModal('BILL');
+    const handleSavePrintBill = async () => {
+        const success = await saveOrderToBackend();
+        if (success) {
+            setPrintModal('BILL');
+        } else {
+            addToast('Failed to save bill');
+        }
     };
 
-    const handleRoomPosting = () => {
-        saveOrderToStorage();
-        addToast('Room posted successfully');
-        setTimeout(() => {
-            if (onClose) onClose();
-        }, 1000);
+    const handleRoomPosting = async () => {
+        const success = await saveOrderToBackend();
+        if (success) {
+            addToast('Room posted successfully');
+            navigate('/admin/dashboard', { state: { activeMenu: 'view-order' } });
+        } else {
+            addToast('Failed to post to room');
+        }
     };
 
     // Modal Action Handlers
@@ -472,14 +583,63 @@ const FoodOrderPage = ({ onClose }) => {
 
                         {/* F. Total Section */}
                         <div className="pos-total-section">
+                            <div className="pos-tax-controls" style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '15px',
+                                marginBottom: '10px',
+                                padding: '8px 12px',
+                                background: '#f8fafc',
+                                borderRadius: '8px',
+                                border: '1px solid #e2e8f0'
+                            }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: '600', color: '#475569', fontSize: '0.9rem' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={isTaxApplied}
+                                        onChange={(e) => setIsTaxApplied(e.target.checked)}
+                                        style={{ width: '16px', height: '16px', accentColor: '#dc2626' }}
+                                    />
+                                    Apply Tax (%)
+                                </label>
+                                {isTaxApplied && (
+                                    <input
+                                        type="number"
+                                        value={taxRate}
+                                        onChange={(e) => setTaxRate(Number(e.target.value))}
+                                        style={{
+                                            width: '60px',
+                                            padding: '4px 8px',
+                                            borderRadius: '6px',
+                                            border: '1px solid #cbd5e1',
+                                            textAlign: 'center',
+                                            fontSize: '0.9rem',
+                                            fontWeight: '700'
+                                        }}
+                                    />
+                                )}
+                            </div>
+
                             <div className="pos-total-row">
                                 <span>Subtotal</span>
                                 <span>₹{subtotal.toFixed(2)}</span>
                             </div>
-                            {/* NO TAX ROW */}
-                            <div className="pos-total-row final">
-                                <span>Grand Total</span>
-                                <span>₹{total.toFixed(2)}</span>
+
+                            {isTaxApplied && (
+                                <div className="pos-total-row">
+                                    <span>Tax ({taxRate}%)</span>
+                                    <span>₹{taxAmount.toFixed(2)}</span>
+                                </div>
+                            )}
+
+                            <div className="pos-total-row final" style={{ borderTop: '2px solid #e2e8f0', marginTop: '10px', paddingTop: '10px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    <span style={{ fontSize: '1.1rem', fontWeight: '800' }}>Grand Total</span>
+                                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '500' }}>
+                                        {isTaxApplied ? `Incl. ${taxRate}% Tax` : 'Zero Tax'}
+                                    </span>
+                                </div>
+                                <span style={{ fontSize: '1.4rem', color: '#dc2626' }}>₹{total.toFixed(2)}</span>
                             </div>
 
                             {/* ACTION BAR */}

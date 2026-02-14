@@ -49,8 +49,13 @@ const FoodMenuDashboard = () => {
     const handleAddItem = async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
+
+        // Generate a simple unique food code
+        const foodCode = `FC-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`;
+
         const newItem = {
             itemName: formData.get('itemName'),
+            foodCode: foodCode, // Required by backend
             category: formData.get('category'),
             price: parseFloat(formData.get('price')),
             description: formData.get('description') || '',
@@ -65,12 +70,16 @@ const FoodMenuDashboard = () => {
             });
             const data = await response.json();
             if (data.success) {
-                setMenuItems([...menuItems, data.data]);
+                // Add new item to the TOP of the list
+                setMenuItems([data.data, ...menuItems]);
                 setShowAddForm(false);
                 e.target.reset();
+            } else {
+                alert(data.message || 'Failed to add item. Check if "Food Code" is unique.');
             }
         } catch (error) {
             console.error('Error adding item:', error);
+            alert('Network error while adding item.');
         }
     };
 
