@@ -58,11 +58,17 @@ const FoodMenu = () => {
             });
             const data = await response.json();
             if (data.success) {
-                setMenuItems([...menuItems, data.data]);
+                setMenuItems([data.data, ...menuItems]);
+                setFilterCategory('All Categories');
+                setCurrentPage(1);
                 setShowAddForm(false);
+                alert('Item added successfully!');
+            } else {
+                alert(data.message || 'Failed to add item');
             }
         } catch (error) {
             console.error('Error adding item:', error);
+            alert('Error adding item. Please try again.');
         }
     };
 
@@ -79,9 +85,13 @@ const FoodMenu = () => {
             if (data.success) {
                 setMenuItems(menuItems.map(item => item._id === id ? data.data : item));
                 setEditingItem(null);
+                alert('Item updated successfully!');
+            } else {
+                alert(data.message || 'Failed to update item');
             }
         } catch (error) {
             console.error('Error updating item:', error);
+            alert('Error updating item. Please try again.');
         }
     };
 
@@ -94,9 +104,13 @@ const FoodMenu = () => {
                 const data = await response.json();
                 if (data.success) {
                     setMenuItems(menuItems.filter(item => item._id !== id));
+                    alert('Item deleted successfully!');
+                } else {
+                    alert(data.message || 'Failed to delete item');
                 }
             } catch (error) {
                 console.error('Error deleting item:', error);
+                alert('Error deleting item. Please try again.');
             }
         }
     };
@@ -104,19 +118,21 @@ const FoodMenu = () => {
     const handleToggleStatus = async (id, currentStatus) => {
         const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
         try {
-            const response = await fetch(`${API_URL}/api/menu/update/${id}`, {
-                method: 'PUT',
+            const response = await fetch(`${API_URL}/api/menu/toggle-status/${id}`, {
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ status: newStatus }),
             });
             const data = await response.json();
             if (data.success) {
                 setMenuItems(menuItems.map(item => item._id === id ? { ...item, status: newStatus } : item));
+            } else {
+                alert(data.message || 'Failed to toggle status');
             }
         } catch (error) {
             console.error('Error toggling status:', error);
+            alert('Error toggling status. Please try again.');
         }
     };
 
@@ -348,20 +364,29 @@ const AddItemForm = ({ onSubmit, onCancel }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (formData.itemName && formData.category && formData.price) {
-            onSubmit({
-                ...formData,
-                price: parseFloat(formData.price)
-            });
-            setFormData({
-                itemName: '',
-                foodCode: '',
-                category: '',
-                price: '',
-                description: '',
-                status: 'Active'
-            });
+
+        // Basic validation check
+        if (!formData.itemName || !formData.category || !formData.price) {
+            alert('Please fill in all required fields (Item Name, Category, Price)');
+            return;
         }
+
+        // Generate a random food code if not provided
+        const generatedFoodCode = `FC-${Math.floor(1000 + Math.random() * 9000)}`;
+
+        onSubmit({
+            ...formData,
+            foodCode: generatedFoodCode,
+            price: parseFloat(formData.price)
+        });
+        setFormData({
+            itemName: '',
+            foodCode: '',
+            category: '',
+            price: '',
+            description: '',
+            status: 'Active'
+        });
     };
 
     return (
@@ -382,16 +407,7 @@ const AddItemForm = ({ onSubmit, onCancel }) => {
                             required
                         />
                     </div>
-                    <div className="form-group">
-                        <label>FOOD CODE <span className="required">*</span></label>
-                        <input
-                            type="text"
-                            placeholder="e.g. 101"
-                            value={formData.foodCode}
-                            onChange={(e) => setFormData({ ...formData, foodCode: e.target.value })}
-                            required
-                        />
-                    </div>
+                    {/* Food Code is auto-generated */}
                     <div className="form-group">
                         <label>CATEGORY <span className="required">*</span></label>
                         <select

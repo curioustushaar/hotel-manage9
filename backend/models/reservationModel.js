@@ -15,6 +15,12 @@ const reservationSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    roomNumber: {
+        type: String
+    },
+    roomType: {
+        type: String
+    },
     checkInDate: {
         type: Date,
         required: true
@@ -31,26 +37,17 @@ const reservationSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    amount: {
-        type: Number,
-        required: true
-    },
-    paid: {
-        type: Number,
-        default: 0
-    },
-    balance: {
-        type: Number,
-        required: true
-    },
-    phone: {
-        type: String,
-        required: true
-    },
-    email: {
-        type: String,
-        required: true
-    },
+    // Updated/Added fields for compliance
+    totalAmount: { type: Number, required: true, default: 0 },
+    paidAmount: { type: Number, required: true, default: 0 },
+    balance: { type: Number, required: true, default: 0 },
+    arrivalDate: { type: Date, required: true }, // mapped from checkInDate or duplicate
+    roomId: { type: mongoose.Schema.Types.ObjectId, ref: 'Room' },
+
+    // Existing fields mapped or kept
+    amount: { type: Number }, // Keep for backward compatibility if needed, but prefer totalAmount
+    paid: { type: Number }, // Keep for backward compatibility
+
     // Check-In fields
     checkInTime: { type: String },
     idProofType: { type: String },
@@ -59,6 +56,42 @@ const reservationSchema = new mongoose.Schema({
     children: { type: Number },
     vehicleNumber: { type: String },
     securityDeposit: { type: Number },
+
+    // Visitors Reference
+    visitors: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Visitor'
+    }],
+
+    // Folio / Transactions
+    transactions: [{
+        type: { type: String, enum: ['charge', 'payment', 'discount', 'refund', 'NO_SHOW_CHARGE'], required: true },
+        description: { type: String },
+        amount: { type: Number, required: true },
+        createdAt: { type: Date, default: Date.now },
+        user: { type: String } // audit purpose
+    }],
+
+    // No Show Details
+    noShowDetails: {
+        noShowAt: { type: Date },
+        applyCharge: { type: Boolean },
+        chargeAmount: { type: Number },
+        noShowReason: { type: String }
+    },
+
+    // Void Details
+    voidReason: { type: String },
+    voidedAt: { type: Date },
+
+    // Audit Log
+    auditTrail: [{
+        action: { type: String, required: true },
+        performedBy: { type: String },
+        timestamp: { type: Date, default: Date.now },
+        details: { type: String }
+    }],
+
     remarks: { type: String }
 }, {
     timestamps: true

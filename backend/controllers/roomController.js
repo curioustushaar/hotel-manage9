@@ -151,9 +151,40 @@ const deleteRoom = async (req, res) => {
     }
 };
 
+// @desc    Get available rooms for a date range
+// @route   GET /api/rooms/available
+// @access  Public
+const getAvailableRooms = async (req, res) => {
+    try {
+        const { from, to, type } = req.query;
+
+        // Basic filtering for available status
+        // In a real system, we'd check against bookings for these dates
+        let query = { status: 'Available' };
+
+        if (type) {
+            query.roomType = type;
+        }
+
+        const rooms = await Room.find(query).sort({ roomNumber: 1 });
+
+        res.status(200).json({
+            success: true,
+            data: rooms
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching available rooms',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     getRooms,
     addRoom,
     updateRoom,
-    deleteRoom
+    deleteRoom,
+    getAvailableRooms
 };

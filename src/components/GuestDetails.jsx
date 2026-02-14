@@ -1,5 +1,6 @@
 import React from 'react';
 import './EditReservationModal.css';
+import VisitorList from './visitors/VisitorList';
 
 const GuestDetails = ({ reservation }) => {
     if (!reservation) return null;
@@ -53,6 +54,14 @@ const GuestDetails = ({ reservation }) => {
                     <span className="detail-label">Special Requests / Notes</span>
                     <span className="detail-value">{reservation.notes || '-'}</span>
                 </div>
+            </div>
+
+            {/* Visitors Section */}
+            <div style={{ marginTop: '24px', borderTop: '1px solid #f3f4f6', paddingTop: '24px' }}>
+                <h3 className="details-section-title">
+                    Visitors ({reservation.visitors?.length || 0})
+                </h3>
+                <VisitorList reservationId={reservation._id || reservation.id} refreshTrigger={reservation.updatedAt} />
             </div>
         </div>
     );

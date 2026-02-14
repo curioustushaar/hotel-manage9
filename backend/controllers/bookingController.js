@@ -636,77 +636,395 @@ exports.amendBookingStay = async (req, res) => {
     try {
         const Booking = require('../models/bookingModel');
         const booking = await Booking.findById(req.params.id);
-        if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
 
-        const { checkInDate, checkOutDate, newRate } = req.body;
+        if (!booking) {
+            // Check if it's in the Reservation model instead
+            const Reservation = require('../models/reservationModel');
+            const reservation = await Reservation.findById(req.params.id);
+            if (!reservation) {
+                return res.status(404).json({ success: false, message: 'Reservation/Booking not found' });
+            }
 
-        if (checkInDate) booking.checkInDate = new Date(checkInDate);
-        if (checkOutDate) booking.checkOutDate = new Date(checkOutDate);
+            // If it's a Reservation, we need to handle it differently or migrate it?
+            // For now, let's treat Reservation objects as simpler entities.
+            const { checkInDate, checkOutDate, adults, children, ratePerNight, newGrandTotal, nights } = req.body;
 
-        // Update room charges if needed (simplified: just update dates for now, could recalculate charges)
-        // If nights changed, we might need to update totalAmount
-        const start = new Date(booking.checkInDate);
-        const end = new Date(booking.checkOutDate);
-        const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-        booking.numberOfNights = Math.max(1, nights);
+            if (reservation.status === 'CHECKED_OUT' || reservation.status === 'CANCELLED') {
+                return res.status(400).json({ success: false, message: 'Cannot amend a completed or cancelled reservation' });
+            }
 
-        await booking.save();
-        res.status(200).json({ success: true, message: 'Stay amended', data: booking });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Error amending stay', error: error.message });
-    }
-};
+            reservation.checkInDate = new Date(checkInDate);
+            reservation.checkOutDate = new Date(checkOutDate);
+            reservation.nights = Number(nights);
+            reservation.adults = Number(adults);
+            reservation.children = Number(children);
+            reservation.amount = Number(newGrandTotal);
+            reservation.balance = Number(newGrandTotal) - (reservation.paid || 0);
 
-// Room Move
-exports.moveBookingRoom = async (req, res) => {
-    try {
-        const Booking = require('../models/bookingModel');
-        const booking = await Booking.findById(req.params.id);
-        if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+            await reservation.save();
+            return res.status(200).json({ success: true, message: 'Reservation amended successfully', data: reservation });
+        }
 
-        const { newRoomNumber, reason } = req.body;
-        const oldRoomNumber = booking.roomNumber;
+        // Status check for Booking
+        if (booking.status === 'Checked-out' || booking.status === 'Cancelled' || booking.status === 'No-Show' || booking.status === 'Voided') {
+            return res.status(400).json({ success: false, message: `Cannot amend booking with status: ${booking.status}` });
+        }
 
-        if (!newRoomNumber) return res.status(400).json({ success: false, message: 'New room number required' });
+        const {
+            newCheckInDate,
+            newCheckOutDate,
+            newCheckInTime,
+            newCheckOutTime,
+            adults,
+            children,
+            ratePerNight,
+            newGrandTotal,
+            nights,
+            discount,
+            reason
+        } = req.body;
 
-        const Room = require('../models/roomModel');
+        // Capture old data for audit log
+        const oldData = {
+            checkInDate: booking.checkInDate,
+            checkOutDate: booking.checkOutDate,
+            nights: booking.numberOfNights,
+            totalAmount: booking.totalAmount,
+            ratePerNight: booking.pricePerNight,
+            occupancy: { adults: booking.numberOfAdults, children: booking.numberOfChildren }
+        };
 
-        // Check if new room is available (optional strict check)
-        // For now, allow move
+        // Update stay details
+        if (newCheckInDate) booking.checkInDate = new Date(newCheckInDate);
+        if (newCheckOutDate) booking.checkOutDate = new Date(newCheckOutDate);
+        if (newCheckInTime) booking.scheduledCheckInTime = newCheckInTime;
+        if (newCheckOutTime) booking.scheduledCheckOutTime = newCheckOutTime;
 
-        booking.roomNumber = newRoomNumber;
-        // Add a note about the room move
-        booking.transactions.push({
-            type: 'charge', // Or just a note transaction type if exists? Using charge with 0 amount for log
-            amount: 0,
-            particulars: 'Room Move',
-            description: `Moved from ${oldRoomNumber} to ${newRoomNumber}. Reason: ${reason || '-'}`,
-            day: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
-            user: 'staff'
+        // Update occupancy
+        if (adults !== undefined) booking.numberOfAdults = Number(adults);
+        if (children !== undefined) booking.numberOfChildren = Number(children);
+        booking.numberOfGuests = (Number(adults) || 0) + (Number(children) || 0);
+
+        // Update pricing and handle folio adjustments
+        if (ratePerNight !== undefined) booking.pricePerNight = Number(ratePerNight);
+        if (nights !== undefined) booking.numberOfNights = Number(nights);
+
+        // Financial Adjustment Logic
+        const oldTotal = booking.totalAmount || 0;
+        const targetTotal = Number(newGrandTotal);
+        const difference = targetTotal - oldTotal;
+
+        if (difference !== 0) {
+            if (!booking.transactions) booking.transactions = [];
+
+            booking.transactions.push({
+                type: difference > 0 ? 'charge' : 'discount',
+                day: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
+                particulars: 'Stay Amendment Adjustment',
+                description: `Stay amended from ${oldData.nights} to ${nights} nights at ₹${ratePerNight}/night. ${reason || ''}`,
+                amount: Math.abs(difference),
+                paymentMethod: null,
+                createdAt: new Date(),
+                user: 'System/Amend'
+            });
+
+            // Note: totalAmount will be recalculated in pre-save hook based on transactions
+            // But we can set it explicitly to be sure
+            booking.totalAmount = targetTotal;
+        }
+
+        // Add to audit trail
+        if (!booking.auditTrail) booking.auditTrail = [];
+        booking.auditTrail.push({
+            action: 'STAY_AMENDED',
+            description: reason || 'Booking details amended via Amend Stay feature',
+            performedBy: 'user',
+            performedAt: new Date(),
+            metadata: {
+                oldData,
+                newData: {
+                    checkInDate: booking.checkInDate,
+                    checkOutDate: booking.checkOutDate,
+                    nights: booking.numberOfNights,
+                    totalAmount: booking.totalAmount,
+                    ratePerNight: booking.pricePerNight,
+                    occupancy: { adults: booking.numberOfAdults, children: booking.numberOfChildren }
+                }
+            }
         });
 
         await booking.save();
 
-        // Update room statuses
-        if (oldRoomNumber) {
-            await Room.findOneAndUpdate({ roomNumber: oldRoomNumber }, { status: 'Available' });
-        }
-        await Room.findOneAndUpdate({ roomNumber: newRoomNumber }, { status: 'Occupied' });
-
-        res.status(200).json({ success: true, message: 'Room moved successfully', data: booking });
+        res.status(200).json({
+            success: true,
+            message: 'Stay amended successfully',
+            data: booking
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Error moving room', error: error.message });
+        console.error('Error in amendBookingStay:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error during amendment',
+            error: error.message
+        });
     }
 };
 
-// Exchange Room (Placeholder/Simplified)
+// Room Move with Financial Adjustment and Audit Trail
+exports.moveBookingRoom = async (req, res) => {
+    try {
+        const Booking = require('../models/bookingModel');
+        const Reservation = require('../models/reservationModel');
+        const Room = require('../models/roomModel');
+
+        const { id } = req.params;
+        const { newRoomId, newRoomNumber, reason, effectiveDate } = req.body;
+
+        // 1. Fetch record (Check both models)
+        let booking = await Booking.findById(id);
+        let isReservation = false;
+
+        if (!booking) {
+            booking = await Reservation.findById(id);
+            isReservation = true;
+        }
+
+        if (!booking) {
+            return res.status(404).json({ success: false, message: 'Reservation/Booking not found' });
+        }
+
+        // 2. Eligibility Check
+        const currentStatus = booking.status;
+        const inHouseStatuses = ['Checked-in', 'IN_HOUSE'];
+        if (!inHouseStatuses.includes(currentStatus)) {
+            return res.status(400).json({
+                success: false,
+                message: `Room move is only allowed for in-house guests. Current status: ${currentStatus}`
+            });
+        }
+
+        // 3. New Room Validation
+        const newRoom = await Room.findById(newRoomId);
+        if (!newRoom) {
+            return res.status(404).json({ success: false, message: 'Target room not found' });
+        }
+
+        if (newRoom.status !== 'Available') {
+            return res.status(400).json({
+                success: false,
+                message: `Room ${newRoom.roomNumber} is currently ${newRoom.status}. Please select an Available room.`
+            });
+        }
+
+        const oldRoomNumber = booking.roomNumber;
+        const oldPrice = booking.pricePerNight || (booking.amount / booking.nights) || 0;
+        const newPrice = newRoom.price || 0;
+
+        // 4. Calculate Financial Adjustment
+        // We adjust for remaining nights from effective date to checkout
+        const checkOutDate = new Date(booking.checkOutDate);
+        const moveDate = effectiveDate === 'Today' ? new Date() : new Date(effectiveDate);
+        moveDate.setHours(0, 0, 0, 0);
+        checkOutDate.setHours(0, 0, 0, 0);
+
+        const remainingNights = Math.max(0, Math.ceil((checkOutDate - moveDate) / (1000 * 60 * 60 * 24)));
+        const rateDiff = newPrice - oldPrice;
+        const totalAdjustment = rateDiff * remainingNights;
+
+        // 5. Update Record
+        const oldData = {
+            roomNumber: booking.roomNumber,
+            roomType: booking.roomType || (booking.rooms?.[0]?.categoryId),
+            pricePerNight: oldPrice
+        };
+
+        booking.roomNumber = newRoom.roomNumber;
+        booking.roomType = newRoom.roomType;
+        if (!isReservation) {
+            booking.pricePerNight = newPrice;
+        }
+
+        // 6. Record Transaction & Audit
+        if (!isReservation && totalAdjustment !== 0) {
+            if (!booking.transactions) booking.transactions = [];
+            booking.transactions.push({
+                type: totalAdjustment > 0 ? 'charge' : 'discount',
+                day: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
+                particulars: 'Room Move Adjustment',
+                description: `Moved from ${oldRoomNumber} to ${newRoom.roomNumber}. Rate diff: ₹${rateDiff}/night for ${remainingNights} remaining nights.`,
+                amount: Math.abs(totalAdjustment),
+                user: req.body.movedBy || 'System'
+            });
+        }
+
+        if (!booking.auditTrail) booking.auditTrail = [];
+        booking.auditTrail.push({
+            action: 'ROOM_MOVED',
+            description: `Room move from ${oldRoomNumber} to ${newRoom.roomNumber}. Reason: ${reason}`,
+            performedBy: req.body.movedBy || 'User',
+            performedAt: new Date(),
+            metadata: {
+                oldRoom: oldData,
+                newRoom: {
+                    roomNumber: newRoom.roomNumber,
+                    roomType: newRoom.roomType,
+                    pricePerNight: newPrice
+                },
+                reason,
+                adjustment: totalAdjustment
+            }
+        });
+
+        await booking.save();
+
+        // 7. Update Physical Room Statuses
+        if (oldRoomNumber) {
+            await Room.findOneAndUpdate({ roomNumber: oldRoomNumber }, { status: 'Available' });
+        }
+        await Room.findOneAndUpdate({ roomNumber: newRoom.roomNumber }, { status: 'Occupied' });
+
+        res.status(200).json({
+            success: true,
+            message: `Room moved successfully to ${newRoom.roomNumber}. ${totalAdjustment !== 0 ? `Financial adjustment of ₹${Math.abs(totalAdjustment)} applied.` : ''}`,
+            data: booking
+        });
+
+    } catch (error) {
+        console.error('[ERROR] moveBookingRoom:', error);
+        res.status(500).json({ success: false, message: 'Internal server error during room move', error: error.message });
+    }
+};
+
+// Room Exchange with Financial Recalculation
+// Room Exchange with Financial Recalculation
 exports.exchangeBookingRoom = async (req, res) => {
     try {
-        // Exchange logic is complex, swapping bookings between rooms
-        // We'll mock success as specific logic depends on second room selection which form might not facilitate fully yet
-        res.status(200).json({ success: true, message: 'Room exchange processed (simulated)' });
+        const Booking = require('../models/bookingModel');
+        const Reservation = require('../models/reservationModel');
+        const Room = require('../models/roomModel');
+
+        const { id } = req.params;
+        const { newRoomId, reason, effectiveDate } = req.body;
+
+        // 1. Fetch Reservation/Booking
+        let booking = await Booking.findById(id);
+        let isReservation = false;
+
+        if (!booking) {
+            booking = await Reservation.findById(id);
+            isReservation = true;
+        }
+
+        if (!booking) {
+            return res.status(404).json({ success: false, message: 'Stay record not found' });
+        }
+
+        // 2. Validate Reservation Status (must be IN_HOUSE)
+        const currentStatus = booking.status;
+        const validStatuses = ['Checked-in', 'IN_HOUSE'];
+        if (!validStatuses.includes(currentStatus)) {
+            return res.status(400).json({
+                success: false,
+                message: `Room exchange is only allowed for Checked-in guests. Current status: ${currentStatus}`
+            });
+        }
+
+        // 3. Room Swap Validation
+        if (booking.roomNumber === req.body.newRoomNumber) { // Check if same room
+            return res.status(400).json({ success: false, message: 'Cannot exchange to the same room.' });
+        }
+
+        const newRoom = await Room.findById(newRoomId);
+        if (!newRoom) {
+            return res.status(404).json({ success: false, message: 'Target room not found' });
+        }
+
+        if (newRoom.status !== 'Available') {
+            return res.status(400).json({ success: false, message: `Room ${newRoom.roomNumber} is not Available.` });
+        }
+
+        // 4. Calculation Logic
+        const checkOutDate = new Date(booking.checkOutDate);
+        const moveDate = new Date(effectiveDate || new Date());
+        moveDate.setHours(0, 0, 0, 0);
+        checkOutDate.setHours(0, 0, 0, 0);
+
+        if (moveDate >= checkOutDate) {
+            return res.status(400).json({ success: false, message: 'Effective date must be before checkout date.' });
+        }
+
+        const remainingNights = Math.max(0, Math.ceil((checkOutDate - moveDate) / (1000 * 60 * 60 * 24)));
+        const oldPrice = booking.pricePerNight || (isReservation ? (booking.amount / (booking.nights || 1)) : 0) || 0;
+        const newPrice = newRoom.price || 0;
+
+        const rateDiffPerNight = newPrice - oldPrice;
+        const totalAdjustment = rateDiffPerNight * remainingNights;
+
+        const oldRoomNumber = booking.roomNumber;
+
+        // 5. Update Main Record
+        booking.roomNumber = newRoom.roomNumber;
+        booking.roomType = newRoom.roomType;
+
+        if (booking.pricePerNight !== undefined) {
+            booking.pricePerNight = newPrice;
+        }
+
+        // 6. Financial Transaction (For Bookings primarily)
+        if (!isReservation && totalAdjustment !== 0) {
+            if (!booking.transactions) booking.transactions = [];
+
+            const type = totalAdjustment > 0 ? 'charge' : 'discount';
+            const description = `Room Exchange: ${oldRoomNumber} ⇄ ${newRoom.roomNumber}. ${remainingNights} nights difference. Reason: ${reason}`;
+
+            booking.transactions.push({
+                type: type,
+                day: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
+                particulars: `Room Exchange Adjustment`,
+                description: description,
+                amount: Math.abs(totalAdjustment),
+                user: req.body.performedBy || 'Staff'
+            });
+            // Note: Booking model pre-save hook will recalculate totalAmount/balance automatically
+        } else if (isReservation) {
+            // For simple Reservation model without transactions
+            if (booking.amount !== undefined) booking.amount += totalAdjustment;
+            if (booking.balance !== undefined) booking.balance += totalAdjustment;
+        }
+
+        // 7. Audit Trail
+        if (!booking.auditTrail) booking.auditTrail = [];
+        booking.auditTrail.push({
+            action: 'ROOM_EXCHANGE',
+            description: `Exchanged room ${oldRoomNumber} for ${newRoom.roomNumber}. Reason: ${reason}`,
+            performedBy: req.body.performedBy || 'Staff',
+            performedAt: new Date(),
+            metadata: {
+                oldRoomNumber,
+                newRoomNumber: newRoom.roomNumber,
+                rateDiffPerNight,
+                totalAdjustment,
+                remainingNights
+            }
+        });
+
+        await booking.save();
+
+        // 8. Physical Room Status Sync
+        if (oldRoomNumber) {
+            await Room.findOneAndUpdate({ roomNumber: oldRoomNumber }, { status: 'Available' });
+        }
+        await Room.findOneAndUpdate({ roomNumber: newRoom.roomNumber }, { status: 'Occupied' });
+
+        res.status(200).json({
+            success: true,
+            message: `Room exchanged successfully to ${newRoom.roomNumber}. Adjustment of ₹${Math.abs(totalAdjustment)} applied.`,
+            data: booking
+        });
+
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Error exchanging room', error: error.message });
+        console.error('[ERROR] exchangeBookingRoom:', error);
+        res.status(500).json({ success: false, message: 'Exchange failed', error: error.message });
     }
 };
 
@@ -714,17 +1032,49 @@ exports.exchangeBookingRoom = async (req, res) => {
 exports.addBookingVisitor = async (req, res) => {
     try {
         const Booking = require('../models/bookingModel');
-        const booking = await Booking.findById(req.params.id);
-        if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+        const Reservation = require('../models/reservationModel');
+
+        let booking = await Booking.findById(req.params.id);
+        if (!booking) {
+            booking = await Reservation.findById(req.params.id);
+        }
+
+        if (!booking) return res.status(404).json({ success: false, message: 'Stay record not found' });
 
         const visitorData = req.body;
-        // Ensure visitors array exists in schema or flexible object
+
+        // Basic Validation
+        if (!visitorData.visitorName || !visitorData.mobileNumber || !visitorData.idProofNumber) {
+            return res.status(400).json({ success: false, message: 'Missing required visitor details (Name, Mobile, ID).' });
+        }
+
+        // Ensure visitors array exists
         if (!booking.visitors) booking.visitors = [];
+
+        // Add timestamp if not provided
+        if (!visitorData.inTime) visitorData.inTime = new Date();
+
         booking.visitors.push(visitorData);
 
+        // Add to audit trail if available
+        if (booking.auditTrail) {
+            booking.auditTrail.push({
+                action: 'ADD_VISITOR',
+                description: `Added visitor: ${visitorData.visitorName}`,
+                performedBy: 'Staff',
+                performedAt: new Date()
+            });
+        }
+
         await booking.save();
-        res.status(200).json({ success: true, message: 'Visitor added', data: booking });
+
+        res.status(200).json({
+            success: true,
+            message: 'Visitor added successfully',
+            data: booking
+        });
     } catch (error) {
+        console.error('Error adding visitor:', error);
         res.status(500).json({ success: false, message: 'Error adding visitor', error: error.message });
     }
 };

@@ -4,11 +4,16 @@ const guestMealOrderSchema = new mongoose.Schema({
     tableId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Table',
-        required: [true, 'Table ID is required']
+        required: false
+    },
+    roomId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Room',
+        required: false
     },
     tableNumber: {
         type: Number,
-        required: true
+        required: false
     },
     orderType: {
         type: String,

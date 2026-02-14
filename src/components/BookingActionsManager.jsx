@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Drawer from './Drawer';
+import Toast from './Toast';
 import CheckInForm from './forms/CheckInForm';
 import AddPaymentForm from './forms/AddPaymentForm';
 import AmendStayForm from './forms/AmendStayForm';
@@ -15,18 +16,29 @@ import PrintInvoiceForm from './forms/PrintInvoiceForm';
 import PrintGRCForm from './forms/PrintGRCForm';
 import PrintGRCAllForm from './forms/PrintGRCAllForm';
 import SendInvoiceForm from './forms/SendInvoiceForm';
+import AddVisitorDrawer from './visitors/AddVisitorDrawer';
+import { LayoutGrid } from 'lucide-react';
 import API_URL from '../config/api';
 
 const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [toast, setToast] = useState(null);
 
     const getActionTitle = () => {
+        if (actionType === 'exchange-room') {
+            return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <LayoutGrid size={20} strokeWidth={2.5} />
+                    <span>Exchange Room</span>
+                </div>
+            );
+        }
+
         const titles = {
             'check-in': '✓ Check-In Guest',
             'add-payment': '💳 Add Payment',
             'amend-stay': '📅 Amend Stay',
             'room-move': '🚪 Room Move',
-            'exchange-room': '🔄 Exchange Room',
             'add-visitor': '👤 Add / Show Visitor',
             'no-show': '❌ Mark No-Show',
             'void': '🗑️ Void Reservation',
@@ -67,10 +79,12 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
                     endpoint = `/api/bookings/add-payment/${booking._id}`;
                     break;
                 case 'amend-stay':
-                    endpoint = `/api/bookings/amend-stay/${booking._id}`;
+                    endpoint = `/api/reservations/amend/${booking._id}`;
+                    method = 'PUT';
                     break;
                 case 'room-move':
-                    endpoint = `/api/bookings/room-move/${booking._id}`;
+                    endpoint = `/api/reservations/${booking._id || booking.id}/room-move`;
+                    method = 'PUT';
                     break;
                 case 'exchange-room':
                     endpoint = `/api/bookings/room-exchange/${booking._id}`;
@@ -79,10 +93,17 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
                     endpoint = `/api/bookings/add-visitor/${booking._id}`;
                     break;
                 case 'no-show':
-                    endpoint = `/api/bookings/no-show/${booking._id}`;
+                    const nsId = booking._id || booking.id;
+                    if (!nsId) throw new Error("Booking ID not found");
+                    endpoint = `/api/reservations/${nsId}/no-show`;
+                    console.log(`[Frontend] Calling No-Show API: ${endpoint}`);
+                    method = 'PUT';
                     break;
                 case 'void':
-                    endpoint = `/api/bookings/void/${booking._id}`;
+                    const vId = booking._id || booking.id;
+                    if (!vId) throw new Error("Booking ID not found");
+                    endpoint = `/api/reservations/${vId}/void`;
+                    method = 'PUT';
                     break;
                 case 'cancel':
                     endpoint = `/api/bookings/cancel/${booking._id}`;
@@ -107,7 +128,15 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
             if (data.success) {
                 console.log("Response data for Check-In:", data);
                 if (actionType !== 'check-in') {
-                    alert(`✅ ${getActionTitle()} completed successfully!`);
+                    if (actionType === 'amend-stay') {
+                        setToast({ message: 'Stay amended successfully', type: 'success' });
+                    } else if (actionType === 'room-move') {
+                        setToast({ message: data.message || 'Room moved successfully', type: 'success' });
+                    } else if (actionType === 'exchange-room') {
+                        setToast({ message: data.message || 'Room exchanged successfully', type: 'success' });
+                    } else {
+                        alert(`✅ ${getActionTitle()} completed successfully!`);
+                    }
                 }
                 const updatedData = data.data || data.updatedReservation;
                 if (updatedData) {
@@ -116,7 +145,13 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
                 } else {
                     console.error("Updated reservation data missing in response!");
                 }
-                onClose(); // Close sidebar
+
+                // If it was toast-based, wait for toast before closing
+                if (['amend-stay', 'room-move', 'exchange-room'].includes(actionType)) {
+                    setTimeout(() => onClose(), 2000);
+                } else {
+                    onClose(); // Close sidebar
+                }
             } else {
                 console.error("Action failed with message:", data.message);
                 throw new Error(data.message || 'Action failed');
@@ -125,7 +160,11 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
         } catch (error) {
             console.error(`Error performing ${actionType}:`, error);
             if (actionType !== 'check-in') {
-                alert(`❌ Error: ${error.message}`);
+                if (['amend-stay', 'room-move', 'exchange-room'].includes(actionType)) {
+                    setToast({ message: error.message, type: 'error' });
+                } else {
+                    alert(`❌ Error: ${error.message}`);
+                }
             } else {
                 if (error.response?.data?.message) {
                     console.error("Server error message:", error.response.data.message);
@@ -183,15 +222,40 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
         }
     };
 
+
+
+    if (actionType === 'add-visitor' && booking) {
+        return (
+            <AddVisitorDrawer
+                isOpen={isOpen}
+                onClose={onClose}
+                reservationId={booking._id || booking.id}
+                booking={booking}
+                onVisitorAdded={() => {
+                    if (onSuccess) onSuccess(booking);
+                }}
+            />
+        );
+    }
+
     return (
-        <Drawer
-            isOpen={isOpen}
-            onClose={onClose}
-            title={getActionTitle()}
-            height="90vh"
-        >
-            {renderForm()}
-        </Drawer>
+        <>
+            <Drawer
+                isOpen={isOpen}
+                onClose={onClose}
+                title={getActionTitle()}
+                height="90vh"
+            >
+                {renderForm()}
+            </Drawer>
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
+        </>
     );
 };
 
