@@ -1,9 +1,69 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './GuestMealService.css';
 import API_URL from '../../config/api';
+import './GuestMealService.css';
+
+// MenuItem helper component for premium feel
+const MenuItem = ({ icon, label, onClick, color = '#111827', weight = '500' }) => (
+    <div
+        onMouseDown={onClick}
+        className="menu-item-hover"
+        style={{
+            padding: '10px 12px',
+            display: 'flex',
+            gap: '12px',
+            alignItems: 'center',
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            borderRadius: '10px',
+            color: color,
+            fontWeight: weight,
+            transition: 'background 0.2s ease'
+        }}
+    >
+        <span style={{ fontSize: '1.1rem' }}>{icon}</span>
+        {label}
+    </div>
+);
 
 const GuestMealService = () => {
+    // Add internal animation styles
+    useEffect(() => {
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes fadeInScale {
+                from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+                to { opacity: 1; transform: scale(1) translateY(0); }
+            }
+            .menu-item-hover:hover {
+                background-color: #f3f4f6;
+            }
+            @keyframes blink {
+                0% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.5; transform: scale(1.2); }
+                100% { opacity: 1; transform: scale(1); }
+            }
+            .blink-dot {
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                display: inline-block;
+                position: absolute;
+                top: 15px;
+                right: 50px;
+                animation: blink 1.5s infinite ease-in-out;
+                box-shadow: 0 0 8px rgba(0,0,0,0.2);
+                border: 2px solid white;
+            }
+            .blink-yellow { background-color: #fca5a5; box-shadow: 0 0 10px #fca5a5; }   /* Pending - Reddish/Yellow per user request? User said Pending -> Yellow blink. Preparing -> Red blink. */
+            /* Wait, user said Pending -> Yellow, Preparing -> Red. Let's fix colors. */
+            .blink-yellow-real { background-color: #fbbf24; box-shadow: 0 0 10px #fbbf24; }
+            .blink-red-real { background-color: #ef4444; box-shadow: 0 0 10px #ef4444; }
+            .blink-green-real { background-color: #22c55e; box-shadow: 0 0 10px #22c55e; }
+        `;
+        document.head.appendChild(style);
+        return () => document.head.removeChild(style);
+    }, []);
     // --- STATE MANAGEMENT ---
     const navigate = useNavigate();
 
@@ -78,7 +138,9 @@ const GuestMealService = () => {
         available: 0,
         running: 0,
         billed: 0,
-        reserved: 0
+        reserved: 0,
+        revenue: 0,
+        upcomingCount: 0
     });
 
     // Fetch tables on mount
@@ -99,11 +161,83 @@ const GuestMealService = () => {
                     const merged = [...new Set([...prev, ...types])];
                     return merged;
                 });
+            } else {
+                console.error("Failed to fetch tables", data);
             }
         } catch (error) {
             console.error('Error fetching tables:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // --- TOAST NOTIFICATION ---
+    const [toast, setToast] = useState({ show: false, message: '', subtext: '' });
+    const showToast = (message, subtext = '') => {
+        setToast({ show: true, message, subtext });
+        setTimeout(() => setToast({ show: false, message: '', subtext: '' }), 2000);
+    };
+
+    const handleSendToCashier = async (e, table) => {
+        e.stopPropagation();
+        if (!table.currentOrderId) return;
+
+        // Prevent sending if already sent (pending payment/billed)
+        if (table.status === 'Billed' || table.orderStatus === 'Pending Payment') {
+            showToast('Already Sent', 'Bill is already with cashier');
+            return;
+        }
+
+        try {
+            // Use table.currentOrderId._id if populated, or table.currentOrderId if string (though likely populated based on previous context)
+            const orderId = table.currentOrderId._id || table.currentOrderId;
+
+            const response = await fetch(`${API_URL}/api/guest-meal/orders/${orderId}/send-to-cashier`, {
+                method: 'POST',
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                showToast('Send Successful', 'Bill sent to cashier');
+                fetchTables(); // Refresh UI
+
+                // Immediately navigate to Cashier Section
+                navigate('/admin/dashboard', {
+                    state: { activeMenu: 'cashier-section', refresh: true }
+                });
+            } else {
+                alert('Failed to send: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error sending to cashier:', error);
+            alert('Error sending to cashier');
+        }
+    };
+
+    // Periodic stats refresh
+    useEffect(() => {
+        const interval = setInterval(fetchStats, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const fetchStats = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/guest-meal/analytics/dashboard`);
+            const data = await response.json();
+            if (data.success) {
+                const s = data.data;
+                setStats({
+                    total: s.totalTables || 0,
+                    available: s.availableTables || 0,
+                    running: s.runningTables || 0,
+                    billed: s.billedTables || 0,
+                    revenue: s.totalRevenue || 0,
+                    upcomingCount: s.totalOrders || 0, // Using total orders today as proxy or similar
+                    reserved: s.billedTables || 0 // Assuming reserved might be mapped elsewhere or just keeping billed for now
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching stats:', error);
         }
     };
 
@@ -281,6 +415,7 @@ const GuestMealService = () => {
         // Create new table objects
         const newTables = splitSubTables.map((sub, index) => ({
             tableId: `SPLIT-${Date.now()}-${index}`,
+            parentTableId: originalTable._id || originalTable.tableId, // Store parent reference
             tableName: sub.name,
             status: 'Running',
             amount: Math.floor(Math.random() * 1000) + 100, // Random amount demo
@@ -520,6 +655,28 @@ const GuestMealService = () => {
         if (!closeTableData) return;
 
         try {
+            // Handle Split Tables: If it's a split table, we need to close the PARENT table in the DB
+            // and then refresh the UI to show the parent table again instead of its splits.
+            if (String(closeTableData.tableId).startsWith('SPLIT-') && closeTableData.parentTableId) {
+                const response = await fetch(`${API_URL}/api/guest-meal/tables/${closeTableData.parentTableId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: 'Available',
+                        guests: 0,
+                        amount: 0,
+                        duration: 0,
+                        reservation: null
+                    })
+                });
+
+                if (response.ok) {
+                    fetchTables();
+                    setShowCloseModal(false);
+                    return;
+                }
+            }
+
             // If the table is merged, we should release it back to its original state
             if (closeTableData.mergedTableIds && closeTableData.mergedTableIds.length > 0) {
                 await fetch(`${API_URL}/api/guest-meal/tables/${closeTableData.tableId}/release`, {
@@ -673,13 +830,31 @@ const GuestMealService = () => {
         setFilteredTables(filtered);
 
         // Update stats
-        setStats({
+        const todayStr = new Date().toISOString().split('T')[0];
+        const upcomingCount = tables.reduce((count, table) => {
+            const todayRes = (table.reservations || []).filter(r => r.date === todayStr);
+            // Count reservations that haven't happened yet (start time > now)
+            const now = new Date();
+            const currentVal = now.getHours() * 60 + now.getMinutes();
+            return count + todayRes.filter(r => {
+                const [h, m] = r.startTime.split(':').map(Number);
+                return (h * 60 + m) > currentVal;
+            }).length;
+        }, 0);
+
+        // Combined Revenue: Backend (Closed) + Current Active Table Total
+        const activeRevenue = tables.reduce((acc, t) => acc + (t.amount || 0), 0);
+
+        setStats(prev => ({
+            ...prev,
             total: tables.length,
             available: tables.filter(t => t.status === 'Available').length,
             running: tables.filter(t => t.status === 'Running').length,
             billed: tables.filter(t => t.status === 'Billed').length,
-            reserved: tables.filter(t => t.status === 'Reserved').length
-        });
+            reserved: tables.filter(t => t.status === 'Reserved').length,
+            upcomingCount: upcomingCount,
+            revenue: prev.revenue // This will be updated by fetchStats, but we can combine if needed
+        }));
     }, [statusFilter, typeFilter, searchQuery, tables]);
 
     const formatDuration = (minutes) => {
@@ -846,11 +1021,11 @@ const GuestMealService = () => {
                     </div>
                     <div style={{ background: '#fff7ed', padding: '20px', borderRadius: '12px', border: '1px solid #ffedd5' }}>
                         <div style={{ fontSize: '0.875rem', color: '#9a3412', fontWeight: '600' }}>Upcoming Reservations</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#111827', marginTop: '8px' }}>{stats.reserved}</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#111827', marginTop: '8px' }}>{stats.upcomingCount}</div>
                     </div>
                     <div style={{ background: '#eff6ff', padding: '20px', borderRadius: '12px', border: '1px solid #dbeafe' }}>
                         <div style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '600' }}>Revenue Today</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#111827', marginTop: '8px' }}>₹{tables.reduce((acc, t) => acc + (t.amount || 0), 0)}</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#111827', marginTop: '8px' }}>₹{Math.floor(stats.revenue + tables.reduce((acc, t) => acc + (t.amount || 0), 0))}</div>
                     </div>
                 </div>
             </div>
@@ -914,6 +1089,7 @@ const GuestMealService = () => {
                                 formatDuration={formatDuration}
                                 onMenuAction={handleMenuAction}
                                 onCardClick={() => handleTableClick(table)}
+                                onSendToCashier={handleSendToCashier}
                             />
                         ))}
                     </div>
@@ -1312,69 +1488,74 @@ const GuestMealService = () => {
             {
                 showMergeModal && mergeSourceTable && (
                     <div className="modal-overlay">
-                        <div className="modal-content" style={{ width: '450px', padding: '0', overflow: 'hidden' }}>
+                        <div className="modal-content" style={{ width: '500px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
                             <div className="modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
                                 <h2 style={{ fontSize: '1.25rem', fontWeight: '800' }}>Merge Multiple Tables</h2>
                                 <button className="close-btn" onClick={() => setShowMergeModal(false)} style={{ fontSize: '1.5rem', color: '#9ca3af' }}>×</button>
                             </div>
 
-                            <div style={{ padding: '24px' }}>
-                                <div style={{ marginBottom: '20px', padding: '12px', background: '#fef2f2', borderRadius: '12px', border: '1px solid #fee2e2' }}>
+                            <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+                                <div style={{ marginBottom: '20px', padding: '16px', background: '#fef2f2', borderRadius: '12px', border: '1px solid #fee2e2' }}>
                                     <div style={{ fontSize: '0.9rem', color: '#991b1b', fontWeight: '600' }}>Merging into:</div>
-                                    <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#dc2626' }}>{mergeSourceTable.tableName.replace('_MERGED_', '')}</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#dc2626' }}>{mergeSourceTable.tableName.replace('_MERGED_', '')}</div>
                                 </div>
 
                                 <label style={{ display: 'block', marginBottom: '12px', fontSize: '1rem', fontWeight: '700', color: '#374151' }}>
                                     Select Tables to Merge:
                                 </label>
 
-                                <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '8px' }}>
+                                <div style={{ border: '1px solid #e5e7eb', borderRadius: '12px', padding: '8px', marginBottom: '20px' }}>
                                     {tables
                                         .filter(t => t.tableId !== mergeSourceTable.tableId && !t.tableName.startsWith('_MERGED_'))
-                                        .map(t => (
-                                            <div
-                                                key={t.tableId}
-                                                onClick={() => {
-                                                    setMergeSelectedTargetIds(prev =>
-                                                        prev.includes(t.tableId)
-                                                            ? prev.filter(id => id !== t.tableId)
-                                                            : [...prev, t.tableId]
-                                                    );
-                                                }}
-                                                style={{
-                                                    display: 'flex', alignItems: 'center', gap: '12px',
-                                                    padding: '12px', borderRadius: '8px', cursor: 'pointer',
-                                                    background: mergeSelectedTargetIds.includes(t.tableId) ? '#fff1f2' : 'transparent',
-                                                    transition: 'all 0.2s ease',
-                                                    marginBottom: '4px'
-                                                }}
-                                            >
-                                                <div style={{
-                                                    width: '20px', height: '20px', borderRadius: '4px',
-                                                    border: `2px solid ${mergeSelectedTargetIds.includes(t.tableId) ? '#dc2626' : '#d1d5db'}`,
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    background: mergeSelectedTargetIds.includes(t.tableId) ? '#dc2626' : '#fff'
-                                                }}>
-                                                    {mergeSelectedTargetIds.includes(t.tableId) && <span style={{ color: '#fff', fontSize: '0.8rem' }}>✓</span>}
+                                        .map(t => {
+                                            const isSelected = mergeSelectedTargetIds.includes(t.tableId);
+                                            return (
+                                                <div
+                                                    key={t.tableId}
+                                                    onClick={() => {
+                                                        setMergeSelectedTargetIds(prev =>
+                                                            prev.includes(t.tableId)
+                                                                ? prev.filter(id => id !== t.tableId)
+                                                                : [...prev, t.tableId]
+                                                        );
+                                                    }}
+                                                    style={{
+                                                        display: 'flex', alignItems: 'center', gap: '12px',
+                                                        padding: '12px', borderRadius: '8px', cursor: 'pointer',
+                                                        background: isSelected ? '#fff1f2' : 'transparent',
+                                                        border: isSelected ? '1px solid #fecaca' : '1px solid transparent',
+                                                        transition: 'all 0.2s ease',
+                                                        marginBottom: '4px'
+                                                    }}
+                                                >
+                                                    <div style={{
+                                                        width: '24px', height: '24px', borderRadius: '6px',
+                                                        border: `2px solid ${isSelected ? '#dc2626' : '#d1d5db'}`,
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        background: isSelected ? '#dc2626' : '#fff',
+                                                        transition: 'all 0.2s ease'
+                                                    }}>
+                                                        {isSelected && <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 'bold' }}>✓</span>}
+                                                    </div>
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ fontWeight: '700', color: '#111827', fontSize: '1rem' }}>{t.tableName}</div>
+                                                        <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>Capacity: {t.capacity} | Status: {t.status}</div>
+                                                    </div>
                                                 </div>
-                                                <div style={{ flex: 1 }}>
-                                                    <div style={{ fontWeight: '700', color: '#111827' }}>{t.tableName}</div>
-                                                    <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Capacity: {t.capacity} | Status: {t.status}</div>
-                                                </div>
-                                            </div>
-                                        ))
+                                            );
+                                        })
                                     }
                                 </div>
 
                                 {mergeSelectedTargetIds.length > 0 && (
-                                    <div style={{ marginTop: '20px', padding: '16px', background: '#f9fafb', borderRadius: '12px' }}>
+                                    <div style={{ padding: '16px', background: '#f9fafb', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
                                         <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '4px' }}>Resulting Table Name:</div>
-                                        <div style={{ fontWeight: '800', color: '#111827' }}>
+                                        <div style={{ fontWeight: '800', color: '#111827', fontSize: '1.1rem' }}>
                                             {[mergeSourceTable, ...tables.filter(t => mergeSelectedTargetIds.includes(t.tableId))].map(t => t.tableName.replace('_MERGED_', '')).join(', ')}
                                         </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px' }}>
-                                            <span style={{ color: '#6b7280' }}>Total Capacity:</span>
-                                            <span style={{ fontWeight: '800', color: '#dc2626' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', alignItems: 'center', borderTop: '1px solid #e5e7eb', paddingTop: '12px' }}>
+                                            <span style={{ color: '#6b7280', fontWeight: '600' }}>Total Capacity:</span>
+                                            <span style={{ fontWeight: '800', color: '#dc2626', fontSize: '1.2rem' }}>
                                                 {mergeSourceTable.capacity + tables.filter(t => mergeSelectedTargetIds.includes(t.tableId)).reduce((sum, t) => sum + (t.capacity || 4), 0)} Persons
                                             </span>
                                         </div>
@@ -1382,11 +1563,15 @@ const GuestMealService = () => {
                                 )}
                             </div>
 
-                            <div className="modal-footer" style={{ padding: '16px 24px', background: '#f9fafb', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                                <button className="btn btn-secondary" onClick={() => setShowMergeModal(false)}>Cancel</button>
+                            <div className="modal-footer" style={{ padding: '20px 24px', background: '#f9fafb', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                                <button className="btn btn-secondary" onClick={() => setShowMergeModal(false)} style={{ padding: '12px 24px', fontSize: '0.95rem' }}>Cancel</button>
                                 <button
                                     className="btn btn-primary"
-                                    style={{ background: '#dc2626', opacity: mergeSelectedTargetIds.length === 0 ? 0.5 : 1 }}
+                                    style={{
+                                        background: '#dc2626',
+                                        opacity: mergeSelectedTargetIds.length === 0 ? 0.5 : 1,
+                                        padding: '12px 24px', fontSize: '0.95rem', fontWeight: '700'
+                                    }}
                                     disabled={mergeSelectedTargetIds.length === 0}
                                     onClick={handleMergeSubmit}
                                 >
@@ -1482,34 +1667,104 @@ const GuestMealService = () => {
             {
                 showVerifyModal && (
                     <div className="modal-overlay">
-                        <div className="modal-content" style={{ width: '400px', padding: '0', overflow: 'hidden' }}>
+                        <div className="modal-content" style={{ width: '400px', padding: '0', borderRadius: '16px', border: 'none' }}>
                             <div className="modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: '800' }}>Verify Guest</h2>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: '800' }}>Verify Reservation</h2>
                                 <button className="close-btn" onClick={() => setShowVerifyModal(false)}>×</button>
                             </div>
                             <div style={{ padding: '24px' }}>
-                                <div className="form-group" style={{ marginBottom: '20px' }}>
-                                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#4b5563' }}>Registered Phone Number:</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        value={verifyPhoneInput}
-                                        onChange={(e) => setVerifyPhoneInput(e.target.value)}
-                                        placeholder="e.g. 9876543210"
-                                        style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                                        autoFocus
-                                    />
-                                    <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '8px' }}>Please double check the contact number listed for this reservation.</p>
+                                <div className="form-group">
+                                    <label style={{ display: 'block', marginBottom: '12px', fontWeight: '700', color: '#111827', fontSize: '0.95rem' }}>Enter Linked Phone Number</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            type="tel"
+                                            className="form-input"
+                                            placeholder="e.g. 9876543210"
+                                            value={verifyPhoneInput}
+                                            onChange={(e) => setVerifyPhoneInput(e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '14px 16px',
+                                                border: '2px solid #e5e7eb',
+                                                borderRadius: '12px',
+                                                fontSize: '1rem',
+                                                transition: 'border-color 0.2s',
+                                                outline: 'none'
+                                            }}
+                                            autoFocus
+                                        />
+                                        <span style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', opacity: '0.5' }}>🔍</span>
+                                    </div>
                                 </div>
+
+                                {/* Live Reservation Search Result */}
+                                {(() => {
+                                    const table = tables.find(t => t.tableId === verifyTableId);
+                                    if (!table || !verifyPhoneInput || verifyPhoneInput.length < 3) return null;
+
+                                    const match = table.reservations?.find(r => r.phone?.includes(verifyPhoneInput) || verifyPhoneInput.includes(r.phone));
+
+                                    if (match) {
+                                        return (
+                                            <div style={{ marginTop: '20px', padding: '16px', background: '#f0fdf4', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
+                                                <div style={{ color: '#166534', fontWeight: '800', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.025em', marginBottom: '8px' }}>Matched Reservation Found</div>
+                                                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#111827' }}>{match.name}</div>
+                                                <div style={{ display: 'flex', gap: '12px', marginTop: '8px', fontSize: '0.9rem', color: '#4b5563' }}>
+                                                    <span>📅 {match.date}</span>
+                                                    <span>⏰ {match.startTime} - {match.endTime}</span>
+                                                </div>
+                                                <div style={{ marginTop: '4px', fontSize: '0.85rem', color: '#6b7280' }}>
+                                                    Guests: <strong>{match.guests} Persons</strong>
+                                                </div>
+                                            </div>
+                                        );
+                                    } else if (verifyPhoneInput.length >= 10) {
+                                        return (
+                                            <div style={{ marginTop: '20px', padding: '12px', background: '#fef2f2', borderRadius: '12px', border: '1px solid #fecaca', color: '#991b1b', fontSize: '0.9rem', textAlign: 'center' }}>
+                                                No reservation found for this number.
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
                             </div>
                             <div className="modal-footer" style={{ padding: '16px 24px', background: '#f9fafb', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                                <button className="btn btn-secondary" onClick={() => setShowVerifyModal(false)}>Cancel</button>
-                                <button className="btn btn-primary" style={{ background: '#dc2626' }} onClick={handleVerifyUser}>Verify & Open Table</button>
+                                <button className="btn btn-secondary" style={{ borderRadius: '10px', fontWeight: '600' }} onClick={() => setShowVerifyModal(false)}>Cancel</button>
+                                <button
+                                    className="btn btn-primary"
+                                    style={{
+                                        background: '#dc2626',
+                                        borderRadius: '10px',
+                                        fontWeight: '700',
+                                        opacity: tables.find(t => t.tableId === verifyTableId)?.reservations?.some(r => r.phone === verifyPhoneInput) ? 1 : 0.5
+                                    }}
+                                    onClick={handleVerifyUser}
+                                    disabled={!tables.find(t => t.tableId === verifyTableId)?.reservations?.some(r => r.phone === verifyPhoneInput)}
+                                >
+                                    Verify & Open Table
+                                </button>
                             </div>
                         </div>
                     </div>
                 )
             }
+
+            {/* Toast Notification */}
+            {toast.show && (
+                <div style={{
+                    position: 'fixed', top: '40px', left: '50%', transform: 'translateX(-50%)',
+                    background: '#10b981', color: 'white', padding: '12px 24px', borderRadius: '50px',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                    zIndex: 9999, display: 'flex', alignItems: 'center', gap: '8px',
+                    animation: 'fadeInScale 0.3s ease-out'
+                }}>
+                    <span style={{ fontSize: '1.2rem' }}>✅</span>
+                    <div>
+                        <div style={{ fontWeight: '700', fontSize: '0.95rem' }}>{toast.message}</div>
+                        {toast.subtext && <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>{toast.subtext}</div>}
+                    </div>
+                </div>
+            )}
 
             {/* Close Table Modal */}
             {
@@ -1559,7 +1814,7 @@ const GuestMealService = () => {
     );
 };
 
-const TableCard = ({ table, formatDuration, onMenuAction, onCardClick }) => {
+const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToCashier }) => {
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef(null);
 
@@ -1632,21 +1887,66 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick }) => {
 
     const styles = getStatusStyles(table.status);
 
+    // Live Timer for Running/Billed tables
+    const [elapsedTime, setElapsedTime] = useState(table.duration || 0);
+
+    useEffect(() => {
+        let interval;
+        if (table.status === 'Running' || table.status === 'Billed') {
+            // Calculate initial elapsed time based on orderStartTime
+            if (table.orderStartTime) {
+                const startTime = new Date(table.orderStartTime).getTime();
+                const now = new Date().getTime();
+                setElapsedTime(Math.floor((now - startTime) / 1000));
+            }
+
+            interval = setInterval(() => {
+                if (table.orderStartTime) {
+                    const startTime = new Date(table.orderStartTime).getTime();
+                    const now = new Date().getTime();
+                    setElapsedTime(Math.floor((now - startTime) / 1000));
+                } else {
+                    setElapsedTime(prev => prev + 1);
+                }
+            }, 1000);
+        } else {
+            setElapsedTime(0);
+        }
+        return () => clearInterval(interval);
+    }, [table.status, table.orderStartTime]);
+
+    // Format duration helper (local scope or use prop if suitable, but local is better for live update)
+    const formatLiveDuration = (seconds) => {
+        if (!seconds) return '0m';
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        // const s = seconds % 60; // User probably cares about minutes mostly, but seconds show liveness. Let's show mins for compactness or H:M
+        if (h > 0) return `${h}h ${m}m`;
+        return `${m}m`;
+    };
+
     return (
         <div
             className={`table-item ${table.status.toLowerCase()}`}
             onClick={onCardClick}
             style={{
-                background: styles.bg,
+                background: '#f0fdf4', // Light green background as requested
                 border: `1px solid ${styles.border}`,
                 borderRadius: '16px',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+                boxShadow: showMenu ? '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' : '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
                 padding: '16px',
                 position: 'relative',
-                transition: 'all 0.2s ease',
-                cursor: 'pointer'
+                zIndex: showMenu ? 50 : 1, // Elevate card when menu is open
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                cursor: 'pointer',
+                transform: showMenu ? 'translateY(-2px)' : 'none'
             }}
         >
+            {/* Blinking Status Dot */}
+            {table.orderStatus === 'Pending' && <div className="blink-dot blink-yellow-real" title="Order Pending"></div>}
+            {(table.orderStatus === 'Preparing' || table.orderStatus === 'Ready') && <div className="blink-dot blink-red-real" title="Preparing"></div>}
+            {table.orderStatus === 'Served' && <div className="blink-dot blink-green-real" title="Ready / Served"></div>}
+
             <div className="table-topbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span className="table-id" style={{ fontWeight: '800', fontSize: '1.3rem', color: '#111827' }}>{table.tableName}</span>
@@ -1671,67 +1971,49 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick }) => {
                     </div>
                     {showMenu && (
                         <div className="context-menu" onMouseDown={(e) => e.stopPropagation()} style={{
-                            position: 'absolute', top: '100%', right: '0', zIndex: 100,
-                            background: '#fff', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                            border: '1px solid #f3f4f6', minWidth: '160px', overflow: 'hidden'
+                            position: 'absolute', top: 'calc(100% + 5px)', right: '0', zIndex: 100,
+                            background: '#fff', borderRadius: '14px',
+                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                            border: '1px solid #f3f4f6', minWidth: '180px', overflow: 'hidden',
+                            animation: 'fadeInScale 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
                         }}>
-                            <div className="menu-item" onMouseDown={(e) => handleAction('Reserve Table', e)} style={{ padding: '10px 16px', display: 'flex', gap: '10px', alignItems: 'center', fontSize: '0.9rem', cursor: 'pointer' }}>
-                                <span>📅</span> Reserve Table
-                            </div>
-                            <div className="menu-item" onMouseDown={(e) => handleAction('Reservation List', e)} style={{ padding: '10px 16px', display: 'flex', gap: '10px', alignItems: 'center', fontSize: '0.9rem', cursor: 'pointer' }}>
-                                <span>📝</span> Reservation List
+                            <div className="menu-group" style={{ padding: '6px' }}>
+                                <MenuItem icon="📅" label="Reserve Table" onClick={(e) => handleAction('Reserve Table', e)} />
+                                <MenuItem icon="📝" label="Reservation List" onClick={(e) => handleAction('Reservation List', e)} />
                             </div>
 
-                            <div style={{ height: '1px', background: '#f3f4f6' }}></div>
+                            <div style={{ height: '1px', background: '#f3f4f6', margin: '0 6px' }}></div>
 
-                            {(table.status === 'Available' || table.status === 'Reserved') && (
-                                <>
-                                    <div className="menu-item" onMouseDown={(e) => handleAction('Walk-in', e)} style={{ padding: '10px 16px', display: 'flex', gap: '10px', alignItems: 'center', fontSize: '0.9rem', cursor: 'pointer', color: '#10b981', fontWeight: '600' }}>
-                                        <span>🚶</span> Walk-in
-                                    </div>
-                                    <div className="menu-item" onMouseDown={(e) => handleAction('Split Table', e)} style={{ padding: '10px 16px', display: 'flex', gap: '10px', alignItems: 'center', fontSize: '0.9rem', cursor: 'pointer' }}>
-                                        <span>✂</span> Split Table
-                                    </div>
-                                    <div className="menu-item" onMouseDown={(e) => handleAction('Move Guests', e)} style={{ padding: '10px 16px', display: 'flex', gap: '10px', alignItems: 'center', fontSize: '0.9rem', cursor: 'pointer' }}>
-                                        <span>↔</span> Move Guests
-                                    </div>
-                                    <div className="menu-item" onMouseDown={(e) => handleAction('Merge Table', e)} style={{ padding: '10px 16px', display: 'flex', gap: '10px', alignItems: 'center', fontSize: '0.9rem', cursor: 'pointer' }}>
-                                        <span>🔗</span> Merge Table
-                                    </div>
-                                </>
-                            )}
+                            <div className="menu-group" style={{ padding: '6px' }}>
+                                {(table.status === 'Available' || table.status === 'Reserved') && (
+                                    <>
+                                        <MenuItem icon="🚶" label="Walk-in" color="#10b981" weight="600" onClick={(e) => handleAction('Walk-in', e)} />
+                                        <MenuItem icon="✂" label="Split Table" onClick={(e) => handleAction('Split Table', e)} />
+                                        <MenuItem icon="↔" label="Move Guests" onClick={(e) => handleAction('Move Guests', e)} />
+                                        <MenuItem icon="🔗" label="Merge Table" onClick={(e) => handleAction('Merge Table', e)} />
+                                    </>
+                                )}
 
-                            {table.status === 'Running' && (
-                                <>
-                                    <div className="menu-item" onMouseDown={(e) => handleAction('Move Guests', e)} style={{ padding: '10px 16px', display: 'flex', gap: '10px', alignItems: 'center', fontSize: '0.9rem', cursor: 'pointer' }}>
-                                        <span>↔</span> Move Guests
-                                    </div>
-                                    <div className="menu-item" onMouseDown={(e) => handleAction('Merge Table', e)} style={{ padding: '10px 16px', display: 'flex', gap: '10px', alignItems: 'center', fontSize: '0.9rem', cursor: 'pointer' }}>
-                                        <span>🔗</span> Merge Table
-                                    </div>
-                                    <div className="menu-item" onMouseDown={(e) => handleAction('Close Table', e)} style={{ padding: '10px 16px', display: 'flex', gap: '10px', alignItems: 'center', fontSize: '0.9rem', cursor: 'pointer', color: '#dc2626' }}>
-                                        <span>✓</span> Close Table
-                                    </div>
-                                </>
-                            )}
+                                {table.status === 'Running' && (
+                                    <>
+                                        <MenuItem icon="↔" label="Move Guests" onClick={(e) => handleAction('Move Guests', e)} />
+                                        <MenuItem icon="🔗" label="Merge Table" onClick={(e) => handleAction('Merge Table', e)} />
+                                        <MenuItem icon="✓" label="Close Table" color="#dc2626" onClick={(e) => handleAction('Close Table', e)} />
+                                    </>
+                                )}
 
-                            {table.status === 'Reserved' && (
-                                <div className="menu-item" onMouseDown={(e) => handleAction('Verify User', e)} style={{ padding: '10px 16px', display: 'flex', gap: '10px', alignItems: 'center', fontSize: '0.9rem', cursor: 'pointer' }}>
-                                    <span>🔍</span> Verify User
-                                </div>
-                            )}
+                                {(table.reservations && table.reservations.length > 0) && (
+                                    <MenuItem icon="🔍" label="Verify User" onClick={(e) => handleAction('Verify User', e)} />
+                                )}
 
-                            {table.status === 'Billed' && (
-                                <div className="menu-item" onMouseDown={(e) => handleAction('Close Table', e)} style={{ padding: '10px 16px', display: 'flex', gap: '10px', alignItems: 'center', fontSize: '0.9rem', cursor: 'pointer', color: '#dc2626' }}>
-                                    <span>✓</span> Close Table
-                                </div>
-                            )}
+                                {table.status === 'Billed' && (
+                                    <MenuItem icon="✓" label="Close Table" color="#dc2626" onClick={(e) => handleAction('Close Table', e)} />
+                                )}
 
-                            {((table.mergedTableIds && table.mergedTableIds.length > 0) || (table.tableName && table.tableName.includes(','))) && (
-                                <div className="menu-item" onMouseDown={(e) => handleAction('Release Table', e)} style={{ padding: '10px 16px', display: 'flex', gap: '10px', alignItems: 'center', fontSize: '0.9rem', cursor: 'pointer', color: '#dc2626', fontWeight: '700' }}>
-                                    <span>🔓</span> Release Table
-                                </div>
-                            )}
+                                {((table.mergedTableIds && table.mergedTableIds.length > 0) || (table.tableName && table.tableName.includes(','))) && (
+                                    <MenuItem icon="🔓" label="Release Table" color="#dc2626" weight="700" onClick={(e) => handleAction('Release Table', e)} />
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -1763,11 +2045,11 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick }) => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                             <div style={{ padding: '6px', background: '#fff', borderRadius: '8px', border: '1px solid #f3f4f6' }}>
                                 <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Amount</div>
-                                <div style={{ fontSize: '0.9rem', fontWeight: '700' }}>₹{table.amount || 0}</div>
+                                <div style={{ fontSize: '0.9rem', fontWeight: '700' }}>₹{table.amount || table.runningOrderAmount || 0}</div>
                             </div>
                             <div style={{ padding: '6px', background: '#fff', borderRadius: '8px', border: '1px solid #f3f4f6' }}>
                                 <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Time</div>
-                                <div style={{ fontSize: '0.9rem', fontWeight: '700' }}>{formatDuration ? formatDuration(table.duration) : '0m'}</div>
+                                <div style={{ fontSize: '0.9rem', fontWeight: '700' }}>{formatLiveDuration(elapsedTime)}</div>
                             </div>
                         </div>
                     )}
@@ -1776,11 +2058,33 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick }) => {
 
             <div className="table-action" style={{
                 marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f3f4f6',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                color: '#dc2626', fontWeight: '700', fontSize: '0.9rem'
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px'
             }}>
-                <span>{table.status === 'Available' ? 'Tap to Order' : 'Manage Order'}</span>
-                <span style={{ fontSize: '1.2rem' }}>→</span>
+                {/* Manage Order (Always visible or conditional?) - User wants it side by side */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} onClick={onCardClick}>
+                    <span style={{ color: '#dc2626', fontWeight: '700', fontSize: '0.9rem' }}>
+                        {table.status === 'Available' ? 'Tap to Order' : 'Manage Order'}
+                    </span>
+                    <span style={{ fontSize: '1.2rem', color: '#dc2626', fontWeight: '800' }}>→</span>
+                </div>
+
+                {/* Send Button */}
+                {(table.status === 'Running') && (
+                    <button
+                        onClick={(e) => onSendToCashier(e, table)}
+                        title="Send final bill to cashier"
+                        style={{
+                            padding: '8px 16px', borderRadius: '8px',
+                            background: '#dc2626', color: 'white', border: 'none',
+                            fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem',
+                            boxShadow: '0 2px 4px rgba(220, 38, 38, 0.3)',
+                            transition: 'all 0.2s ease',
+                            whiteSpace: 'nowrap'
+                        }}
+                    >
+                        Send
+                    </button>
+                )}
             </div>
         </div>
     );

@@ -35,22 +35,7 @@ const allowedOrigins = [
     process.env.FRONTEND_URL || 'http://localhost:5173'
 ].filter(Boolean);
 
-app.use(cors({
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-
-        // Check if origin is allowed or if it's a vercel.app domain in production
-        if (allowedOrigins.indexOf(origin) !== -1 ||
-            (process.env.NODE_ENV === 'production' && origin?.includes('.vercel.app'))) {
-            return callback(null, true);
-        }
-
-        const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-        return callback(new Error(msg), false);
-    },
-    credentials: true
-}));
+app.use(cors()); // Simplified CORS for development per user request
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -131,6 +116,10 @@ app.use('/api/maintenance-blocks', maintenanceBlockRoutes);
 const guestMealRoutes = require('./routes/guestMealRoutes');
 app.use('/api/guest-meal', guestMealRoutes);
 
+const visitorRoutes = require('./routes/visitorRoutes');
+console.log("Registering /api/visitors routes...");
+app.use('/api/visitors', visitorRoutes);
+
 
 
 // Root route
@@ -151,16 +140,18 @@ app.use((err, req, res, next) => {
     });
 });
 
-// 404 handler
+// Fallback route to detect undefined routes (404 handler)
 app.use((req, res) => {
+    console.warn(`[404] Route not found: ${req.method} ${req.originalUrl}`);
     res.status(404).json({
-        success: false,
-        message: 'Route not found'
+        error: "Route not found",
+        method: req.method,
+        url: req.originalUrl
     });
 });
 
 // Server configuration
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 
 // Only listen if not in serverless environment (Vercel)
 // Function to start server with port fallback
@@ -170,6 +161,7 @@ const startServer = (port) => {
     const server = app.listen(numericPort, () => {
         console.log(`Server running on port ${numericPort}`);
         console.log(`API available at http://localhost:${numericPort}`);
+        console.log(`🚀 READY for Visitor API calls at http://localhost:${numericPort}/api/visitors`);
     });
 
     server.on('error', (err) => {

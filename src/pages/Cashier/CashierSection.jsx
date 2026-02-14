@@ -1,110 +1,142 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import API_URL from '../../config/api';
 import './CashierSection.css';
 
 const CashierSection = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [activeTab, setActiveTab] = useState('All');
     const [showNewOrderModal, setShowNewOrderModal] = useState(false);
     const [newOrderDetails, setNewOrderDetails] = useState({ name: '', phone: '' });
 
-    // State for Orders (Simulating Database)
-    const [orders, setOrders] = useState([
-        {
-            id: 1, type: 'Table', name: 'Table 1', guest: 'Ramesh Kumar', amount: 850, status: 'Pending', time: '28 min ago', items: [
-                { name: 'Veg Kofta', qty: 2, price: 280, amount: 560 },
-                { name: 'Chicken Biryani', qty: 1, price: 350, amount: 350 },
-                { name: 'Butter Naan', qty: 2, price: 60, amount: 120 },
-                { name: 'Discount', qty: 1, price: -50, amount: -50 }
-            ],
-            billNo: '#103', kotInfo: 'KOT - 105'
-        },
-        {
-            id: 2, type: 'Room', name: 'Room 102', guest: 'Amit Patel', amount: 450, status: 'Pending', time: '25 min ago',
-            items: [
-                { name: 'Paneer Tikka', qty: 1, price: 280, amount: 280 },
-                { name: 'Butter Roti', qty: 4, price: 30, amount: 120 },
-                { name: 'Pepsi', qty: 1, price: 50, amount: 50 }
-            ],
-            billNo: '#104'
-        },
-        {
-            id: 3, type: 'Table', name: 'Table 3', guest: 'Priya Singh', amount: 640, status: 'Pending', time: '20 min ago',
-            items: [
-                { name: 'Masala Dosa', qty: 2, price: 180, amount: 360 },
-                { name: 'Idli Sambar', qty: 2, price: 100, amount: 200 },
-                { name: 'Filter Coffee', qty: 2, price: 40, amount: 80 }
-            ],
-            billNo: '#105'
-        },
-        {
-            id: 4, type: 'Counter', name: 'Counter', guest: 'Anil Verma', amount: 320, status: 'Pending', time: '15 min ago',
-            items: [
-                { name: 'Veg Burger', qty: 2, price: 90, amount: 180 },
-                { name: 'French Fries', qty: 1, price: 90, amount: 90 },
-                { name: 'Coke', qty: 1, price: 50, amount: 50 }
-            ],
-            billNo: '#106'
-        },
-        {
-            id: 5, type: 'Counter', name: 'Counter Walk-in', guest: 'Direct', amount: 320, status: 'Pending', time: '10 min ago',
-            items: [
-                { name: 'Chicken Roll', qty: 2, price: 120, amount: 240 },
-                { name: 'Lime Soda', qty: 2, price: 40, amount: 80 }
-            ],
-            billNo: '#107'
-        },
-        {
-            id: 6, type: 'Delivery', name: 'Delivery #402', guest: 'Rahul Sharma', amount: 1250, status: 'Pending', time: '5 min ago',
-            items: [
-                { name: 'Family Pizza', qty: 1, price: 800, amount: 800 },
-                { name: 'Garlic Bread', qty: 2, price: 150, amount: 300 },
-                { name: 'Coke 2L', qty: 1, price: 150, amount: 150 }
-            ],
-            billNo: '#108'
-        },
-        {
-            id: 7, type: 'Online', name: 'Zomato #9921', guest: 'Online Order', amount: 540, status: 'Pending', time: '2 min ago',
-            items: [
-                { name: 'Hakka Noodles', qty: 2, price: 180, amount: 360 },
-                { name: 'Manchurian', qty: 1, price: 180, amount: 180 }
-            ],
-            billNo: '#109'
-        }
-    ]);
-
+    // State for Orders
+    const [orders, setOrders] = useState([]);
     const [stats, setStats] = useState({
-        totalCollection: 8270.00,
-        cash: 7000.00,
-        upi: 1030.00,
-        card: 240.00,
-        pending: 4
+        totalCollection: 0,
+        cash: 0,
+        upi: 0,
+        card: 0,
+        pending: 0
     });
+
+    // Fetch pending orders from API
+    useEffect(() => {
+        fetchPendingOrders();
+        fetchDashboardStats();
+    }, []);
+
+    // Listen for refresh triggers (e.g. from GuestMealService 'Send')
+    useEffect(() => {
+        if (location.state && location.state.refresh) {
+            fetchPendingOrders();
+            fetchDashboardStats();
+        }
+    }, [location.state]);
+
+    const fetchDashboardStats = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/guest-meal/analytics/dashboard`);
+            const data = await response.json();
+            if (data.success) {
+                const s = data.data;
+                setStats({
+                    totalCollection: s.totalRevenue || 0,
+                    cash: s.collections?.Cash || 0,
+                    upi: s.collections?.UPI || 0,
+                    card: s.collections?.Card || 0,
+                    pending: stats.pending // Handled by fetchPendingOrders
+                });
+            }
+        } catch (error) {
+            console.error("Error fetching dashboard stats:", error);
+        }
+    };
+
+    const fetchPendingOrders = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/guest-meal/orders/pending`);
+            const data = await response.json();
+
+            if (data.success) {
+                const mappedOrders = data.data.map(order => ({
+                    id: order._id,
+                    type: order.orderType === 'Table Order' ? 'Table' :
+                        order.orderType === 'Room Service' ? 'Room' :
+                            order.orderType === 'Take Away' ? 'Take Away' : 'Table',
+                    name: order.orderType === 'Table Order' ? `Table ${order.tableNumber}` :
+                        order.orderType === 'Room Service' ? `Room ${order.roomNumber}` :
+                            order.orderType === 'Take Away' ? `Take Away` : `Table ${order.tableNumber}`,
+                    guest: order.guestName || 'Guest',
+                    amount: order.finalAmount || 0,
+                    status: 'Pending',
+                    time: order.createdAt ? new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now',
+                    items: (order.items || []).map(item => ({
+                        name: item.name,
+                        qty: item.quantity,
+                        price: item.price,
+                        amount: item.subtotal
+                    })),
+                    billNo: `#${order._id.toString().substr(-6).toUpperCase()}`,
+                    kotInfo: `KOT - ${order._id.toString().substr(-4)}`
+                }));
+
+                setOrders(mappedOrders);
+                setStats(prev => ({
+                    ...prev,
+                    pending: mappedOrders.length,
+                }));
+            }
+        } catch (error) {
+            console.error("Error fetching pending orders:", error);
+        }
+    };
 
     const handleOrderClick = (order) => {
         setSelectedOrder(order);
     };
 
-    const handlePaymentComplete = (orderId, amount, mode, type, roomNumber = null) => {
-        // Remove processed order from pending list
-        const updatedOrders = orders.filter(o => o.id !== orderId);
-        setOrders(updatedOrders);
-        setSelectedOrder(null);
+    const handlePaymentComplete = async (orderId, amount, mode, type, roomNumber = null) => {
+        try {
+            const response = await fetch(`${API_URL}/api/guest-meal/orders/${orderId}/settle`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    paymentMethod: type, // 'Direct Payment' or 'Add to Room'
+                    paymentMode: mode,   // 'Cash', 'UPI', etc.
+                    amount: amount,
+                    roomNumber: roomNumber
+                })
+            });
 
-        // Update Stats (Simulation)
-        setStats(prev => ({
-            ...prev,
-            totalCollection: prev.totalCollection + amount,
-            [mode.toLowerCase()]: (prev[mode.toLowerCase()] || 0) + amount,
-            pending: Math.max(0, prev.pending - 1)
-        }));
+            const data = await response.json();
 
-        // Different success messages based on type
-        if (type === 'Add to Room') {
-            alert(`✅ Successfully Added to Folio!\n\nTarget Room: ${roomNumber}\nAmount Posted: ₹${amount}`);
-        } else {
-            alert(`✅ Payment Processed Successfully!\n\nBill Amount: ₹${amount}\nPayment Mode: ${mode}\nStatus: Settled`);
+            if (data.success) {
+                // Remove processed order from pending list
+                const updatedOrders = orders.filter(o => o.id !== orderId);
+                setOrders(updatedOrders);
+                setSelectedOrder(null);
+
+                // Update Stats
+                setStats(prev => ({
+                    ...prev,
+                    totalCollection: prev.totalCollection + amount,
+                    [mode.toLowerCase()]: (prev[mode.toLowerCase()] || 0) + amount,
+                    pending: Math.max(0, prev.pending - 1)
+                }));
+
+                if (type === 'Add to Room') {
+                    alert(`✅ Successfully Added to Folio!\n\nTarget Room: ${roomNumber} \nAmount Posted: ₹${amount}`);
+                } else {
+                    alert(`✅ Payment Processed Successfully!\n\nBill Amount: ₹${amount} \nPayment Mode: ${mode} \nStatus: Settled`);
+                }
+            } else {
+                alert('Failed to settle order: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error settling order:', error);
+            alert('Error settling order. Please check connection.');
         }
     };
 
@@ -199,7 +231,7 @@ const CashierSection = () => {
                             {['All', 'Dine In', 'Room', 'Take Away', 'Delivery', 'Online Order'].map(tab => (
                                 <button
                                     key={tab}
-                                    className={`tab ${activeTab === tab ? 'active' : ''}`}
+                                    className={`tab ${activeTab === tab ? 'active' : ''} `}
                                     onClick={() => setActiveTab(tab)}
                                 >
                                     {tab}
@@ -215,11 +247,11 @@ const CashierSection = () => {
                                 filteredOrders.map(order => (
                                     <div
                                         key={order.id}
-                                        className={`order-card ${selectedOrder && selectedOrder.id === order.id ? 'selected' : ''}`}
+                                        className={`order - card ${selectedOrder && selectedOrder.id === order.id ? 'selected' : ''} `}
                                         onClick={() => handleOrderClick(order)}
                                     >
                                         <div className="order-card-left">
-                                            <div className={`order-icon ${order.type.toLowerCase().split(' ')[0]}`}>{order.id}</div>
+                                            <div className={`order - icon ${order.type.toLowerCase().split(' ')[0]} `}>{order.billNo.replace('#', '')}</div>
                                             <div className="order-info">
                                                 <h4>{order.name}</h4>
                                                 <p>{order.guest}</p>
@@ -338,108 +370,148 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
         if (!order) return;
 
         const invoiceContent = `
-            <!DOCTYPE html>
-            <html>
-                <head>
-                    <title>Invoice #${order.billNo}</title>
-                    <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39+Text&display=swap" rel="stylesheet">
+    <!DOCTYPE html>
+        <html>
+            <head>
+                <title>Invoice ${order.billNo}</title>
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Libre+Barcode+39+Text&display=swap" rel="stylesheet">
                     <style>
                         @page { size: 80mm auto; margin: 0; }
-                        body { 
-                            font-family: 'Courier New', monospace; 
-                            width: 76mm; 
-                            margin: 2mm auto; 
-                            background: white; 
+                        body {
+                            font-family: 'Inter', sans-serif;
+                            width: 72mm;
+                            margin: 4mm auto;
+                            background: white;
                             color: #000;
-                            font-size: 12px;
+                            font-size: 11px;
+                            line-height: 1.4;
                         }
-                        .header { text-align: center; margin-bottom: 10px; border-bottom: 1px dashed #000; padding-bottom: 5px; }
-                        .hotel-name { font-size: 16px; font-weight: bold; margin-bottom: 4px; text-transform: uppercase; }
-                        .address { font-size: 10px; line-height: 1.2; }
-                        .bill-info { margin: 10px 0; border-bottom: 1px dashed #000; padding-bottom: 5px; }
-                        .row { display: flex; justify-content: space-between; margin-bottom: 2px; }
-                        .label { font-weight: bold; }
+                        .header { text-align: center; margin-bottom: 12px; }
+                        .logo-area { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 2px; }
+                        .subtitle { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #444; margin-bottom: 8px; }
+                        .contact-info { font-size: 9px; color: #666; line-height: 1.2; }
                         
-                        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-                        th { text-align: left; border-bottom: 1px dashed #000; padding: 4px 0; font-size: 11px; }
-                        td { padding: 4px 0; vertical-align: top; }
-                        .col-qty { text-align: center; width: 15%; }
-                        .col-price { text-align: right; width: 25%; }
-                        .col-item { width: 60%; }
+                        .divider { border-top: 1px dashed #ccc; margin: 10px 0; }
+                        .bill-info { margin-bottom: 10px; }
+                        .info-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+                        .info-label { color: #666; }
+                        .info-value { font-weight: 700; }
 
-                        .totals { border-top: 1px dashed #000; padding-top: 5px; }
-                        .total-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
-                        .grand-total { font-weight: bold; font-size: 14px; border-top: 1px dashed #000; border-bottom: 1px dashed #000; margin-top: 5px; padding: 5px 0; }
-                        
-                        .footer { margin-top: 15px; text-align: center; font-size: 10px; }
-                        .barcode { text-align: center; margin-top: 10px; letter-spacing: 5px; font-family: 'Libre Barcode 39 Text', cursive; font-size: 24px; }
+                        table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+                        th { text-align: left; border-bottom: 1.5px solid #000; padding: 6px 0; font-size: 10px; text-transform: uppercase; }
+                        td { padding: 8px 0; vertical-align: top; border-bottom: 0.5px solid #eee; }
+                        .col-qty { text-align: center; width: 10%; }
+                        .col-amt { text-align: right; width: 30%; }
+                        .col-item { width: 60%; font-weight: 500; }
+
+                        .totals { margin-top: 8px; }
+                        .total-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 10px; }
+                        .grand-total { 
+                            display: flex; 
+                            justify-content: space-between; 
+                            margin-top: 8px; 
+                            padding: 10px 0; 
+                            border-top: 2px solid #000; 
+                            border-bottom: 2.5px double #000;
+                            font-size: 15px; 
+                            font-weight: 800; 
+                        }
+
+                        .footer { margin-top: 20px; text-align: center; }
+                        .thanks { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+                        .visit-again { font-size: 9px; color: #666; }
+                        .barcode { 
+                            text-align: center; 
+                            margin-top: 15px; 
+                            font-family: 'Libre Barcode 39 Text', cursive; 
+                            font-size: 32px; 
+                            opacity: 0.8;
+                        }
+                        .timestamp { font-size: 8px; color: #999; margin-top: 15px; text-align: center; }
                     </style>
-                </head>
-                <body>
-                    <div class="header">
-                        <div class="hotel-name">BAREENA ATITHI</div>
-                        <div class="address">Near Railway Station, City Center</div>
-                        <div class="address">Ph: +91-9876543210 | GSTIN: 22AAAAA0000A1Z5</div>
+            </head>
+            <body>
+                <div class="header">
+                    <div class="logo-area">BAREENA ATITHI</div>
+                    <div class="subtitle">Premium Hospitality</div>
+                    <div class="contact-info">
+                        Near Railway Station, City Center<br>
+                        Ph: +91-9876543210 | GSTIN: 22AAAAA0000A1Z5
                     </div>
-                    
-                    <div class="bill-info">
-                        <div class="row"><span class="label">Bill No:</span> <span>${order.billNo}</span></div>
-                        <div class="row"><span class="label">Date:</span> <span>${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
-                        <div class="row"><span class="label">Guest:</span> <span>${order.guest}</span></div>
-                        <div class="row"><span class="label">Type:</span> <span>${order.type} - ${order.name}</span></div>
-                    </div>
+                </div>
 
-                    <table>
-                        <thead>
-                            <tr>
-                                <th class="col-item">Item</th>
-                                <th class="col-qty">Qty</th>
-                                <th class="col-price">Amt</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${order.items.map(item => `
+                <div class="divider"></div>
+
+                <div class="bill-info">
+                    <div class="info-row">
+                        <span class="info-label">Bill No:</span>
+                        <span class="info-value">${order.billNo}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Guest:</span>
+                        <span class="info-value">${order.guest}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Source:</span>
+                        <span class="info-value">${order.type} - ${order.name}</span>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-item">Item Description</th>
+                            <th class="col-qty">Qty</th>
+                            <th class="col-amt">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${order.items.map(item => `
                                 <tr>
                                     <td class="col-item">${item.name}</td>
                                     <td class="col-qty">${item.qty}</td>
-                                    <td class="col-price">${item.amount.toFixed(2)}</td>
+                                    <td class="col-amt">${item.amount.toFixed(2)}</td>
                                 </tr>
                             `).join('')}
-                        </tbody>
-                    </table>
+                    </tbody>
+                </table>
 
-                    <div class="totals">
-                        <div class="total-row"><span>Subtotal</span> <span>${order.items.reduce((sum, item) => sum + (item.price * item.qty), 0).toFixed(2)}</span></div>
-                        <div class="total-row"><span>CGST (2.5%)</span> <span>${(order.amount * 0.025).toFixed(2)}</span></div>
-                        <div class="total-row"><span>SGST (2.5%)</span> <span>${(order.amount * 0.025).toFixed(2)}</span></div>
-                        ${order.items.some(i => i.name === 'Discount') ? `<div class="total-row"><span>Discount</span> <span>-50.00</span></div>` : ''}
-                        
-                        <div class="total-row grand-total">
-                            <span>TOTAL</span>
-                            <span>Rs. ${order.amount.toFixed(2)}</span>
-                        </div>
-                        <div class="total-row" style="margin-top: 5px; font-size: 11px;">
-                            <span>Mode: ${paymentType === 'Add to Room' ? 'Room Folio' : paymentMode}</span>
-                        </div>
+                <div class="totals">
+                    <div class="total-row">
+                        <span>Subtotal</span>
+                        <span>₹ ${order.items.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</span>
                     </div>
+                    <div class="total-row">
+                        <span>Taxes (Included)</span>
+                        <span>₹ 0.00</span>
+                    </div>
+                    <div class="grand-total">
+                        <span>NET PAYABLE</span>
+                        <span>₹ ${order.amount.toFixed(2)}</span>
+                    </div>
+                </div>
 
-                    <div class="footer">
-                        <p>Thank you for dining with us!</p>
-                        <p>Plz Visit Again</p>
-                    </div>
-                    
-                    <div style="text-align: center; margin-top: 10px;">
-                        *** ${order.billNo} ***
-                    </div>
-                    
-                    <script>
-                        window.onload = function() { window.print(); }
-                    </script>
-                </body>
-            </html>
-        `;
+                <div class="footer">
+                    <div class="thanks">Thank You!</div>
+                    <div class="visit-again">We hope to see you again soon.</div>
+                    <div class="barcode">${order.billNo.replace('#', '')}</div>
+                </div>
 
-        const printWindow = window.open('', '', 'height=600,width=400');
+                <div class="timestamp">
+                    Printed on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </div>
+
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        setTimeout(() => window.close(), 500);
+                    }
+                </script>
+            </body>
+        </html>
+`;
+
+        const printWindow = window.open('', '_blank', 'height=600,width=450');
         printWindow.document.write(invoiceContent);
         printWindow.document.close();
     };
@@ -451,7 +523,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
 
     const handleSendSMS = () => {
         if (!order) return;
-        alert(`💬 SMS successfully sent to ${order.guest}`);
+        alert(`💬 SMS successfully sent to ${order.guest} `);
     };
 
     const handleTender = () => {
@@ -492,7 +564,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
     const isPlaceholder = !order;
 
     return (
-        <div className={`cashier-payment-view embedded ${isPlaceholder ? 'placeholder-mode' : ''} fadeIn`}>
+        <div className={`cashier - payment - view embedded ${isPlaceholder ? 'placeholder-mode' : ''} fadeIn`}>
             <div className="payment-top-bar">
                 <h2>Bill Details</h2>
             </div>
@@ -559,23 +631,12 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
                     <div className="bill-summary">
                         <div className="summary-row">
                             <span>Subtotal</span>
-                            <span>₹ {isPlaceholder ? '0' : '750'}</span>
+                            <span>₹ {isPlaceholder ? '0.00' : displayOrder.items.reduce((sum, item) => sum + (item.price * item.qty), 0).toFixed(2)}</span>
                         </div>
-                        <div className="summary-row">
-                            <span>CGST (2.5%)</span>
-                            <span>₹ {isPlaceholder ? '0' : '18.75'}</span>
-                        </div>
-                        <div className="summary-row">
-                            <span>SGST (2.5%)</span>
-                            <span>₹ {isPlaceholder ? '0' : '18.75'}</span>
-                        </div>
-                        <div className="summary-row discount">
-                            <span>Discount <span className="tag">+50</span></span>
-                            <span>- ₹ {isPlaceholder ? '0' : '50'}</span>
-                        </div>
+                        {/* Assuming tax is included or extra, logic needs to align with backend. For now showing simple breakdown if applicable, or just total */}
                         <div className="summary-row total">
                             <span>Grand Total</span>
-                            <span>₹ {displayOrder.amount}</span>
+                            <span>₹ {displayOrder.amount.toFixed(2)}</span>
                         </div>
                     </div>
                 </div>
@@ -586,14 +647,14 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
 
                     <div className="payment-options">
                         <button
-                            className={`option-btn ${paymentType === 'Direct Payment' ? 'active' : ''}`}
+                            className={`option - btn ${paymentType === 'Direct Payment' ? 'active' : ''} `}
                             onClick={() => setPaymentType('Direct Payment')}
                             disabled={isPlaceholder}
                         >
                             Direct Payment
                         </button>
                         <button
-                            className={`option-btn ${paymentType === 'Add to Room' ? 'active' : ''}`}
+                            className={`option - btn ${paymentType === 'Add to Room' ? 'active' : ''} `}
                             onClick={() => setPaymentType('Add to Room')}
                             disabled={isPlaceholder}
                         >
@@ -605,7 +666,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
                         {['Cash', 'UPI', 'Card', 'Bank'].map(mode => (
                             <button
                                 key={mode}
-                                className={`mode-btn ${paymentMode === mode ? 'active' : ''}`}
+                                className={`mode - btn ${paymentMode === mode ? 'active' : ''} `}
                                 onClick={() => setPaymentMode(mode)}
                                 disabled={isPlaceholder || paymentType === 'Add to Room'}
                             >
@@ -638,7 +699,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
                                 </div>
                                 <div className="input-row return-row">
                                     <label>Return Amount</label>
-                                    <div className={`input-wrapper ${returnAmount >= 0 ? 'success' : ''}`}>
+                                    <div className={`input - wrapper ${returnAmount >= 0 ? 'success' : ''} `}>
                                         <span>₹</span>
                                         <span>{returnAmount.toFixed(2)}</span>
                                     </div>
@@ -673,7 +734,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
                         style={{ opacity: isPlaceholder ? 0.5 : 1, background: paymentType === 'Add to Room' ? '#f59e0b' : '' }}
                         onClick={handleTender}
                     >
-                        {paymentType === 'Add to Room' ? 'Add to Folio' : `Tender ₹ ${displayOrder.amount}`}
+                        {paymentType === 'Add to Room' ? 'Add to Folio' : `Tender ₹ ${displayOrder.amount} `}
                     </button>
 
                     <div className="room-posting-today">

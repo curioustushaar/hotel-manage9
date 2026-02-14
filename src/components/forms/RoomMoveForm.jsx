@@ -1,175 +1,382 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import API_URL from '../../config/api';
 
-const RoomMoveForm = ({ booking, onSubmit, onCancel }) => {
+const RoomMoveForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
+    // 1. State Management
+    const [booking, setBooking] = useState(initialBooking);
     const [availableRooms, setAvailableRooms] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState(null);
+
     const [formData, setFormData] = useState({
+        newRoomId: '',
         newRoomNumber: '',
+        newRoomPrice: 0,
         reason: '',
-        moveDate: new Date().toISOString().split('T')[0],
+        moveEffectiveDate: new Date().toISOString().split('T')[0],
         moveTime: new Date().toTimeString().slice(0, 5)
     });
 
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
+    // 2. Fetch Detailed Reservation & Available Rooms
     useEffect(() => {
-        fetchAvailableRooms();
-    }, []);
+        const loadInitialData = async () => {
+            setLoading(true);
+            try {
+                // Fetch full reservation details to get correct dates/status
+                const resResponse = await fetch(`${API_URL}/api/reservations/${initialBooking._id || initialBooking.id}`);
+                const resResult = await resResponse.json();
 
-    const fetchAvailableRooms = async () => {
-        try {
-            // Simulated fake delay if API is fast, for UX (optional, but good for "Loading..." visibility)
-            // await new Promise(r => setTimeout(r, 500)); 
-            const response = await fetch(`${API_URL}/api/bookings/available-rooms`);
-            const data = await response.json();
-            if (data.success) {
-                setAvailableRooms(data.data);
+                if (resResult.success) {
+                    setBooking(resResult.data);
+
+                    // Fetch available rooms for the remaining stay dates
+                    const today = new Date().toISOString().split('T')[0];
+                    const roomsResponse = await fetch(
+                        `${API_URL}/api/rooms/list?status=Available&from=${today}&to=${resResult.data.checkOutDate}`
+                    );
+                    const roomsResult = await roomsResponse.json();
+
+                    if (roomsResult.success) {
+                        // Filter out current room
+                        const filtered = (roomsResult.data || []).filter(r => r.roomNumber !== resResult.data.roomNumber);
+                        setAvailableRooms(filtered);
+                    }
+                } else {
+                    throw new Error(resResult.message || 'Failed to fetch reservation details');
+                }
+            } catch (err) {
+                console.error('Error loading room move data:', err);
+                setError(err.message);
+
+                // Fallback for demo if API fails
+                setAvailableRooms([
+                    { _id: '101', roomNumber: '101', roomType: 'Deluxe King', price: 4200, status: 'Available' },
+                    { _id: '102', roomNumber: '108', roomType: 'Deluxe King', price: 4200, status: 'Available' },
+                    { _id: '103', roomNumber: '205', roomType: 'Executive Suite', price: 5500, status: 'Available' },
+                    { _id: '104', roomNumber: '302', roomType: 'Standard Single', price: 2500, status: 'Available' }
+                ].filter(r => r.roomNumber !== initialBooking.roomNumber));
+            } finally {
+                setLoading(false);
             }
-        } catch (error) {
-            console.error('Error fetching available rooms:', error);
-            // Fallback for demo if API fails
-            setAvailableRooms([
-                { _id: '101', roomNumber: '101', roomType: 'Deluxe', price: 2500 },
-                { _id: '102', roomNumber: '102', roomType: 'Suite', price: 4500 },
-                { _id: '103', roomNumber: '103', roomType: 'Standard', price: 1500 }
-            ]);
-        } finally {
-            setLoading(false);
-        }
-    };
+        };
 
+        if (initialBooking?._id || initialBooking?.id) {
+            loadInitialData();
+        }
+    }, [initialBooking]);
+
+    // 3. Financial Calculations
+    const adjustment = useMemo(() => {
+        if (!formData.newRoomId || !booking) return { total: 0, diff: 0, nights: 0 };
+
+        const oldPrice = booking.ratePerNight || 0;
+        const newPrice = formData.newRoomPrice || 0;
+        const diff = newPrice - oldPrice;
+
+        const checkOutDate = new Date(booking.checkOutDate);
+        const moveDate = new Date(formData.moveEffectiveDate);
+        moveDate.setHours(0, 0, 0, 0);
+        checkOutDate.setHours(0, 0, 0, 0);
+
+        const remainingNights = Math.max(0, Math.ceil((checkOutDate - moveDate) / (1000 * 60 * 60 * 24)));
+        return {
+            diff,
+            nights: remainingNights,
+            total: diff * remainingNights
+        };
+    }, [formData.newRoomId, formData.newRoomPrice, formData.moveEffectiveDate, booking]);
+
+    // 4. Handlers
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        if (name === 'newRoomId') {
+            const selectedRoom = availableRooms.find(r => r._id === value);
+            setFormData(prev => ({
+                ...prev,
+                newRoomId: value,
+                newRoomNumber: selectedRoom ? selectedRoom.roomNumber : '',
+                newRoomPrice: selectedRoom ? selectedRoom.price : 0
+            }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!formData.newRoomNumber) {
-            alert('Please select a room');
-            return;
+        // Validations
+        if (!formData.newRoomId) return alert('Please select a new room');
+        if (!formData.reason.trim()) return alert('Reason for move is required');
+
+        const inHouseStatuses = ['Checked-in', 'IN_HOUSE'];
+        if (!inHouseStatuses.includes(booking.status)) {
+            return alert(`Cannot move room for guest with status: ${booking.status}. Only In-House guests can be moved.`);
         }
 
-        if (!formData.reason.trim()) {
-            alert('Reason for room move is required');
-            return;
+        // Show confirmation modal for price change
+        if (adjustment.total !== 0) {
+            const message = adjustment.total > 0
+                ? `This room costs ₹${adjustment.diff} more per night. Additional ₹${adjustment.total} will be added to the bill. Confirm move?`
+                : `This room costs ₹${Math.abs(adjustment.diff)} less per night. ₹${Math.abs(adjustment.total)} will be reduced from the bill. Confirm move?`;
+
+            if (!window.confirm(message)) return;
         }
 
         setIsSubmitting(true);
         try {
-            await onSubmit(formData);
+            const response = await fetch(`${API_URL}/api/reservations/${booking._id || booking.id}/room-move`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    newRoomId: formData.newRoomId,
+                    newRoomNumber: formData.newRoomNumber,
+                    reason: formData.reason,
+                    effectiveDate: formData.moveEffectiveDate,
+                    movedBy: 'Current User' // Replace with actual user context if available
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                // onSubmit will handle success (toast, close, refresh)
+                await onSubmit(result.data);
+            } else {
+                alert(result.message || 'Room move failed');
+            }
+        } catch (err) {
+            console.error('Error submitting room move:', err);
+            alert('Failed to process room move. Please check connection.');
         } finally {
             setIsSubmitting(false);
         }
     };
 
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center h-64 space-y-4">
+                <div className="w-10 h-10 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-gray-500 font-medium">Fetching stay details...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="p-6 text-center">
+                <p className="text-red-500 mb-4">Error: {error}</p>
+                <button onClick={onCancel} className="text-gray-600 underline">Close</button>
+            </div>
+        );
+    }
+
     return (
-        <form onSubmit={handleSubmit} className="p-6 h-full flex flex-col">
-            <div className="flex-1 space-y-5 overflow-y-auto">
-                {/* Reservation Number */}
-                <div className="pb-2 border-b border-gray-100">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Reservation No :
-                    </label>
-                    <div className="text-lg font-bold text-gray-900">
-                        {booking.bookingId || 'RES-51'}
+        <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            backgroundColor: '#FAFAFA',
+            fontFamily: "'Inter', sans-serif",
+            margin: '-20px'
+        }}>
+            {/* Header Info Bar */}
+            <div style={{
+                padding: '16px 24px',
+                backgroundColor: '#FFFFFF',
+                borderBottom: '1px solid #F0F0F0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '15px'
+            }}>
+                <span style={{ color: '#9CA3AF' }}>{booking.reservationId || booking.bookingId || 'RES-XXX'}</span>
+                <span style={{ color: '#E5E7EB', margin: '0 4px' }}>|</span>
+                <span style={{ color: '#111827', fontWeight: '700' }}>{booking.guestName}</span>
+            </div>
+
+            <form onSubmit={handleSubmit} style={{
+                flex: 1,
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '24px',
+                overflowY: 'auto'
+            }}>
+                {/* Current Room Details Card */}
+                <div style={{
+                    backgroundColor: '#F9FAFB',
+                    borderRadius: '16px',
+                    padding: '20px',
+                    border: '1px solid #F3F4F6'
+                }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        marginBottom: '20px',
+                        color: '#4B5563',
+                        fontWeight: '700',
+                        fontSize: '15px'
+                    }}>
+                        <div style={{ width: '32px', height: '32px', backgroundColor: '#FFFFFF', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                            🏨
+                        </div>
+                        Current Room Details:
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                            <span style={{ color: '#6B7280' }}>Room Number:</span>
+                            <span style={{ fontWeight: '800', color: '#111827' }}>{booking.roomNumber}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                            <span style={{ color: '#6B7280' }}>Category & Rate:</span>
+                            <span style={{ fontWeight: '600', color: '#374151' }}>
+                                {booking.roomType || 'Standard'} (₹{(booking.ratePerNight || 0).toLocaleString()})
+                            </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                            <span style={{ color: '#6B7280' }}>Stay Duration:</span>
+                            <span style={{ fontWeight: '600', color: '#111827' }}>
+                                {new Date(booking.checkInDate).toLocaleDateString('en-GB')} - {new Date(booking.checkOutDate).toLocaleDateString('en-GB')}
+                            </span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Available Rooms */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Select New Room <span className="text-red-500">*</span>
-                    </label>
-                    {loading ? (
-                        <div className="p-4 bg-gray-50 text-gray-500 text-center rounded-lg border border-dashed border-gray-300">
-                            Looking for empty rooms...
-                        </div>
-                    ) : availableRooms.length === 0 ? (
-                        <div className="p-4 bg-red-50 text-red-600 text-center rounded-lg border border-red-200">
-                            No rooms available for move.
-                        </div>
-                    ) : (
+                {/* Move Guest To Section */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <label style={{ fontSize: '14px', fontWeight: '700', color: '#374151' }}>Move Guest To:</label>
+                    <div style={{ position: 'relative' }}>
                         <select
-                            name="newRoomNumber"
-                            value={formData.newRoomNumber}
+                            name="newRoomId"
+                            value={formData.newRoomId}
                             onChange={handleChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-white"
-                            required
+                            style={{
+                                width: '100%',
+                                padding: '14px 18px',
+                                borderRadius: '12px',
+                                border: '1px solid #E5E7EB',
+                                backgroundColor: '#FFFFFF',
+                                appearance: 'none',
+                                fontSize: '15px',
+                                outline: 'none',
+                                cursor: 'pointer'
+                            }}
                         >
-                            <option value="">-- Choose a Room --</option>
+                            <option value="">Select New Room</option>
                             {availableRooms.map(room => (
-                                <option key={room._id} value={room.roomNumber}>
-                                    Room {room.roomNumber} - {room.roomType} (₹{room.price}/night)
+                                <option key={room._id} value={room._id}>
+                                    Room {room.roomNumber} - {room.roomType} (₹{room.price})
                                 </option>
                             ))}
                         </select>
-                    )}
-                </div>
-
-                {/* Date & Time */}
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Move Date <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="date"
-                            name="moveDate"
-                            value={formData.moveDate}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Move Time <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="time"
-                            name="moveTime"
-                            value={formData.moveTime}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
-                            required
-                        />
+                        <span style={{ position: 'absolute', right: '18px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF', pointerEvents: 'none' }}>❯</span>
                     </div>
                 </div>
 
-                {/* Reason */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Reason for Move <span className="text-red-500">*</span>
-                    </label>
+                {/* Rate Difference Info (Real-time) */}
+                {adjustment.total !== 0 && (
+                    <div style={{
+                        padding: '12px 16px',
+                        borderRadius: '10px',
+                        backgroundColor: adjustment.total > 0 ? '#FEF2F2' : '#F0FDF4',
+                        border: `1px solid ${adjustment.total > 0 ? '#FEE2E2' : '#DCFCE7'}`,
+                        fontSize: '13px',
+                        color: adjustment.total > 0 ? '#991B1B' : '#166534',
+                        fontWeight: '500'
+                    }}>
+                        {adjustment.total > 0 ? '⚠️' : '✅'} Rate Difference:
+                        <b> ₹{Math.abs(adjustment.diff)}/{adjustment.total > 0 ? 'more' : 'less'}</b> per night.
+                        Total <b>₹{Math.abs(adjustment.total)}</b> will be {adjustment.total > 0 ? 'charged' : 'reduced'} for {adjustment.nights} nights.
+                    </div>
+                )}
+
+                {/* Reason Section */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <label style={{ fontSize: '14px', fontWeight: '700', color: '#374151' }}>Reason for Room Move:</label>
                     <textarea
                         name="reason"
                         value={formData.reason}
                         onChange={handleChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
-                        placeholder="Why is the guest being moved? (e.g. AC issue, upgrade)"
-                        rows="3"
+                        placeholder="Enter reason (e.g. AC Repair, Guest Request)..."
+                        style={{
+                            width: '100%',
+                            padding: '16px 18px',
+                            borderRadius: '12px',
+                            border: '1px solid #E5E7EB',
+                            fontSize: '15px',
+                            minHeight: '100px',
+                            outline: 'none',
+                            resize: 'none'
+                        }}
                         required
                     />
                 </div>
-            </div>
 
-            {/* Footer */}
-            <div className="mt-auto pt-6 border-t border-gray-100">
-                <button
-                    type="submit"
-                    disabled={isSubmitting || availableRooms.length === 0}
-                    className={`w-full px-6 py-3 rounded-lg font-semibold text-white shadow-lg transition-all transform active:scale-95 ${isSubmitting || availableRooms.length === 0
-                        ? 'bg-gray-400 cursor-not-allowed'
-                        : 'bg-green-600 hover:bg-green-700'
-                        }`}
-                >
-                    {isSubmitting ? 'Moving...' : '🚪 Move Room'}
-                </button>
-            </div>
-        </form>
+                {/* Effective Date Section */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '700', color: '#374151' }}>Move Effective From:</span>
+                    <input
+                        type="date"
+                        name="moveEffectiveDate"
+                        value={formData.moveEffectiveDate}
+                        onChange={handleChange}
+                        style={{
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid #E5E7EB',
+                            fontSize: '14px',
+                            fontWeight: '600'
+                        }}
+                    />
+                </div>
+
+                {/* Form Actions */}
+                <div style={{
+                    display: 'flex',
+                    gap: '16px',
+                    marginTop: 'auto',
+                    paddingTop: '20px'
+                }}>
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        style={{
+                            flex: 1,
+                            padding: '16px',
+                            borderRadius: '12px',
+                            border: '1px solid #E5E7EB',
+                            backgroundColor: '#FFFFFF',
+                            color: '#4B5563',
+                            fontWeight: '700',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={isSubmitting || !formData.newRoomId}
+                        style={{
+                            flex: 1,
+                            padding: '16px',
+                            borderRadius: '12px',
+                            border: 'none',
+                            backgroundColor: '#C53030',
+                            color: '#FFFFFF',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            opacity: (isSubmitting || !formData.newRoomId) ? 0.6 : 1,
+                            boxShadow: '0 4px 14px rgba(197, 48, 48, 0.25)'
+                        }}
+                    >
+                        {isSubmitting ? 'Confirming...' : 'Confirm Move'}
+                    </button>
+                </div>
+            </form>
+        </div>
     );
 };
 

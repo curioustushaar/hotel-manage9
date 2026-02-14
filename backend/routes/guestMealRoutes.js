@@ -37,14 +37,20 @@ router.post('/tables/:tableId/release', guestMealController.releaseTable);
 // ORDER ROUTES
 // ============================================================================
 
+// Get all orders (Active/Billed)
+router.get('/orders', guestMealController.getAllOrders);
+
+// Get pending orders (for Cashier Dashboard) - MUST be before /:orderId
+router.get('/orders/pending', guestMealController.getPendingOrders);
+
 // Create new order
 router.post('/orders/create', guestMealController.createOrder);
 
-// Get order by ID
-router.get('/orders/:orderId', guestMealController.getOrderById);
-
 // Get order by table ID
 router.get('/orders/table/:tableId', guestMealController.getOrderByTableId);
+
+// Get order by ID
+router.get('/orders/:orderId', guestMealController.getOrderById);
 
 // Update order items
 router.put('/orders/:orderId/items', guestMealController.updateOrderItems);
@@ -57,6 +63,16 @@ router.post('/orders/:orderId/bill', guestMealController.billOrder);
 
 // Close order
 router.post('/orders/:orderId/close', guestMealController.closeOrder);
+
+// Send to Cashier (Pending Payment)
+router.post('/orders/:orderId/send-to-cashier', guestMealController.sendToCashier);
+
+// Settle order (Payment processed by cashier)
+router.post('/orders/:orderId/settle', guestMealController.settleOrder);
+
+// Update order status (Pending, Preparing, Ready)
+router.patch('/orders/:orderId/status', guestMealController.updateOrderStatus);
+
 
 // ============================================================================
 // ANALYTICS ROUTES

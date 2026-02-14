@@ -28,6 +28,7 @@ exports.getAllTables = async (req, res) => {
             formattedDuration: table.getFormattedDuration(),
             orderStartTime: table.orderStartTime,
             currentOrderId: table.currentOrderId,
+            orderStatus: table.currentOrderId ? table.currentOrderId.status : null,
             mergedTableIds: table.mergedTableIds || [],
             amount: table.runningOrderAmount || 0,
             duration: table.getOrderDuration() || 0,
@@ -452,36 +453,69 @@ exports.releaseTable = async (req, res) => {
 // Create new order for a table
 exports.createOrder = async (req, res) => {
     try {
-        const { tableId, tableNumber, orderType = 'Direct Payment', roomNumber, guestName, numberOfGuests = 1 } = req.body;
+        const { tableId, tableNumber, orderType = 'Direct Payment', roomId, roomNumber, guestName, numberOfGuests = 1, taxRate = 0 } = req.body;
 
-        // Validate table exists and is available
-        const table = await Table.findById(tableId);
-        if (!table) {
-            return res.status(404).json({
-                success: false,
-                message: 'Table not found'
-            });
+        let table = null;
+
+        // Validate table if ID is provided
+        if (tableId) {
+            table = await Table.findById(tableId);
+            if (!table) {
+                return res.status(404).json({ success: false, message: 'Table not found' });
+            }
+
+            // If table is billed, we might want to allow adding to it (becomes Active again) 
+            // or just return the current billed order.
+            if (table.status === 'Billed') {
+                const billedOrder = await GuestMealOrder.findOne({ tableId, status: 'Billed' });
+                if (billedOrder) {
+                    return res.status(200).json({
+                        success: true,
+                        message: 'Returning existing billed order. Settle it before starting new.',
+                        data: billedOrder
+                    });
+                }
+            }
         }
 
-        if (table.status !== 'Available') {
-            return res.status(409).json({
-                success: false,
-                message: 'Table is not available for new orders'
-            });
+        // Check if an active order already exists to prevent duplicates
+        const query = { status: 'Active' };
+
+        if (tableId) {
+            query.tableId = tableId;
+        } else if (roomId) {
+            query.roomId = roomId;
+        } else if (roomNumber && orderType === 'Post to Room') {
+            // Fallback unique check by room number for unlinked rooms
+            query.roomNumber = roomNumber;
+        } else {
+            // For Take Away/Online without table/room, maybe allow multiple?
+            // Or limit by some other factor? For now, let's skip duplicate check or check by guestName?
+            // Actually, Take Away orders are usually unique instances.
+        }
+
+        if ((tableId || roomId || (roomNumber && orderType === 'Post to Room')) && Object.keys(query).length > 1) {
+            const existingOrder = await GuestMealOrder.findOne(query);
+            if (existingOrder) {
+                return res.status(200).json({
+                    success: true,
+                    message: 'Active order already exists',
+                    data: existingOrder
+                });
+            }
         }
 
         // Create new order
         const orderData = {
-            tableId,
-            tableNumber,
+            tableId: tableId || null,
+            roomId: roomId || null,
+            tableNumber: tableNumber || (table ? table.tableNumber : null),
             orderType,
             roomNumber: orderType === 'Post to Room' ? roomNumber : null,
             guestName: guestName || null,
             numberOfGuests,
-            items: [],
-            subtotal: 0,
-            tax: 0,
-            totalAmount: 0,
+            items: req.body.items || [],
+            taxRate,
             status: 'Active',
             paymentMethod: 'Pending',
             paymentStatus: 'Pending'
@@ -490,12 +524,14 @@ exports.createOrder = async (req, res) => {
         const order = new GuestMealOrder(orderData);
         await order.save();
 
-        // Update table status and set current order
-        table.status = 'Running';
-        table.currentOrderId = order._id;
-        table.orderStartTime = new Date();
-        table.runningOrderAmount = 0;
-        await table.save();
+        // Update table status if table exists
+        if (table) {
+            table.status = 'Running';
+            table.currentOrderId = order._id;
+            table.orderStartTime = new Date();
+            table.runningOrderAmount = order.finalAmount || 0;
+            await table.save();
+        }
 
         res.status(201).json({
             success: true,
@@ -544,16 +580,34 @@ exports.getOrderById = async (req, res) => {
 exports.getOrderByTableId = async (req, res) => {
     try {
         const { tableId } = req.params;
+        console.log(`[DEBUG] Fetching active order for tableId: ${tableId}`);
 
+        // Search for any order that is NOT 'Closed'
         const order = await GuestMealOrder.findOne({
             tableId,
-            status: 'Active'
+            status: { $nin: ['Closed', 'Billed'] } // Find truly active orders
         }).populate('tableId');
 
         if (!order) {
-            return res.status(404).json({
-                success: false,
-                message: 'No active order found for this table'
+            // Check for Billed orders too
+            const anyNonClosedOrder = await GuestMealOrder.findOne({
+                tableId,
+                status: { $ne: 'Closed' }
+            }).populate('tableId');
+
+            if (!anyNonClosedOrder) {
+                console.log(`[DEBUG] No non-closed orders found for tableId: ${tableId}`);
+                return res.status(200).json({
+                    success: true,
+                    data: null,
+                    message: 'No active order found'
+                });
+            }
+
+            console.log(`[DEBUG] Found non-closed order (status: ${anyNonClosedOrder.status})`);
+            return res.status(200).json({
+                success: true,
+                data: anyNonClosedOrder
             });
         }
 
@@ -562,6 +616,7 @@ exports.getOrderByTableId = async (req, res) => {
             data: order
         });
     } catch (error) {
+        console.error('[ERROR] Error in getOrderByTableId:', error);
         res.status(500).json({
             success: false,
             message: 'Error fetching order',
@@ -574,7 +629,7 @@ exports.getOrderByTableId = async (req, res) => {
 exports.updateOrderItems = async (req, res) => {
     try {
         const { orderId } = req.params;
-        const { items } = req.body;
+        const { items, taxRate } = req.body;
 
         const order = await GuestMealOrder.findById(orderId);
         if (!order) {
@@ -584,7 +639,8 @@ exports.updateOrderItems = async (req, res) => {
             });
         }
 
-        order.items = items;
+        if (items) order.items = items;
+        if (taxRate !== undefined) order.taxRate = taxRate;
         await order.save();
 
         // Update table running order amount
@@ -660,10 +716,11 @@ exports.billOrder = async (req, res) => {
             });
         }
 
-        if (order.status !== 'Active') {
+        // Allow billing if the order is not already billed or closed
+        if (order.status === 'Billed' || order.status === 'Closed') {
             return res.status(409).json({
                 success: false,
-                message: 'Order is not in active status'
+                message: `Order is already ${order.status}`
             });
         }
 
@@ -692,6 +749,44 @@ exports.billOrder = async (req, res) => {
         res.status(400).json({
             success: false,
             message: 'Error billing order',
+            error: error.message
+        });
+    }
+};
+
+// Send order to cashier (Pending Payment)
+exports.sendToCashier = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+
+        const order = await GuestMealOrder.findById(orderId);
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found'
+            });
+        }
+
+        // Update order status
+        order.status = 'Pending Payment';
+        await order.save();
+
+        // Update table status to indicate billing phase
+        const table = await Table.findById(order.tableId);
+        if (table) {
+            table.status = 'Billed'; // Table UI usually treats 'Billed' as yellow/attention needed
+            await table.save();
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Order sent to cashier successfully',
+            data: order
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: 'Error sending order to cashier',
             error: error.message
         });
     }
@@ -743,6 +838,77 @@ exports.closeOrder = async (req, res) => {
     }
 };
 
+// Get all orders (for View Order page - Active/Billed)
+exports.getAllOrders = async (req, res) => {
+    try {
+        const orders = await GuestMealOrder.find({
+            status: { $ne: 'Closed' }
+        }).populate('tableId').sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            data: orders,
+            count: orders.length
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching orders',
+            error: error.message
+        });
+    }
+};
+
+// Update order status (Pending, Preparing, Ready, Billed)
+exports.updateOrderStatus = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { status } = req.body;
+
+        const order = await GuestMealOrder.findById(orderId);
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found'
+            });
+        }
+
+        const validStatuses = ['Pending', 'Preparing', 'Ready', 'Billed'];
+        if (validStatuses.includes(status)) {
+            // Update the status
+            order.status = status;
+            await order.save();
+
+            // If status is Billed, update the table status as well to reflect it
+            if (status === 'Billed') {
+                const table = await Table.findById(order.tableId);
+                if (table) {
+                    table.status = 'Billed';
+                    await table.save();
+                }
+            }
+
+            return res.status(200).json({
+                success: true,
+                message: `Order status updated to ${status}`,
+                data: order
+            });
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid status provided'
+            });
+        }
+    } catch (error) {
+        console.error('Error updating order status:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error updating order status',
+            error: error.message
+        });
+    }
+};
+
 // ============================================================================
 // ANALYTICS & REPORTING
 // ============================================================================
@@ -767,20 +933,34 @@ exports.getDashboardStats = async (req, res) => {
         const totalRevenue = todayClosed.reduce((sum, order) => sum + order.revenue, 0);
         const totalOrders = await GuestMealOrder.countDocuments({ status: 'Closed', closedAt: { $gte: today } });
 
+        // Calculate payment breakdowns for today
+        const collections = {
+            Cash: 0,
+            UPI: 0,
+            Card: 0,
+            Online: 0,
+            Room: 0
+        };
+
+        todayClosed.forEach(order => {
+            const method = order.paymentMethod;
+            if (method && collections.hasOwnProperty(method)) {
+                collections[method] += order.finalAmount || 0;
+            } else if (method === 'Room Billing') {
+                collections.Room += order.finalAmount || 0;
+            }
+        });
+
         res.status(200).json({
             success: true,
             data: {
-                tables: {
-                    total: totalTables,
-                    available: availableTables,
-                    running: runningTables,
-                    billed: billedTables
-                },
-                revenue: {
-                    total: totalRevenue,
-                    orders: totalOrders,
-                    average: totalOrders > 0 ? totalRevenue / totalOrders : 0
-                }
+                totalTables,
+                availableTables,
+                runningTables,
+                billedTables,
+                totalRevenue,
+                totalOrders,
+                collections
             }
         });
     } catch (error) {
@@ -791,6 +971,60 @@ exports.getDashboardStats = async (req, res) => {
         });
     }
 };
+
+// Update order status (Pending, Preparing, Ready, etc.)
+// Update order status (Pending, Preparing, Ready, Served, etc.)
+exports.updateOrderStatus = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { status } = req.body;
+
+        const order = await GuestMealOrder.findById(orderId);
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found'
+            });
+        }
+
+        // Allow 'Served' as a valid status as well
+        const validStatuses = ['Pending', 'Preparing', 'Ready', 'Billed', 'Served'];
+        if (validStatuses.includes(status)) {
+            order.status = status;
+            await order.save();
+
+            // If status is Billed, update the table status as well
+            if (status === 'Billed') {
+                const table = await Table.findById(order.tableId);
+                if (table) {
+                    table.status = 'Billed';
+                    await table.save();
+                }
+            }
+
+            return res.status(200).json({
+                success: true,
+                message: `Order status updated to ${status}`,
+                data: order
+            });
+        }
+
+        // Fallback for other statuses if flexible, or error?
+        // For now, let's enforce validation to be clean
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid status provided'
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error updating order status',
+            error: error.message
+        });
+    }
+};
+
 
 // Get revenue report
 exports.getRevenueReport = async (req, res) => {
@@ -838,6 +1072,138 @@ exports.getRevenueReport = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error fetching revenue report',
+            error: error.message
+        });
+    }
+};
+
+// Get pending orders for Cashier View
+exports.getPendingOrders = async (req, res) => {
+    try {
+        console.log('[DEBUG] Fetching pending orders for cashier...');
+        const query = {
+            status: { $in: ['Pending Payment', 'Pending', 'Billed'] }
+        };
+
+        const orders = await GuestMealOrder.find(query)
+            .populate('tableId', 'tableNumber tableName status')
+            .sort({ updatedAt: -1 });
+
+        console.log(`[DEBUG] Found ${orders.length} pending orders`);
+
+        res.status(200).json({
+            success: true,
+            count: orders.length,
+            data: orders
+        });
+    } catch (error) {
+        console.error('[CRITICAL] Error fetching pending orders:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching pending orders',
+            error: error.message
+        });
+    }
+};
+
+// Settle order (Cash, UPI, Card, or Post to Room)
+exports.settleOrder = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { paymentMethod, paymentMode, amount, roomNumber } = req.body;
+
+        const order = await GuestMealOrder.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        // 1. Handle "Post to Room" (Add to Folio)
+        if (paymentMethod === 'Add to Room') {
+            const Booking = require('../models/bookingModel');
+            // Find active booking for this room
+            const booking = await Booking.findOne({
+                roomNumber: roomNumber,
+                status: 'Checked-in'
+            });
+
+            if (!booking) {
+                return res.status(404).json({
+                    success: false,
+                    message: `No active check-in found for Room ${roomNumber}`
+                });
+            }
+
+            // Create folio transaction
+            const transactionData = {
+                type: 'charge',
+                day: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
+                particulars: `Restaurant Bill - Table ${order.tableNumber}`,
+                description: `Food Order #${orderId.toString().substr(-6).toUpperCase()}`,
+                amount: order.finalAmount,
+                user: 'cashier',
+                folioId: 0
+            };
+
+            booking.transactions.push(transactionData);
+            await booking.save();
+
+            order.paymentMethod = 'Room Billing';
+            order.paymentStatus = 'Completed';
+        } else {
+            // 2. Handle Direct Payment
+            order.paymentMethod = paymentMode; // Cash, Card, UPI
+            order.paymentStatus = 'Completed';
+
+            // Also record in overall cashier Transaction model
+            const Transaction = require('../models/transactionModel');
+
+            // Map paymentMode to transaction type enum
+            let transType = 'Collection Cash';
+            if (paymentMode === 'UPI') transType = 'Collection UPI';
+            else if (paymentMode === 'Card') transType = 'Collection Card';
+            else if (paymentMode === 'Bank Transfer') transType = 'Collection Bank Transfer';
+
+            await Transaction.create({
+                date: new Date(),
+                type: transType,
+                category: 'collection',
+                amount: order.finalAmount,
+                by: 'Cashier',
+                reference: `ORDER-${orderId.toString().substr(-6).toUpperCase()}`,
+                notes: `Restaurant Bill - Table ${order.tableNumber}`,
+                paymentMethod: paymentMode.toLowerCase()
+            });
+        }
+
+        // 3. Mark Order as Closed
+        order.status = 'Closed';
+        order.closedAt = new Date();
+        order.revenue = order.finalAmount;
+        await order.save();
+
+        // 4. Release Table
+        const Table = require('../models/tableModel');
+        const table = await Table.findById(order.tableId);
+        if (table) {
+            table.status = 'Available';
+            table.currentOrderId = null;
+            table.runningOrderAmount = 0;
+            table.orderStartTime = null;
+            table.orderDuration = 0;
+            await table.save();
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Order settled successfully',
+            data: { order, table }
+        });
+
+    } catch (error) {
+        console.error('Error settling order:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error settling order',
             error: error.message
         });
     }

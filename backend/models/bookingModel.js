@@ -199,35 +199,10 @@ const bookingSchema = new mongoose.Schema(
             }
         }],
 
-        // Visitors Log (for ADD VISITOR action)
+        // Visitors Log (Reference to Visitor Model)
         visitors: [{
-            visitorName: {
-                type: String,
-                required: true
-            },
-            mobileNumber: {
-                type: String,
-                required: true
-            },
-            idProofType: {
-                type: String,
-                enum: ['Aadhaar', 'Passport', 'Driving License', 'Other'],
-                required: true
-            },
-            idProofNumber: {
-                type: String,
-                required: true
-            },
-            visitPurpose: {
-                type: String
-            },
-            inTime: {
-                type: Date,
-                default: Date.now
-            },
-            outTime: {
-                type: Date
-            }
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Visitor'
         }],
 
         // Cancellation / No-Show / Void Details

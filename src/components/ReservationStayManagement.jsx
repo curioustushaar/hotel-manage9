@@ -77,69 +77,18 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             ]);
 
             let allReservations = [];
+            const uniqueIds = new Set();
 
             // Process bookings data
             if (bookingsResponse.ok) {
                 const bookingsData = await bookingsResponse.json();
                 if (bookingsData.success && bookingsData.data) {
-                    const mappedBookings = bookingsData.data.map(booking => ({
-                        id: booking._id,
-                        reservationType: 'Confirm',
-                        bookingSource: 'Direct',
-                        businessSource: 'Walk-In',
-                        referenceNumber: booking.bookingId || '',
-                        guestId: booking._id,
-                        guestName: booking.guestName,
-                        guestEmail: booking.email || '',
-                        guestPhone: booking.mobileNumber,
-                        reservationType: booking.reservationType || 'Confirm',
-                        bookingSource: booking.bookingSource || 'Direct',
-                        businessSource: booking.businessSource || 'Walk-In',
-                        referenceNumber: booking.referenceId || booking.id,
-                        arrivalFrom: booking.arrivalFrom || '',
-                        purposeOfVisit: booking.purposeOfVisit || '',
-                        checkInDate: booking.checkInDate ? new Date(booking.checkInDate).toISOString().split('T')[0] : '',
-                        checkInTime: booking.scheduledCheckInTime || '14:00',
-                        checkOutDate: booking.checkOutDate ? new Date(booking.checkOutDate).toISOString().split('T')[0] : '',
-                        checkOutTime: booking.scheduledCheckOutTime || '11:00',
-                        flexibleCheckout: false,
-                        roomNumber: booking.roomNumber,
-                        roomType: booking.roomType,
-                        rooms: [{
-                            id: 1,
-                            categoryId: booking.roomType?.toLowerCase().replace(/ /g, '-') || 'deluxe-ac-double',
-                            roomNumber: booking.roomNumber || '',
-                            mealPlan: 'CP',
-                            adultsCount: booking.numberOfGuests || 1,
-                            childrenCount: 0,
-                            ratePerNight: booking.pricePerNight || 0,
-                            discount: 0
-                        }],
-                        nights: booking.numberOfNights || 1,
-                        status: booking.status === 'Upcoming' ? 'RESERVED' :
-                            booking.status === 'Checked-in' ? 'IN_HOUSE' :
-                                booking.status === 'Checked-out' ? 'CHECKED_OUT' : 'RESERVED',
-                        roomCharges: booking.totalAmount || 0,
-                        discount: 0,
-                        tax: 0,
-                        totalAmount: booking.totalAmount || 0,
-                        paidAmount: booking.advancePaid || 0,
-                        balanceDue: booking.remainingAmount || 0,
-                        paymentMode: 'Cash',
-                        taxExempt: false,
-                        idProofType: booking.idProofType,
-                        idProofNumber: booking.idProofNumber,
-                        vehicleNumber: booking.vehicleNumber,
-                        auditTrail: booking.auditTrail || [],
-                        transactions: booking.transactions || [],
-                        notes: booking.checkInRemarks || '',
-                        cancellationDetails: booking.cancellationDetails || {},
-                        noShowDetails: booking.noShowDetails || {},
-                        voidDetails: booking.voidDetails || {},
-                        createdAt: booking.createdAt || new Date().toISOString(),
-                        updatedAt: booking.updatedAt || new Date().toISOString()
-                    }));
-                    allReservations = [...allReservations, ...mappedBookings];
+                    bookingsData.data.forEach(booking => {
+                        if (!uniqueIds.has(booking._id)) {
+                            allReservations.push(mapBookingToReservation(booking));
+                            uniqueIds.add(booking._id);
+                        }
+                    });
                 }
             }
 
@@ -147,50 +96,53 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             if (reservationsResponse.ok) {
                 const reservationsData = await reservationsResponse.json();
                 if (reservationsData.success && reservationsData.data) {
-                    const mappedReservations = reservationsData.data.map(reservation => ({
-                        id: reservation._id,
-                        reservationType: reservation.reservationType || 'Confirm',
-                        bookingSource: reservation.bookingSource || 'Direct',
-                        businessSource: reservation.businessSource || 'Walk-In',
-                        referenceNumber: reservation.referenceId,
-                        arrivalFrom: reservation.arrivalFrom || '',
-                        purposeOfVisit: reservation.purposeOfVisit || '',
-                        purposeOfVisit: '',
-                        guestId: reservation._id,
-                        guestName: reservation.guestName,
-                        guestEmail: reservation.email,
-                        guestPhone: reservation.phone,
-                        checkInDate: new Date(reservation.checkInDate).toISOString().split('T')[0],
-                        checkInTime: '14:00',
-                        checkOutDate: new Date(reservation.checkOutDate).toISOString().split('T')[0],
-                        checkOutTime: '11:00',
-                        flexibleCheckout: false,
-                        roomNumber: reservation.roomNumber, // Assuming reservation object might have it, or it will be undefined which is fine
-                        roomType: reservation.roomType,
-                        rooms: [{
-                            id: 1,
-                            categoryId: 'deluxe-ac-double',
-                            roomNumber: '',
-                            mealPlan: 'CP',
-                            adultsCount: 2,
-                            childrenCount: 0,
-                            ratePerNight: Math.round(reservation.amount / reservation.nights),
-                            discount: 0
-                        }],
-                        nights: reservation.nights,
-                        status: reservation.status,
-                        roomCharges: reservation.amount,
-                        discount: 0,
-                        tax: 0,
-                        totalAmount: reservation.amount,
-                        paidAmount: reservation.paid,
-                        balanceDue: reservation.balance,
-                        paymentMode: 'Cash',
-                        taxExempt: false,
-                        createdAt: reservation.createdAt || new Date().toISOString(),
-                        updatedAt: reservation.updatedAt || new Date().toISOString()
-                    }));
-                    allReservations = [...allReservations, ...mappedReservations];
+                    reservationsData.data.forEach(reservation => {
+                        if (!uniqueIds.has(reservation._id)) {
+                            allReservations.push({
+                                id: reservation._id,
+                                reservationType: reservation.reservationType || 'Confirm',
+                                bookingSource: reservation.bookingSource || 'Direct',
+                                businessSource: reservation.businessSource || 'Walk-In',
+                                referenceNumber: reservation.referenceId,
+                                arrivalFrom: reservation.arrivalFrom || '',
+                                purposeOfVisit: reservation.purposeOfVisit || '',
+                                guestId: reservation._id,
+                                guestName: reservation.guestName,
+                                guestEmail: reservation.email,
+                                guestPhone: reservation.phone,
+                                checkInDate: new Date(reservation.checkInDate).toISOString().split('T')[0],
+                                checkInTime: '14:00',
+                                checkOutDate: new Date(reservation.checkOutDate).toISOString().split('T')[0],
+                                checkOutTime: '11:00',
+                                flexibleCheckout: false,
+                                roomNumber: reservation.roomNumber,
+                                roomType: reservation.roomType,
+                                rooms: [{
+                                    id: 1,
+                                    categoryId: 'deluxe-ac-double',
+                                    roomNumber: '',
+                                    mealPlan: 'CP',
+                                    adultsCount: 2,
+                                    childrenCount: 0,
+                                    ratePerNight: Math.round(reservation.amount / (reservation.nights || 1)),
+                                    discount: 0
+                                }],
+                                nights: reservation.nights || 1,
+                                status: reservation.status,
+                                roomCharges: reservation.amount,
+                                discount: 0,
+                                tax: 0,
+                                totalAmount: reservation.amount,
+                                paidAmount: reservation.paid || 0,
+                                balanceDue: reservation.balance || 0,
+                                paymentMode: 'Cash',
+                                taxExempt: false,
+                                createdAt: reservation.createdAt || new Date().toISOString(),
+                                updatedAt: reservation.updatedAt || new Date().toISOString()
+                            });
+                            uniqueIds.add(reservation._id);
+                        }
+                    });
                 }
             }
 
@@ -203,6 +155,61 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             setLoading(false);
         }
     };
+
+    const mapBookingToReservation = (booking) => {
+        return {
+            id: booking._id,
+            reservationType: booking.reservationType || 'Confirm',
+            bookingSource: booking.bookingSource || 'Direct',
+            businessSource: booking.businessSource || 'Walk-In',
+            referenceNumber: booking.referenceId || booking.bookingId || booking._id,
+            guestId: booking._id,
+            guestName: booking.guestName,
+            guestEmail: booking.email || '',
+            guestPhone: booking.mobileNumber,
+            checkInDate: booking.checkInDate ? new Date(booking.checkInDate).toISOString().split('T')[0] : '',
+            checkInTime: booking.scheduledCheckInTime || '14:00',
+            checkOutDate: booking.checkOutDate ? new Date(booking.checkOutDate).toISOString().split('T')[0] : '',
+            checkOutTime: booking.scheduledCheckOutTime || '11:00',
+            flexibleCheckout: false,
+            roomNumber: booking.roomNumber,
+            roomType: booking.roomType,
+            rooms: [{
+                id: 1,
+                categoryId: booking.roomType?.toLowerCase().replace(/ /g, '-') || 'deluxe-ac-double',
+                roomNumber: booking.roomNumber || '',
+                mealPlan: 'CP',
+                adultsCount: booking.numberOfAdults || booking.numberOfGuests || 1,
+                childrenCount: booking.numberOfChildren || 0,
+                ratePerNight: booking.pricePerNight || 0,
+                discount: 0
+            }],
+            nights: booking.numberOfNights || 1,
+            status: booking.status === 'Upcoming' ? 'RESERVED' :
+                booking.status === 'Checked-in' || booking.status === 'IN_HOUSE' ? 'IN_HOUSE' :
+                    booking.status === 'Checked-out' || booking.status === 'CHECKED_OUT' ? 'CHECKED_OUT' : 'RESERVED',
+            roomCharges: booking.totalAmount || 0,
+            discount: 0,
+            tax: 0,
+            totalAmount: booking.totalAmount || 0,
+            paidAmount: booking.advancePaid || 0,
+            balanceDue: booking.remainingAmount || 0,
+            paymentMode: 'Cash',
+            taxExempt: false,
+            idProofType: booking.idProofType,
+            idProofNumber: booking.idProofNumber,
+            vehicleNumber: booking.vehicleNumber,
+            auditTrail: booking.auditTrail || [],
+            transactions: booking.transactions || [],
+            notes: booking.checkInRemarks || '',
+            cancellationDetails: booking.cancellationDetails || {},
+            noShowDetails: booking.noShowDetails || {},
+            voidDetails: booking.voidDetails || {},
+            createdAt: booking.createdAt || new Date().toISOString(),
+            updatedAt: booking.updatedAt || new Date().toISOString()
+        };
+    };
+
 
     // Room Facility Types
     const [facilityTypes, setFacilityTypes] = useState([]);
@@ -577,10 +584,14 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             checkOutDate: targetReservation.checkOutDate,
             checkOutTime: targetReservation.checkOutTime || '11:00',
             numberOfNights: targetReservation.nights,
-            numberOfGuests: targetReservation.rooms?.[0]?.adultsCount || 1,
+            numberOfAdults: targetReservation.rooms?.[0]?.adultsCount || 1,
+            numberOfChildren: targetReservation.rooms?.[0]?.childrenCount || 0,
+            numberOfGuests: targetReservation.rooms?.[0]?.adultsCount || 1, // Fallback
+            childrenCount: targetReservation.rooms?.[0]?.childrenCount || 0, // Explicit for form
             pricePerNight: targetReservation.rooms?.[0]?.ratePerNight || 0,
             totalAmount: targetReservation.totalAmount || 0,
             advancePaid: targetReservation.paidAmount || 0,
+            remainingAmount: targetReservation.balanceDue || 0,
             status: targetReservation.status === 'RESERVED' ? 'Upcoming' :
                 targetReservation.status === 'IN_HOUSE' ? 'Checked-in' :
                     targetReservation.status === 'CHECKED_OUT' ? 'Checked-out' : 'Upcoming',
@@ -616,31 +627,25 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     };
 
     // Handle action success
-    const handleActionSuccess = async (updatedReservation) => {
-        // Optimistic UI update or full fetch
-        if (updatedReservation && updatedReservation._id) {
+    const handleActionSuccess = async (updatedBooking) => {
+        // Optimistic UI update
+        if (updatedBooking && updatedBooking._id) {
+            const mappedReservation = mapBookingToReservation(updatedBooking);
+
             setReservations(prev =>
-                prev.map(r =>
-                    (r.id === updatedReservation._id || r._id === updatedReservation._id)
-                        ? { ...r, ...updatedReservation, id: updatedReservation._id, status: updatedReservation.status === 'IN_HOUSE' ? 'IN_HOUSE' : updatedReservation.status }
-                        : r
-                )
+                prev.map(r => (r.id === mappedReservation.id || r._id === mappedReservation.id) ? mappedReservation : r)
             );
 
             // Also update selectedReservation if it matches
-            if (selectedReservation && (selectedReservation.id === updatedReservation._id || selectedReservation._id === updatedReservation._id)) {
-                setSelectedReservation(prev => ({
-                    ...prev,
-                    ...updatedReservation,
-                    id: updatedReservation._id,
-                    status: updatedReservation.status === 'IN_HOUSE' ? 'IN_HOUSE' : updatedReservation.status
-                }));
+            if (selectedReservation && (selectedReservation.id === mappedReservation.id)) {
+                setSelectedReservation(mappedReservation);
             }
         }
 
-        // Fetch fresh data anyway to be sure about computed fields
+        // Fetch fresh data from API to ensure sync
         await fetchReservationsFromAPI();
     };
+
 
     // Handle Generate Invoice
     const handleGenerateInvoice = useCallback(async (reservation) => {
@@ -775,7 +780,6 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             roomNumber: rooms[0].roomNumber || 'TBD',
             numberOfGuests: validGuests,
             checkInDate,
-            checkInDate,
             checkOutDate,
             numberOfNights: Number(nights) || 1,
             pricePerNight: Number(rooms[0].ratePerNight) || 0,
@@ -902,6 +906,19 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             return true;
         });
     }, [reservations, activeTab]);
+
+    // Calculate real-time counts for tabs
+    const counts = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        return {
+            all: reservations.length,
+            reserved: reservations.filter(r => r.status === 'RESERVED').length,
+            'in-house': reservations.filter(r => r.status === 'IN_HOUSE').length,
+            'checked-out': reservations.filter(r => r.status === 'CHECKED_OUT').length,
+            arrival: reservations.filter(r => r.checkInDate === today && r.status === 'RESERVED').length,
+            departure: reservations.filter(r => r.checkOutDate === today && r.status === 'IN_HOUSE').length
+        };
+    }, [reservations]);
 
     // Convert 24-hour to 12-hour format
     const convertTo12Hour = (time24) => {
@@ -1231,7 +1248,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                         onClick={() => setActiveTab(tab)}
                     >
                         {tab === 'all' ? 'All Reservations' : tab.replace('-', ' ').toUpperCase()}
-                        <span style={{ marginLeft: '0.5rem' }}>({filteredReservations.length})</span>
+                        <span style={{ marginLeft: '0.5rem' }}>({counts[tab] || 0})</span>
                     </button>
                 ))}
             </div>
