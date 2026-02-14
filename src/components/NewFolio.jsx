@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import API_URL from '../config/api';
 import './NewFolio.css';
 
 const NewFolio = ({ onClose, onSave }) => {
@@ -20,14 +21,14 @@ const NewFolio = ({ onClose, onSave }) => {
     const fetchGuests = async () => {
         try {
             setLoading(true);
-            const response = await fetch('http://localhost:5001/api/bookings/list');
+            const response = await fetch(`${API_URL}/api/bookings/list`);
             const data = await response.json();
-            
+
             if (data.success && data.data) {
                 // Extract unique guests
                 const uniqueGuests = [];
                 const guestMap = new Map();
-                
+
                 data.data.forEach(booking => {
                     const key = `${booking.guestName}-${booking.mobileNumber}`;
                     if (!guestMap.has(key)) {
@@ -40,7 +41,7 @@ const NewFolio = ({ onClose, onSave }) => {
                         uniqueGuests.push(guestMap.get(key));
                     }
                 });
-                
+
                 setGuests(uniqueGuests);
             }
         } catch (error) {
@@ -67,9 +68,9 @@ const NewFolio = ({ onClose, onSave }) => {
                 <form onSubmit={handleSubmit} className="new-folio-form">
                     <div className="form-group">
                         <label>Sharer:</label>
-                        <select 
+                        <select
                             value={formData.customer}
-                            onChange={(e) => setFormData({...formData, customer: e.target.value})}
+                            onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
                             disabled={loading}
                         >
                             <option value="">
@@ -85,20 +86,20 @@ const NewFolio = ({ onClose, onSave }) => {
 
                     <div className="form-group">
                         <label>Rooms</label>
-                        <input 
+                        <input
                             type="text"
                             value={formData.rooms}
-                            onChange={(e) => setFormData({...formData, rooms: e.target.value})}
+                            onChange={(e) => setFormData({ ...formData, rooms: e.target.value })}
                             placeholder="102"
                         />
                     </div>
 
                     <div className="form-group">
                         <label>Registration No:</label>
-                        <input 
+                        <input
                             type="text"
                             value={formData.registrationNo}
-                            onChange={(e) => setFormData({...formData, registrationNo: e.target.value})}
+                            onChange={(e) => setFormData({ ...formData, registrationNo: e.target.value })}
                             placeholder="Registration No"
                         />
                     </div>

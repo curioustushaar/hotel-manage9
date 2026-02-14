@@ -4,8 +4,11 @@ import './ViewOrderModal.css';
 
 const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) => {
     const [orderItems, setOrderItems] = useState([]);
+    const [serviceItems, setServiceItems] = useState([]);
+    const [activeTab, setActiveTab] = useState('food'); // 'food' or 'service'
     const [showFoodSelector, setShowFoodSelector] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState(1);
+    const [selectedServiceCategory, setSelectedServiceCategory] = useState(1);
     const [toastMessage, setToastMessage] = useState('');
 
     // Categories
@@ -120,6 +123,46 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
         ]
     };
 
+    // Service Categories
+    const serviceCategories = [
+        { id: 1, name: 'Housekeeping' },
+        { id: 2, name: 'Toiletries' },
+        { id: 3, name: 'Maintenance' },
+        { id: 4, name: 'Guest Requests' }
+    ];
+
+    // Service Items
+    const serviceList = {
+        1: [ // Housekeeping
+            { id: 1001, name: 'Room Cleaning', price: 0 },
+            { id: 1002, name: 'Extra Bed Sheets', price: 0 },
+            { id: 1003, name: 'Pillow Change', price: 0 },
+            { id: 1004, name: 'Trash Pickup', price: 0 },
+            { id: 1005, name: 'Make Up Room', price: 0 }
+        ],
+        2: [ // Toiletries
+            { id: 2001, name: 'Bath Towel', price: 0 },
+            { id: 2002, name: 'Hand Towel', price: 0 },
+            { id: 2003, name: 'Soap / Shampoo', price: 0 },
+            { id: 2004, name: 'Toothbrush Kit', price: 0 },
+            { id: 2005, name: 'Toilet Paper', price: 0 }
+        ],
+        3: [ // Maintenance
+            { id: 3001, name: 'AC Check', price: 0 },
+            { id: 3002, name: 'TV Issue', price: 0 },
+            { id: 3003, name: 'Plumbing / Leak', price: 0 },
+            { id: 3004, name: 'Light Replacement', price: 0 },
+            { id: 3005, name: 'Door Lock Issue', price: 0 }
+        ],
+        4: [ // Guest Requests
+            { id: 4001, name: 'Wake Up Call', price: 0 },
+            { id: 4002, name: 'Iron & Board', price: 0 },
+            { id: 4003, name: 'Hair Dryer', price: 0 },
+            { id: 4004, name: 'Distilled Water', price: 0 },
+            { id: 4005, name: 'Do Not Disturb', price: 0 }
+        ]
+    };
+
     useEffect(() => {
         if (currentOrder && currentOrder.items) {
             setOrderItems(currentOrder.items);
@@ -128,6 +171,11 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
             const savedCart = localStorage.getItem(`pos_cart_${room?.id}`);
             if (savedCart) {
                 setOrderItems(JSON.parse(savedCart));
+            }
+            // Load Services
+            const savedServices = localStorage.getItem(`service_cart_${room?.id}`);
+            if (savedServices) {
+                setServiceItems(JSON.parse(savedServices));
             }
         }
     }, [currentOrder, room]);
@@ -164,6 +212,24 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
         showToast(`${item.name} added to order`);
     };
 
+    const addServiceItem = (item) => {
+        const existing = serviceItems.find(x => x.id === item.id);
+        if (!existing) {
+            const updated = [...serviceItems, { ...item, status: 'Pending', time: new Date().toLocaleTimeString() }];
+            setServiceItems(updated);
+            localStorage.setItem(`service_cart_${room?.id}`, JSON.stringify(updated));
+            showToast(`${item.name} requested`);
+        } else {
+            showToast(`${item.name} already requested`);
+        }
+    };
+
+    const removeServiceItem = (itemId) => {
+        const updated = serviceItems.filter(item => item.id !== itemId);
+        setServiceItems(updated);
+        localStorage.setItem(`service_cart_${room?.id}`, JSON.stringify(updated));
+    };
+
     const handleCancelOrder = () => {
         // Remove from localStorage
         localStorage.removeItem(`pos_cart_${room?.id}`);
@@ -181,6 +247,8 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
     const generatePDF = () => {
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
+        const activeList = activeTab === 'food' ? orderItems : serviceItems;
+        const title = activeTab === 'food' ? 'Kitchen Order Ticket' : 'Service Request Ticket';
 
         // Header
         doc.setFontSize(20);
@@ -188,7 +256,7 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
         doc.text('BAREENA ATHITHI', pageWidth / 2, 20, { align: 'center' });
 
         doc.setFontSize(14);
-        doc.text('Kitchen Order Ticket', pageWidth / 2, 30, { align: 'center' });
+        doc.text(title, pageWidth / 2, 30, { align: 'center' });
 
         // Room Details
         doc.setFontSize(11);
@@ -204,9 +272,14 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
         // Table Header
         let yPos = 75;
         doc.setFont('helvetica', 'bold');
-        doc.text('Item', 20, yPos);
-        doc.text('Qty', pageWidth - 60, yPos);
-        doc.text('Price', pageWidth - 30, yPos);
+        doc.text('Item / Service', 20, yPos);
+
+        if (activeTab === 'food') {
+            doc.text('Qty', pageWidth - 60, yPos);
+            doc.text('Price', pageWidth - 30, yPos);
+        } else {
+            doc.text('Status', pageWidth - 40, yPos);
+        }
 
         yPos += 5;
         doc.line(20, yPos, pageWidth - 20, yPos);
@@ -214,29 +287,35 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
         // Items
         yPos += 10;
         doc.setFont('helvetica', 'normal');
-        orderItems.forEach(item => {
+        activeList.forEach(item => {
             doc.text(item.name, 20, yPos);
-            doc.text(item.quantity.toString(), pageWidth - 60, yPos);
-            doc.text(`₹${item.price * item.quantity}`, pageWidth - 30, yPos);
+            if (activeTab === 'food') {
+                doc.text(item.quantity.toString(), pageWidth - 60, yPos);
+                doc.text(`₹${item.price * item.quantity}`, pageWidth - 30, yPos);
+            } else {
+                doc.text(item.status || 'Pending', pageWidth - 40, yPos);
+            }
             yPos += 8;
         });
 
-        // Total
-        yPos += 5;
-        doc.setLineWidth(0.5);
-        doc.line(20, yPos, pageWidth - 20, yPos);
-        yPos += 10;
+        // Total (Food Only)
+        if (activeTab === 'food') {
+            yPos += 5;
+            doc.setLineWidth(0.5);
+            doc.line(20, yPos, pageWidth - 20, yPos);
+            yPos += 10;
 
-        const total = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(13);
-        doc.text(`TOTAL: ₹${total.toFixed(2)}`, pageWidth - 30, yPos, { align: 'right' });
+            const total = activeList.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(13);
+            doc.text(`TOTAL: ₹${total.toFixed(2)}`, pageWidth - 30, yPos, { align: 'right' });
+        }
 
         // Footer
         yPos += 20;
         doc.setFontSize(10);
         doc.setFont('helvetica', 'italic');
-        doc.text('Thank you for your order!', pageWidth / 2, yPos, { align: 'center' });
+        doc.text('Thank you!', pageWidth / 2, yPos, { align: 'center' });
 
         return doc;
     };
@@ -244,6 +323,7 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
     const handleSaveAndPrint = () => {
         // Save to localStorage
         localStorage.setItem(`pos_cart_${room?.id}`, JSON.stringify(orderItems));
+        localStorage.setItem(`service_cart_${room?.id}`, JSON.stringify(serviceItems));
 
         // Generate and download PDF
         const doc = generatePDF();
@@ -258,6 +338,7 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
     const handleRoomPosting = () => {
         // Save to localStorage
         localStorage.setItem(`pos_cart_${room?.id}`, JSON.stringify(orderItems));
+        localStorage.setItem(`service_cart_${room?.id}`, JSON.stringify(serviceItems));
 
         showToast('Room posted successfully');
         setTimeout(() => {
@@ -267,6 +348,7 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
     };
 
     const currentFoodItems = foodItems[selectedCategory] || [];
+    const currentServiceItems = serviceList[selectedServiceCategory] || [];
     const total = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
     if (!isOpen) return null;
@@ -281,24 +363,45 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
                         <button className="view-order-close" onClick={onClose}>×</button>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="view-order-actions">
+                    <div className="view-order-tabs">
                         <button
-                            className="view-order-btn add-food"
-                            onClick={() => setShowFoodSelector(!showFoodSelector)}
+                            className={`tab-btn ${activeTab === 'food' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('food')}
                         >
-                            ➕ Add Food Item
+                            🍽️ Food Order
                         </button>
                         <button
-                            className="view-order-btn cancel-order"
-                            onClick={handleCancelOrder}
+                            className={`tab-btn ${activeTab === 'service' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('service')}
                         >
-                            ❌ Cancel Order
+                            🔔 Room Service
                         </button>
                     </div>
 
-                    {/* Food Selector (Conditional) */}
-                    {showFoodSelector && (
+                    {/* Action Buttons */}
+                    <div className="view-order-actions">
+                        {activeTab === 'food' ? (
+                            <>
+                                <button
+                                    className="view-order-btn add-food"
+                                    onClick={() => setShowFoodSelector(!showFoodSelector)}
+                                >
+                                    ➕ Add Food Item
+                                </button>
+                                <button
+                                    className="view-order-btn cancel-order"
+                                    onClick={handleCancelOrder}
+                                >
+                                    ❌ Clear Order
+                                </button>
+                            </>
+                        ) : (
+                            <div className="service-instructions">Select a category to request services</div>
+                        )}
+                    </div>
+
+                    {/* Food Selector (Conditional & Tab Dependent) */}
+                    {activeTab === 'food' && showFoodSelector && (
                         <div className="food-selector-section">
                             <div className="food-categories">
                                 {categories.map(cat => (
@@ -330,39 +433,97 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
                         </div>
                     )}
 
-                    {/* Order Items Table */}
-                    <div className="view-order-items">
-                        <h3>Order Items</h3>
-                        {orderItems.length === 0 ? (
-                            <div className="no-items-message">No items in order. Click "Add Food Item" to add items.</div>
-                        ) : (
-                            <div className="order-items-list">
-                                {orderItems.map(item => (
-                                    <div key={item.id} className="order-item-row">
-                                        <div className="order-item-name">{item.name}</div>
-                                        <div className="order-item-controls">
-                                            <button
-                                                className="qty-btn minus"
-                                                onClick={() => updateQuantity(item.id, -1)}
-                                            >
-                                                ➖
-                                            </button>
-                                            <span className="qty-value">{item.quantity}</span>
-                                            <button
-                                                className="qty-btn plus"
-                                                onClick={() => updateQuantity(item.id, 1)}
-                                            >
-                                                ➕
-                                            </button>
+                    {/* Service Selector (Tab Dependent) */}
+                    {activeTab === 'service' && (
+                        <div className="food-selector-section">
+                            <div className="food-categories">
+                                {serviceCategories.map(cat => (
+                                    <button
+                                        key={cat.id}
+                                        className={`food-cat-btn ${selectedServiceCategory === cat.id ? 'active' : ''}`}
+                                        onClick={() => setSelectedServiceCategory(cat.id)}
+                                    >
+                                        {cat.name}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="food-items-grid">
+                                {currentServiceItems.map(item => (
+                                    <div
+                                        key={item.id}
+                                        className="food-item-card service-card"
+                                        onClick={() => addServiceItem(item)}
+                                    >
+                                        <div className="food-item-name">{item.name}</div>
+                                        <div className="food-item-footer">
+                                            <div className="food-item-qty">Request</div>
+                                            <div className="food-item-price">Free</div>
                                         </div>
-                                        <div className="order-item-price">₹{item.price * item.quantity}</div>
                                     </div>
                                 ))}
-                                <div className="order-total-row">
-                                    <span>Total:</span>
-                                    <span>₹{total.toFixed(2)}</span>
-                                </div>
                             </div>
+                        </div>
+                    )}
+
+                    {/* Order Items Table */}
+                    <div className="view-order-items">
+                        <h3>{activeTab === 'food' ? 'Ordered Items' : 'Requested Services'}</h3>
+
+                        {activeTab === 'food' ? (
+                            orderItems.length === 0 ? (
+                                <div className="no-items-message">No food items ordered.</div>
+                            ) : (
+                                <div className="order-items-list">
+                                    {orderItems.map(item => (
+                                        <div key={item.id} className="order-item-row">
+                                            <div className="order-item-name">{item.name}</div>
+                                            <div className="order-item-controls">
+                                                <button
+                                                    className="qty-btn minus"
+                                                    onClick={() => updateQuantity(item.id, -1)}
+                                                >
+                                                    ➖
+                                                </button>
+                                                <span className="qty-value">{item.quantity}</span>
+                                                <button
+                                                    className="qty-btn plus"
+                                                    onClick={() => updateQuantity(item.id, 1)}
+                                                >
+                                                    ➕
+                                                </button>
+                                            </div>
+                                            <div className="order-item-price">₹{item.price * item.quantity}</div>
+                                        </div>
+                                    ))}
+                                    <div className="order-total-row">
+                                        <span>Total:</span>
+                                        <span>₹{total.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            )
+                        ) : (
+                            serviceItems.length === 0 ? (
+                                <div className="no-items-message">No services requested.</div>
+                            ) : (
+                                <div className="order-items-list">
+                                    {serviceItems.map(item => (
+                                        <div key={item.id} className="order-item-row">
+                                            <div className="order-item-name">{item.name}</div>
+                                            <div className="service-info">
+                                                <span className="service-time">{item.time}</span>
+                                                <span className="service-status">{item.status}</span>
+                                            </div>
+                                            <button
+                                                className="qty-btn minus"
+                                                onClick={() => removeServiceItem(item.id)}
+                                                title="Remove Request"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )
                         )}
                     </div>
 

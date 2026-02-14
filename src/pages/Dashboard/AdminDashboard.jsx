@@ -16,6 +16,7 @@ import DiscountManagement from '../DiscountManagement/DiscountManagement';
 import TaxConfiguration from '../TaxConfiguration/TaxConfiguration';
 import TaxMapping from '../TaxMapping/TaxMapping';
 import CashierReport from '../CashierReport/CashierReport';
+import CashierSection from '../Cashier/CashierSection';
 import StayOverview from '../../components/StayOverview';
 import RoomSetup from '../RoomSetup/RoomSetup';
 import RoomFacilities from '../RoomFacilities/RoomFacilities';
@@ -31,6 +32,7 @@ import MaintenanceBlock from '../MaintenanceBlock/MaintenanceBlock';
 
 import BedType from '../BedType/BedType';
 import FloorSetup from '../FloorSetup/FloorSetup';
+import TableManagement from '../TableManagement/TableManagement';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -117,13 +119,24 @@ const AdminDashboard = () => {
         }
     }, []);
 
+    const [posGuestDetails, setPosGuestDetails] = useState(null);
+
     // Set active menu based on URL path or State
     useEffect(() => {
         const path = location.pathname;
 
-        // Priority to state passed via navigation (e.g. from RoomService or StayOverview)
+        // Priority to state passed via navigation (e.g. from RoomService or StayOverview or Cashier)
         if (location.state && location.state.activeMenu) {
             setActiveMenu(location.state.activeMenu);
+
+            // Check for passed customer details (e.g. from Cashier New Order)
+            if (location.state.customerName) {
+                setPosGuestDetails({
+                    guestName: location.state.customerName,
+                    phoneNumber: location.state.customerPhone,
+                    roomNumber: 'Take Away' // Distinct from POS generic
+                });
+            }
             return;
         }
 
@@ -154,6 +167,8 @@ const AdminDashboard = () => {
             setActiveMenu('guest-meal-service');
         } else if (path.includes('/dashboard')) {
             setActiveMenu('dashboard');
+        } else if (path.includes('/cashier-section')) {
+            setActiveMenu('cashier-section');
         }
     }, [location]);
 
@@ -336,7 +351,8 @@ const AdminDashboard = () => {
             ]
         },
         { id: 'guest-meal-service', icon: '🍴', label: 'Guest Meal Service' },
-        { id: 'food-menu', icon: '🍽️', label: 'Food Menu' },
+        { id: 'table-management', icon: '🍽️', label: 'Table POS' },
+        { id: 'food-menu', icon: '📜', label: 'Food Menu' },
         {
             id: 'proper-configuration',
             icon: '⚙️',
@@ -751,10 +767,11 @@ const AdminDashboard = () => {
                 activeMenu === 'food-order-pos' && (
                     <div style={{ position: 'relative', height: 'calc(100vh - 64px)', width: '100%' }}>
                         <FoodOrderPage
-                            room={{ roomNumber: 'POS', guestName: 'Walk-in / Direct' }}
+                            room={posGuestDetails || { roomNumber: 'POS', guestName: 'Walk-in / Direct' }}
                             onClose={() => {
                                 setActiveMenu('reservations');
                                 setReservationView('roomservice');
+                                setPosGuestDetails(null);
                             }}
                         />
                     </div>
@@ -775,6 +792,13 @@ const AdminDashboard = () => {
                 )
             }
 
+            {/* Table Management POS View */}
+            {
+                activeMenu === 'table-management' && (
+                    <TableManagement />
+                )
+            }
+
             {/* Food Payment Report View */}
             {activeMenu === 'food-payment-report' && (
                 <FoodPaymentReport />
@@ -783,6 +807,11 @@ const AdminDashboard = () => {
             {/* Cashier Report View */}
             {activeMenu === 'cashier-report' && (
                 <CashierReport />
+            )}
+
+            {/* Cashier Section View (New) */}
+            {activeMenu === 'cashier-section' && (
+                <CashierSection />
             )}
 
             {/* Stay Overview View (Image 1) */}

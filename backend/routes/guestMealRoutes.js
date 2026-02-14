@@ -12,11 +12,26 @@ router.get('/tables', guestMealController.getAllTables);
 // Get table by ID
 router.get('/tables/:tableId', guestMealController.getTableById);
 
+// Create new table
+router.post('/tables', guestMealController.createTable);
+
+// Delete table
+router.delete('/tables/:tableId', guestMealController.deleteTable);
+
+// Update table details (e.g. status)
+router.put('/tables/:tableId', guestMealController.updateTable);
+
 // Get tables by status
 router.get('/tables/status/:status', guestMealController.getTablesByStatus);
 
 // Initialize tables
 router.post('/tables/initialize', guestMealController.initializeTables);
+
+// Merge tables
+router.post('/tables/merge', guestMealController.mergeTables);
+
+// Release/Unmerge tables
+router.post('/tables/:tableId/release', guestMealController.releaseTable);
 
 // ============================================================================
 // ORDER ROUTES
