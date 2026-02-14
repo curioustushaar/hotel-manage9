@@ -138,10 +138,10 @@ const FoodOrderPage = ({ onClose }) => {
     const [activeOrderType, setActiveOrderType] = useState('dinein');
 
     useEffect(() => {
-        if (source === 'room-service') {
-            setActiveOrderType('roomservice');
-        } else if (room?.id) {
+        if (room?.id) {
             setActiveOrderType('dinein');
+        } else if (source === 'room-service') {
+            setActiveOrderType('roomservice');
         }
     }, [room, source]);
 
@@ -157,7 +157,7 @@ const FoodOrderPage = ({ onClose }) => {
     }, [printMode]);
 
     const addToast = (message) => {
-        const id = `${Date.now()}-${Math.random()}`;
+        const id = Date.now();
         setToasts(prev => [...prev, { id, message }]);
         setTimeout(() => {
             setToasts(prev => prev.filter(t => t.id !== id));
@@ -199,21 +199,10 @@ const FoodOrderPage = ({ onClose }) => {
     }, [room]);
 
     const fetchExistingOrder = async () => {
-        if (!room?.id) {
-            console.log('[DEBUG] No room ID provided, skipping existing order fetch');
-            return;
-        }
-
-        console.log(`[DEBUG] Fetching existing order for room ID: ${room.id}`);
         try {
             const response = await fetch(`${API_URL_CONFIG}/api/guest-meal/orders/table/${room.id}`);
-            if (!response.ok) {
-                console.warn(`[WARN] Fetch order returned status ${response.status}`);
-                return;
-            }
             const data = await response.json();
             if (data.success && data.data) {
-                console.log('[DEBUG] Found existing order:', data.data._id);
                 setOrderId(data.data._id);
                 setTaxRate(data.data.taxRate || 5);
                 setIsTaxApplied((data.data.tax || 0) > 0);
@@ -227,8 +216,6 @@ const FoodOrderPage = ({ onClose }) => {
                     subtotal: item.subtotal
                 }));
                 setCart(mappedCart);
-            } else {
-                console.log('[DEBUG] No active order found for this room');
             }
         } catch (error) {
             console.error('Error fetching existing order:', error);
@@ -245,33 +232,20 @@ const FoodOrderPage = ({ onClose }) => {
         try {
             if (!room) return false;
 
-            const isRoomService = activeOrderType === 'roomservice';
+            const tId = room.id || room._id;
+            const tNum = parseInt(room.roomNumber.replace(/\D/g, ''), 10) || 0;
 
-            // Only use table ID for Dine In. 
-            // For Room service, room.id is the ROOM ID, not Table ID.
-            // If room.id is numeric (dummy), send null. If ObjectId, send as roomId.
-            const rawId = room.id || room._id;
-            const validObjectId = (typeof rawId === 'string' && rawId.length === 24);
-
-            const tableId = (!isRoomService && validObjectId) ? rawId : null;
-            const roomId = (isRoomService && validObjectId) ? rawId : null;
-
-            const tNum = parseInt(room.roomNumber?.toString().replace(/\D/g, ''), 10) || 0;
-
-            // Only validation: need tableId OR roomId OR simple roomNumber (for room service)
-            if (!tableId && !roomId && !orderId && !isRoomService) {
+            if (!tId && !orderId) {
                 console.error('Missing table ID and order ID');
-                // Allow proceeding if room service has room number
-                if (!isRoomService) return false;
+                return false;
             }
 
             const orderData = {
-                tableId: tableId,
-                roomId: roomId,
+                tableId: tId,
                 tableNumber: tNum,
                 guestName: room.guestName || 'Walk-in',
                 roomNumber: room.roomNumber,
-                orderType: isRoomService ? 'Post to Room' : 'Direct Payment',
+                orderType: activeOrderType === 'roomservice' ? 'Post to Room' : 'Direct Payment',
                 taxRate: isTaxApplied ? taxRate : 0,
                 items: cart.map(item => ({
                     ...item,

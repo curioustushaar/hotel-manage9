@@ -453,63 +453,38 @@ exports.releaseTable = async (req, res) => {
 // Create new order for a table
 exports.createOrder = async (req, res) => {
     try {
-        const { tableId, tableNumber, orderType = 'Direct Payment', roomId, roomNumber, guestName, numberOfGuests = 1, taxRate = 0 } = req.body;
+        const { tableId, tableNumber, orderType = 'Direct Payment', roomNumber, guestName, numberOfGuests = 1, taxRate = 0 } = req.body;
 
-        let table = null;
+        // Validate table exists and is available
+        const table = await Table.findById(tableId);
+        if (!table) {
+            return res.status(404).json({
+                success: false,
+                message: 'Table not found'
+            });
+        }
 
-        // Validate table if ID is provided
-        if (tableId) {
-            table = await Table.findById(tableId);
-            if (!table) {
-                return res.status(404).json({ success: false, message: 'Table not found' });
-            }
-
-            // If table is billed, we might want to allow adding to it (becomes Active again) 
-            // or just return the current billed order.
-            if (table.status === 'Billed') {
-                const billedOrder = await GuestMealOrder.findOne({ tableId, status: 'Billed' });
-                if (billedOrder) {
-                    return res.status(200).json({
-                        success: true,
-                        message: 'Returning existing billed order. Settle it before starting new.',
-                        data: billedOrder
-                    });
-                }
-            }
+        if (table.status === 'Billed') {
+            return res.status(409).json({
+                success: false,
+                message: 'Table is currently billed. Please close the existing order first.'
+            });
         }
 
         // Check if an active order already exists to prevent duplicates
-        const query = { status: 'Active' };
-
-        if (tableId) {
-            query.tableId = tableId;
-        } else if (roomId) {
-            query.roomId = roomId;
-        } else if (roomNumber && orderType === 'Post to Room') {
-            // Fallback unique check by room number for unlinked rooms
-            query.roomNumber = roomNumber;
-        } else {
-            // For Take Away/Online without table/room, maybe allow multiple?
-            // Or limit by some other factor? For now, let's skip duplicate check or check by guestName?
-            // Actually, Take Away orders are usually unique instances.
-        }
-
-        if ((tableId || roomId || (roomNumber && orderType === 'Post to Room')) && Object.keys(query).length > 1) {
-            const existingOrder = await GuestMealOrder.findOne(query);
-            if (existingOrder) {
-                return res.status(200).json({
-                    success: true,
-                    message: 'Active order already exists',
-                    data: existingOrder
-                });
-            }
+        const existingOrder = await GuestMealOrder.findOne({ tableId, status: 'Active' });
+        if (existingOrder) {
+            return res.status(200).json({
+                success: true,
+                message: 'Active order already exists',
+                data: existingOrder
+            });
         }
 
         // Create new order
         const orderData = {
-            tableId: tableId || null,
-            roomId: roomId || null,
-            tableNumber: tableNumber || (table ? table.tableNumber : null),
+            tableId,
+            tableNumber,
             orderType,
             roomNumber: orderType === 'Post to Room' ? roomNumber : null,
             guestName: guestName || null,
@@ -524,14 +499,12 @@ exports.createOrder = async (req, res) => {
         const order = new GuestMealOrder(orderData);
         await order.save();
 
-        // Update table status if table exists
-        if (table) {
-            table.status = 'Running';
-            table.currentOrderId = order._id;
-            table.orderStartTime = new Date();
-            table.runningOrderAmount = order.finalAmount || 0;
-            await table.save();
-        }
+        // Update table status and set current order
+        table.status = 'Running';
+        table.currentOrderId = order._id;
+        table.orderStartTime = new Date();
+        table.runningOrderAmount = order.finalAmount || 0;
+        await table.save();
 
         res.status(201).json({
             success: true,
@@ -580,34 +553,17 @@ exports.getOrderById = async (req, res) => {
 exports.getOrderByTableId = async (req, res) => {
     try {
         const { tableId } = req.params;
-        console.log(`[DEBUG] Fetching active order for tableId: ${tableId}`);
 
-        // Search for any order that is NOT 'Closed'
         const order = await GuestMealOrder.findOne({
             tableId,
-            status: { $nin: ['Closed', 'Billed'] } // Find truly active orders
+            status: 'Active'
         }).populate('tableId');
 
         if (!order) {
-            // Check for Billed orders too
-            const anyNonClosedOrder = await GuestMealOrder.findOne({
-                tableId,
-                status: { $ne: 'Closed' }
-            }).populate('tableId');
-
-            if (!anyNonClosedOrder) {
-                console.log(`[DEBUG] No non-closed orders found for tableId: ${tableId}`);
-                return res.status(200).json({
-                    success: true,
-                    data: null,
-                    message: 'No active order found'
-                });
-            }
-
-            console.log(`[DEBUG] Found non-closed order (status: ${anyNonClosedOrder.status})`);
             return res.status(200).json({
                 success: true,
-                data: anyNonClosedOrder
+                data: null,
+                message: 'No active order found for this table'
             });
         }
 
@@ -616,7 +572,6 @@ exports.getOrderByTableId = async (req, res) => {
             data: order
         });
     } catch (error) {
-        console.error('[ERROR] Error in getOrderByTableId:', error);
         res.status(500).json({
             success: false,
             message: 'Error fetching order',
@@ -716,11 +671,10 @@ exports.billOrder = async (req, res) => {
             });
         }
 
-        // Allow billing if the order is not already billed or closed
-        if (order.status === 'Billed' || order.status === 'Closed') {
+        if (order.status !== 'Active') {
             return res.status(409).json({
                 success: false,
-                message: `Order is already ${order.status}`
+                message: 'Order is not in active status'
             });
         }
 
@@ -1080,16 +1034,15 @@ exports.getRevenueReport = async (req, res) => {
 // Get pending orders for Cashier View
 exports.getPendingOrders = async (req, res) => {
     try {
-        console.log('[DEBUG] Fetching pending orders for cashier...');
+        // Fetch orders that are 'Pending Payment' (sent to cashier) or 'Pending' (newly created/active?)
+        // The user specifically asked for 'sent' orders, which set status to 'Pending Payment'.
         const query = {
-            status: { $in: ['Pending Payment', 'Pending', 'Billed'] }
+            status: { $in: ['Pending Payment', 'Pending'] }
         };
 
         const orders = await GuestMealOrder.find(query)
-            .populate('tableId', 'tableNumber tableName status')
-            .sort({ updatedAt: -1 });
-
-        console.log(`[DEBUG] Found ${orders.length} pending orders`);
+            .populate('tableId', 'tableNumber tableName') // Populate basic table info
+            .sort({ createdAt: -1 });
 
         res.status(200).json({
             success: true,
@@ -1097,7 +1050,6 @@ exports.getPendingOrders = async (req, res) => {
             data: orders
         });
     } catch (error) {
-        console.error('[CRITICAL] Error fetching pending orders:', error);
         res.status(500).json({
             success: false,
             message: 'Error fetching pending orders',
