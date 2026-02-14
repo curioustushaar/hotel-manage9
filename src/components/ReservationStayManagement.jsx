@@ -57,6 +57,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [isEditingMode, setIsEditingMode] = useState(false);
     const [editingReservationId, setEditingReservationId] = useState(null);
     const [selectedReservation, setSelectedReservation] = useState(null);
+    const [showBookingHistory, setShowBookingHistory] = useState(false);
     const [loading, setLoading] = useState(true);
 
     // Fetch reservations from MongoDB
@@ -1156,22 +1157,88 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                 </button>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Billing Summary Panel */}
-                    <BillingSummary
-                        roomCharges={billingData.roomCharges}
-                        discount={billingData.totalDiscount}
-                        tax={billingData.taxAmount}
-                        totalAmount={billingData.totalAmount}
-                        paidAmount={paidAmount}
-                        balanceDue={billingData.balanceDue}
-                        paymentMode={paymentMode}
-                        onPaymentModeChange={setPaymentMode}
-                        onPaidAmountChange={setPaidAmount}
-                        onTaxExemptChange={setTaxExempt}
-                        taxExempt={taxExempt}
-                    />
+                        {/* Billing Summary Panel */}
+                        <BillingSummary
+                            roomCharges={billingData.roomCharges}
+                            discount={billingData.totalDiscount}
+                            tax={billingData.taxAmount}
+                            totalAmount={billingData.totalAmount}
+                            paidAmount={paidAmount}
+                            balanceDue={billingData.balanceDue}
+                            paymentMode={paymentMode}
+                            onPaymentModeChange={setPaymentMode}
+                            onPaidAmountChange={setPaidAmount}
+                            onTaxExemptChange={setTaxExempt}
+                            taxExempt={taxExempt}
+                        />
+
+                        {/* Guest Booking History Section */}
+                        <div style={{
+                            marginTop: '1.5rem',
+                            padding: '1.5rem',
+                            backgroundColor: '#fff',
+                            borderRadius: '8px',
+                            border: '1px solid #e5e7eb'
+                        }}>
+                            <button
+                                type="button"
+                                onClick={() => setShowBookingHistory(!showBookingHistory)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#dc3545',
+                                    fontSize: '0.95rem',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    padding: '0',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    width: '100%',
+                                    marginBottom: showBookingHistory ? '1rem' : '0'
+                                }}
+                            >
+                                <span>Previous Booking History {selectedGuest && `(${selectedGuest.fullName || selectedGuest.name})`}</span>
+                                <span>{showBookingHistory ? '▼' : '▶'}</span>
+                            </button>
+
+                            {showBookingHistory && (
+                                <div style={{ overflowX: 'auto', marginTop: '0.5rem' }}>
+                                    <table style={{
+                                        width: '100%',
+                                        borderCollapse: 'collapse',
+                                        fontSize: '0.8rem'
+                                    }}>
+                                        <thead style={{ background: '#f9fafb' }}>
+                                            <tr>
+                                                <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>Res ID</th>
+                                                <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>Room</th>
+                                                <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>Dates</th>
+                                                <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>Amt</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {[
+                                                { id: 'RES-001', roomCategory: 'Deluxe Double', checkIn: '2025-10-15', checkOut: '2025-10-18', amount: '₹9,500' },
+                                                { id: 'RES-002', roomCategory: 'Club AC Single', checkIn: '2024-08-20', checkOut: '2024-08-23', amount: '₹7,200' },
+                                                { id: 'RES-003', roomCategory: 'Suite Double', checkIn: '2024-05-10', checkOut: '2024-05-13', amount: '₹15,000' },
+                                                { id: 'RES-004', roomCategory: 'Club AC Double', checkIn: '2024-03-05', checkOut: '2024-03-08', amount: '₹12,000' },
+                                                { id: 'RES-005', roomCategory: 'Deluxe AC Single', checkIn: '2023-12-20', checkOut: '2023-12-23', amount: '₹6,500' }
+                                            ].map(booking => (
+                                                <tr key={booking.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                                    <td style={{ padding: '0.5rem', color: '#6b7280' }}>{booking.id}</td>
+                                                    <td style={{ padding: '0.5rem', color: '#6b7280' }}>{booking.roomCategory}</td>
+                                                    <td style={{ padding: '0.5rem', color: '#6b7280' }}>{booking.checkIn}<br />{booking.checkOut}</td>
+                                                    <td style={{ padding: '0.5rem', color: '#dc3545', fontWeight: '600' }}>{booking.amount}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Invoice Modal */}

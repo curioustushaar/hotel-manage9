@@ -30,7 +30,7 @@
 
 /* Modal Header */
 .guest-modal-content .modal-header {
-    padding: 1.5rem;
+    padding: 0.875rem 1.25rem;
     border-bottom: 1px solid #e5e7eb;
     display: flex;
     justify-content: space-between;
@@ -70,7 +70,14 @@
 .guest-modal-content .modal-body {
     flex: 1;
     overflow-y: auto;
-    padding: 1.5rem;
+    padding: 0;
+}
+
+/* Remove top margin from first elements in modal body */
+.guest-modal-content .modal-body h2,
+.guest-modal-content .modal-body h3,
+.guest-modal-content .modal-body>*:first-child {
+    margin-top: 0;
 }
 
 /* Guest Selection View */
@@ -78,25 +85,34 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    padding: 0 1.25rem 1.25rem 1.25rem;
 }
 
-/* Search Box */
+/* Search Box - Direct Child styled strictly */
 .search-box {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    background: #f9fafb;
-    margin-bottom: 1.5rem;
-    transition: all 0.3s ease;
+    padding: 0 1rem;
+    height: 48px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    /* Strict 8px radius */
+    background: white;
+    margin: 1rem 1.25rem;
+    /* 16px vertical, 20px horizontal margin */
+    width: auto;
+    /* Fill available width */
+    box-sizing: border-box;
+    transition: all 0.2s ease;
 }
 
 .search-box:focus-within {
     border-color: #dc3545;
-    background: white;
-    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+    /* Red border focus */
+    box-shadow: none;
+    /* No shadow */
+    outline: none;
 }
 
 .search-icon {
@@ -127,12 +143,12 @@
 .guest-item {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 1rem;
     padding: 1rem;
     border: 1px solid #e5e7eb;
-    border-radius: 6px;
+    border-radius: 8px;
     margin-bottom: 0.75rem;
-    cursor: pointer;
     transition: all 0.3s ease;
     background: white;
 }
@@ -141,6 +157,14 @@
     background: #fff5f5;
     border-color: #dc3545;
     box-shadow: 0 2px 4px rgba(220, 53, 69, 0.1);
+}
+
+.guest-item-main {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+    cursor: pointer;
 }
 
 .guest-item-avatar {
@@ -177,21 +201,41 @@
     color: #6b7280;
 }
 
-.guest-item-meta {
+/* Action Buttons */
+.guest-item-actions {
     display: flex;
     gap: 0.5rem;
     flex-shrink: 0;
 }
 
-.booking-badge {
-    display: inline-block;
-    padding: 0.25rem 0.75rem;
-    background: #ffe5e5;
-    color: #a41e25;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    white-space: nowrap;
+.action-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    background: white;
+    border: 1px solid #e5e7eb;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.edit-btn:hover {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.delete-btn:hover {
+    background: #fee2e2;
+    color: #dc2626;
 }
 
 /* No Results */
@@ -206,7 +250,7 @@
     margin: 0 0 0.5rem 0;
 }
 
-.no-results-icon + p {
+.no-results-icon+p {
     margin: 0 0 0.5rem 0;
     font-size: 1rem;
     font-weight: 500;
