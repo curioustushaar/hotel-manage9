@@ -1,16 +1,21 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
+import { ROLES, getDefaultRoute } from '../../config/rbac';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import './Login.css';
 
 const Login = () => {
     const navigate = useNavigate();
+    const { login, quickLogin } = useAuth();
     const [activeTab, setActiveTab] = useState('admin');
     const [loading, setLoading] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [error, setError] = useState('');
+    const [showQuickLogin, setShowQuickLogin] = useState(true); // Dev mode
     const [formData, setFormData] = useState({
         admin_email: '',
         admin_password: '',
@@ -63,39 +68,48 @@ const Login = () => {
             ...prev,
             [name]: value
         }));
+        setError(''); // Clear error on input change
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
         setLoading(true);
+        setError('');
 
-        // Simulate login request
+        // Simulate network delay
         setTimeout(() => {
-            setLoading(false);
+            const email = activeTab === 'admin' ? formData.admin_email : formData.staff_id;
+            const password = activeTab === 'admin' ? formData.admin_password : formData.staff_password;
 
-            if (activeTab === 'admin') {
-                // Store auth token and user data
-                localStorage.setItem('authToken', 'dummy-token-admin');
-                localStorage.setItem('userData', JSON.stringify({
-                    name: 'Himanshu Yadav',
-                    email: formData.admin_email || 'admin@bireena.com',
-                    role: 'Administrator',
-                    password: formData.admin_password // Store for change password verification
-                }));
+            const result = login(email, password);
+
+            if (result.success) {
+                // Smart redirect based on role's first accessible page
+                const defaultRoute = getDefaultRoute(result.user.role);
+                navigate(defaultRoute);
             } else {
-                localStorage.setItem('authToken', 'dummy-token-staff');
-                localStorage.setItem('userData', JSON.stringify({
-                    name: 'Staff Member',
-                    email: 'staff@bireena.com',
-                    role: 'Staff',
-                    staffId: formData.staff_id,
-                    password: formData.staff_password
-                }));
+                setError(result.error);
+                setLoading(false);
             }
+        }, 1000);
+    };
 
-            // Redirect to admin dashboard
-            navigate('/admin/dashboard');
-        }, 2000);
+    const handleQuickLogin = (role) => {
+        setLoading(true);
+        setError('');
+
+        setTimeout(() => {
+            const result = quickLogin(role);
+
+            if (result.success) {
+                // Smart redirect based on role's first accessible page
+                const defaultRoute = getDefaultRoute(result.user.role);
+                navigate(defaultRoute);
+            } else {
+                setError(result.error || 'Failed to login');
+                setLoading(false);
+            }
+        }, 500);
     };
 
     return (
@@ -346,6 +360,29 @@ const Login = () => {
                                     </motion.a>
                                 </div>
 
+                                {/* Error Message */}
+                                {error && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        style={{
+                                            padding: '12px',
+                                            background: '#fee2e2',
+                                            border: '1px solid #fca5a5',
+                                            borderRadius: '8px',
+                                            color: '#dc2626',
+                                            fontSize: '14px',
+                                            marginTop: '15px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px'
+                                        }}
+                                    >
+                                        <span>⚠️</span>
+                                        <span>{error}</span>
+                                    </motion.div>
+                                )}
+
                                 {/* Submit Button */}
                                 <motion.button
                                     type="submit"
@@ -379,6 +416,83 @@ const Login = () => {
                                         </>
                                     )}
                                 </motion.button>
+
+                                {/* Quick Login Buttons (Dev Mode) */}
+                                {showQuickLogin && (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        style={{
+                                            marginTop: '20px',
+                                            padding: '15px',
+                                            background: '#f9fafb',
+                                            borderRadius: '10px',
+                                            border: '1px dashed #d1d5db'
+                                        }}
+                                    >
+                                        <div style={{
+                                            fontSize: '12px',
+                                            fontWeight: '600',
+                                            color: '#6b7280',
+                                            marginBottom: '12px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between'
+                                        }}>
+                                            <span>🚀 Quick Login (Testing)</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowQuickLogin(false)}
+                                                style={{
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    cursor: 'pointer',
+                                                    fontSize: '14px',
+                                                    color: '#6b7280'
+                                                }}
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                        <div style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: 'repeat(2, 1fr)',
+                                            gap: '8px'
+                                        }}>
+                                            {Object.values(ROLES).map(role => (
+                                                <motion.button
+                                                    key={role}
+                                                    type="button"
+                                                    onClick={() => handleQuickLogin(role)}
+                                                    disabled={loading}
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    style={{
+                                                        padding: '8px 12px',
+                                                        fontSize: '12px',
+                                                        background: 'white',
+                                                        border: '1px solid #e5e7eb',
+                                                        borderRadius: '6px',
+                                                        cursor: 'pointer',
+                                                        fontWeight: '500',
+                                                        color: '#374151',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                >
+                                                    {role}
+                                                </motion.button>
+                                            ))}
+                                        </div>
+                                        <div style={{
+                                            marginTop: '10px',
+                                            fontSize: '11px',
+                                            color: '#9ca3af',
+                                            textAlign: 'center'
+                                        }}>
+                                            Click any role to login instantly for testing
+                                        </div>
+                                    </motion.div>
+                                )}
                             </motion.form>
 
 

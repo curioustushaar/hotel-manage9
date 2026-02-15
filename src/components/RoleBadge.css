@@ -1,0 +1,44 @@
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    cursor: default;
+    user-select: none;
+}
+
+.role-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.role-icon {
+    font-size: 14px;
+    line-height: 1;
+}
+
+.role-text {
+    font-size: 12px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .role-badge {
+        padding: 5px 10px;
+        font-size: 11px;
+    }
+
+    .role-icon {
+        font-size: 12px;
+    }
+
+    .role-text {
+        font-size: 10px;
+    }
+}
