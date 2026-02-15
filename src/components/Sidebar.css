@@ -95,6 +95,15 @@
     flex: 1;
     padding: 10px 10px;
     overflow-y: auto;
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.sidebar-nav::-webkit-scrollbar {
+    display: none;
 }
 
 /* Nav Item Styles matching Image 2 */

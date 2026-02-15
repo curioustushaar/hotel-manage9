@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bareena Atithi - System Features</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --primary: #2563eb;
+            --secondary: #475569;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--primary);
+            margin: 0 0 10px 0;
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            font-size: 20px;
+            color: var(--text-sub);
+            font-weight: 500;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            align-items: start;
+        }
+
+        .module-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            padding: 30px;
+            border: 1px solid #e2e8f0;
+            transition: transform 0.2s;
+        }
+
+        .module-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        .icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .module-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 0;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .feature-item {
+            padding: 12px 0;
+            border-bottom: 1px dashed #e2e8f0;
+            font-size: 16px;
+            color: var(--secondary);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .feature-item::before {
+            content: "•";
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 20px;
+            line-height: 18px;
+        }
+
+        .feature-item:last-child {
+            border-bottom: none;
+        }
+
+        .sub-features {
+            display: block;
+            margin-top: 6px;
+            font-size: 14px;
+            color: #94a3b8;
+            padding-left: 15px;
+        }
+
+        /* Color Themes for Icons */
+        .theme-blue { background: #eff6ff; color: #3b82f6; }
+        .theme-green { background: #dcfce7; color: #16a34a; }
+        .theme-purple { background: #f3e8ff; color: #9333ea; }
+        .theme-orange { background: #ffedd5; color: #ea580c; }
+        .theme-red { background: #fee2e2; color: #dc2626; }
+        
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #cbd5e1;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Bareena Atithi</h1>
+            <div class="subtitle">Comprehensive System Features Overview</div>
+        </header>
+
+        <div class="grid">
+            
+            <!-- Reservations Module -->
+            <div class="module-card">
+                <div class="module-header">
+                    <div class="icon theme-blue">📅</div>
+                    <h2 class="module-title">Reservations & Front Desk</h2>
+                </div>
+                <ul class="feature-list">
+                    <li class="feature-item">
+                        <div>
+                            <strong>New Reservation</strong>
+                            <span class="sub-features">Walk-in, Direct, Phone Booking</span>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div>
+                            <strong>Stay Management</strong>
+                            <span class="sub-features">Check-in, Check-out, Extend Stay</span>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div>
+                            <strong>Guest Management</strong>
+                            <span class="sub-features">Guest Profiles, ID Storage, Notes</span>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div>
+                            <strong>Billing & Invoicing</strong>
+                            <span class="sub-features">Split Bills, Advance Payments, GST Invoices</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Room Management -->
+            <div class="module-card">
+                <div class="module-header">
+                    <div class="icon theme-purple">🛏️</div>
+                    <h2 class="module-title">Room Management</h2>
+                </div>
+                <ul class="feature-list">
+                    <li class="feature-item">
+                        <div>
+                            <strong>Live Inventory</strong>
+                            <span class="sub-features">Available, Booked, Occupied Status</span>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div>
+                            <strong>Housekeeping</strong>
+                            <span class="sub-features">Clean, Dirty, Inspection Tracking</span>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div>
+                            <strong>Maintenance</strong>
+                            <span class="sub-features">Block Rooms, Maintenance Logs</span>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div>
+                            <strong>Room Configuration</strong>
+                            <span class="sub-features">Room Types, Amenities, Pricing</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- F&B / POS -->
+            <div class="module-card">
+                <div class="module-header">
+                    <div class="icon theme-orange">🍽️</div>
+                    <h2 class="module-title">Restaurant & POS</h2>
+                </div>
+                <ul class="feature-list">
+                    <li class="feature-item">
+                        <div>
+                            <strong>Table Management</strong>
+                            <span class="sub-features">Table Booking, Order Taking</span>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div>
+                            <strong>Digital Food Menu</strong>
+                            <span class="sub-features">Categories, Items, Pricing, Veg/Non-Veg</span>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div>
+                            <strong>Room Service</strong>
+                            <span class="sub-features">In-room Ordering, Auto-posting to Folio</span>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div>
+                            <strong>KOT Generation</strong>
+                            <span class="sub-features">Kitchen Order Tickets for Chefs</span>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div>
+                            <strong>Guest QR Ordering</strong>
+                            <span class="sub-features">Scan-to-Order Interface</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Reporting -->
+            <div class="module-card">
+                <div class="module-header">
+                    <div class="icon theme-green">📊</div>
+                    <h2 class="module-title">Reporting & Analytics</h2>
+                </div>
+                <ul class="feature-list">
+                    <li class="feature-item">
+                        <div>
+                            <strong>Financial Reports</strong>
+                            <span class="sub-features">Daily Cashier Report, Revenue Trends</span>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div>
+                            <strong>Occupancy Analysis</strong>
+                            <span class="sub-features">Stay Overview, Occupancy Rates</span>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div>
+                            <strong>Food Sales Analysis</strong>
+                            <span class="sub-features">Top Selling Items, Payment Modes</span>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div>
+                            <strong>Audit Logs</strong>
+                            <span class="sub-features">Transaction History, User Actions</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Admin & Config -->
+            <div class="module-card">
+                <div class="module-header">
+                    <div class="icon theme-red">⚙️</div>
+                    <h2 class="module-title">Setup & Administration</h2>
+                </div>
+                <ul class="feature-list">
+                    <li class="feature-item">
+                        <div>
+                            <strong>Property Setup</strong>
+                            <span class="sub-features">Hotel Details, Policies, Tax Rules</span>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div>
+                            <strong>Services Config</strong>
+                            <span class="sub-features">Extra Charges, Complimentary Items</span>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div>
+                            <strong>Staff Management</strong>
+                            <span class="sub-features">User Roles, Permissions, Staff Logins</span>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div>
+                            <strong>System Security</strong>
+                            <span class="sub-features">Role-based Access Control</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+             <!-- Guest Interface -->
+             <div class="module-card">
+                <div class="module-header">
+                    <div class="icon theme-blue" style="background: #e0f2fe; color: #0284c7;">📱</div>
+                    <h2 class="module-title">Guest Experience</h2>
+                </div>
+                <ul class="feature-list">
+                    <li class="feature-item">
+                        <div>
+                            <strong>QR Code Interface</strong>
+                            <span class="sub-features">Instant Access via Room QR</span>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div>
+                            <strong>Digital Menu</strong>
+                            <span class="sub-features">View Food & Services on Mobile</span>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div>
+                            <strong>Self-Ordering</strong>
+                            <span class="sub-features">Place Orders without calling Reception</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+
+        <div class="footer">
+            Generated by Bareena Atithi System Analysis
+        </div>
+    </div>
+
+</body>
+</html>
