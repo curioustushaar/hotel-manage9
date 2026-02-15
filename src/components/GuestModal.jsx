@@ -139,9 +139,9 @@ const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGues
                                 {/* Guests List */}
                                 <div className="guests-list">
                                     {filteredGuests.length > 0 ? (
-                                        filteredGuests.map(guest => (
+                                        filteredGuests.map((guest, idx) => (
                                             <div
-                                                key={guest._id || guest.id || guest.guestId}
+                                                key={guest._id || guest.id || guest.guestId || `guest-${idx}`}
                                                 className="guest-item"
                                             >
                                                 <div

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import API_URL_CONFIG from '../config/api';
+import { searchBookings } from '../services/searchService';
 import './ReservationStayManagement.css';
 import './CreateGuestForm.css';
 import RoomRow from './RoomRow';
@@ -24,6 +25,11 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const API_URL = `${API_URL_CONFIG}/api/bookings`;
     const [view, setView] = useState(viewMode); // 'dashboard', 'form', 'housekeeping', or 'roomservice'
     const [prefilledData, setPrefilledData] = useState(null);
+
+    // Search State (Moved to top to prevent "Cannot access 'searchQuery' before initialization")
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchResults, setSearchResults] = useState([]);
 
     // Sync internal view state with prop changes
     useEffect(() => {
@@ -52,6 +58,55 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [activeTab, setActiveTab] = useState('all'); // 'all', 'reserved', 'in-house', 'checked-out'
     const [showEditModal, setShowEditModal] = useState(false); // Edit Reservation Modal state
 
+    const [fromRoomsPage, setFromRoomsPage] = useState(false);
+
+    useEffect(() => {
+        // FEATURE 3: Auto Prefill Room Details
+        if (location.state?.prefilledData) {
+            const data = location.state.prefilledData;
+            setFromRoomsPage(true);
+            setRooms([{
+                id: 1,
+                categoryId: data.roomType || '',
+                roomNumber: data.roomNumber,
+                mealPlan: 'CP',
+                adultsCount: 1,
+                childrenCount: 0,
+                ratePerNight: data.price,
+                discount: 0
+            }]);
+
+            // Set dates
+            const today = new Date().toISOString().split('T')[0];
+            const tomorrow = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0];
+            setCheckInDate(today);
+            setCheckOutDate(tomorrow);
+
+            // If we have roomId, fetch full details
+            if (data.roomId) {
+                fetch(`${API_URL_CONFIG}/api/rooms/${data.roomId}`)
+                    .then(res => res.json())
+                    .then(resData => {
+                        if (resData.success) {
+                            const room = resData.data;
+                            setRooms([{
+                                id: 1,
+                                categoryId: room.roomType,
+                                roomNumber: room.roomNumber,
+                                mealPlan: 'CP',
+                                adultsCount: room.capacity || 1,
+                                childrenCount: 0,
+                                ratePerNight: room.price,
+                                discount: 0
+                            }]);
+                        }
+                    });
+            }
+        } else {
+            setFromRoomsPage(false);
+        }
+    }, [location.state]);
+
     // Reservation/Booking Data
     const [reservations, setReservations] = useState([]);
     const [isEditingMode, setIsEditingMode] = useState(false);
@@ -59,6 +114,33 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [selectedReservation, setSelectedReservation] = useState(null);
     const [showBookingHistory, setShowBookingHistory] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    // Filter reservations
+    const filteredReservations = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        return reservations.filter(r => {
+            if (activeTab === 'all') return true;
+            if (activeTab === 'reserved') return r.status === 'RESERVED';
+            if (activeTab === 'in-house') return r.status === 'IN_HOUSE';
+            if (activeTab === 'checked-out') return r.status === 'CHECKED_OUT';
+            if (activeTab === 'arrival') return r.checkInDate === today && r.status === 'RESERVED';
+            if (activeTab === 'departure') return r.checkOutDate === today && r.status === 'IN_HOUSE';
+            return true;
+        });
+    }, [reservations, activeTab]);
+
+    // Calculate real-time counts for tabs
+    const counts = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        return {
+            all: reservations.length,
+            reserved: reservations.filter(r => r.status === 'RESERVED').length,
+            'in-house': reservations.filter(r => r.status === 'IN_HOUSE').length,
+            'checked-out': reservations.filter(r => r.status === 'CHECKED_OUT').length,
+            arrival: reservations.filter(r => r.checkInDate === today && r.status === 'RESERVED').length,
+            departure: reservations.filter(r => r.checkOutDate === today && r.status === 'IN_HOUSE').length
+        };
+    }, [reservations]);
 
     // Fetch reservations from MongoDB
     useEffect(() => {
@@ -100,7 +182,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                     reservationsData.data.forEach(reservation => {
                         if (!uniqueIds.has(reservation._id)) {
                             allReservations.push({
-                                id: reservation._id,
+                                id: reservation._id || `res-${Math.random()}`,
                                 reservationType: reservation.reservationType || 'Confirm',
                                 bookingSource: reservation.bookingSource || 'Direct',
                                 businessSource: reservation.businessSource || 'Walk-In',
@@ -159,7 +241,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
     const mapBookingToReservation = (booking) => {
         return {
-            id: booking._id,
+            id: booking._id || `booking-${Math.random()}`,
             reservationType: booking.reservationType || 'Confirm',
             bookingSource: booking.bookingSource || 'Direct',
             businessSource: booking.businessSource || 'Walk-In',
@@ -210,6 +292,41 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             updatedAt: booking.updatedAt || new Date().toISOString()
         };
     };
+
+    // Debounce Search Logic
+    useEffect(() => {
+        // Feature: Debounced Search
+        const delayDebounceFn = setTimeout(async () => {
+            if (searchQuery.trim().length > 0) {
+                setIsSearching(true);
+                try {
+                    const result = await searchBookings(searchQuery);
+                    if (result.success) {
+                        const mappedResults = result.data.map(mapBookingToReservation);
+                        setSearchResults(mappedResults);
+                    }
+                } catch (error) {
+                    console.error('Search error:', error);
+                } finally {
+                    setIsSearching(false);
+                }
+            } else {
+                setSearchResults([]);
+                setIsSearching(false);
+            }
+        }, 300);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery]);
+
+    // Determine which reservations to display (Original or Search Results)
+    const displayReservations = useMemo(() => {
+        if (searchQuery.trim().length > 0) {
+            return searchResults;
+        }
+        return filteredReservations;
+    }, [searchQuery, searchResults, filteredReservations]);
+
 
 
     // Room Facility Types
@@ -894,32 +1011,6 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         }
     };
 
-    // Filter reservations
-    const filteredReservations = useMemo(() => {
-        const today = new Date().toISOString().split('T')[0];
-        return reservations.filter(r => {
-            if (activeTab === 'all') return true;
-            if (activeTab === 'reserved') return r.status === 'RESERVED';
-            if (activeTab === 'in-house') return r.status === 'IN_HOUSE';
-            if (activeTab === 'checked-out') return r.status === 'CHECKED_OUT';
-            if (activeTab === 'arrival') return r.checkInDate === today && r.status === 'RESERVED';
-            if (activeTab === 'departure') return r.checkOutDate === today && r.status === 'IN_HOUSE';
-            return true;
-        });
-    }, [reservations, activeTab]);
-
-    // Calculate real-time counts for tabs
-    const counts = useMemo(() => {
-        const today = new Date().toISOString().split('T')[0];
-        return {
-            all: reservations.length,
-            reserved: reservations.filter(r => r.status === 'RESERVED').length,
-            'in-house': reservations.filter(r => r.status === 'IN_HOUSE').length,
-            'checked-out': reservations.filter(r => r.status === 'CHECKED_OUT').length,
-            arrival: reservations.filter(r => r.checkInDate === today && r.status === 'RESERVED').length,
-            departure: reservations.filter(r => r.checkOutDate === today && r.status === 'IN_HOUSE').length
-        };
-    }, [reservations]);
 
     // Convert 24-hour to 12-hour format
     const convertTo12Hour = (time24) => {
@@ -987,8 +1078,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                         <select value={reservationType} onChange={(e) => setReservationType(e.target.value)}>
                                             <option value="">Select Reservation Type</option>
                                             {reservationTypesList.length > 0 ? (
-                                                reservationTypesList.map((type) => (
-                                                    <option key={type._id} value={type.name}>
+                                                reservationTypesList.map((type, idx) => (
+                                                    <option key={type._id || `restype-${idx}`} value={type.name}>
                                                         {type.name}
                                                     </option>
                                                 ))
@@ -1006,8 +1097,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                         <select value={bookingSource} onChange={(e) => setBookingSource(e.target.value)}>
                                             <option value="">Select Booking Source</option>
                                             {bookingSources.length > 0 ? (
-                                                bookingSources.map((source) => (
-                                                    <option key={source._id} value={source.name}>
+                                                bookingSources.map((source, idx) => (
+                                                    <option key={source._id || `bsource-${idx}`} value={source.name}>
                                                         {source.name}
                                                     </option>
                                                 ))
@@ -1026,8 +1117,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                         <select value={businessSource} onChange={(e) => setBusinessSource(e.target.value)}>
                                             <option value="">Select Business Source</option>
                                             {businessSourcesList.length > 0 ? (
-                                                businessSourcesList.map((source) => (
-                                                    <option key={source._id} value={source.name}>
+                                                businessSourcesList.map((source, idx) => (
+                                                    <option key={source._id || `busource-${idx}`} value={source.name}>
                                                         {source.name}
                                                     </option>
                                                 ))
@@ -1126,6 +1217,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                             room={room}
                                             index={index}
                                             roomCategories={roomCategories}
+                                            readOnly={fromRoomsPage && index === 0}
                                             onUpdate={(idx, updatedRoom) => {
                                                 const newRooms = [...rooms];
                                                 newRooms[idx] = updatedRoom;
@@ -1133,6 +1225,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                             }}
                                             onRemove={(idx) => setRooms(rooms.filter((_, i) => i !== idx))}
                                             mealTypes={mealTypes}
+                                            checkInDate={checkInDate}
                                         />
                                     ))}
                                 </div>
@@ -1289,6 +1382,25 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                         🏨 Reservations & Stay Management
                     </h2>
                     <p>Manage guest reservations, check-ins, check-outs, and billing</p>
+
+                    {/* Powerful Real-time Search Bar - Perfectly placed below subtitle */}
+                    <div className="search-container">
+                        <div className="search-wrapper">
+                            <span className="search-icon" style={{ position: 'absolute', left: '15px', color: '#9ca3af', fontSize: '1.1rem' }}>🔍</span>
+                            <input
+                                type="text"
+                                placeholder="Search by Guest Name, Mobile Number, or Room Number"
+                                className="search-ref-input"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                            {isSearching && (
+                                <div className="search-spinner" style={{ position: 'absolute', right: '15px' }}>
+                                    <div className="spinner-mini"></div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
                 <div className="header-actions">
                     <button className="btn btn-primary" onClick={() => setView('form')}>
@@ -1323,28 +1435,64 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             {/* Reservation Cards and Details Panel */}
             <div className="reservation-content-layout">
                 <div className={`reservation-cards-grid ${selectedReservation ? 'with-details' : ''}`}>
-                    {filteredReservations.length > 0 ? (
-                        filteredReservations.map(reservation => (
-                            <ReservationCard
-                                key={reservation.id}
-                                reservation={reservation}
-                                onUpdateStatus={handleUpdateReservationStatus}
-                                onEdit={handleEditReservation}
-                                onDelete={handleDeleteReservation}
-                                onGenerateInvoice={handleGenerateInvoice}
-
-                                onSelect={(res) => {
-                                    setSelectedReservation(res);
-                                    // setShowEditModal(true); // Disabled - modal won't open on card click
-                                }}
-                                isSelected={selectedReservation?.id === reservation.id}
-                            />
-                        ))
-                    ) : (
-                        <div className="no-data-message">
-                            <p>No reservations found for this status</p>
-                        </div>
-                    )}
+                    <AnimatePresence mode="popLayout">
+                        {displayReservations.length > 0 ? (
+                            displayReservations.map(reservation => (
+                                <motion.div
+                                    key={reservation.id}
+                                    layout
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{
+                                        opacity: 1,
+                                        y: 0,
+                                        scale: searchQuery ? 1.02 : 1,
+                                        boxShadow: searchQuery ? '0 10px 25px -5px rgba(220, 53, 69, 0.1), 0 8px 10px -6px rgba(220, 53, 69, 0.1)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                    }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    <ReservationCard
+                                        reservation={reservation}
+                                        onUpdateStatus={handleUpdateReservationStatus}
+                                        onEdit={handleEditReservation}
+                                        onDelete={handleDeleteReservation}
+                                        onGenerateInvoice={handleGenerateInvoice}
+                                        onSelect={(res) => {
+                                            setSelectedReservation(res);
+                                        }}
+                                        isSelected={selectedReservation?.id === reservation.id}
+                                    />
+                                </motion.div>
+                            ))
+                        ) : (
+                            <div className="no-data-message" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '5rem 2rem', background: '#f8fafc', borderRadius: '16px', border: '2px dashed #e2e8f0', margin: '1rem' }}>
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    <div style={{ fontSize: '5rem', marginBottom: '1.5rem', opacity: 0.3, filter: 'grayscale(0.5)' }}>
+                                        🕵️‍♂️
+                                    </div>
+                                    <h3 style={{ fontSize: '1.5rem', color: '#1e293b', marginBottom: '0.5rem', fontWeight: '700' }}>
+                                        No reservations found
+                                    </h3>
+                                    <p style={{ color: '#64748b', fontSize: '1rem', maxWidth: '400px', margin: '0 auto 2rem' }}>
+                                        {searchQuery ? `We couldn't find any matches for "${searchQuery}". Please check the spelling or try searching by room number or mobile number.` : 'There are no reservations matching this status at the moment.'}
+                                    </p>
+                                    {searchQuery && (
+                                        <button
+                                            className="btn btn-primary"
+                                            style={{ padding: '0.8rem 2rem', borderRadius: '10px', backgroundColor: '#ef4444', borderColor: '#ef4444' }}
+                                            onClick={() => setSearchQuery('')}
+                                        >
+                                            Clear Search & View All
+                                        </button>
+                                    )}
+                                </motion.div>
+                            </div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 {/* Details Panel */}

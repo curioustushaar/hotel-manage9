@@ -149,7 +149,18 @@ const ReservationDetailsView = ({ reservation, onClose, onUpdate }) => {
                     </div>
                     <div className="info-item">
                         <label>Room / Room Type</label>
-                        <div className="info-value">{reservation?.roomNumber || '102'} / {reservation?.roomType || 'Deluxe'}</div>
+                        <div className="info-value">
+                            {reservation?.roomNumber || '102'} - {reservation?.roomType || 'Deluxe'}
+                            {/* PHASE 3 UPGRADE: Display enterprise room details */}
+                            {(reservation?.roomViewType || reservation?.smokingPolicy || reservation?.roomSize) && (
+                                <span className="room-details-extra">
+                                    {reservation?.roomViewType && ` | ${reservation.roomViewType}`}
+                                    {reservation?.smokingPolicy && ` | ${reservation.smokingPolicy}`}
+                                    {reservation?.roomSize > 0 && ` | ${reservation.roomSize} sq ft`}
+                                    {reservation?.isSmartRoom && ' ⚡'}
+                                </span>
+                            )}
+                        </div>
                     </div>
                     <div className="info-item">
                         <label>Reservation No</label>
@@ -274,6 +285,37 @@ const ReservationDetailsView = ({ reservation, onClose, onUpdate }) => {
                                             <label>Room Type:</label>
                                             <span>{reservation?.roomType || 'Deluxe'}</span>
                                         </div>
+                                        {/* PHASE 3 UPGRADE: Show enterprise room details in booking details */}
+                                        {reservation?.roomViewType && (
+                                            <div className="detail-item">
+                                                <label>View Type:</label>
+                                                <span>{reservation.roomViewType}</span>
+                                            </div>
+                                        )}
+                                        {reservation?.smokingPolicy && (
+                                            <div className="detail-item">
+                                                <label>Smoking Policy:</label>
+                                                <span>{reservation.smokingPolicy}</span>
+                                            </div>
+                                        )}
+                                        {reservation?.roomSize > 0 && (
+                                            <div className="detail-item">
+                                                <label>Room Size:</label>
+                                                <span>{reservation.roomSize} sq ft</span>
+                                            </div>
+                                        )}
+                                        {reservation?.isSmartRoom && (
+                                            <div className="detail-item">
+                                                <label>Smart Room:</label>
+                                                <span>⚡ Yes</span>
+                                            </div>
+                                        )}
+                                        {reservation?.dynamicRateEnabled && (
+                                            <div className="detail-item">
+                                                <label>Pricing:</label>
+                                                <span className="dynamic-badge">Dynamic Rate</span>
+                                            </div>
+                                        )}
                                         <div className="detail-item">
                                             <label>Check-in Date:</label>
                                             <span>{reservation?.checkInDate || '03-02-2026'}</span>

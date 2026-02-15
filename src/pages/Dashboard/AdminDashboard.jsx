@@ -34,6 +34,7 @@ import MaintenanceBlock from '../MaintenanceBlock/MaintenanceBlock';
 import BedType from '../BedType/BedType';
 import FloorSetup from '../FloorSetup/FloorSetup';
 import TableManagement from '../TableManagement/TableManagement';
+import RoomDetailsPanel from '../../components/rooms/RoomDetailsPanel';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -86,9 +87,19 @@ const AdminDashboard = () => {
         roomType: '',
         price: '',
         capacity: '',
-        floor: ''
+        floor: '',
+        isSmartRoom: false,
+        dynamicRateEnabled: false,
+        weekendMultiplier: 1.2,
+        seasonalMultiplier: 1.1
     });
     const [roomErrorMessage, setRoomErrorMessage] = useState('');
+    const [currentPricing, setCurrentPricing] = useState(null);
+    const [priceOption, setPriceOption] = useState('custom'); // 'min', 'mid', 'max', 'custom'
+
+    // Room Details Panel states
+    const [selectedRoomIdForPanel, setSelectedRoomIdForPanel] = useState(null);
+    const [isRoomPanelOpen, setIsRoomPanelOpen] = useState(false);
 
     // Generate Room QR states
     const [selectedStore, setSelectedStore] = useState('Testing 3.0');
@@ -216,15 +227,26 @@ const AdminDashboard = () => {
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, []);
 
-    const fetchRoomsFromAPI = async () => {
+    const [exactMatch, setExactMatch] = useState(true);
+
+    const fetchRoomsFromAPI = async (forceFilters = null) => {
         try {
             // Clear old localStorage data
             localStorage.removeItem('hotelRooms');
 
-            const response = await fetch(`${API_URL}/api/rooms/list`);
+            const currentFilters = forceFilters || filters;
+            const queryParams = new URLSearchParams();
+
+            if (currentFilters.floor && currentFilters.floor !== 'All') queryParams.append('floor', currentFilters.floor);
+            if (currentFilters.roomType && currentFilters.roomType !== 'All') queryParams.append('roomType', currentFilters.roomType);
+            if (currentFilters.bedType && currentFilters.bedType !== 'All') queryParams.append('bedType', currentFilters.bedType);
+            if (currentFilters.status && currentFilters.status !== 'All') queryParams.append('status', currentFilters.status);
+
+            const response = await fetch(`${API_URL}/api/rooms/list?${queryParams.toString()}`);
             const data = await response.json();
             if (data.success) {
                 setRooms(data.data);
+                setExactMatch(data.exactMatch !== false);
             }
         } catch (error) {
             console.error('Error fetching rooms from database:', error);
@@ -280,6 +302,11 @@ const AdminDashboard = () => {
     // Filter rooms based on search and filters
     // Filter rooms based on search and filters
     useEffect(() => {
+        fetchRoomsFromAPI();
+    }, [filters]);
+
+    // Local filter for search query only
+    useEffect(() => {
         let filtered = [...rooms];
 
         // Search filter
@@ -290,30 +317,8 @@ const AdminDashboard = () => {
             );
         }
 
-        // Floor Filter
-        if (filters.floor !== 'All') {
-            filtered = filtered.filter(room => room.floor === filters.floor);
-        }
-
-        // Room Type Filter
-        if (filters.roomType !== 'All') {
-            filtered = filtered.filter(room => room.roomType === filters.roomType);
-        }
-
-        // Bed Type Filter
-        if (filters.bedType !== 'All') {
-            filtered = filtered.filter(room => room.bedType === filters.bedType);
-        }
-
-
-
-        // Status filter
-        if (filters.status !== 'All') {
-            filtered = filtered.filter(room => room.status === filters.status);
-        }
-
         setFilteredRooms(filtered);
-    }, [rooms, searchQuery, filters]);
+    }, [rooms, searchQuery]);
 
     // Filter QR rooms based on search and category
     useEffect(() => {
@@ -548,8 +553,20 @@ const AdminDashboard = () => {
     };
 
     const handleAddRoom = () => {
-        setRoomFormData({ roomNumber: '', roomType: '', price: '', capacity: '', floor: '' });
+        setRoomFormData({
+            roomNumber: '',
+            roomType: '',
+            price: '',
+            capacity: '',
+            floor: '',
+            isSmartRoom: false,
+            dynamicRateEnabled: false,
+            weekendMultiplier: 1.2,
+            seasonalMultiplier: 1.1
+        });
         setRoomErrorMessage('');
+        setPriceOption('custom');
+        setCurrentPricing(null);
         setShowAddRoomModal(true);
     };
 
@@ -560,9 +577,14 @@ const AdminDashboard = () => {
             roomType: room.roomType,
             price: room.price.toString(),
             capacity: room.capacity.toString(),
-            floor: room.floor || ''
+            floor: room.floor || '',
+            isSmartRoom: room.isSmartRoom || false,
+            dynamicRateEnabled: room.dynamicRateEnabled || false,
+            weekendMultiplier: room.weekendMultiplier || 1.2,
+            seasonalMultiplier: room.seasonalMultiplier || 1.1
         });
         setRoomErrorMessage('');
+        setPriceOption('custom');
         setShowEditRoomModal(true);
     };
 
@@ -583,7 +605,11 @@ const AdminDashboard = () => {
                     floor: roomFormData.floor,
                     capacity: parseInt(roomFormData.capacity),
                     price: parseInt(roomFormData.price),
-                    status: 'Available'
+                    status: 'Available',
+                    isSmartRoom: roomFormData.isSmartRoom,
+                    dynamicRateEnabled: roomFormData.dynamicRateEnabled,
+                    weekendMultiplier: parseFloat(roomFormData.weekendMultiplier),
+                    seasonalMultiplier: parseFloat(roomFormData.seasonalMultiplier)
                 };
 
                 const response = await fetch(`${API_URL}/api/rooms/add`, {
@@ -607,7 +633,11 @@ const AdminDashboard = () => {
                     roomType: roomFormData.roomType,
                     floor: roomFormData.floor,
                     capacity: parseInt(roomFormData.capacity),
-                    price: parseInt(roomFormData.price)
+                    price: parseInt(roomFormData.price),
+                    isSmartRoom: roomFormData.isSmartRoom,
+                    dynamicRateEnabled: roomFormData.dynamicRateEnabled,
+                    weekendMultiplier: parseFloat(roomFormData.weekendMultiplier),
+                    seasonalMultiplier: parseFloat(roomFormData.seasonalMultiplier)
                 };
 
                 const response = await fetch(`${API_URL}/api/rooms/update/${currentRoom._id}`, {
@@ -627,7 +657,17 @@ const AdminDashboard = () => {
                 setShowEditRoomModal(false);
             }
 
-            setRoomFormData({ roomNumber: '', roomType: '', price: '', capacity: '', floor: '' });
+            setRoomFormData({
+                roomNumber: '',
+                roomType: '',
+                price: '',
+                capacity: '',
+                floor: '',
+                isSmartRoom: false,
+                dynamicRateEnabled: false,
+                weekendMultiplier: 1.2,
+                seasonalMultiplier: 1.1
+            });
             setCurrentRoom(null);
         } catch (error) {
             console.error('Error submitting room:', error);
@@ -656,6 +696,35 @@ const AdminDashboard = () => {
 
     const handleComingSoon = () => {
         alert('Coming Soon!');
+    };
+
+    const handleRoomClick = (room) => {
+        setSelectedRoomIdForPanel(room._id);
+        setIsRoomPanelOpen(true);
+    };
+
+    const handleUpdateRoomStatusPanel = (updatedRoom) => {
+        setRooms(prevRooms => prevRooms.map(r => r._id === updatedRoom._id ? updatedRoom : r));
+    };
+
+    const handleQuickBook = (room) => {
+        setIsRoomPanelOpen(false);
+        navigate('/admin/reservations', {
+            state: {
+                viewMode: 'form',
+                prefilledData: {
+                    roomId: room._id,
+                    roomNumber: room.roomNumber,
+                    roomType: room.roomType,
+                    floor: room.floor,
+                    bedType: room.bedType,
+                    price: room.price
+                },
+                autoOpenGuestModal: true
+            }
+        });
+        setActiveMenu('reservations');
+        setReservationView('form');
     };
 
     return (
@@ -739,6 +808,8 @@ const AdminDashboard = () => {
                                     <motion.div
                                         key={room.id}
                                         className={`room-card ${getStatusClass(room.status)}`}
+                                        onClick={() => handleRoomClick(room)}
+                                        style={{ cursor: room.status === 'Available' ? 'pointer' : 'default' }}
                                         initial={{ opacity: 0, scale: 0.9 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         exit={{ opacity: 0, scale: 0.9 }}
@@ -756,22 +827,47 @@ const AdminDashboard = () => {
                                             <span className={`room-status ${getStatusClass(room.status)}`}>
                                                 {room.status}
                                             </span>
-                                            {room.status === 'Available' && (
-                                                <button className="edit-btn" onClick={() => handleEditRoom(room)}>
-                                                    ✏️ Edit
-                                                </button>
-                                            )}
+                                            <div className="card-actions">
+                                                {room.status === 'Available' && (
+                                                    <button className="book-btn" onClick={(e) => { e.stopPropagation(); handleRoomClick(room); }}>
+                                                        📅 Book
+                                                    </button>
+                                                )}
+                                                {room.status === 'Available' && (
+                                                    <button className="edit-btn" onClick={(e) => { e.stopPropagation(); handleEditRoom(room); }}>
+                                                        ✏️ Edit
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </motion.div>
                                 ))}
                             </AnimatePresence>
                         </div>
 
+                        {!exactMatch && rooms.length > 0 && (
+                            <div className="filter-warning" style={{ color: '#d32f2f', backgroundColor: '#ffebee', padding: '10px', borderRadius: '4px', marginBottom: '15px', textAlign: 'center', fontWeight: 'bold' }}>
+                                ⚠️ No exact match found. Showing closest available rooms.
+                            </div>
+                        )}
+
                         {filteredRooms.length === 0 && (
                             <div className="no-rooms">
                                 <p>No rooms found</p>
                             </div>
                         )}
+
+                        <RoomDetailsPanel
+                            roomId={selectedRoomIdForPanel}
+                            isOpen={isRoomPanelOpen}
+                            onClose={() => setIsRoomPanelOpen(false)}
+                            onUpdateStatus={handleUpdateRoomStatusPanel}
+                            onEdit={(room) => {
+                                setIsRoomPanelOpen(false);
+                                handleEditRoom(room);
+                            }}
+                            onQuickBook={handleQuickBook}
+                        />
                     </div>
                 )
             }
@@ -1295,15 +1391,103 @@ const AdminDashboard = () => {
                                     </select>
                                 </div>
 
+                                {currentPricing && (
+                                    <div className="pricing-info" style={{ borderRadius: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', marginBottom: '1.25rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                                            <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Allowed Range</span>
+                                            <span style={{ fontSize: '12px', fontWeight: '800', color: '#1e293b' }}>₹{currentPricing.minPrice} – ₹{currentPricing.maxPrice}</span>
+                                        </div>
+                                        <div className="range-bar" style={{ height: '6px', background: '#e2e8f0', borderRadius: '10px', position: 'relative', overflow: 'hidden' }}>
+                                            <div style={{ height: '100%', background: '#ff4d4d', width: '100%' }}></div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="form-group">
                                     <label>PRICE PER NIGHT (₹) *</label>
+                                    <select
+                                        className="form-input"
+                                        value={priceOption}
+                                        onChange={(e) => {
+                                            const opt = e.target.value;
+                                            setPriceOption(opt);
+                                            if (currentPricing) {
+                                                if (opt === 'min') setRoomFormData({ ...roomFormData, price: currentPricing.minPrice.toString() });
+                                                else if (opt === 'mid') setRoomFormData({ ...roomFormData, price: Math.round((currentPricing.minPrice + currentPricing.maxPrice) / 2).toString() });
+                                                else if (opt === 'max') setRoomFormData({ ...roomFormData, price: currentPricing.maxPrice.toString() });
+                                            }
+                                        }}
+                                        style={{ marginBottom: '10px' }}
+                                    >
+                                        <option value="custom">Custom Price</option>
+                                        {currentPricing && (
+                                            <>
+                                                <option value="min">Suggested Min (₹{currentPricing.minPrice})</option>
+                                                <option value="mid">Mid Price (₹{Math.round((currentPricing.minPrice + currentPricing.maxPrice) / 2)})</option>
+                                                <option value="max">Suggested Max (₹{currentPricing.maxPrice})</option>
+                                            </>
+                                        )}
+                                    </select>
+
                                     <input
                                         type="number"
                                         className="form-input"
-                                        placeholder="0"
+                                        style={{ borderColor: (currentPricing && (roomFormData.price < currentPricing.minPrice || roomFormData.price > currentPricing.maxPrice)) ? '#ef4444' : '#e2e8f0' }}
+                                        placeholder="Enter Amount"
                                         value={roomFormData.price}
-                                        onChange={(e) => setRoomFormData({ ...roomFormData, price: e.target.value })}
+                                        onChange={(e) => {
+                                            setRoomFormData({ ...roomFormData, price: e.target.value });
+                                            setPriceOption('custom');
+                                        }}
+                                        disabled={priceOption !== 'custom'}
                                     />
+                                    {currentPricing && (roomFormData.price < currentPricing.minPrice || roomFormData.price > currentPricing.maxPrice) && (
+                                        <p style={{ color: '#ef4444', fontSize: '11px', marginTop: '5px', fontWeight: '600' }}>
+                                            ⚠️ Price must be between ₹{currentPricing.minPrice} and ₹{currentPricing.maxPrice}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="form-group" style={{ background: '#fff1f2', padding: '15px', borderRadius: '12px', border: '1px solid #fecaca' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                                        <input
+                                            type="checkbox"
+                                            id="dynamic-pricing"
+                                            checked={roomFormData.dynamicRateEnabled}
+                                            onChange={(e) => setRoomFormData({ ...roomFormData, dynamicRateEnabled: e.target.checked })}
+                                            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                        />
+                                        <label htmlFor="dynamic-pricing" style={{ margin: 0, fontWeight: '700', color: '#b91c1c', cursor: 'pointer' }}>
+                                            Enable Dynamic Pricing Engine
+                                        </label>
+                                    </div>
+
+                                    {roomFormData.dynamicRateEnabled && (
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                            <div>
+                                                <label style={{ fontSize: '10px', fontWeight: '800', color: '#991b1b' }}>WEEKEND MULTIPLIER</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.1"
+                                                    className="form-input"
+                                                    value={roomFormData.weekendMultiplier}
+                                                    onChange={(e) => setRoomFormData({ ...roomFormData, weekendMultiplier: e.target.value })}
+                                                    style={{ height: '35px', fontSize: '12px' }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label style={{ fontSize: '10px', fontWeight: '800', color: '#991b1b' }}>SEASON MULTIPLIER</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.1"
+                                                    className="form-input"
+                                                    value={roomFormData.seasonalMultiplier}
+                                                    onChange={(e) => setRoomFormData({ ...roomFormData, seasonalMultiplier: e.target.value })}
+                                                    style={{ height: '35px', fontSize: '12px' }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="form-group">
@@ -1321,7 +1505,12 @@ const AdminDashboard = () => {
                                     <button type="button" className="btn-cancel" onClick={() => setShowAddRoomModal(false)}>
                                         Cancel
                                     </button>
-                                    <button type="submit" className="btn-submit">
+                                    <button
+                                        type="submit"
+                                        className="btn-submit"
+                                        disabled={currentPricing && (roomFormData.price < currentPricing.minPrice || roomFormData.price > currentPricing.maxPrice)}
+                                        style={{ opacity: (currentPricing && (roomFormData.price < currentPricing.minPrice || roomFormData.price > currentPricing.maxPrice)) ? 0.5 : 1 }}
+                                    >
                                         Add Room
                                     </button>
                                 </div>
@@ -1381,15 +1570,103 @@ const AdminDashboard = () => {
                                     </select>
                                 </div>
 
+                                {currentPricing && (
+                                    <div className="pricing-info" style={{ borderRadius: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', marginBottom: '1.25rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                                            <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Allowed Range</span>
+                                            <span style={{ fontSize: '12px', fontWeight: '800', color: '#1e293b' }}>₹{currentPricing.minPrice} – ₹{currentPricing.maxPrice}</span>
+                                        </div>
+                                        <div className="range-bar" style={{ height: '6px', background: '#e2e8f0', borderRadius: '10px', position: 'relative', overflow: 'hidden' }}>
+                                            <div style={{ height: '100%', background: '#ff4d4d', width: '100%' }}></div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="form-group">
                                     <label>PRICE PER NIGHT (₹) *</label>
+                                    <select
+                                        className="form-input"
+                                        value={priceOption}
+                                        onChange={(e) => {
+                                            const opt = e.target.value;
+                                            setPriceOption(opt);
+                                            if (currentPricing) {
+                                                if (opt === 'min') setRoomFormData({ ...roomFormData, price: currentPricing.minPrice.toString() });
+                                                else if (opt === 'mid') setRoomFormData({ ...roomFormData, price: Math.round((currentPricing.minPrice + currentPricing.maxPrice) / 2).toString() });
+                                                else if (opt === 'max') setRoomFormData({ ...roomFormData, price: currentPricing.maxPrice.toString() });
+                                            }
+                                        }}
+                                        style={{ marginBottom: '10px' }}
+                                    >
+                                        <option value="custom">Custom Price</option>
+                                        {currentPricing && (
+                                            <>
+                                                <option value="min">Suggested Min (₹{currentPricing.minPrice})</option>
+                                                <option value="mid">Mid Price (₹{Math.round((currentPricing.minPrice + currentPricing.maxPrice) / 2)})</option>
+                                                <option value="max">Suggested Max (₹{currentPricing.maxPrice})</option>
+                                            </>
+                                        )}
+                                    </select>
+
                                     <input
                                         type="number"
                                         className="form-input"
-                                        placeholder="0"
+                                        style={{ borderColor: (currentPricing && (roomFormData.price < currentPricing.minPrice || roomFormData.price > currentPricing.maxPrice)) ? '#ef4444' : '#e2e8f0' }}
+                                        placeholder="Enter Amount"
                                         value={roomFormData.price}
-                                        onChange={(e) => setRoomFormData({ ...roomFormData, price: e.target.value })}
+                                        onChange={(e) => {
+                                            setRoomFormData({ ...roomFormData, price: e.target.value });
+                                            setPriceOption('custom');
+                                        }}
+                                        disabled={priceOption !== 'custom'}
                                     />
+                                    {currentPricing && (roomFormData.price < currentPricing.minPrice || roomFormData.price > currentPricing.maxPrice) && (
+                                        <p style={{ color: '#ef4444', fontSize: '11px', marginTop: '5px', fontWeight: '600' }}>
+                                            ⚠️ Price must be between ₹{currentPricing.minPrice} and ₹{currentPricing.maxPrice}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="form-group" style={{ background: '#fff1f2', padding: '15px', borderRadius: '12px', border: '1px solid #fecaca' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                                        <input
+                                            type="checkbox"
+                                            id="dynamic-pricing-edit"
+                                            checked={roomFormData.dynamicRateEnabled}
+                                            onChange={(e) => setRoomFormData({ ...roomFormData, dynamicRateEnabled: e.target.checked })}
+                                            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                        />
+                                        <label htmlFor="dynamic-pricing-edit" style={{ margin: 0, fontWeight: '700', color: '#b91c1c', cursor: 'pointer' }}>
+                                            Enable Dynamic Pricing Engine
+                                        </label>
+                                    </div>
+
+                                    {roomFormData.dynamicRateEnabled && (
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                            <div>
+                                                <label style={{ fontSize: '10px', fontWeight: '800', color: '#991b1b' }}>WEEKEND MULTIPLIER</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.1"
+                                                    className="form-input"
+                                                    value={roomFormData.weekendMultiplier}
+                                                    onChange={(e) => setRoomFormData({ ...roomFormData, weekendMultiplier: e.target.value })}
+                                                    style={{ height: '35px', fontSize: '12px' }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label style={{ fontSize: '10px', fontWeight: '800', color: '#991b1b' }}>SEASON MULTIPLIER</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.1"
+                                                    className="form-input"
+                                                    value={roomFormData.seasonalMultiplier}
+                                                    onChange={(e) => setRoomFormData({ ...roomFormData, seasonalMultiplier: e.target.value })}
+                                                    style={{ height: '35px', fontSize: '12px' }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="form-group">
@@ -1407,7 +1684,12 @@ const AdminDashboard = () => {
                                     <button type="button" className="btn-cancel" onClick={() => setShowEditRoomModal(false)}>
                                         Cancel
                                     </button>
-                                    <button type="submit" className="btn-submit">
+                                    <button
+                                        type="submit"
+                                        className="btn-submit"
+                                        disabled={currentPricing && (roomFormData.price < currentPricing.minPrice || roomFormData.price > currentPricing.maxPrice)}
+                                        style={{ opacity: (currentPricing && (roomFormData.price < currentPricing.minPrice || roomFormData.price > currentPricing.maxPrice)) ? 0.5 : 1 }}
+                                    >
                                         Update Room
                                     </button>
                                 </div>

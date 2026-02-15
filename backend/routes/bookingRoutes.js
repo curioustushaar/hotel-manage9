@@ -21,13 +21,16 @@ const {
     addBookingVisitor,
     markBookingNoShow,
     voidBooking,
-    cancelBooking
+    cancelBooking,
+    searchBookings
 } = require('../controllers/bookingController');
 
 // Main routes
 router.get('/list', getBookings);
+router.get('/search', searchBookings);
 router.get('/date-range', getBookingsByDateRange);
 router.post('/add', addBooking);
+router.post('/create', addBooking);
 
 // ID-based routes
 router.get('/:id', getBookingById);

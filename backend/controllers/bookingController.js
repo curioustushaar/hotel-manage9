@@ -55,7 +55,36 @@ exports.addBooking = async (req, res) => {
             });
         }
 
-        // Check for duplicate room booking
+        // FEATURE 6: Safe Reservation Create - Backend verification of room status (AVAILABLE)
+        // FEATURE: Dynamic Pricing Verification
+        const Room = require('../models/roomModel');
+        const room = await Room.findOne({ roomNumber: bookingData.roomNumber });
+
+        if (!room) {
+            return res.status(404).json({ success: false, message: 'Room not found' });
+        }
+
+        if (room.status !== 'Available') {
+            return res.status(409).json({
+                success: false,
+                message: `Room ${bookingData.roomNumber} is currently ${room.status}. Please select another room.`
+            });
+        }
+
+        // Calculate dynamic price if enabled
+        if (room.dynamicRateEnabled) {
+            const { calculateDynamicPrice } = require('./pricingController');
+            const dynamicPrice = await calculateDynamicPrice(room.roomType, bookingData.checkInDate);
+            if (dynamicPrice) {
+                bookingData.pricePerNight = dynamicPrice;
+            }
+        }
+
+        // Update room status
+        room.status = bookingData.status === 'Checked-in' ? 'Occupied' : 'Booked';
+        await room.save();
+
+        // Check for date overlap as well (Secondary check)
         const existingBooking = await Booking.findOne({
             roomNumber: bookingData.roomNumber,
             $or: [
@@ -68,9 +97,11 @@ exports.addBooking = async (req, res) => {
         });
 
         if (existingBooking) {
+            // Rollback room status
+            await Room.findOneAndUpdate({ roomNumber: bookingData.roomNumber }, { status: 'Available' });
             return res.status(409).json({
                 success: false,
-                message: 'Room is already booked for the selected dates'
+                message: 'Room is already booked for the selected dates (Conflict found in existing schedules)'
             });
         }
 
@@ -119,20 +150,6 @@ exports.addBooking = async (req, res) => {
         console.log('Booking before save - transactions:', booking.transactions);
         await booking.save();
         console.log('Booking saved - transactions:', booking.transactions);
-
-        // Update room status based on booking status
-        const Room = require('../models/roomModel');
-        const room = await Room.findOne({ roomNumber: bookingData.roomNumber });
-
-        if (room) {
-            // Set room status based on booking status
-            if (bookingData.status === 'Checked-in') {
-                room.status = 'Occupied';
-            } else if (bookingData.status === 'Upcoming') {
-                room.status = 'Booked';
-            }
-            await room.save();
-        }
 
         res.status(201).json({
             success: true,
@@ -1161,4 +1178,52 @@ exports.cancelBooking = async (req, res) => {
         res.status(500).json({ success: false, message: 'Error cancelling booking', error: error.message });
     }
 };
+
+// Search bookings by keywords
+exports.searchBookings = async (req, res) => {
+    try {
+        const { q } = req.query;
+        if (!q) {
+            return res.status(200).json({ success: true, data: [], count: 0 });
+        }
+
+        const query = {
+            $or: [
+                { guestName: { $regex: q, $options: 'i' } },
+                { referenceId: { $regex: q, $options: 'i' } }
+            ]
+        };
+
+        if (/^\d+$/.test(q)) {
+            query.$or.push({ mobileNumber: { $regex: q } });
+            query.$or.push({ roomNumber: { $regex: q, $options: 'i' } });
+        }
+
+        const bookings = await Booking.find(query);
+
+        // Sort: Checked-in (IN_HOUSE) first, Upcoming (RESERVED) second, others after
+        const sortedBookings = bookings.sort((a, b) => {
+            const statusOrder = { 'Checked-in': 1, 'Upcoming': 2 };
+            const orderA = statusOrder[a.status] || 3;
+            const orderB = statusOrder[b.status] || 3;
+
+            if (orderA !== orderB) return orderA - orderB;
+            return new Date(b.createdAt) - new Date(a.createdAt);
+        });
+
+        res.status(200).json({
+            success: true,
+            data: sortedBookings,
+            count: sortedBookings.length
+        });
+    } catch (error) {
+        console.error('[SEARCH ERROR]', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error searching bookings',
+            error: error.message
+        });
+    }
+};
+
 

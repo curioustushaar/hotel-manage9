@@ -450,13 +450,13 @@
     .content-area {
         flex-direction: column;
     }
-    
+
     .sidebar {
         width: 100%;
         border-right: none;
         border-bottom: 1px solid #e0e0e0;
     }
-    
+
     .booking-info-bar {
         overflow-x: auto;
     }
@@ -467,17 +467,34 @@
         height: 100vh;
         border-radius: 0;
     }
-    
+
     .tabs {
         overflow-x: auto;
     }
-    
+
     .tab-actions {
         flex-wrap: wrap;
     }
-    
+
     .summary-footer {
         flex-wrap: wrap;
         gap: 15px;
     }
+}
+
+/* PHASE 3 UPGRADE: Enterprise Room Details Styling */
+.room-details-extra {
+    color: #666;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.dynamic-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-block;
 }
