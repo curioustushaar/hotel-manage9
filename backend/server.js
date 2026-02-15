@@ -17,6 +17,7 @@ const reservationRoutes = require('./routes/reservationRoutes');
 const roomFacilityRoutes = require('./routes/roomFacilityRoutes');
 const bedTypeRoutes = require('./routes/bedTypeRoutes');
 const floorRoutes = require('./routes/floorRoutes');
+const pricingRoutes = require('./routes/pricingRoutes');
 
 // Initialize express app
 const app = express();
@@ -88,6 +89,7 @@ app.use('/api/reservations', reservationRoutes);
 app.use('/api/facilities', roomFacilityRoutes);
 app.use('/api/bed-types', bedTypeRoutes);
 app.use('/api/floors', floorRoutes);
+app.use('/api/pricing', pricingRoutes);
 const roomFacilityTypeRoutes = require('./routes/roomFacilityTypeRoutes');
 app.use('/api/facility-types', roomFacilityTypeRoutes);
 const mealTypeRoutes = require('./routes/mealTypeRoutes');

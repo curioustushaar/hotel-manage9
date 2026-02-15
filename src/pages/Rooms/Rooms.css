@@ -188,6 +188,15 @@
     line-height: 1.3;
 }
 
+/* PHASE 3 UPGRADE: Enterprise room details styling */
+.room-details-extra {
+    font-size: 10px !important;
+    color: #666;
+    margin: 0 0 5px 0;
+    line-height: 1.3;
+    font-weight: 400;
+}
+
 .room-capacity {
     font-size: 11px !important;
     color: #666;

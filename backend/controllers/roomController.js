@@ -5,11 +5,44 @@ const Room = require('../models/roomModel');
 // @access  Public
 const getRooms = async (req, res) => {
     try {
-        const rooms = await Room.find().sort({ roomNumber: 1 });
+        const { floor, roomType, bedType, status } = req.query;
+        let query = {};
+
+        if (floor && floor !== 'All') query.floor = floor;
+        if (roomType && roomType !== 'All') query.roomType = roomType;
+        if (bedType && bedType !== 'All') query.bedType = bedType;
+        if (status && status !== 'All') query.status = status;
+
+        let rooms = await Room.find(query).sort({ roomNumber: 1 });
+
+        // FEATURE 1 & 9: Smart Filter & Optional Smart Upgrade
+        let exactMatch = true;
+        if (rooms.length === 0 && (floor || roomType || bedType)) {
+            exactMatch = false;
+            // Find closest matches
+            // We'll relax filters one by one or just fetch all and sort
+            const allAvailable = await Room.find({ status: 'Available' });
+
+            rooms = allAvailable.sort((a, b) => {
+                // Priority 1: Same floor
+                if (a.floor === floor && b.floor !== floor) return -1;
+                if (a.floor !== floor && b.floor === floor) return 1;
+
+                // Priority 2: Same room type
+                if (a.roomType === roomType && b.roomType !== roomType) return -1;
+                if (a.roomType !== roomType && b.roomType === roomType) return 1;
+
+                // Priority 3: Same price range (closest price)
+                // Since we don't have a target price in query, we can't do exact price range comparison
+                // but we can sort by price as a fallback
+                return a.price - b.price;
+            }).slice(0, 10); // Return top 10 closest
+        }
 
         res.status(200).json({
             success: true,
             count: rooms.length,
+            exactMatch,
             data: rooms
         });
     } catch (error) {
@@ -21,12 +54,37 @@ const getRooms = async (req, res) => {
     }
 };
 
+// @desc    Get single room
+// @route   GET /api/rooms/:id
+// @access  Public
+const getRoomById = async (req, res) => {
+    try {
+        const room = await Room.findById(req.params.id);
+        if (!room) {
+            return res.status(404).json({
+                success: false,
+                message: 'Room not found'
+            });
+        }
+        res.status(200).json({
+            success: true,
+            data: room
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching room',
+            error: error.message
+        });
+    }
+};
+
 // @desc    Add new room
 // @route   POST /api/rooms/add
 // @access  Private/Admin
 const addRoom = async (req, res) => {
     try {
-        const { roomNumber, roomType, price, capacity, floor, status } = req.body;
+        const { roomNumber, roomType, bedType, price, capacity, floor, status } = req.body;
 
         // Validation
         if (!roomNumber || !roomType || !price || !capacity || !floor) {
@@ -34,6 +92,18 @@ const addRoom = async (req, res) => {
                 success: false,
                 message: 'Please provide all required fields'
             });
+        }
+
+        // FEATURE: Pricing Validation
+        const RoomTypePricing = require('../models/roomTypePricingModel');
+        const pricing = await RoomTypePricing.findOne({ roomType });
+        if (pricing) {
+            if (price < pricing.minPrice || price > pricing.maxPrice) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Price ₹${price} is outside allowed range for ${roomType} (₹${pricing.minPrice} - ₹${pricing.maxPrice})`
+                });
+            }
         }
 
         // Check if room number already exists
@@ -49,10 +119,18 @@ const addRoom = async (req, res) => {
         const room = await Room.create({
             roomNumber,
             roomType,
+            bedType: bedType || 'Double',
             price,
             capacity,
             floor,
-            status: status || 'Available'
+            status: status || 'Available',
+            // PHASE 1 UPGRADE: Accept new enterprise fields
+            roomViewType: req.body.roomViewType,
+            smokingPolicy: req.body.smokingPolicy,
+            roomSize: req.body.roomSize,
+            isSmartRoom: req.body.isSmartRoom,
+            dynamicRateEnabled: req.body.dynamicRateEnabled,
+            facilities: req.body.facilities || []
         });
 
         res.status(201).json({
@@ -75,8 +153,21 @@ const addRoom = async (req, res) => {
 const updateRoom = async (req, res) => {
     try {
         const { id } = req.params;
-        const updateData = req.body; // updateData might contain 'floor' too
+        const updateData = req.body;
 
+        // FEATURE: Pricing Validation
+        if (updateData.price && updateData.roomType) {
+            const RoomTypePricing = require('../models/roomTypePricingModel');
+            const pricing = await RoomTypePricing.findOne({ roomType: updateData.roomType });
+            if (pricing) {
+                if (updateData.price < pricing.minPrice || updateData.price > pricing.maxPrice) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Price ₹${updateData.price} is outside allowed range for ${updateData.roomType} (₹${pricing.minPrice} - ₹${pricing.maxPrice})`
+                    });
+                }
+            }
+        }
 
         // If updating room number, check if new number already exists
         if (updateData.roomNumber) {
@@ -156,7 +247,7 @@ const deleteRoom = async (req, res) => {
 // @access  Public
 const getAvailableRooms = async (req, res) => {
     try {
-        const { from, to, type } = req.query;
+        const { from, to, type, roomViewType, smokingPolicy, isSmartRoom } = req.query;
 
         // Basic filtering for available status
         // In a real system, we'd check against bookings for these dates
@@ -164,6 +255,19 @@ const getAvailableRooms = async (req, res) => {
 
         if (type) {
             query.roomType = type;
+        }
+
+        // PHASE 1 UPGRADE: Support filtering by new enterprise fields
+        if (roomViewType) {
+            query.roomViewType = roomViewType;
+        }
+
+        if (smokingPolicy) {
+            query.smokingPolicy = smokingPolicy;
+        }
+
+        if (isSmartRoom !== undefined) {
+            query.isSmartRoom = isSmartRoom === 'true' || isSmartRoom === true;
         }
 
         const rooms = await Room.find(query).sort({ roomNumber: 1 });
@@ -183,6 +287,7 @@ const getAvailableRooms = async (req, res) => {
 
 module.exports = {
     getRooms,
+    getRoomById,
     addRoom,
     updateRoom,
     deleteRoom,

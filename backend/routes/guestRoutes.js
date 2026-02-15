@@ -17,6 +17,7 @@ router.get('/:id', getGuestById);
 
 // POST routes
 router.post('/add', createGuest);
+router.post('/create', createGuest);
 
 // PUT routes
 router.put('/:id', updateGuest);

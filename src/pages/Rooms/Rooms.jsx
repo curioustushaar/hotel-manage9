@@ -401,6 +401,15 @@ const Rooms = () => {
                             </div>
                             <div className="room-card-body">
                                 <p className="room-type">{getRoomTypeShort(room.roomType)}</p>
+                                {/* PHASE 3 UPGRADE: Display enterprise room details */}
+                                {(room.roomViewType || room.smokingPolicy) && (
+                                    <p className="room-details-extra">
+                                        {room.roomViewType && `${room.roomViewType}`}
+                                        {room.roomViewType && room.smokingPolicy && ' | '}
+                                        {room.smokingPolicy && `${room.smokingPolicy}`}
+                                        {room.isSmartRoom && ' ⚡'}
+                                    </p>
+                                )}
                                 <p className="room-capacity">Capacity: {room.capacity} persons</p>
                                 <p className="room-price">₹{room.price}/night</p>
                             </div>
