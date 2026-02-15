@@ -1,9 +1,24 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import RoleBadge from './RoleBadge';
 
 function Navbar() {
+    const { user } = useAuth();
+    const location = useLocation();
     const [sidebarActive, setSidebarActive] = useState(false);
     const [openDropdown, setOpenDropdown] = useState(null);
+
+    // Show role badge only on authenticated pages (not on landing/login pages)
+    const shouldShowRoleBadge = user && (
+        location.pathname.startsWith('/admin') ||
+        location.pathname === '/dashboard' ||
+        location.pathname.startsWith('/rooms') ||
+        location.pathname.startsWith('/reservations') ||
+        location.pathname.startsWith('/cashier') ||
+        location.pathname.startsWith('/table-view') ||
+        location.pathname.startsWith('/food-menu')
+    );
 
     const toggleSidebar = () => {
         setSidebarActive(!sidebarActive);
@@ -190,6 +205,9 @@ function Navbar() {
                                     </ul>
                                 </div>
                             </div>
+
+                            {/* Role Badge - Shows only on admin/authenticated pages */}
+                            {shouldShowRoleBadge && <RoleBadge />}
 
                             <Link to="/login" className="demo-btn nav-demo-btn" style={{ textDecoration: 'none', color: 'inherit' }}>Book a free demo</Link>
                         </div>
