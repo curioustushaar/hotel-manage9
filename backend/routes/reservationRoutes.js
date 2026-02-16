@@ -20,27 +20,82 @@ router.get('/list', async (req, res) => {
     }
 });
 
-// GET reservation by ID
+// GET reservation by ID (Universal for Stay Management)
 router.get('/:id', async (req, res) => {
     try {
-        const reservation = await Reservation.findById(req.params.id);
-        if (!reservation) {
-            return res.status(404).json({
-                success: false,
-                message: 'Reservation not found'
-            });
+        const { id } = req.params;
+        console.log(`[DEBUG] GET /api/reservations/${id} - Fetching stay details (v2.1)`);
+
+        const mongoose = require('mongoose');
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            console.error(`[ERROR] Invalid ObjectId: ${id}`);
+            return res.status(400).json({ success: false, message: 'Invalid reservation ID format' });
         }
-        res.json({
-            success: true,
-            data: reservation
-        });
+
+        const Booking = require('../models/bookingModel');
+        const Reservation = require('../models/reservationModel');
+
+        let data = await Reservation.findById(id);
+
+        if (!data) {
+            console.log(`[DEBUG] Not found in Reservation model, checking Booking...`);
+            const booking = await Booking.findById(id);
+            if (booking) {
+                console.log(`[DEBUG] Found in Booking model: ${booking.referenceId || booking.bookingId}`);
+                data = {
+                    _id: booking._id,
+                    reservationId: booking.referenceId || booking.bookingId,
+                    guestName: booking.guestName,
+                    checkInDate: booking.checkInDate,
+                    checkOutDate: booking.checkOutDate,
+                    checkInTime: booking.scheduledCheckInTime || '14:00',
+                    checkOutTime: booking.scheduledCheckOutTime || '11:00',
+                    nights: booking.numberOfNights,
+                    adults: booking.numberOfAdults,
+                    children: booking.numberOfChildren,
+                    ratePerNight: booking.pricePerNight,
+                    taxPercentage: booking.taxPercentage || 12,
+                    discount: booking.discount || 0,
+                    grandTotal: booking.totalAmount,
+                    balance: booking.remainingAmount,
+                    status: booking.status,
+                    roomNumber: booking.roomNumber,
+                    roomType: booking.roomType
+                };
+            }
+        } else {
+            console.log(`[DEBUG] Found in Reservation model: ${data.referenceId}`);
+            data = {
+                _id: data._id,
+                reservationId: data.referenceId,
+                guestName: data.guestName,
+                checkInDate: data.checkInDate,
+                checkOutDate: data.checkOutDate,
+                checkInTime: data.checkInTime || '14:00',
+                checkOutTime: data.checkOutTime || '11:00',
+                nights: data.nights,
+                adults: data.adults || 1,
+                children: data.children || 0,
+                ratePerNight: (data.amount / (data.nights || 1)) || 0,
+                taxPercentage: 12,
+                discount: 0,
+                grandTotal: data.amount,
+                balance: data.balance,
+                status: data.status,
+                roomNumber: data.roomNumber,
+                roomType: data.roomType
+            };
+        }
+
+        if (!data) {
+            console.warn(`[WARN] Stay record not found for ID: ${id}`);
+            return res.status(404).json({ success: false, message: 'Stay record not found' });
+        }
+
+        res.json({ success: true, data });
     } catch (error) {
-        console.error('Error fetching reservation:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch reservation',
-            error: error.message
-        });
+        console.error('[CRITICAL] Error fetching stay details:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch record', error: error.message });
     }
 });
 
@@ -82,6 +137,39 @@ router.put('/checkin/:id', async (req, res) => {
         console.error('Error checking in reservation:', error);
         res.status(500).json({ message: error.message });
     }
+});
+
+// PUT Amend Stay
+router.put('/amend/:id', async (req, res) => {
+    // We'll use the logic in bookingController but exposed via this route
+    const { amendBookingStay } = require('../controllers/bookingController');
+    return amendBookingStay(req, res);
+});
+
+// PUT Room Move
+router.put('/:id/room-move', async (req, res) => {
+    const { moveBookingRoom } = require('../controllers/bookingController');
+    return moveBookingRoom(req, res);
+});
+
+// PUT Room Exchange
+router.put('/:id/exchange-room', async (req, res) => {
+    const { exchangeBookingRoom } = require('../controllers/bookingController');
+    return exchangeBookingRoom(req, res);
+});
+
+// PUT No-Show
+router.put('/:id/no-show', async (req, res) => {
+    console.log(`[Route Hit] PUT /api/reservations/${req.params.id}/no-show`);
+    const { markNoShow } = require('../controllers/reservationController');
+    return markNoShow(req, res);
+});
+
+// PUT Void
+router.put('/:id/void', async (req, res) => {
+    console.log(`[Route Hit] PUT /api/reservations/${req.params.id}/void`);
+    const { voidReservation } = require('../controllers/reservationController');
+    return voidReservation(req, res);
 });
 
 module.exports = router;

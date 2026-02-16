@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import API_URL_CONFIG from '../config/api';
+import { searchBookings } from '../services/searchService';
 import './ReservationStayManagement.css';
 import './CreateGuestForm.css';
 import RoomRow from './RoomRow';
@@ -24,6 +25,11 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const API_URL = `${API_URL_CONFIG}/api/bookings`;
     const [view, setView] = useState(viewMode); // 'dashboard', 'form', 'housekeeping', or 'roomservice'
     const [prefilledData, setPrefilledData] = useState(null);
+
+    // Search State (Moved to top to prevent "Cannot access 'searchQuery' before initialization")
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchResults, setSearchResults] = useState([]);
 
     // Sync internal view state with prop changes
     useEffect(() => {
@@ -52,12 +58,89 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [activeTab, setActiveTab] = useState('all'); // 'all', 'reserved', 'in-house', 'checked-out'
     const [showEditModal, setShowEditModal] = useState(false); // Edit Reservation Modal state
 
+    const [fromRoomsPage, setFromRoomsPage] = useState(false);
+
+    useEffect(() => {
+        // FEATURE 3: Auto Prefill Room Details
+        if (location.state?.prefilledData) {
+            const data = location.state.prefilledData;
+            setFromRoomsPage(true);
+            setRooms([{
+                id: 1,
+                categoryId: data.roomType || '',
+                roomNumber: data.roomNumber,
+                mealPlan: 'CP',
+                adultsCount: 1,
+                childrenCount: 0,
+                ratePerNight: data.price,
+                discount: 0
+            }]);
+
+            // Set dates
+            const today = new Date().toISOString().split('T')[0];
+            const tomorrow = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0];
+            setCheckInDate(today);
+            setCheckOutDate(tomorrow);
+
+            // If we have roomId, fetch full details
+            if (data.roomId) {
+                fetch(`${API_URL_CONFIG}/api/rooms/${data.roomId}`)
+                    .then(res => res.json())
+                    .then(resData => {
+                        if (resData.success) {
+                            const room = resData.data;
+                            setRooms([{
+                                id: 1,
+                                categoryId: room.roomType,
+                                roomNumber: room.roomNumber,
+                                mealPlan: 'CP',
+                                adultsCount: room.capacity || 1,
+                                childrenCount: 0,
+                                ratePerNight: room.price,
+                                discount: 0
+                            }]);
+                        }
+                    });
+            }
+        } else {
+            setFromRoomsPage(false);
+        }
+    }, [location.state]);
+
     // Reservation/Booking Data
     const [reservations, setReservations] = useState([]);
     const [isEditingMode, setIsEditingMode] = useState(false);
     const [editingReservationId, setEditingReservationId] = useState(null);
     const [selectedReservation, setSelectedReservation] = useState(null);
+    const [showBookingHistory, setShowBookingHistory] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    // Filter reservations
+    const filteredReservations = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        return reservations.filter(r => {
+            if (activeTab === 'all') return true;
+            if (activeTab === 'reserved') return r.status === 'RESERVED';
+            if (activeTab === 'in-house') return r.status === 'IN_HOUSE';
+            if (activeTab === 'checked-out') return r.status === 'CHECKED_OUT';
+            if (activeTab === 'arrival') return r.checkInDate === today && r.status === 'RESERVED';
+            if (activeTab === 'departure') return r.checkOutDate === today && r.status === 'IN_HOUSE';
+            return true;
+        });
+    }, [reservations, activeTab]);
+
+    // Calculate real-time counts for tabs
+    const counts = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        return {
+            all: reservations.length,
+            reserved: reservations.filter(r => r.status === 'RESERVED').length,
+            'in-house': reservations.filter(r => r.status === 'IN_HOUSE').length,
+            'checked-out': reservations.filter(r => r.status === 'CHECKED_OUT').length,
+            arrival: reservations.filter(r => r.checkInDate === today && r.status === 'RESERVED').length,
+            departure: reservations.filter(r => r.checkOutDate === today && r.status === 'IN_HOUSE').length
+        };
+    }, [reservations]);
 
     // Fetch reservations from MongoDB
     useEffect(() => {
@@ -77,69 +160,18 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             ]);
 
             let allReservations = [];
+            const uniqueIds = new Set();
 
             // Process bookings data
             if (bookingsResponse.ok) {
                 const bookingsData = await bookingsResponse.json();
                 if (bookingsData.success && bookingsData.data) {
-                    const mappedBookings = bookingsData.data.map(booking => ({
-                        id: booking._id,
-                        reservationType: 'Confirm',
-                        bookingSource: 'Direct',
-                        businessSource: 'Walk-In',
-                        referenceNumber: booking.bookingId || '',
-                        guestId: booking._id,
-                        guestName: booking.guestName,
-                        guestEmail: booking.email || '',
-                        guestPhone: booking.mobileNumber,
-                        reservationType: booking.reservationType || 'Confirm',
-                        bookingSource: booking.bookingSource || 'Direct',
-                        businessSource: booking.businessSource || 'Walk-In',
-                        referenceNumber: booking.referenceId || booking.id,
-                        arrivalFrom: booking.arrivalFrom || '',
-                        purposeOfVisit: booking.purposeOfVisit || '',
-                        checkInDate: booking.checkInDate ? new Date(booking.checkInDate).toISOString().split('T')[0] : '',
-                        checkInTime: booking.scheduledCheckInTime || '14:00',
-                        checkOutDate: booking.checkOutDate ? new Date(booking.checkOutDate).toISOString().split('T')[0] : '',
-                        checkOutTime: booking.scheduledCheckOutTime || '11:00',
-                        flexibleCheckout: false,
-                        roomNumber: booking.roomNumber,
-                        roomType: booking.roomType,
-                        rooms: [{
-                            id: 1,
-                            categoryId: booking.roomType?.toLowerCase().replace(/ /g, '-') || 'deluxe-ac-double',
-                            roomNumber: booking.roomNumber || '',
-                            mealPlan: 'CP',
-                            adultsCount: booking.numberOfGuests || 1,
-                            childrenCount: 0,
-                            ratePerNight: booking.pricePerNight || 0,
-                            discount: 0
-                        }],
-                        nights: booking.numberOfNights || 1,
-                        status: booking.status === 'Upcoming' ? 'RESERVED' :
-                            booking.status === 'Checked-in' ? 'IN_HOUSE' :
-                                booking.status === 'Checked-out' ? 'CHECKED_OUT' : 'RESERVED',
-                        roomCharges: booking.totalAmount || 0,
-                        discount: 0,
-                        tax: 0,
-                        totalAmount: booking.totalAmount || 0,
-                        paidAmount: booking.advancePaid || 0,
-                        balanceDue: booking.remainingAmount || 0,
-                        paymentMode: 'Cash',
-                        taxExempt: false,
-                        idProofType: booking.idProofType,
-                        idProofNumber: booking.idProofNumber,
-                        vehicleNumber: booking.vehicleNumber,
-                        auditTrail: booking.auditTrail || [],
-                        transactions: booking.transactions || [],
-                        notes: booking.checkInRemarks || '',
-                        cancellationDetails: booking.cancellationDetails || {},
-                        noShowDetails: booking.noShowDetails || {},
-                        voidDetails: booking.voidDetails || {},
-                        createdAt: booking.createdAt || new Date().toISOString(),
-                        updatedAt: booking.updatedAt || new Date().toISOString()
-                    }));
-                    allReservations = [...allReservations, ...mappedBookings];
+                    bookingsData.data.forEach(booking => {
+                        if (!uniqueIds.has(booking._id)) {
+                            allReservations.push(mapBookingToReservation(booking));
+                            uniqueIds.add(booking._id);
+                        }
+                    });
                 }
             }
 
@@ -147,50 +179,53 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             if (reservationsResponse.ok) {
                 const reservationsData = await reservationsResponse.json();
                 if (reservationsData.success && reservationsData.data) {
-                    const mappedReservations = reservationsData.data.map(reservation => ({
-                        id: reservation._id,
-                        reservationType: reservation.reservationType || 'Confirm',
-                        bookingSource: reservation.bookingSource || 'Direct',
-                        businessSource: reservation.businessSource || 'Walk-In',
-                        referenceNumber: reservation.referenceId,
-                        arrivalFrom: reservation.arrivalFrom || '',
-                        purposeOfVisit: reservation.purposeOfVisit || '',
-                        purposeOfVisit: '',
-                        guestId: reservation._id,
-                        guestName: reservation.guestName,
-                        guestEmail: reservation.email,
-                        guestPhone: reservation.phone,
-                        checkInDate: new Date(reservation.checkInDate).toISOString().split('T')[0],
-                        checkInTime: '14:00',
-                        checkOutDate: new Date(reservation.checkOutDate).toISOString().split('T')[0],
-                        checkOutTime: '11:00',
-                        flexibleCheckout: false,
-                        roomNumber: reservation.roomNumber, // Assuming reservation object might have it, or it will be undefined which is fine
-                        roomType: reservation.roomType,
-                        rooms: [{
-                            id: 1,
-                            categoryId: 'deluxe-ac-double',
-                            roomNumber: '',
-                            mealPlan: 'CP',
-                            adultsCount: 2,
-                            childrenCount: 0,
-                            ratePerNight: Math.round(reservation.amount / reservation.nights),
-                            discount: 0
-                        }],
-                        nights: reservation.nights,
-                        status: reservation.status,
-                        roomCharges: reservation.amount,
-                        discount: 0,
-                        tax: 0,
-                        totalAmount: reservation.amount,
-                        paidAmount: reservation.paid,
-                        balanceDue: reservation.balance,
-                        paymentMode: 'Cash',
-                        taxExempt: false,
-                        createdAt: reservation.createdAt || new Date().toISOString(),
-                        updatedAt: reservation.updatedAt || new Date().toISOString()
-                    }));
-                    allReservations = [...allReservations, ...mappedReservations];
+                    reservationsData.data.forEach(reservation => {
+                        if (!uniqueIds.has(reservation._id)) {
+                            allReservations.push({
+                                id: reservation._id || `res-${Math.random()}`,
+                                reservationType: reservation.reservationType || 'Confirm',
+                                bookingSource: reservation.bookingSource || 'Direct',
+                                businessSource: reservation.businessSource || 'Walk-In',
+                                referenceNumber: reservation.referenceId,
+                                arrivalFrom: reservation.arrivalFrom || '',
+                                purposeOfVisit: reservation.purposeOfVisit || '',
+                                guestId: reservation._id,
+                                guestName: reservation.guestName,
+                                guestEmail: reservation.email,
+                                guestPhone: reservation.phone,
+                                checkInDate: new Date(reservation.checkInDate).toISOString().split('T')[0],
+                                checkInTime: '14:00',
+                                checkOutDate: new Date(reservation.checkOutDate).toISOString().split('T')[0],
+                                checkOutTime: '11:00',
+                                flexibleCheckout: false,
+                                roomNumber: reservation.roomNumber,
+                                roomType: reservation.roomType,
+                                rooms: [{
+                                    id: 1,
+                                    categoryId: 'deluxe-ac-double',
+                                    roomNumber: '',
+                                    mealPlan: 'CP',
+                                    adultsCount: 2,
+                                    childrenCount: 0,
+                                    ratePerNight: Math.round(reservation.amount / (reservation.nights || 1)),
+                                    discount: 0
+                                }],
+                                nights: reservation.nights || 1,
+                                status: reservation.status,
+                                roomCharges: reservation.amount,
+                                discount: 0,
+                                tax: 0,
+                                totalAmount: reservation.amount,
+                                paidAmount: reservation.paid || 0,
+                                balanceDue: reservation.balance || 0,
+                                paymentMode: 'Cash',
+                                taxExempt: false,
+                                createdAt: reservation.createdAt || new Date().toISOString(),
+                                updatedAt: reservation.updatedAt || new Date().toISOString()
+                            });
+                            uniqueIds.add(reservation._id);
+                        }
+                    });
                 }
             }
 
@@ -203,6 +238,96 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             setLoading(false);
         }
     };
+
+    const mapBookingToReservation = (booking) => {
+        return {
+            id: booking._id || `booking-${Math.random()}`,
+            reservationType: booking.reservationType || 'Confirm',
+            bookingSource: booking.bookingSource || 'Direct',
+            businessSource: booking.businessSource || 'Walk-In',
+            referenceNumber: booking.referenceId || booking.bookingId || booking._id,
+            guestId: booking._id,
+            guestName: booking.guestName,
+            guestEmail: booking.email || '',
+            guestPhone: booking.mobileNumber,
+            checkInDate: booking.checkInDate ? new Date(booking.checkInDate).toISOString().split('T')[0] : '',
+            checkInTime: booking.scheduledCheckInTime || '14:00',
+            checkOutDate: booking.checkOutDate ? new Date(booking.checkOutDate).toISOString().split('T')[0] : '',
+            checkOutTime: booking.scheduledCheckOutTime || '11:00',
+            flexibleCheckout: false,
+            roomNumber: booking.roomNumber,
+            roomType: booking.roomType,
+            rooms: [{
+                id: 1,
+                categoryId: booking.roomType?.toLowerCase().replace(/ /g, '-') || 'deluxe-ac-double',
+                roomNumber: booking.roomNumber || '',
+                mealPlan: 'CP',
+                adultsCount: booking.numberOfAdults || booking.numberOfGuests || 1,
+                childrenCount: booking.numberOfChildren || 0,
+                ratePerNight: booking.pricePerNight || 0,
+                discount: 0
+            }],
+            nights: booking.numberOfNights || 1,
+            status: booking.status === 'Upcoming' ? 'RESERVED' :
+                booking.status === 'Checked-in' || booking.status === 'IN_HOUSE' ? 'IN_HOUSE' :
+                    booking.status === 'Checked-out' || booking.status === 'CHECKED_OUT' ? 'CHECKED_OUT' : 'RESERVED',
+            roomCharges: booking.totalAmount || 0,
+            discount: 0,
+            tax: 0,
+            totalAmount: booking.totalAmount || 0,
+            paidAmount: booking.advancePaid || 0,
+            balanceDue: booking.remainingAmount || 0,
+            paymentMode: 'Cash',
+            taxExempt: false,
+            idProofType: booking.idProofType,
+            idProofNumber: booking.idProofNumber,
+            vehicleNumber: booking.vehicleNumber,
+            auditTrail: booking.auditTrail || [],
+            transactions: booking.transactions || [],
+            notes: booking.checkInRemarks || '',
+            cancellationDetails: booking.cancellationDetails || {},
+            noShowDetails: booking.noShowDetails || {},
+            voidDetails: booking.voidDetails || {},
+            createdAt: booking.createdAt || new Date().toISOString(),
+            updatedAt: booking.updatedAt || new Date().toISOString()
+        };
+    };
+
+    // Debounce Search Logic
+    useEffect(() => {
+        // Feature: Debounced Search
+        const delayDebounceFn = setTimeout(async () => {
+            if (searchQuery.trim().length > 0) {
+                setIsSearching(true);
+                try {
+                    const result = await searchBookings(searchQuery);
+                    if (result.success) {
+                        const mappedResults = result.data.map(mapBookingToReservation);
+                        setSearchResults(mappedResults);
+                    }
+                } catch (error) {
+                    console.error('Search error:', error);
+                } finally {
+                    setIsSearching(false);
+                }
+            } else {
+                setSearchResults([]);
+                setIsSearching(false);
+            }
+        }, 300);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery]);
+
+    // Determine which reservations to display (Original or Search Results)
+    const displayReservations = useMemo(() => {
+        if (searchQuery.trim().length > 0) {
+            return searchResults;
+        }
+        return filteredReservations;
+    }, [searchQuery, searchResults, filteredReservations]);
+
+
 
     // Room Facility Types
     const [facilityTypes, setFacilityTypes] = useState([]);
@@ -573,12 +698,18 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             roomNumber: targetReservation.rooms?.[0]?.roomNumber || '',
             roomType: targetReservation.rooms?.[0]?.categoryId?.replace(/-/g, ' ').toUpperCase() || '',
             checkInDate: targetReservation.checkInDate,
+            checkInTime: targetReservation.checkInTime || '14:00',
             checkOutDate: targetReservation.checkOutDate,
+            checkOutTime: targetReservation.checkOutTime || '11:00',
             numberOfNights: targetReservation.nights,
-            numberOfGuests: targetReservation.rooms?.[0]?.adultsCount || 1,
+            numberOfAdults: targetReservation.rooms?.[0]?.adultsCount || 1,
+            numberOfChildren: targetReservation.rooms?.[0]?.childrenCount || 0,
+            numberOfGuests: targetReservation.rooms?.[0]?.adultsCount || 1, // Fallback
+            childrenCount: targetReservation.rooms?.[0]?.childrenCount || 0, // Explicit for form
             pricePerNight: targetReservation.rooms?.[0]?.ratePerNight || 0,
             totalAmount: targetReservation.totalAmount || 0,
             advancePaid: targetReservation.paidAmount || 0,
+            remainingAmount: targetReservation.balanceDue || 0,
             status: targetReservation.status === 'RESERVED' ? 'Upcoming' :
                 targetReservation.status === 'IN_HOUSE' ? 'Checked-in' :
                     targetReservation.status === 'CHECKED_OUT' ? 'Checked-out' : 'Upcoming',
@@ -614,31 +745,25 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     };
 
     // Handle action success
-    const handleActionSuccess = async (updatedReservation) => {
-        // Optimistic UI update or full fetch
-        if (updatedReservation && updatedReservation._id) {
+    const handleActionSuccess = async (updatedBooking) => {
+        // Optimistic UI update
+        if (updatedBooking && updatedBooking._id) {
+            const mappedReservation = mapBookingToReservation(updatedBooking);
+
             setReservations(prev =>
-                prev.map(r =>
-                    (r.id === updatedReservation._id || r._id === updatedReservation._id)
-                        ? { ...r, ...updatedReservation, id: updatedReservation._id, status: updatedReservation.status === 'IN_HOUSE' ? 'IN_HOUSE' : updatedReservation.status }
-                        : r
-                )
+                prev.map(r => (r.id === mappedReservation.id || r._id === mappedReservation.id) ? mappedReservation : r)
             );
 
             // Also update selectedReservation if it matches
-            if (selectedReservation && (selectedReservation.id === updatedReservation._id || selectedReservation._id === updatedReservation._id)) {
-                setSelectedReservation(prev => ({
-                    ...prev,
-                    ...updatedReservation,
-                    id: updatedReservation._id,
-                    status: updatedReservation.status === 'IN_HOUSE' ? 'IN_HOUSE' : updatedReservation.status
-                }));
+            if (selectedReservation && (selectedReservation.id === mappedReservation.id)) {
+                setSelectedReservation(mappedReservation);
             }
         }
 
-        // Fetch fresh data anyway to be sure about computed fields
+        // Fetch fresh data from API to ensure sync
         await fetchReservationsFromAPI();
     };
+
 
     // Handle Generate Invoice
     const handleGenerateInvoice = useCallback(async (reservation) => {
@@ -773,7 +898,6 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             roomNumber: rooms[0].roomNumber || 'TBD',
             numberOfGuests: validGuests,
             checkInDate,
-            checkInDate,
             checkOutDate,
             numberOfNights: Number(nights) || 1,
             pricePerNight: Number(rooms[0].ratePerNight) || 0,
@@ -887,19 +1011,6 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         }
     };
 
-    // Filter reservations
-    const filteredReservations = useMemo(() => {
-        const today = new Date().toISOString().split('T')[0];
-        return reservations.filter(r => {
-            if (activeTab === 'all') return true;
-            if (activeTab === 'reserved') return r.status === 'RESERVED';
-            if (activeTab === 'in-house') return r.status === 'IN_HOUSE';
-            if (activeTab === 'checked-out') return r.status === 'CHECKED_OUT';
-            if (activeTab === 'arrival') return r.checkInDate === today && r.status === 'RESERVED';
-            if (activeTab === 'departure') return r.checkOutDate === today && r.status === 'IN_HOUSE';
-            return true;
-        });
-    }, [reservations, activeTab]);
 
     // Convert 24-hour to 12-hour format
     const convertTo12Hour = (time24) => {
@@ -967,8 +1078,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                         <select value={reservationType} onChange={(e) => setReservationType(e.target.value)}>
                                             <option value="">Select Reservation Type</option>
                                             {reservationTypesList.length > 0 ? (
-                                                reservationTypesList.map((type) => (
-                                                    <option key={type._id} value={type.name}>
+                                                reservationTypesList.map((type, idx) => (
+                                                    <option key={type._id || `restype-${idx}`} value={type.name}>
                                                         {type.name}
                                                     </option>
                                                 ))
@@ -986,8 +1097,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                         <select value={bookingSource} onChange={(e) => setBookingSource(e.target.value)}>
                                             <option value="">Select Booking Source</option>
                                             {bookingSources.length > 0 ? (
-                                                bookingSources.map((source) => (
-                                                    <option key={source._id} value={source.name}>
+                                                bookingSources.map((source, idx) => (
+                                                    <option key={source._id || `bsource-${idx}`} value={source.name}>
                                                         {source.name}
                                                     </option>
                                                 ))
@@ -1006,8 +1117,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                         <select value={businessSource} onChange={(e) => setBusinessSource(e.target.value)}>
                                             <option value="">Select Business Source</option>
                                             {businessSourcesList.length > 0 ? (
-                                                businessSourcesList.map((source) => (
-                                                    <option key={source._id} value={source.name}>
+                                                businessSourcesList.map((source, idx) => (
+                                                    <option key={source._id || `busource-${idx}`} value={source.name}>
                                                         {source.name}
                                                     </option>
                                                 ))
@@ -1106,6 +1217,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                             room={room}
                                             index={index}
                                             roomCategories={roomCategories}
+                                            readOnly={fromRoomsPage && index === 0}
                                             onUpdate={(idx, updatedRoom) => {
                                                 const newRooms = [...rooms];
                                                 newRooms[idx] = updatedRoom;
@@ -1113,6 +1225,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                             }}
                                             onRemove={(idx) => setRooms(rooms.filter((_, i) => i !== idx))}
                                             mealTypes={mealTypes}
+                                            checkInDate={checkInDate}
                                         />
                                     ))}
                                 </div>
@@ -1156,22 +1269,88 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                 </button>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Billing Summary Panel */}
-                    <BillingSummary
-                        roomCharges={billingData.roomCharges}
-                        discount={billingData.totalDiscount}
-                        tax={billingData.taxAmount}
-                        totalAmount={billingData.totalAmount}
-                        paidAmount={paidAmount}
-                        balanceDue={billingData.balanceDue}
-                        paymentMode={paymentMode}
-                        onPaymentModeChange={setPaymentMode}
-                        onPaidAmountChange={setPaidAmount}
-                        onTaxExemptChange={setTaxExempt}
-                        taxExempt={taxExempt}
-                    />
+                        {/* Billing Summary Panel */}
+                        <BillingSummary
+                            roomCharges={billingData.roomCharges}
+                            discount={billingData.totalDiscount}
+                            tax={billingData.taxAmount}
+                            totalAmount={billingData.totalAmount}
+                            paidAmount={paidAmount}
+                            balanceDue={billingData.balanceDue}
+                            paymentMode={paymentMode}
+                            onPaymentModeChange={setPaymentMode}
+                            onPaidAmountChange={setPaidAmount}
+                            onTaxExemptChange={setTaxExempt}
+                            taxExempt={taxExempt}
+                        />
+
+                        {/* Guest Booking History Section */}
+                        <div style={{
+                            marginTop: '1.5rem',
+                            padding: '1.5rem',
+                            backgroundColor: '#fff',
+                            borderRadius: '8px',
+                            border: '1px solid #e5e7eb'
+                        }}>
+                            <button
+                                type="button"
+                                onClick={() => setShowBookingHistory(!showBookingHistory)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#dc3545',
+                                    fontSize: '0.95rem',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    padding: '0',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    width: '100%',
+                                    marginBottom: showBookingHistory ? '1rem' : '0'
+                                }}
+                            >
+                                <span>Previous Booking History {selectedGuest && `(${selectedGuest.fullName || selectedGuest.name})`}</span>
+                                <span>{showBookingHistory ? '▼' : '▶'}</span>
+                            </button>
+
+                            {showBookingHistory && (
+                                <div style={{ overflowX: 'auto', marginTop: '0.5rem' }}>
+                                    <table style={{
+                                        width: '100%',
+                                        borderCollapse: 'collapse',
+                                        fontSize: '0.8rem'
+                                    }}>
+                                        <thead style={{ background: '#f9fafb' }}>
+                                            <tr>
+                                                <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>Res ID</th>
+                                                <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>Room</th>
+                                                <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>Dates</th>
+                                                <th style={{ padding: '0.5rem', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>Amt</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {[
+                                                { id: 'RES-001', roomCategory: 'Deluxe Double', checkIn: '2025-10-15', checkOut: '2025-10-18', amount: '₹9,500' },
+                                                { id: 'RES-002', roomCategory: 'Club AC Single', checkIn: '2024-08-20', checkOut: '2024-08-23', amount: '₹7,200' },
+                                                { id: 'RES-003', roomCategory: 'Suite Double', checkIn: '2024-05-10', checkOut: '2024-05-13', amount: '₹15,000' },
+                                                { id: 'RES-004', roomCategory: 'Club AC Double', checkIn: '2024-03-05', checkOut: '2024-03-08', amount: '₹12,000' },
+                                                { id: 'RES-005', roomCategory: 'Deluxe AC Single', checkIn: '2023-12-20', checkOut: '2023-12-23', amount: '₹6,500' }
+                                            ].map(booking => (
+                                                <tr key={booking.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                                    <td style={{ padding: '0.5rem', color: '#6b7280' }}>{booking.id}</td>
+                                                    <td style={{ padding: '0.5rem', color: '#6b7280' }}>{booking.roomCategory}</td>
+                                                    <td style={{ padding: '0.5rem', color: '#6b7280' }}>{booking.checkIn}<br />{booking.checkOut}</td>
+                                                    <td style={{ padding: '0.5rem', color: '#dc3545', fontWeight: '600' }}>{booking.amount}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Invoice Modal */}
@@ -1203,6 +1382,25 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                         🏨 Reservations & Stay Management
                     </h2>
                     <p>Manage guest reservations, check-ins, check-outs, and billing</p>
+
+                    {/* Powerful Real-time Search Bar - Perfectly placed below subtitle */}
+                    <div className="search-container">
+                        <div className="search-wrapper">
+                            <span className="search-icon" style={{ position: 'absolute', left: '15px', color: '#9ca3af', fontSize: '1.1rem' }}>🔍</span>
+                            <input
+                                type="text"
+                                placeholder="Search by Guest Name, Mobile Number, or Room Number"
+                                className="search-ref-input"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                            {isSearching && (
+                                <div className="search-spinner" style={{ position: 'absolute', right: '15px' }}>
+                                    <div className="spinner-mini"></div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
                 <div className="header-actions">
                     <button className="btn btn-primary" onClick={() => setView('form')}>
@@ -1229,7 +1427,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                         onClick={() => setActiveTab(tab)}
                     >
                         {tab === 'all' ? 'All Reservations' : tab.replace('-', ' ').toUpperCase()}
-                        <span style={{ marginLeft: '0.5rem' }}>({filteredReservations.length})</span>
+                        <span style={{ marginLeft: '0.5rem' }}>({counts[tab] || 0})</span>
                     </button>
                 ))}
             </div>
@@ -1237,28 +1435,64 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             {/* Reservation Cards and Details Panel */}
             <div className="reservation-content-layout">
                 <div className={`reservation-cards-grid ${selectedReservation ? 'with-details' : ''}`}>
-                    {filteredReservations.length > 0 ? (
-                        filteredReservations.map(reservation => (
-                            <ReservationCard
-                                key={reservation.id}
-                                reservation={reservation}
-                                onUpdateStatus={handleUpdateReservationStatus}
-                                onEdit={handleEditReservation}
-                                onDelete={handleDeleteReservation}
-                                onGenerateInvoice={handleGenerateInvoice}
-
-                                onSelect={(res) => {
-                                    setSelectedReservation(res);
-                                    // setShowEditModal(true); // Disabled - modal won't open on card click
-                                }}
-                                isSelected={selectedReservation?.id === reservation.id}
-                            />
-                        ))
-                    ) : (
-                        <div className="no-data-message">
-                            <p>No reservations found for this status</p>
-                        </div>
-                    )}
+                    <AnimatePresence mode="popLayout">
+                        {displayReservations.length > 0 ? (
+                            displayReservations.map(reservation => (
+                                <motion.div
+                                    key={reservation.id}
+                                    layout
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{
+                                        opacity: 1,
+                                        y: 0,
+                                        scale: searchQuery ? 1.02 : 1,
+                                        boxShadow: searchQuery ? '0 10px 25px -5px rgba(220, 53, 69, 0.1), 0 8px 10px -6px rgba(220, 53, 69, 0.1)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                    }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    <ReservationCard
+                                        reservation={reservation}
+                                        onUpdateStatus={handleUpdateReservationStatus}
+                                        onEdit={handleEditReservation}
+                                        onDelete={handleDeleteReservation}
+                                        onGenerateInvoice={handleGenerateInvoice}
+                                        onSelect={(res) => {
+                                            setSelectedReservation(res);
+                                        }}
+                                        isSelected={selectedReservation?.id === reservation.id}
+                                    />
+                                </motion.div>
+                            ))
+                        ) : (
+                            <div className="no-data-message" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '5rem 2rem', background: '#f8fafc', borderRadius: '16px', border: '2px dashed #e2e8f0', margin: '1rem' }}>
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    <div style={{ fontSize: '5rem', marginBottom: '1.5rem', opacity: 0.3, filter: 'grayscale(0.5)' }}>
+                                        🕵️‍♂️
+                                    </div>
+                                    <h3 style={{ fontSize: '1.5rem', color: '#1e293b', marginBottom: '0.5rem', fontWeight: '700' }}>
+                                        No reservations found
+                                    </h3>
+                                    <p style={{ color: '#64748b', fontSize: '1rem', maxWidth: '400px', margin: '0 auto 2rem' }}>
+                                        {searchQuery ? `We couldn't find any matches for "${searchQuery}". Please check the spelling or try searching by room number or mobile number.` : 'There are no reservations matching this status at the moment.'}
+                                    </p>
+                                    {searchQuery && (
+                                        <button
+                                            className="btn btn-primary"
+                                            style={{ padding: '0.8rem 2rem', borderRadius: '10px', backgroundColor: '#ef4444', borderColor: '#ef4444' }}
+                                            onClick={() => setSearchQuery('')}
+                                        >
+                                            Clear Search & View All
+                                        </button>
+                                    )}
+                                </motion.div>
+                            </div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 {/* Details Panel */}
@@ -1294,6 +1528,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                         <MoreOptionsMenu
                                             buttonLabel="More Options"
                                             buttonClassName="tab-option"
+                                            onAction={(action) => handleMoreOptionsAction(action)}
                                         />
                                     </div>
 

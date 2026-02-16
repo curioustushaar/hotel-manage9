@@ -22,7 +22,13 @@ const RoomSetup = () => {
         bedType: '',
         capacity: 2,
         basePrice: '',
-        status: 'Available'
+        status: 'Available',
+        // PHASE 2 UPGRADE: Enterprise-level fields
+        roomViewType: 'City View',
+        smokingPolicy: 'Non-Smoking',
+        roomSize: 0,
+        isSmartRoom: false,
+        dynamicRateEnabled: false
     });
 
     // Filters State
@@ -172,7 +178,13 @@ const RoomSetup = () => {
                 bedType: room.bedType,
                 capacity: room.capacity.adults, // extract number
                 basePrice: room.price || room.basePrice.replace('₹ ', '').replace(',', ''),
-                status: room.status
+                status: room.status,
+                // PHASE 2 UPGRADE: Populate enterprise fields (with fallback for backward compatibility)
+                roomViewType: room.roomViewType || 'City View',
+                smokingPolicy: room.smokingPolicy || 'Non-Smoking',
+                roomSize: room.roomSize || 0,
+                isSmartRoom: room.isSmartRoom || false,
+                dynamicRateEnabled: room.dynamicRateEnabled || false
             });
         } else {
             // Find first available floor
@@ -192,7 +204,13 @@ const RoomSetup = () => {
                 bedType: bedTypes.length > 0 ? bedTypes[0].name : '',
                 capacity: 2,
                 basePrice: '',
-                status: 'Available'
+                status: 'Available',
+                // PHASE 2 UPGRADE: Default values for enterprise fields
+                roomViewType: 'City View',
+                smokingPolicy: 'Non-Smoking',
+                roomSize: 0,
+                isSmartRoom: false,
+                dynamicRateEnabled: false
             });
         }
         setIsModalOpen(true);
@@ -207,7 +225,13 @@ const RoomSetup = () => {
             roomType: formData.roomType,
             price: Number(formData.basePrice),
             capacity: Number(formData.capacity),
-            status: formData.status
+            status: formData.status,
+            // PHASE 2 UPGRADE: Include enterprise fields in payload
+            roomViewType: formData.roomViewType,
+            smokingPolicy: formData.smokingPolicy,
+            roomSize: Number(formData.roomSize),
+            isSmartRoom: formData.isSmartRoom,
+            dynamicRateEnabled: formData.dynamicRateEnabled
         };
 
         try {
@@ -475,6 +499,104 @@ const RoomSetup = () => {
                                         className="form-input"
                                     />
                                 </div>
+
+                                {/* PHASE 2 UPGRADE: Enterprise-level fields */}
+                                <div className="enterprise-fields-section">
+                                    <div className="section-divider">
+                                        <span className="section-title">Room Details</span>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label>Room View Type</label>
+                                            <select
+                                                name="roomViewType"
+                                                value={formData.roomViewType}
+                                                onChange={handleInputChange}
+                                                className="form-input"
+                                            >
+                                                <option value="Sea View">Sea View</option>
+                                                <option value="City View">City View</option>
+                                                <option value="Garden View">Garden View</option>
+                                                <option value="Pool View">Pool View</option>
+                                                <option value="Mountain View">Mountain View</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Smoking Policy</label>
+                                            <select
+                                                name="smokingPolicy"
+                                                value={formData.smokingPolicy}
+                                                onChange={handleInputChange}
+                                                className="form-input"
+                                            >
+                                                <option value="Non-Smoking">Non-Smoking</option>
+                                                <option value="Smoking">Smoking</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label>Room Size</label>
+                                            <div className="input-with-suffix">
+                                                <input
+                                                    type="number"
+                                                    name="roomSize"
+                                                    value={formData.roomSize}
+                                                    onChange={handleInputChange}
+                                                    min="0"
+                                                    className="form-input"
+                                                />
+                                                <span className="input-suffix">sq ft</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Smart Features</label>
+                                            <div className="toggle-row">
+                                                <div className="toggle-item">
+                                                    <label className="toggle-switch">
+                                                        <input
+                                                            type="checkbox"
+                                                            name="isSmartRoom"
+                                                            checked={formData.isSmartRoom}
+                                                            onChange={(e) => setFormData({ ...formData, isSmartRoom: e.target.checked })}
+                                                        />
+                                                        <span className="toggle-slider"></span>
+                                                    </label>
+                                                    <span className="toggle-label">Smart Room</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label>Pricing Options</label>
+                                            <div className="toggle-item">
+                                                <label className="toggle-switch">
+                                                    <input
+                                                        type="checkbox"
+                                                        name="dynamicRateEnabled"
+                                                        checked={formData.dynamicRateEnabled}
+                                                        onChange={(e) => setFormData({ ...formData, dynamicRateEnabled: e.target.checked })}
+                                                    />
+                                                    <span className="toggle-slider"></span>
+                                                </label>
+                                                <span className="toggle-label">Dynamic Rate Enabled</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+
+
+
+
+
                                 <div className="form-group">
                                     <label>Status</label>
                                     <select name="status" value={formData.status} onChange={handleInputChange} className="form-input">
@@ -490,10 +612,10 @@ const RoomSetup = () => {
                                 <button type="submit" className="btn btn-primary">{modalMode === 'add' ? 'Add Room' : 'Update Room'}</button>
                             </div>
                         </form>
-                    </div>
-                </div>
+                    </div >
+                </div >
             )}
-        </div>
+        </div >
     );
 };
 

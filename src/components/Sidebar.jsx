@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { hasModuleAccess, MODULES } from '../config/rbac';
 import './Sidebar.css';
 
 // Simple Icon Components
@@ -21,10 +23,17 @@ const Icons = {
 };
 
 const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) => {
+    const { user } = useAuth();
     const [openConfigDropdown, setOpenConfigDropdown] = useState(false);
     const [openReservationDropdown, setOpenReservationDropdown] = useState(false);
     const [openPropertyConfigDropdown, setOpenPropertyConfigDropdown] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+
+    // Helper function to check if user has access to a module
+    const canAccessModule = (moduleId) => {
+        if (!user) return false;
+        return hasModuleAccess(user.role, moduleId);
+    };
 
     const toggleDropdown = (id) => {
         if (id === 'proper-configuration') {
@@ -45,10 +54,10 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
     };
 
     const menuItems = [
-        { id: 'dashboard', iconVal: <Icons.Dashboard />, label: 'Dashboard' },
-        { id: 'rooms', iconVal: <Icons.Bed />, label: 'Rooms' },
+        { id: MODULES.DASHBOARD, iconVal: <Icons.Dashboard />, label: 'Dashboard' },
+        { id: MODULES.ROOMS, iconVal: <Icons.Bed />, label: 'Rooms' },
         {
-            id: 'reservations',
+            id: MODULES.RESERVATIONS,
             iconVal: <Icons.Reservation />,
             label: 'Reservations',
             hasDropdown: true,
@@ -60,11 +69,11 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
                 { id: 'food-order', label: 'Food Order', iconVal: <Icons.Dot /> }
             ]
         },
-        { id: 'cashier-section', iconVal: <Icons.Cashier />, label: 'Cashier Section' },
-        { id: 'guest-meal-service', iconVal: <Icons.Meal />, label: 'Table View' },
-        { id: 'food-menu', iconVal: <Icons.Menu />, label: 'Food Menu' },
+        { id: MODULES.CASHIER_SECTION, iconVal: <Icons.Cashier />, label: 'Cashier Section' },
+        { id: MODULES.GUEST_MEAL_SERVICE, iconVal: <Icons.Meal />, label: 'Table View' },
+        { id: MODULES.FOOD_MENU, iconVal: <Icons.Menu />, label: 'Food Menu' },
         {
-            id: 'proper-configuration',
+            id: MODULES.PROPERTY_SETUP,
             iconVal: <Icons.Config />,
             label: 'Property Setup',
             hasDropdown: true,
@@ -76,7 +85,7 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
             ]
         },
         {
-            id: 'property-configuration',
+            id: MODULES.PROPERTY_CONFIG,
             iconVal: <Icons.Config />,
             label: 'Property Configuration',
             hasDropdown: true,
@@ -100,19 +109,21 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
                 { id: 'company', label: 'Company', iconVal: <Icons.Dot /> }
             ]
         },
-        { id: 'customers', iconVal: <Icons.Users />, label: 'Customer List' },
-        { id: 'settings', iconVal: <Icons.Settings />, label: 'Add Staff' },
-        { id: 'cashier-report', iconVal: <Icons.Report />, label: 'Cashier Logs' },
-        { id: 'food-payment-report', iconVal: <Icons.Report />, label: 'Payment Logs' },
+        { id: MODULES.CUSTOMERS, iconVal: <Icons.Users />, label: 'Customer List' },
+        { id: MODULES.STAFF_MANAGEMENT, iconVal: <Icons.Settings />, label: 'Add Staff' },
+        { id: MODULES.CASHIER_LOGS, iconVal: <Icons.Report />, label: 'Cashier Logs' },
+        { id: MODULES.PAYMENT_LOGS, iconVal: <Icons.Report />, label: 'Payment Logs' },
     ];
 
-    // Filter items based on search query
+    // Filter items based on role access FIRST, then search query
+    const roleFilteredItems = menuItems.filter(item => canAccessModule(item.id));
+
     const filteredItems = searchQuery
-        ? menuItems.filter(item =>
+        ? roleFilteredItems.filter(item =>
             item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (item.hasDropdown && item.dropdownItems.some(sub => sub.label.toLowerCase().includes(searchQuery.toLowerCase())))
         )
-        : menuItems;
+        : roleFilteredItems;
 
     return (
         <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>

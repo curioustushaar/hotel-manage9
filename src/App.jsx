@@ -1,4 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
+import ProtectedRoute from './components/ProtectedRoute'
+import { MODULES } from './config/rbac'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import TrustedBy from './components/TrustedBy'
@@ -37,29 +40,95 @@ function HomePage() {
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/rooms" element={<AdminDashboard />} />
-        <Route path="/admin/reservations" element={<AdminDashboard />} />
-        <Route path="/admin/guest-meal-service" element={<AdminDashboard />} />
-        <Route path="/admin/food-menu" element={<AdminDashboard />} />
-        <Route path="/admin/customers" element={<AdminDashboard />} />
-        <Route path="/admin/settings" element={<AdminDashboard />} />
-        <Route path="/admin/stay-overview" element={<AdminDashboard />} />
-        <Route path="/admin/reservation-stay-management" element={<AdminDashboard />} />
-        <Route path="/admin/view-reservation" element={<AdminDashboard />} />
-        <Route path="/admin/room-service" element={<AdminDashboard />} />
-        <Route path="/admin/view-order" element={<AdminDashboard />} />
-        <Route path="/admin/my-profile" element={<AdminDashboard />} />
-        <Route path="/admin/cashier-report" element={<AdminDashboard />} />
-        <Route path="/admin/food-payment-report" element={<AdminDashboard />} />
-        <Route path="/scan-qr/:roomId" element={<QRScanPage />} />
-        <Route path="/food-order" element={<FoodOrderPage />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<Login />} />
+
+          {/* Protected Admin Routes */}
+          <Route path="/admin/dashboard" element={
+            <ProtectedRoute module={MODULES.DASHBOARD}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/rooms" element={
+            <ProtectedRoute module={MODULES.ROOMS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/reservations" element={
+            <ProtectedRoute module={MODULES.RESERVATIONS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/guest-meal-service" element={
+            <ProtectedRoute module={MODULES.GUEST_MEAL_SERVICE}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/food-menu" element={
+            <ProtectedRoute module={MODULES.FOOD_MENU}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/customers" element={
+            <ProtectedRoute module={MODULES.CUSTOMERS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/settings" element={
+            <ProtectedRoute module={MODULES.STAFF_MANAGEMENT}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/stay-overview" element={
+            <ProtectedRoute module={MODULES.RESERVATIONS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/reservation-stay-management" element={
+            <ProtectedRoute module={MODULES.RESERVATIONS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/view-reservation" element={
+            <ProtectedRoute module={MODULES.RESERVATIONS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/room-service" element={
+            <ProtectedRoute module={MODULES.RESERVATIONS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/view-order" element={
+            <ProtectedRoute module={MODULES.GUEST_MEAL_SERVICE}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/my-profile" element={
+            <ProtectedRoute module={MODULES.PROFILE}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/cashier-report" element={
+            <ProtectedRoute module={MODULES.CASHIER_LOGS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/food-payment-report" element={
+            <ProtectedRoute module={MODULES.PAYMENT_LOGS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+
+          {/* Public Routes */}
+          <Route path="/scan-qr/:roomId" element={<QRScanPage />} />
+          <Route path="/food-order" element={<FoodOrderPage />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   )
 }
 

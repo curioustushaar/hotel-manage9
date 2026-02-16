@@ -613,7 +613,7 @@ User:        ${item.user}
                                 </thead>
                                 <tbody>
                                     {currentFolioTransactions.map((transaction, index) => (
-                                        <tr key={transaction._id || index}>
+                                        <tr key={transaction._id || `trans-${index}-${transaction.amount}`}>
                                             <td>
                                                 <input type="checkbox" />
                                             </td>

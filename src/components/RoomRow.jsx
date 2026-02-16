@@ -1,9 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import API_URL from '../config/api';
 
-const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = [] }) => {
+const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = [], readOnly = false, checkInDate = new Date().toISOString().split('T')[0] }) => {
     const handleChange = (field, value) => {
         onUpdate(index, { ...room, [field]: value });
     };
+
+    // Auto-fetch dynamic price when category changes
+    useEffect(() => {
+        const fetchPrice = async () => {
+            if (room.categoryId) {
+                try {
+                    const res = await fetch(`${API_URL}/api/pricing/calculate/${room.categoryId}?date=${checkInDate}`);
+                    const data = await res.json();
+                    if (data.success && data.price) {
+                        handleChange('ratePerNight', data.price);
+                    }
+                } catch (err) {
+                    console.error('Dynamic pricing fetch error:', err);
+                }
+            }
+        };
+        fetchPrice();
+    }, [room.categoryId, checkInDate]);
 
     const category = roomCategories[room.categoryId];
     const baseRate = category?.baseRate || 0;
@@ -28,6 +47,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                     <select
                         value={room.categoryId}
                         onChange={(e) => handleChange('categoryId', e.target.value)}
+                        disabled={readOnly}
                     >
                         <option value="">Select Room Category</option>
                         {Object.entries(roomCategories).map(([id, cat]) => (
@@ -43,6 +63,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                         placeholder="e.g., 101, A1"
                         value={room.roomNumber || ''}
                         onChange={(e) => handleChange('roomNumber', e.target.value)}
+                        readOnly={readOnly}
                     />
                 </div>
 
@@ -97,6 +118,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                         min="0"
                         value={room.ratePerNight}
                         onChange={(e) => handleChange('ratePerNight', parseFloat(e.target.value) || 0)}
+                        readOnly={readOnly}
                     />
                 </div>
 

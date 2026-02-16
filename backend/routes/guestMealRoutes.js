@@ -46,11 +46,11 @@ router.get('/orders/pending', guestMealController.getPendingOrders);
 // Create new order
 router.post('/orders/create', guestMealController.createOrder);
 
-// Get order by ID
-router.get('/orders/:orderId', guestMealController.getOrderById);
-
 // Get order by table ID
 router.get('/orders/table/:tableId', guestMealController.getOrderByTableId);
+
+// Get order by ID
+router.get('/orders/:orderId', guestMealController.getOrderById);
 
 // Update order items
 router.put('/orders/:orderId/items', guestMealController.updateOrderItems);

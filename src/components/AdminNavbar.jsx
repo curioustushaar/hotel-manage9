@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import RoleBadge from './RoleBadge';
 import './AdminNavbar.css';
 
 const AdminNavbar = ({
@@ -9,6 +11,7 @@ const AdminNavbar = ({
     title = "BIREENA ATITHI"
 }) => {
     const navigate = useNavigate();
+    const { user } = useAuth(); // Get current user
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
     // Hardcoded user initials as per Image 2 (HY)
@@ -93,7 +96,10 @@ const AdminNavbar = ({
                     </svg>
                 </button>
 
-                {/* 5. Avatar HY with Caret */}
+                {/* Role Badge */}
+                <RoleBadge />
+
+                {/* Avatar with Profile Dropdown */}
                 <div className="profile-dropdown-wrapper">
                     <div
                         className="profile-trigger"
