@@ -184,6 +184,38 @@
     background: var(--pos-red-light);
 }
 
+.pos-food-card.out-of-stock {
+    background: #f9fafb !important;
+    border: 1px solid #e5e7eb !important;
+    cursor: not-allowed !important;
+    opacity: 0.7;
+    filter: grayscale(0.8);
+    transition: none;
+    pointer-events: none;
+}
+
+.pos-food-card.out-of-stock:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: #e5e7eb !important;
+}
+
+.out-of-stock-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #4b5563;
+    color: white;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
 .pos-card-code {
     font-size: 10px;
     color: var(--pos-red);

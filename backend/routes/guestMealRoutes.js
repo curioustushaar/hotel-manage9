@@ -84,4 +84,7 @@ router.get('/analytics/dashboard', guestMealController.getDashboardStats);
 // Get revenue report
 router.get('/analytics/revenue', guestMealController.getRevenueReport);
 
+// Get outlet status (Live load/Table status)
+router.get('/analytics/outlet-status', guestMealController.getOutletStatus);
+
 module.exports = router;

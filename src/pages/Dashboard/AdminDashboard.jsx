@@ -147,7 +147,8 @@ const AdminDashboard = () => {
                 setPosGuestDetails({
                     guestName: location.state.customerName,
                     phoneNumber: location.state.customerPhone,
-                    roomNumber: 'Take Away' // Distinct from POS generic
+                    roomNumber: 'Take Away', // Distinct from POS generic
+                    mode: location.state.orderMode // Pass mode if available
                 });
             } else if (location.state.room) {
                 // From GuestMealService (Dining Dashboard)
@@ -790,7 +791,12 @@ const AdminDashboard = () => {
                 activeMenu === 'food-order-pos' && (
                     <div style={{ position: 'relative', height: 'calc(100vh - 64px)', width: '100%' }}>
                         <FoodOrderPage
-                            room={posGuestDetails || { roomNumber: 'POS', guestName: 'Walk-in / Direct' }}
+                            room={posGuestDetails || (location.state?.orderMode === 'takeaway' ? {
+                                roomNumber: 'Take Away',
+                                guestName: location.state?.customerName || 'Walk-in',
+                                phoneNumber: location.state?.customerPhone,
+                                mode: 'takeaway'
+                            } : { roomNumber: 'POS', guestName: 'Walk-in / Direct' })}
                             onClose={() => {
                                 setActiveMenu('reservations');
                                 setReservationView('roomservice');

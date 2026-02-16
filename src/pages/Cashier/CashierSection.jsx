@@ -62,13 +62,13 @@ const CashierSection = () => {
             if (data.success) {
                 const mappedOrders = data.data.map(order => ({
                     id: order._id,
-                    type: order.orderType === 'Table Order' ? 'Table' :
-                        order.orderType === 'Room Service' ? 'Room' :
+                    type: (order.orderType === 'Table Order' || order.orderType === 'Direct Payment') ? 'Table' :
+                        (order.orderType === 'Room Service' || order.orderType === 'Post to Room' || order.orderType === 'Room Order') ? 'Room' :
                             order.orderType === 'Take Away' ? 'Take Away' : 'Table',
-                    name: order.orderType === 'Table Order' ? `Table ${order.tableNumber}` :
-                        order.orderType === 'Room Service' ? `Room ${order.roomNumber}` :
+                    name: (order.orderType === 'Table Order' || order.orderType === 'Direct Payment') ? `Table ${order.tableNumber}` :
+                        (order.orderType === 'Room Service' || order.orderType === 'Post to Room' || order.orderType === 'Room Order') ? `Room ${order.roomNumber}` :
                             order.orderType === 'Take Away' ? `Take Away` : `Table ${order.tableNumber}`,
-                    guest: order.guestName || 'Guest',
+                    guest: `${order.guestName || 'Guest'}${order.guestPhone ? ` - ${order.guestPhone}` : ''}`,
                     amount: order.finalAmount || 0,
                     status: 'Pending',
                     time: order.createdAt ? new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now',
@@ -166,7 +166,8 @@ const CashierSection = () => {
             state: {
                 activeMenu: 'food-order-pos', // Trigger switching to food order view
                 customerName: newOrderDetails.name,
-                customerPhone: newOrderDetails.phone
+                customerPhone: newOrderDetails.phone,
+                orderMode: 'takeaway'
             }
         });
     };
@@ -177,7 +178,7 @@ const CashierSection = () => {
         : orders.filter(order => {
             if (activeTab === 'Dine In') return order.type === 'Table';
             if (activeTab === 'Room') return order.type === 'Room';
-            if (activeTab === 'Take Away') return order.type === 'Counter';
+            if (activeTab === 'Take Away') return order.type === 'Take Away';
             if (activeTab === 'Delivery') return order.type === 'Delivery';
             if (activeTab === 'Online Order') return order.type === 'Online';
             return true;

@@ -1943,9 +1943,10 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
             }}
         >
             {/* Blinking Status Dot */}
-            {table.orderStatus === 'Pending' && <div className="blink-dot blink-yellow-real" title="Order Pending"></div>}
-            {(table.orderStatus === 'Preparing' || table.orderStatus === 'Ready') && <div className="blink-dot blink-red-real" title="Preparing"></div>}
-            {table.orderStatus === 'Served' && <div className="blink-dot blink-green-real" title="Ready / Served"></div>}
+            {table.status !== 'Available' && table.status !== 'Reserved' && table.orderStatus === 'Pending' && <div className="blink-dot blink-yellow-real" title="Order Pending"></div>}
+            {table.status !== 'Available' && table.status !== 'Reserved' && (table.orderStatus === 'Preparing' || table.orderStatus === 'Ready') && <div className="blink-dot blink-red-real" title="Preparing"></div>}
+            {table.status !== 'Available' && table.status !== 'Reserved' && table.orderStatus === 'Served' && <div className="blink-dot blink-green-real" title="Ready / Served"></div>}
+            {/* 'Pending Payment' - NO blink (already sent to cashier) */}
 
             <div className="table-topbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

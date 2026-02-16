@@ -131,6 +131,9 @@ app.use('/api/maintenance-blocks', maintenanceBlockRoutes);
 const guestMealRoutes = require('./routes/guestMealRoutes');
 app.use('/api/guest-meal', guestMealRoutes);
 
+const tableRoutes = require('./routes/tableRoutes');
+app.use('/api/tables', tableRoutes);
+
 
 
 // Root route

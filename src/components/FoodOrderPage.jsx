@@ -102,7 +102,7 @@ const FoodOrderPage = ({ onClose }) => {
             name: item.itemName,
             category: item.category,
             price: item.price,
-            quantityAvailable: 10,
+            quantityAvailable: item.quantity !== undefined ? item.quantity : 0,
             description: item.description
         }));
 
@@ -135,15 +135,25 @@ const FoodOrderPage = ({ onClose }) => {
     const [printModal, setPrintModal] = useState(null); // 'BILL' or 'KOT' shows Modal
 
     // Order Type State ( Default: Dine In )
-    const [activeOrderType, setActiveOrderType] = useState('dinein');
+    const [activeOrderType, setActiveOrderType] = useState(() => {
+        if (location.state?.orderMode === 'takeaway') return 'takeaway';
+        if (room?.mode === 'takeaway' || room?.roomNumber === 'Take Away') return 'takeaway';
+        if (source === 'room-service') return 'roomservice';
+        if (room?.id) return 'dinein';
+        return 'dinein';
+    });
 
     useEffect(() => {
-        if (room?.id) {
+        if (location.state?.orderMode === 'takeaway') {
+            setActiveOrderType('takeaway');
+        } else if (room?.mode === 'takeaway' || room?.roomNumber === 'Take Away') {
+            setActiveOrderType('takeaway');
+        } else if (room?.id) {
             setActiveOrderType('dinein');
         } else if (source === 'room-service') {
             setActiveOrderType('roomservice');
         }
-    }, [room, source]);
+    }, [room, source, location.state]);
 
     useEffect(() => {
         if (printMode) {
@@ -230,22 +240,28 @@ const FoodOrderPage = ({ onClose }) => {
     // Handlers
     const saveOrderToBackend = async () => {
         try {
-            if (!room) return false;
+            // Robust check: allow missing room if order type is takeaway
+            const effectiveRoom = room || (activeOrderType === 'takeaway' ? { roomNumber: 'Take Away', guestName: 'Walk-in' } : null);
 
-            const tId = room.id || room._id;
-            const tNum = parseInt(room.roomNumber.replace(/\D/g, ''), 10) || 0;
+            if (!effectiveRoom) return false;
 
-            if (!tId && !orderId) {
+            const tId = effectiveRoom.id || effectiveRoom._id;
+            const tNum = parseInt((effectiveRoom.roomNumber ? String(effectiveRoom.roomNumber) : '0').replace(/\D/g, ''), 10) || 0;
+            const finalGuestName = effectiveRoom.guestName || location.state?.customerName || 'Walk-in';
+
+            if (!tId && !orderId && activeOrderType !== 'takeaway' && activeOrderType !== 'roomservice') {
                 console.error('Missing table ID and order ID');
                 return false;
             }
 
             const orderData = {
-                tableId: tId,
-                tableNumber: tNum,
-                guestName: room.guestName || 'Walk-in',
-                roomNumber: room.roomNumber,
-                orderType: activeOrderType === 'roomservice' ? 'Post to Room' : 'Direct Payment',
+                tableId: (activeOrderType === 'takeaway' || activeOrderType === 'roomservice') ? null : tId,
+                tableNumber: activeOrderType === 'takeaway' ? 0 : tNum,
+                guestName: finalGuestName,
+                guestPhone: effectiveRoom.phoneNumber || location.state?.customerPhone || null,
+                roomNumber: effectiveRoom.roomNumber || 'Take Away',
+                orderType: activeOrderType === 'roomservice' ? 'Post to Room' :
+                    activeOrderType === 'takeaway' ? 'Take Away' : 'Direct Payment',
                 taxRate: isTaxApplied ? taxRate : 0,
                 items: cart.map(item => ({
                     ...item,
@@ -287,16 +303,22 @@ const FoodOrderPage = ({ onClose }) => {
     };
 
     const handleSaveKOT = async () => {
-        if (!room?.id && !orderId) {
+        // Validation for Dine In - Require Table
+        if (activeOrderType !== 'takeaway' && activeOrderType !== 'roomservice' && !room?.id && !orderId) {
             addToast('Error: No table selected');
             return;
         }
 
         const success = await saveOrderToBackend();
         if (success) {
-            addToast('KOT saved successfully');
-            // Navigate immediately
-            navigate('/admin/dashboard', { state: { activeMenu: 'view-order' } });
+            addToast('Saved to KOT');
+            // Navigate immediately based on activeOrderType
+            let targetFilter = 'All';
+            if (activeOrderType === 'takeaway') targetFilter = 'Take Away';
+            else if (activeOrderType === 'roomservice') targetFilter = 'Room Order';
+            else if (activeOrderType === 'dinein') targetFilter = 'Dine In';
+
+            navigate('/admin/dashboard', { state: { activeMenu: 'view-order', activeFilter: targetFilter } });
         } else {
             addToast('Failed to save KOT');
         }
@@ -315,7 +337,12 @@ const FoodOrderPage = ({ onClose }) => {
         const success = await saveOrderToBackend();
         if (success) {
             addToast('Bill saved successfully');
-            navigate('/admin/dashboard', { state: { activeMenu: 'view-order' } });
+            let targetFilter = 'All';
+            if (activeOrderType === 'takeaway') targetFilter = 'Take Away';
+            else if (activeOrderType === 'roomservice') targetFilter = 'Room Order';
+            else if (activeOrderType === 'dinein') targetFilter = 'Dine In';
+
+            navigate('/admin/dashboard', { state: { activeMenu: 'view-order', activeFilter: targetFilter } });
         } else {
             addToast('Failed to save bill');
         }
@@ -334,7 +361,7 @@ const FoodOrderPage = ({ onClose }) => {
         const success = await saveOrderToBackend();
         if (success) {
             addToast('Room posted successfully');
-            navigate('/admin/dashboard', { state: { activeMenu: 'view-order' } });
+            navigate('/admin/dashboard', { state: { activeMenu: 'view-order', activeFilter: 'Room Order' } });
         } else {
             addToast('Failed to post to room');
         }
@@ -360,7 +387,7 @@ const FoodOrderPage = ({ onClose }) => {
         a.download = `${title}_${room?.roomNumber || 'WalkIn'}_${Date.now()}.doc`;
         a.click();
 
-        if (printModal === 'KOT') addToast('KOT saved & downloaded');
+        if (printModal === 'KOT') addToast('Saved to KOT & downloaded');
         else addToast('Bill saved & downloaded');
 
         // Close after download
@@ -375,7 +402,7 @@ const FoodOrderPage = ({ onClose }) => {
         setPrintModal(null);
 
         if (wasKOT) {
-            addToast('KOT saved successfully');
+            addToast('Saved to KOT');
             setTimeout(() => {
                 if (onClose) onClose();
             }, 1000);
@@ -459,22 +486,28 @@ const FoodOrderPage = ({ onClose }) => {
                                         // Find current quantity in cart
                                         const cartItem = cart.find(x => x.id === item.id);
                                         const inCartQty = cartItem ? cartItem.quantity : 0;
+                                        const isOutOfStock = (item.quantityAvailable || 0) <= 0;
 
                                         return (
                                             <div
                                                 key={item.id}
-                                                className={`pos-food-card ${inCartQty > 0 ? 'has-qty' : ''}`}
-                                                onClick={() => addToCart(item)}
+                                                className={`pos-food-card ${inCartQty > 0 ? 'has-qty' : ''} ${isOutOfStock ? 'out-of-stock' : ''}`}
+                                                onClick={() => !isOutOfStock && addToCart(item)}
                                             >
                                                 <div className="pos-card-code">#{item.code || item.id.substring(0, 6)}</div>
                                                 {inCartQty > 0 && (
                                                     <div className="pos-card-badge">Qty: {inCartQty}</div>
                                                 )}
+                                                {isOutOfStock && (
+                                                    <div className="out-of-stock-badge">Out of Stock</div>
+                                                )}
                                                 <div className="pos-card-content">
                                                     <div className="pos-card-name">{item.name}</div>
                                                 </div>
                                                 <div className="pos-card-footer">
-                                                    <div className="pos-card-qty-available">Qty: {item.quantityAvailable}</div>
+                                                    <div className="pos-card-qty-available">
+                                                        {isOutOfStock ? 'Empty' : `Qty: ${item.quantityAvailable}`}
+                                                    </div>
                                                     <div className="pos-card-price">₹{item.price}</div>
                                                 </div>
                                             </div>

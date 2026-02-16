@@ -4,7 +4,7 @@ const guestMealOrderSchema = new mongoose.Schema({
     tableId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Table',
-        required: [true, 'Table ID is required']
+        required: false
     },
     tableNumber: {
         type: Number,
@@ -12,7 +12,7 @@ const guestMealOrderSchema = new mongoose.Schema({
     },
     orderType: {
         type: String,
-        enum: ['Direct Payment', 'Post to Room'],
+        enum: ['Direct Payment', 'Post to Room', 'Take Away'],
         default: 'Direct Payment'
     },
     roomNumber: {
@@ -20,6 +20,10 @@ const guestMealOrderSchema = new mongoose.Schema({
         default: null // Only for "Post to Room" orders
     },
     guestName: {
+        type: String,
+        default: null
+    },
+    guestPhone: {
         type: String,
         default: null
     },
