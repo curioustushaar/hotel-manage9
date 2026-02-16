@@ -118,6 +118,9 @@ app.use('/api/maintenance-blocks', maintenanceBlockRoutes);
 const guestMealRoutes = require('./routes/guestMealRoutes');
 app.use('/api/guest-meal', guestMealRoutes);
 
+const tableRoutes = require('./routes/tableRoutes');
+app.use('/api/tables', tableRoutes);
+
 const visitorRoutes = require('./routes/visitorRoutes');
 console.log("Registering /api/visitors routes...");
 app.use('/api/visitors', visitorRoutes);

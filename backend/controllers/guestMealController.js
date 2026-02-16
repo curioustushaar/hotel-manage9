@@ -1,5 +1,6 @@
 const Table = require('../models/tableModel');
 const GuestMealOrder = require('../models/guestMealOrderModel');
+const MenuItem = require('../models/menuModel');
 
 // ============================================================================
 // TABLE MANAGEMENT CONTROLLERS
@@ -455,39 +456,45 @@ exports.createOrder = async (req, res) => {
     try {
         const { tableId, tableNumber, orderType = 'Direct Payment', roomNumber, guestName, numberOfGuests = 1, taxRate = 0 } = req.body;
 
-        // Validate table exists and is available
-        const table = await Table.findById(tableId);
-        if (!table) {
-            return res.status(404).json({
-                success: false,
-                message: 'Table not found'
-            });
-        }
+        let table = null;
 
-        if (table.status === 'Billed') {
-            return res.status(409).json({
-                success: false,
-                message: 'Table is currently billed. Please close the existing order first.'
-            });
-        }
+        // Skip table validation for Take Away and Post to Room
+        if (orderType !== 'Take Away' && orderType !== 'Post to Room') {
+            // Validate table exists and is available
+            table = await Table.findById(tableId);
+            if (!table) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Table not found'
+                });
+            }
 
-        // Check if an active order already exists to prevent duplicates
-        const existingOrder = await GuestMealOrder.findOne({ tableId, status: 'Active' });
-        if (existingOrder) {
-            return res.status(200).json({
-                success: true,
-                message: 'Active order already exists',
-                data: existingOrder
-            });
+            if (table.status === 'Billed') {
+                return res.status(409).json({
+                    success: false,
+                    message: 'Table is currently billed. Please close the existing order first.'
+                });
+            }
+
+            // Check if an active order already exists to prevent duplicates
+            const existingOrder = await GuestMealOrder.findOne({ tableId, status: 'Active' });
+            if (existingOrder) {
+                return res.status(200).json({
+                    success: true,
+                    message: 'Active order already exists',
+                    data: existingOrder
+                });
+            }
         }
 
         // Create new order
         const orderData = {
-            tableId,
-            tableNumber,
+            tableId: (orderType === 'Take Away' || orderType === 'Post to Room') ? null : tableId,
+            tableNumber: (orderType === 'Take Away') ? 0 : tableNumber, // Keep tableNumber for Post to Room if provided (e.g. room number as int), or strict 0
             orderType,
             roomNumber: orderType === 'Post to Room' ? roomNumber : null,
-            guestName: guestName || null,
+            guestName: guestName || (orderType === 'Take Away' ? 'Walk-in Customer' : null),
+            guestPhone: req.body.guestPhone || null, // Capture phone
             numberOfGuests,
             items: req.body.items || [],
             taxRate,
@@ -499,12 +506,43 @@ exports.createOrder = async (req, res) => {
         const order = new GuestMealOrder(orderData);
         await order.save();
 
-        // Update table status and set current order
-        table.status = 'Running';
-        table.currentOrderId = order._id;
-        table.orderStartTime = new Date();
-        table.runningOrderAmount = order.finalAmount || 0;
-        await table.save();
+        if (table) {
+            // Update table status and set current order
+            table.status = 'Running';
+            table.currentOrderId = order._id;
+            table.orderStartTime = new Date();
+            table.runningOrderAmount = order.finalAmount || 0;
+            await table.save();
+        }
+
+        // DECREMENT STOCK LOGIC
+        if (req.body.items && req.body.items.length > 0) {
+            for (const item of req.body.items) {
+                try {
+                    // Try to find by ID first, then Name
+                    let menuItem;
+                    const menuItemId = item.id || item.menuItemId || item._id;
+
+                    if (menuItemId && menuItemId.match(/^[0-9a-fA-F]{24}$/)) {
+                        menuItem = await MenuItem.findById(menuItemId);
+                    }
+
+                    if (!menuItem && (item.name || item.itemName)) {
+                        menuItem = await MenuItem.findOne({ itemName: item.name || item.itemName });
+                    }
+
+                    if (menuItem) {
+                        const qtyToDeduct = parseInt(item.quantity) || 1;
+                        // Avoid negative stock, cap at 0
+                        menuItem.quantity = Math.max(0, (menuItem.quantity || 0) - qtyToDeduct);
+                        await menuItem.save();
+                    }
+                } catch (stockError) {
+                    console.error(`Error updating stock for item ${item.name}:`, stockError);
+                    // Continue with other items even if one fails
+                }
+            }
+        }
 
         res.status(201).json({
             success: true,
@@ -594,7 +632,45 @@ exports.updateOrderItems = async (req, res) => {
             });
         }
 
-        if (items) order.items = items;
+        if (items) {
+            // STOCK SYNC LOGIC: Compare old items and new items to adjust stock
+            const oldItemsMap = new Map();
+            order.items.forEach(item => {
+                const id = (item.id || item.menuItemId || item._id)?.toString();
+                if (id) oldItemsMap.set(id, (oldItemsMap.get(id) || 0) + (item.quantity || 0));
+            });
+
+            const newItemsMap = new Map();
+            items.forEach(item => {
+                const id = (item.id || item.menuItemId || item._id)?.toString();
+                if (id) newItemsMap.set(id, (newItemsMap.get(id) || 0) + (item.quantity || 0));
+            });
+
+            // Iterate through all unique item IDs from both sets
+            const allItemIds = new Set([...oldItemsMap.keys(), ...newItemsMap.keys()]);
+
+            for (const itemId of allItemIds) {
+                const oldQty = oldItemsMap.get(itemId) || 0;
+                const newQty = newItemsMap.get(itemId) || 0;
+                const diff = newQty - oldQty; // Positive means we need more stock (deduct), negative means return
+
+                if (diff !== 0) {
+                    try {
+                        const menuItem = await MenuItem.findById(itemId);
+                        if (menuItem) {
+                            // Deduct the difference from stock
+                            menuItem.quantity = Math.max(0, (menuItem.quantity || 0) - diff);
+                            await menuItem.save();
+                        }
+                    } catch (err) {
+                        console.error(`Error updating stock for item ${itemId} during order update:`, err);
+                    }
+                }
+            }
+
+            order.items = items;
+        }
+
         if (taxRate !== undefined) order.taxRate = taxRate;
         await order.save();
 
@@ -607,7 +683,7 @@ exports.updateOrderItems = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'Order items updated successfully',
+            message: 'Order items updated and stock adjusted successfully',
             data: order
         });
     } catch (error) {
@@ -827,7 +903,11 @@ exports.updateOrderStatus = async (req, res) => {
             });
         }
 
-        const validStatuses = ['Pending', 'Preparing', 'Ready', 'Billed'];
+        const validStatuses = ['Pending', 'Preparing', 'Ready', 'Served', 'Pending Payment', 'Billed'];
+
+        console.log(`[updateOrderStatus] Received status: "${status}" for Order ID: ${orderId}`);
+        console.log(`[updateOrderStatus] Valid statuses: ${JSON.stringify(validStatuses)}`);
+
         if (validStatuses.includes(status)) {
             // Update the status
             order.status = status;
@@ -850,7 +930,7 @@ exports.updateOrderStatus = async (req, res) => {
         } else {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid status provided'
+                message: `Invalid status provided: "${status}". Valid: ${validStatuses.join(', ')}`
             });
         }
     } catch (error) {
@@ -926,58 +1006,7 @@ exports.getDashboardStats = async (req, res) => {
     }
 };
 
-// Update order status (Pending, Preparing, Ready, etc.)
-// Update order status (Pending, Preparing, Ready, Served, etc.)
-exports.updateOrderStatus = async (req, res) => {
-    try {
-        const { orderId } = req.params;
-        const { status } = req.body;
-
-        const order = await GuestMealOrder.findById(orderId);
-        if (!order) {
-            return res.status(404).json({
-                success: false,
-                message: 'Order not found'
-            });
-        }
-
-        // Allow 'Served' as a valid status as well
-        const validStatuses = ['Pending', 'Preparing', 'Ready', 'Billed', 'Served'];
-        if (validStatuses.includes(status)) {
-            order.status = status;
-            await order.save();
-
-            // If status is Billed, update the table status as well
-            if (status === 'Billed') {
-                const table = await Table.findById(order.tableId);
-                if (table) {
-                    table.status = 'Billed';
-                    await table.save();
-                }
-            }
-
-            return res.status(200).json({
-                success: true,
-                message: `Order status updated to ${status}`,
-                data: order
-            });
-        }
-
-        // Fallback for other statuses if flexible, or error?
-        // For now, let's enforce validation to be clean
-        return res.status(400).json({
-            success: false,
-            message: 'Invalid status provided'
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Error updating order status',
-            error: error.message
-        });
-    }
-};
+// Duplicate function removed - using the first updateOrderStatus function above
 
 
 // Get revenue report
@@ -1156,6 +1185,96 @@ exports.settleOrder = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error settling order',
+            error: error.message
+        });
+    }
+};
+
+// Get live outlet status for dashboard
+exports.getOutletStatus = async (req, res) => {
+    try {
+        console.log('[getOutletStatus] Fetching live status...');
+
+        // Table Stats
+        const totalTables = await Table.countDocuments();
+        const occupiedTables = await Table.countDocuments({ status: 'Running' });
+        const billedTables = await Table.countDocuments({ status: 'Billed' });
+        const availableTables = totalTables - occupiedTables - billedTables;
+
+        console.log(`[getOutletStatus] Tables: Total=${totalTables}, Occupied=${occupiedTables}, Billed=${billedTables}`);
+
+        // Order/Kitchen Stats (Live Load)
+        // Explicitly include all active-like statuses
+        const pendingOrders = await GuestMealOrder.countDocuments({
+            status: { $in: ['Active', 'Pending', 'Pending Payment'] }
+        });
+        const preparingOrders = await GuestMealOrder.countDocuments({ status: 'Preparing' });
+        const readyOrders = await GuestMealOrder.countDocuments({ status: 'Ready' });
+
+        console.log(`[getOutletStatus] Orders: Pending=${pendingOrders}, Preparing=${preparingOrders}, Ready=${readyOrders}`);
+
+        // Calculate Average Preparation Time from recently closed orders (last 24h)
+        const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const recentOrders = await GuestMealOrder.find({
+            status: 'Closed',
+            closedAt: { $gte: dayAgo }
+        });
+
+        let totalPrepTime = 0;
+        let countedOrders = 0;
+
+        recentOrders.forEach(order => {
+            if (order.updatedAt && order.createdAt) {
+                const prepTime = (order.updatedAt - order.createdAt) / 60000; // in minutes
+                if (prepTime > 0 && prepTime < 180) { // filter out anomalies
+                    totalPrepTime += prepTime;
+                    countedOrders++;
+                }
+            }
+        });
+
+        const avgPrepTime = countedOrders > 0 ? Math.round(totalPrepTime / countedOrders) : 0;
+
+        // Load Assessment
+        let kitchenLoad = 'Low';
+        let staffLoad = 'Normal';
+        let delayRisk = 'Minimal';
+
+        const totalActive = pendingOrders + preparingOrders;
+        if (totalActive > 15) {
+            kitchenLoad = 'High';
+            staffLoad = 'Busy';
+            delayRisk = 'High';
+        } else if (totalActive > 7) {
+            kitchenLoad = 'Moderate';
+            staffLoad = 'Active';
+            delayRisk = 'Moderate';
+        }
+
+        res.status(200).json({
+            success: true,
+            data: {
+                tables: {
+                    total: totalTables,
+                    occupied: occupiedTables + billedTables, // Group both as occupied for this view
+                    available: Math.max(0, availableTables)
+                },
+                kitchen: {
+                    pending: pendingOrders,
+                    preparing: preparingOrders,
+                    ready: readyOrders,
+                    avgPrepTime: avgPrepTime,
+                    load: kitchenLoad,
+                    staffLoad: staffLoad,
+                    delayRisk: delayRisk
+                }
+            }
+        });
+    } catch (error) {
+        console.error('[getOutletStatus] Error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching outlet status',
             error: error.message
         });
     }

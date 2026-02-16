@@ -1,49 +1,75 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './TableManagement.css';
+import ReservationModal from '../../components/ReservationModal';
+import ReservationListModal from '../../components/ReservationListModal';
+import API_URL_CONFIG from '../../config/api';
 
 const TableManagement = () => {
-    // Initial Tables Data
-    const [tables, setTables] = useState([
-        { id: 'T1', name: 'T1', seats: 4, guests: 4, amount: 1070, status: 'Running', duration: '45m' },
-        { id: 'T2', name: 'T2', seats: 4, guests: 0, amount: 0, status: 'Available', duration: '-' },
-        { id: 'T3', name: 'T3', seats: 6, guests: 6, amount: 2450, status: 'Billed', duration: '1h 20m' },
-        { id: 'T4', name: 'T4', seats: 2, guests: 0, amount: 0, status: 'Available', duration: '-' },
-        { id: 'T5', name: 'T5', seats: 4, guests: 3, amount: 890, status: 'Running', duration: '30m' },
-        { id: 'T6', name: 'T6', seats: 4, guests: 0, amount: 0, status: 'Available', duration: '-' },
-        { id: 'T7', name: 'T7', seats: 8, guests: 7, amount: 3200, status: 'Running', duration: '1h 10m' },
-        { id: 'T8', name: 'T8', seats: 2, guests: 0, amount: 0, status: 'Available', duration: '-' },
-        { id: 'T9', name: 'T9', seats: 4, guests: 2, amount: 560, status: 'Running', duration: '15m' },
-        { id: 'T10', name: 'T10', seats: 4, guests: 4, amount: 1800, status: 'Billed', duration: '55m' },
-        { id: 'T11', name: 'T11', seats: 6, guests: 0, amount: 0, status: 'Available', duration: '-' },
-        { id: 'T12', name: 'T12', seats: 2, guests: 0, amount: 0, status: 'Available', duration: '-' },
-    ]);
+    // Tables Data
+    const [tables, setTables] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Modal State
+    // Split Modal State
     const [showSplitModal, setShowSplitModal] = useState(false);
     const [splitTableId, setSplitTableId] = useState(null);
     const [splitParts, setSplitParts] = useState(2);
     const [splitSubTables, setSplitSubTables] = useState([]);
 
+    // Reservation Modal State
+    const [showReservationModal, setShowReservationModal] = useState(false);
+    const [selectedTableForReservation, setSelectedTableForReservation] = useState(null);
+
+    // Reservation List Modal State
+    const [showReservationListModal, setShowReservationListModal] = useState(false);
+    const [selectedTableForList, setSelectedTableForList] = useState(null);
+
     // Waiters List
     const waiters = ['Rahul', 'Aman', 'Suresh', 'Priya', 'Kavita'];
 
+    // Fetch Tables
+    const fetchTables = async () => {
+        try {
+            // setLoading(true); // Don't show loading on every refresh to avoid flicker
+            const response = await fetch(`${API_URL_CONFIG}/api/tables/list`);
+            const data = await response.json();
+            if (data.success) {
+                setTables(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching tables:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        setLoading(true);
+        fetchTables();
+        const interval = setInterval(fetchTables, 10000); // 10s auto refresh
+        return () => clearInterval(interval);
+    }, []);
+
     // Handle Menu Action
     const handleMenuAction = (action, table) => {
-        console.log(`Action: ${action} on Table: ${table.name}`);
+        console.log(`Action: ${action} on Table: ${table.tableName}`);
         if (action === 'Split Table') {
             openSplitModal(table);
+        } else if (action === 'Reserve Table') {
+            setSelectedTableForReservation(table);
+            setShowReservationModal(true);
+        } else if (action === 'Reservation List') {
+            setSelectedTableForList(table);
+            setShowReservationListModal(true);
         }
-        // Implement other actions like Move, Merge, Close as needed
     };
 
     // Open Split Modal
     const openSplitModal = (table) => {
-        setSplitTableId(table.id);
+        setSplitTableId(table._id);
         setSplitParts(2);
-        // Initialize sub-tables for 2 parts
         const initialSubTables = [
-            { name: `${table.name}-A`, guests: Math.ceil(table.guests / 2), waiter: waiters[0] },
-            { name: `${table.name}-B`, guests: Math.floor(table.guests / 2), waiter: waiters[1] }
+            { name: `${table.tableName}-A`, guests: Math.ceil(table.capacity / 2), waiter: waiters[0] },
+            { name: `${table.tableName}-B`, guests: Math.floor(table.capacity / 2), waiter: waiters[1] }
         ];
         setSplitSubTables(initialSubTables);
         setShowSplitModal(true);
@@ -54,21 +80,21 @@ const TableManagement = () => {
         const parts = parseInt(e.target.value);
         setSplitParts(parts);
 
-        const currentTable = tables.find(t => t.id === splitTableId);
+        const currentTable = tables.find(t => t._id === splitTableId);
         if (!currentTable) return;
 
         const newSubTables = [];
-        const guestsPerTable = Math.floor(currentTable.guests / parts);
-        let remainingGuests = currentTable.guests;
+        const capacityPerTable = Math.floor(currentTable.capacity / parts);
+        let remainingCapacity = currentTable.capacity;
 
         for (let i = 0; i < parts; i++) {
-            const suffix = String.fromCharCode(65 + i); // A, B, C...
-            const guests = i === parts - 1 ? remainingGuests : guestsPerTable;
-            remainingGuests -= guests;
+            const suffix = String.fromCharCode(65 + i);
+            const cap = i === parts - 1 ? remainingCapacity : capacityPerTable;
+            remainingCapacity -= cap;
 
             newSubTables.push({
-                name: `${currentTable.name}-${suffix}`,
-                guests: guests > 0 ? guests : 1, // Default at least 1 guest capacity/seat
+                name: `${currentTable.tableName}-${suffix}`,
+                guests: cap > 0 ? cap : 1,
                 waiter: waiters[i % waiters.length]
             });
         }
@@ -84,70 +110,83 @@ const TableManagement = () => {
 
     // Submit Split
     const handleSplitSubmit = () => {
-        const originalTable = tables.find(t => t.id === splitTableId);
-        if (!originalTable) return;
-
-        // Create new table objects
-        const newTables = splitSubTables.map((sub, index) => ({
-            id: sub.name, // Use name as ID for simplicity
-            name: sub.name,
-            seats: sub.guests, // Assuming seats = guests allocated for now, or just capacity
-            guests: sub.guests, // Active guests
-            amount: Math.floor(Math.random() * 1000) + 100, // Random amount as per demo req (450, 620 etc)
-            status: 'Running',
-            duration: '0m'
-        }));
-
-        // Replace original table with new tables in the list
-        // Finding index of original table
-        const originalIndex = tables.findIndex(t => t.id === splitTableId);
-
-        const updatedTables = [...tables];
-        // Remove original and insert new ones
-        updatedTables.splice(originalIndex, 1, ...newTables);
-
-        setTables(updatedTables);
+        alert('Split functionality to be integrated with backend');
         setShowSplitModal(false);
     };
+
+    // Submit Reservation
+    const handleReservationSubmit = async (formData) => {
+        try {
+            const response = await fetch(`${API_URL_CONFIG}/api/tables/${selectedTableForReservation._id}/reserve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert('Table reserved successfully!');
+                setShowReservationModal(false);
+                fetchTables();
+            } else {
+                alert(`Failed to reserve: ${data.message}`);
+            }
+        } catch (error) {
+            console.error('Error reserving table:', error);
+            alert('Failed to reserve table. Please check connection.');
+        }
+    };
+
+    if (loading && tables.length === 0) {
+        return <div style={{ padding: '50px', textAlign: 'center', color: '#666' }}>Loading tables...</div>;
+    }
 
     return (
         <div className="table-management-container">
             <div className="page-header">
                 <h1 className="page-title">Table Management</h1>
                 <div className="page-actions">
-                    {/* Add filters or actions if needed */}
+                    <button className="btn btn-primary" onClick={() => { setLoading(true); fetchTables(); }}>Refresh</button>
                 </div>
             </div>
 
             <div className="tables-grid">
-                {tables.map(table => (
-                    <TableCard key={table.id} table={table} onMenuAction={handleMenuAction} />
-                ))}
+                {tables.length > 0 ? tables.map(table => (
+                    <TableCard key={table._id} table={table} onMenuAction={handleMenuAction} />
+                )) : (
+                    <div className="no-tables">
+                        <p>No tables found.</p>
+                        <button className="btn btn-secondary" onClick={() => window.location.reload()}>Retry</button>
+                    </div>
+                )}
             </div>
 
+            {/* Reservation Creation Modal */}
+            {showReservationModal && selectedTableForReservation && (
+                <ReservationModal
+                    table={{ name: selectedTableForReservation.tableName, seats: selectedTableForReservation.capacity }}
+                    onClose={() => setShowReservationModal(false)}
+                    onReserve={handleReservationSubmit}
+                />
+            )}
+
+            {/* Reservation List Modal */}
+            {showReservationListModal && selectedTableForList && (
+                <ReservationListModal
+                    table={selectedTableForList}
+                    onClose={() => setShowReservationListModal(false)}
+                />
+            )}
+
+            {/* Split Modal */}
             {showSplitModal && (
                 <div className="modal-overlay">
                     <div className="modal-content">
                         <div className="modal-header">
-                            <h2>Split Table {tables.find(t => t.id === splitTableId)?.name}</h2>
+                            <h2>Split Table {tables.find(t => t._id === splitTableId)?.tableName}</h2>
                             <button className="close-btn" onClick={() => setShowSplitModal(false)}>×</button>
                         </div>
-
-                        <div className="modal-info">
-                            <div className="info-item">
-                                <span className="info-label">Table NO</span>
-                                <span className="info-value">{tables.find(t => t.id === splitTableId)?.name}</span>
-                            </div>
-                            <div className="info-item">
-                                <span className="info-label">Total Seats</span>
-                                <span className="info-value">{tables.find(t => t.id === splitTableId)?.seats}</span>
-                            </div>
-                            <div className="info-item">
-                                <span className="info-label">Current Guests</span>
-                                <span className="info-value">{tables.find(t => t.id === splitTableId)?.guests}</span>
-                            </div>
-                        </div>
-
                         <div className="form-group">
                             <label>Split Into</label>
                             <select className="form-select" value={splitParts} onChange={handleSplitPartsChange}>
@@ -156,11 +195,10 @@ const TableManagement = () => {
                                 <option value={4}>4 Parts</option>
                             </select>
                         </div>
-
                         <div className="sub-tables-container">
                             <div className="sub-table-header">
                                 <span>Sub Table</span>
-                                <span>Guests</span>
+                                <span>Capacity</span>
                                 <span>Waiter</span>
                             </div>
                             {splitSubTables.map((sub, index) => (
@@ -183,7 +221,6 @@ const TableManagement = () => {
                                 </div>
                             ))}
                         </div>
-
                         <div className="modal-actions">
                             <button className="btn btn-secondary" onClick={() => setShowSplitModal(false)}>Cancel</button>
                             <button className="btn btn-primary" onClick={handleSplitSubmit}>Split Table</button>
@@ -217,16 +254,51 @@ const TableCard = ({ table, onMenuAction }) => {
         setShowMenu(false);
     };
 
+    // Determine Logic for Status Display
+    let displayStatus = table.status;
+    let timeInfo = table.duration || '-';
+    let statusClass = table.status.toLowerCase();
+
+    // Specific logic for reserved tables
+    if (table.reservations && table.reservations.length > 0) {
+        // Find nearest upcoming reservation
+        const now = new Date();
+        const upcoming = table.reservations
+            .filter(r => new Date(`${r.date}T${r.endTime}`) > now)
+            .sort((a, b) => new Date(`${a.date}T${a.startTime}`) - new Date(`${b.date}T${b.startTime}`));
+
+        if (upcoming.length > 0) {
+            const nextRes = upcoming[0];
+            const start = new Date(`${nextRes.date}T${nextRes.startTime}`);
+            const end = new Date(`${nextRes.date}T${nextRes.endTime}`);
+
+            if (now >= start && now <= end) {
+                displayStatus = 'Reserved Active';
+                statusClass = 'reserved-active';
+                timeInfo = `Until ${nextRes.endTime}`;
+            } else if (now < start && (start - now) < 2 * 60 * 60 * 1000) { // Within 2 hours
+                // displayStatus = `Reserved ${nextRes.startTime}`;
+                // statusClass = 'reserved-upcoming';
+            }
+        }
+    }
+
     return (
-        <div className="table-card">
+        <div className={`table-card ${statusClass}`}>
             <div className="card-header">
-                <span className="table-number">{table.name}</span>
+                <span className="table-number">{table.tableName}</span>
                 <div className="menu-container" ref={menuRef}>
                     <div className="menu-trigger" onClick={() => setShowMenu(!showMenu)}>
                         ⋮
                     </div>
                     {showMenu && (
                         <div className="context-menu">
+                            <div className="menu-item" onClick={() => handleAction('Reserve Table')}>
+                                <span>📅</span> Reserve Table
+                            </div>
+                            <div className="menu-item" onClick={() => handleAction('Reservation List')}>
+                                <span>📋</span> Reservation List
+                            </div>
                             <div className="menu-item" onClick={() => handleAction('Split Table')}>
                                 <span>🪓</span> Split Table
                             </div>
@@ -247,22 +319,25 @@ const TableCard = ({ table, onMenuAction }) => {
             <div className="card-body">
                 <div className="info-row">
                     <span className="seats-info">
-                        👥 Seats: {table.seats}
+                        👥 Seats: {table.capacity}
                     </span>
-                    <span className={`status-badge status-${table.status.toLowerCase()}`}>
-                        {table.status}
+                    <span className={`status-badge status-${statusClass}`}>
+                        {displayStatus}
                     </span>
                 </div>
 
                 <div className="info-row">
-                    <span className="amount">₹ {table.amount}</span>
-                    <span className="duration">{table.duration}</span>
+                    <span className="amount">₹ {table.runningOrderAmount || 0}</span>
+                    <span className="duration">{timeInfo}</span>
                 </div>
             </div>
 
             <div className="card-footer">
-                <span>{table.status === 'Available' ? 'Ready to serve' : 'In Service'}</span>
-                {table.status !== 'Available' && <span>›</span>}
+                <span>
+                    {displayStatus === 'Available' ? 'Ready to serve' :
+                        displayStatus === 'Reserved Active' ? 'Reserved Guest' : 'In Service'}
+                </span>
+                {displayStatus !== 'Available' && <span>›</span>}
             </div>
         </div>
     );

@@ -40,7 +40,7 @@ const getMenuItems = async (req, res) => {
 // @access  Private/Admin
 const addMenuItem = async (req, res) => {
     try {
-        const { itemName, foodCode, category, price, description, status } = req.body;
+        const { itemName, foodCode, category, price, description, status, quantity, unit } = req.body;
 
         // Validation
         if (!itemName || !foodCode || !category || !price) {
@@ -60,14 +60,20 @@ const addMenuItem = async (req, res) => {
         }
 
         // Create new menu item
-        const menuItem = await MenuItem.create({
+        const newItemData = {
             itemName,
             foodCode,
             category,
             price,
             description: description || '',
-            status: status || 'Active'
-        });
+            status: status || 'Active',
+            quantity: (quantity !== undefined && quantity !== null) ? Number(quantity) : 0,
+            unit: unit || 'PCS'
+        };
+
+        console.log('Creating Menu Item with Data:', newItemData); // Debug log
+
+        const menuItem = await MenuItem.create(newItemData);
 
         res.status(201).json({
             success: true,
@@ -89,7 +95,14 @@ const addMenuItem = async (req, res) => {
 const updateMenuItem = async (req, res) => {
     try {
         const { id } = req.params;
-        const updateData = req.body;
+        let updateData = { ...req.body };
+
+        // Ensure quantity is a number if present
+        if (updateData.quantity !== undefined && updateData.quantity !== null) {
+            updateData.quantity = Number(updateData.quantity);
+        }
+
+        console.log('Updating Menu Item:', id, updateData); // Debug log
 
         // Find and update menu item
         const menuItem = await MenuItem.findByIdAndUpdate(

@@ -30,6 +30,16 @@ const menuItemSchema = new mongoose.Schema({
         type: String,
         enum: ['Active', 'Inactive'],
         default: 'Active'
+    },
+    quantity: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    unit: {
+        type: String,
+        default: 'PCS',
+        enum: ['PCS', 'KG', 'LBS', 'LTR']
     }
 }, {
     timestamps: true
