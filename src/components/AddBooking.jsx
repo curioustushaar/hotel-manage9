@@ -1,5 +1,6 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import API_URL from '../config/api';
+import soundManager from '../utils/soundManager';
 import './AddBooking.css';
 
 const AddBooking = () => {
@@ -31,6 +32,8 @@ const AddBooking = () => {
 
     // Room Facility Types
     const [facilityTypes, setFacilityTypes] = useState([]);
+    const [mealTypes, setMealTypes] = useState([]);
+    const [selectedMeal, setSelectedMeal] = useState('');
 
     // Get today's date in YYYY-MM-DD format for min date restrictions
     const getTodayDate = () => {
@@ -59,6 +62,7 @@ const AddBooking = () => {
     useEffect(() => {
         fetchAvailableRooms();
         fetchFacilityTypes();
+        fetchMealTypes();
     }, []);
 
     // Clear checkout date if it becomes invalid when check-in date changes
@@ -81,6 +85,18 @@ const AddBooking = () => {
             }
         } catch (error) {
             console.error('Error fetching facility types:', error);
+        }
+    };
+
+    const fetchMealTypes = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/meal-types/list`);
+            const data = await response.json();
+            if (data.success) {
+                setMealTypes(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching meal types:', error);
         }
     };
 
@@ -138,8 +154,15 @@ const AddBooking = () => {
     }, [checkInDate, checkOutDate]);
 
     const pricePerNight = useMemo(() => {
-        return roomPrices[roomType] || 0;
-    }, [roomType, roomPrices]);
+        let basePrice = roomPrices[roomType] || 0;
+        // Clean basePrice if it's a string with currency symbol (just in case)
+        if (typeof basePrice === 'string') {
+            basePrice = parseFloat(basePrice.replace(/[^0-9.]/g, '')) || 0;
+        }
+
+        const mealPrice = selectedMeal ? (mealTypes.find(m => m._id === selectedMeal)?.price || 0) : 0;
+        return basePrice + mealPrice;
+    }, [roomType, roomPrices, selectedMeal, mealTypes]);
 
     const totalAmount = useMemo(() => {
         return pricePerNight * numberOfNights;
@@ -272,7 +295,9 @@ const AddBooking = () => {
             numberOfNights,
             pricePerNight,
             totalAmount,
+            totalAmount,
             advancePaid: parseFloat(advancePaid) || 0,
+            mealPlan: selectedMeal ? mealTypes.find(m => m._id === selectedMeal) : null,
             status: 'Upcoming'
         };
 
@@ -289,6 +314,7 @@ const AddBooking = () => {
 
             if (data.success) {
                 alert('Booking saved successfully!');
+                soundManager.play('notification');
                 console.log('Booking saved:', data.data);
 
                 // Reset form first
@@ -337,7 +363,9 @@ const AddBooking = () => {
             numberOfNights,
             pricePerNight,
             totalAmount,
+            totalAmount,
             advancePaid: parseFloat(advancePaid) || 0,
+            mealPlan: selectedMeal ? mealTypes.find(m => m._id === selectedMeal) : null,
             status: 'Checked-in'
         };
 
@@ -354,6 +382,7 @@ const AddBooking = () => {
 
             if (data.success) {
                 alert('Booking saved and guest checked in successfully!');
+                soundManager.play('success');
                 console.log('Booking saved with check-in:', data.data);
 
                 // Reset form first
@@ -581,6 +610,31 @@ const AddBooking = () => {
                                     onChange={(e) => setNumberOfGuests(e.target.value)}
                                 />
                             </div>
+
+                            {/* Meal Plan */}
+                            <div className="form-group">
+                                <label htmlFor="mealPlan" className="form-label">
+                                    Meal Plan
+                                </label>
+                                <select
+                                    id="mealPlan"
+                                    className="form-input"
+                                    value={selectedMeal}
+                                    onChange={(e) => setSelectedMeal(e.target.value)}
+                                >
+                                    <option value="">No Meal Plan (Room Only)</option>
+                                    {mealTypes.map((meal) => (
+                                        <option key={meal._id} value={meal._id}>
+                                            {meal.shortCode} ({meal.name}) - ₹{meal.price}
+                                        </option>
+                                    ))}
+                                </select>
+                                {selectedMeal && (
+                                    <span className="helper-text" style={{ color: '#16a34a' }}>
+                                        + ₹{mealTypes.find(m => m._id === selectedMeal)?.price || 0} per night
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -670,7 +724,26 @@ const AddBooking = () => {
                                         disabled
                                     />
                                 </div>
-                                <span className="helper-text">Based on room type</span>
+
+                                <span className="helper-text">Based on room type + meal plan</span>
+                                {roomType && (
+                                    <div className="price-breakdown" style={{ marginTop: '5px', fontSize: '0.85rem', color: '#64748b' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>Room Base:</span>
+                                            <span>₹{roomPrices[roomType] || 0}</span>
+                                        </div>
+                                        {selectedMeal && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}>
+                                                <span>Meal ({mealTypes.find(m => m._id === selectedMeal)?.shortCode}):</span>
+                                                <span>+₹{mealTypes.find(m => m._id === selectedMeal)?.price || 0}</span>
+                                            </div>
+                                        )}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', marginTop: '2px', paddingTop: '2px', fontWeight: '600' }}>
+                                            <span>Total/Night:</span>
+                                            <span>₹{pricePerNight}</span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Total Amount */}
@@ -729,7 +802,7 @@ const AddBooking = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

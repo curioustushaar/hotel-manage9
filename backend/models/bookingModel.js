@@ -113,6 +113,10 @@ const bookingSchema = new mongoose.Schema(
             enum: ['Upcoming', 'Checked-in', 'Checked-out', 'Cancelled', 'No-Show', 'Voided'],
             default: 'Upcoming'
         },
+        invoiceId: {
+            type: String,
+            trim: true
+        },
 
         // Reservation Metadata
         reservationType: {

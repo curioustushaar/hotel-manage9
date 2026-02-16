@@ -15,7 +15,8 @@ const MealType = () => {
         name: '',
         shortCode: '',
         includedMeals: [],
-        chargeableMeals: []
+        chargeableMeals: [],
+        price: ''
     });
 
     const standardMeals = ['Breakfast', 'Lunch', 'Dinner'];
@@ -49,7 +50,8 @@ const MealType = () => {
                 name: mealType.name,
                 shortCode: mealType.shortCode,
                 includedMeals: mealType.includedMeals || [],
-                chargeableMeals: mealType.chargeableMeals || []
+                chargeableMeals: mealType.chargeableMeals || [],
+                price: mealType.price || ''
             });
         } else {
             setCurrentMealType(null);
@@ -57,7 +59,8 @@ const MealType = () => {
                 name: '',
                 shortCode: '',
                 includedMeals: [],
-                chargeableMeals: []
+                chargeableMeals: [],
+                price: ''
             });
         }
         setIsModalOpen(true);
@@ -77,19 +80,24 @@ const MealType = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        const payload = {
+            ...formData,
+            price: Number(formData.price) || 0
+        };
+
         try {
             let response;
             if (modalMode === 'add') {
                 response = await fetch(`${API_URL}/api/meal-types/add`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(payload)
                 });
             } else {
                 response = await fetch(`${API_URL}/api/meal-types/update/${currentMealType._id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(payload)
                 });
             }
 
@@ -140,6 +148,7 @@ const MealType = () => {
                                 <th style={{ width: '60px' }}>ID</th>
                                 <th>Meal Type</th>
                                 <th>Short Code</th>
+                                <th>Price</th>
                                 <th>Included Meals</th>
                                 <th>Chargeable</th>
                                 <th style={{ width: '120px', textAlign: 'right' }}>Actions</th>
@@ -151,6 +160,7 @@ const MealType = () => {
                                     <td>{index + 1}</td>
                                     <td>{meal.name}</td>
                                     <td>{meal.shortCode}</td>
+                                    <td>₹ {meal.price || 0}</td>
                                     <td>
                                         {meal.includedMeals.length > 0 ? meal.includedMeals.map(m => (
                                             <div key={m} className="meal-tag">✓ {m}</div>
@@ -208,6 +218,18 @@ const MealType = () => {
                                         placeholder="e.g. CP"
                                         className="form-input"
                                         style={{ textTransform: 'uppercase' }}
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Price</label>
+                                    <input
+                                        type="number"
+                                        value={formData.price}
+                                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                        placeholder="Enter Price"
+                                        className="form-input"
+                                        min="0"
                                     />
                                 </div>
 
