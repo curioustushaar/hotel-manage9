@@ -212,9 +212,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                 }],
                                 nights: reservation.nights || 1,
                                 status: reservation.status,
-                                roomCharges: reservation.amount,
+                                roomCharges: reservation.amount ? Math.round(reservation.amount / 1.12) : 0,
                                 discount: 0,
-                                tax: 0,
+                                tax: reservation.amount ? (reservation.amount - Math.round(reservation.amount / 1.12)) : 0,
                                 totalAmount: reservation.amount,
                                 paidAmount: reservation.paid || 0,
                                 balanceDue: reservation.balance || 0,
@@ -271,14 +271,15 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             status: booking.status === 'Upcoming' ? 'RESERVED' :
                 booking.status === 'Checked-in' || booking.status === 'IN_HOUSE' ? 'IN_HOUSE' :
                     booking.status === 'Checked-out' || booking.status === 'CHECKED_OUT' ? 'CHECKED_OUT' : 'RESERVED',
-            roomCharges: booking.totalAmount || 0,
+            roomCharges: (booking.pricePerNight || 0) * (booking.numberOfNights || 1),
             discount: 0,
-            tax: 0,
+            tax: (booking.totalAmount || 0) - ((booking.pricePerNight || 0) * (booking.numberOfNights || 1)),
             totalAmount: booking.totalAmount || 0,
             paidAmount: booking.advancePaid || 0,
             balanceDue: booking.remainingAmount || 0,
             paymentMode: 'Cash',
             taxExempt: false,
+            invoiceId: booking.invoiceId,
             idProofType: booking.idProofType,
             idProofNumber: booking.idProofNumber,
             vehicleNumber: booking.vehicleNumber,
@@ -467,6 +468,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         };
         return typeMapping[roomType] || 'deluxe-ac-double';
     };
+
+    // Current Date for Calendar Restriction
+    const today = new Date().toISOString().split('T')[0];
 
     // Form State - Reservation Meta
     const [reservationType, setReservationType] = useState('');
@@ -768,9 +772,41 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     // Handle Generate Invoice
     const handleGenerateInvoice = useCallback(async (reservation) => {
         if (reservation.actionType === 'viewInvoice') {
-            if (reservation.invoiceId) {
-                handleViewInvoice(reservation.invoiceId);
+            // 1. Try to find in local invoices state
+            let existingInvoice = invoices.find(inv =>
+                (inv.reservationId === reservation.id) ||
+                (reservation.id && inv.reservationId === reservation.id)
+            );
+
+            if (existingInvoice) {
+                setCurrentInvoice(existingInvoice);
+                setShowInvoiceModal(true);
+                return;
             }
+
+            // 2. If not found (e.g., after refresh), dynamically generate a view-only preview
+            console.log('📝 Regenerating invoice preview for:', reservation.guestName);
+
+            const billingDataForInvoice = {
+                roomCharges: reservation.roomCharges || 0,
+                totalDiscount: reservation.discount || 0,
+                subtotal: (reservation.roomCharges || 0) - (reservation.discount || 0),
+                taxAmount: reservation.tax || 0,
+                totalAmount: reservation.totalAmount || 0,
+                paidAmount: reservation.paidAmount || 0,
+                balanceDue: reservation.balanceDue || 0,
+                paymentMode: reservation.paymentMode || 'Cash'
+            };
+
+            const invoice = InvoiceGenerator.generateInvoice(reservation, billingDataForInvoice);
+            // Use existing ID if we have it, otherwise standard generation
+            if (reservation.invoiceId) {
+                invoice.invoiceId = reservation.invoiceId;
+            }
+            invoice.invoiceStatus = 'FINAL';
+
+            setCurrentInvoice(invoice);
+            setShowInvoiceModal(true);
             return;
         }
 
@@ -798,18 +834,35 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
             setInvoices([...invoices, invoice]);
             setCurrentInvoice(invoice);
-            setShowInvoiceModal(true);
 
-            setReservations(reservations.map(r =>
-                r.id === reservation.id ? {
-                    ...r,
-                    status: 'CHECKED_OUT',
-                    invoiceId: invoice.invoiceId,
-                    updatedAt: new Date().toISOString()
-                } : r
-            ));
+            // Persist status change to Database
+            try {
+                await fetch(`${API_URL}/status/${reservation.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: 'Checked-out',
+                        invoiceId: invoice.invoiceId
+                    })
+                });
 
-            alert('Invoice generated successfully!');
+                // Refresh list from server to stay in sync
+                await fetchReservationsFromAPI();
+                alert('Guest Checked-out successfully. Invoice generated and saved.');
+            } catch (error) {
+                console.error('Error updating status in DB:', error);
+
+                // Fallback to local update if API fails (not ideal but better than nothing)
+                setReservations(reservations.map(r =>
+                    r.id === reservation.id ? {
+                        ...r,
+                        status: 'CHECKED_OUT',
+                        invoiceId: invoice.invoiceId,
+                        updatedAt: new Date().toISOString()
+                    } : r
+                ));
+                alert('Checked-out locally. Database update failed.');
+            }
         } finally {
             setInvoiceGenerationInProgress(false);
         }
@@ -1186,7 +1239,13 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                 <div className="form-grid-2">
                                     <div className="form-row">
                                         <label>Check-In Date</label>
-                                        <input type="date" value={checkInDate} onChange={(e) => setCheckInDate(e.target.value)} required />
+                                        <input
+                                            type="date"
+                                            value={checkInDate}
+                                            min={today}
+                                            onChange={(e) => setCheckInDate(e.target.value)}
+                                            required
+                                        />
                                     </div>
                                     <div className="form-row">
                                         <label>Check-In Time</label>
@@ -1194,7 +1253,13 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                     </div>
                                     <div className="form-row">
                                         <label>Check-Out Date</label>
-                                        <input type="date" value={checkOutDate} onChange={(e) => setCheckOutDate(e.target.value)} required />
+                                        <input
+                                            type="date"
+                                            value={checkOutDate}
+                                            min={checkInDate || today}
+                                            onChange={(e) => setCheckOutDate(e.target.value)}
+                                            required
+                                        />
                                     </div>
                                     <div className="form-row">
                                         <label>Check-Out Time</label>

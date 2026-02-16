@@ -38,12 +38,22 @@ function HomePage() {
   )
 }
 
+import useGlobalClickSound from './hooks/useGlobalClickSound';
+import useTypingSound from './hooks/useTypingSound';
+
 function App() {
+  useGlobalClickSound();
+  useTypingSound();
+
   return (
     <AuthProvider>
       <Router>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<HomePage />} />
+          <Route path="/features" element={<HomePage />} />
+          <Route path="/pricing" element={<HomePage />} />
+          <Route path="/contact" element={<HomePage />} />
           <Route path="/login" element={<Login />} />
 
           {/* Protected Admin Routes */}

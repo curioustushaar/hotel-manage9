@@ -553,42 +553,10 @@ const RoomSetup = () => {
                                             </div>
                                         </div>
 
-                                        <div className="form-group">
-                                            <label>Smart Features</label>
-                                            <div className="toggle-row">
-                                                <div className="toggle-item">
-                                                    <label className="toggle-switch">
-                                                        <input
-                                                            type="checkbox"
-                                                            name="isSmartRoom"
-                                                            checked={formData.isSmartRoom}
-                                                            onChange={(e) => setFormData({ ...formData, isSmartRoom: e.target.checked })}
-                                                        />
-                                                        <span className="toggle-slider"></span>
-                                                    </label>
-                                                    <span className="toggle-label">Smart Room</span>
-                                                </div>
-                                            </div>
-                                        </div>
+
                                     </div>
 
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>Pricing Options</label>
-                                            <div className="toggle-item">
-                                                <label className="toggle-switch">
-                                                    <input
-                                                        type="checkbox"
-                                                        name="dynamicRateEnabled"
-                                                        checked={formData.dynamicRateEnabled}
-                                                        onChange={(e) => setFormData({ ...formData, dynamicRateEnabled: e.target.checked })}
-                                                    />
-                                                    <span className="toggle-slider"></span>
-                                                </label>
-                                                <span className="toggle-label">Dynamic Rate Enabled</span>
-                                            </div>
-                                        </div>
-                                    </div>
+
                                 </div>
 
 

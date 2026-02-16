@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import API_URL from '../config/api';
 
 const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = [], readOnly = false, checkInDate = new Date().toISOString().split('T')[0] }) => {
+    const prevCategoryId = useRef(room.categoryId);
+
     const handleChange = (field, value) => {
         onUpdate(index, { ...room, [field]: value });
     };
@@ -9,20 +11,33 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
     // Auto-fetch dynamic price when category changes
     useEffect(() => {
         const fetchPrice = async () => {
-            if (room.categoryId) {
+            const categoryChanged = room.categoryId !== prevCategoryId.current;
+
+            // Only fetch if category changed to prevent overwriting existing prices on load
+            if (room.categoryId && categoryChanged) {
                 try {
                     const res = await fetch(`${API_URL}/api/pricing/calculate/${room.categoryId}?date=${checkInDate}`);
                     const data = await res.json();
                     if (data.success && data.price) {
-                        handleChange('ratePerNight', data.price);
+                        const basePrice = data.price;
+                        // Calculate total with current meal plan
+                        const currentMeal = mealTypes.find(m => m.shortCode === room.mealPlan);
+                        const mealPrice = currentMeal ? (currentMeal.price || 0) : 0;
+
+                        onUpdate(index, {
+                            ...room,
+                            baseRate: basePrice,
+                            ratePerNight: basePrice + mealPrice
+                        });
                     }
                 } catch (err) {
                     console.error('Dynamic pricing fetch error:', err);
                 }
             }
+            prevCategoryId.current = room.categoryId;
         };
         fetchPrice();
-    }, [room.categoryId, checkInDate]);
+    }, [room.categoryId, checkInDate, mealTypes]);
 
     const category = roomCategories[room.categoryId];
     const baseRate = category?.baseRate || 0;
@@ -71,17 +86,40 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                     <label>Meal Plan</label>
                     <select
                         value={room.mealPlan}
-                        onChange={(e) => handleChange('mealPlan', e.target.value)}
+                        onChange={(e) => {
+                            const newPlan = e.target.value;
+
+                            // Find prices
+                            const oldMeal = mealTypes.find(m => m.shortCode === room.mealPlan);
+                            const newMeal = mealTypes.find(m => m.shortCode === newPlan);
+
+                            const oldMealPrice = oldMeal ? (oldMeal.price || 0) : 0;
+                            const newMealPrice = newMeal ? (newMeal.price || 0) : 0;
+
+                            // Calculate Base Rate (use stored or derive)
+                            let currentBase = room.baseRate;
+                            if (currentBase === undefined) {
+                                currentBase = (room.ratePerNight || 0) - oldMealPrice;
+                                if (currentBase < 0) currentBase = 0;
+                            }
+
+                            onUpdate(index, {
+                                ...room,
+                                mealPlan: newPlan,
+                                baseRate: currentBase,
+                                ratePerNight: currentBase + newMealPrice
+                            });
+                        }}
                     >
                         <option value="">Select Plan</option>
                         {mealTypes && mealTypes.length > 0 ? (
                             mealTypes.map(mt => (
                                 <option key={mt._id} value={mt.shortCode}>
-                                    {mt.shortCode} ({mt.name})
+                                    {mt.shortCode} ({mt.name}) - ₹{mt.price}
                                 </option>
                             ))
                         ) : (
-                            // Fallback if no meal types fetched
+                            // Fallback
                             <>
                                 <option value="CP">CP (Room Only)</option>
                                 <option value="MAP">MAP (B + D)</option>
@@ -117,7 +155,18 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                         type="number"
                         min="0"
                         value={room.ratePerNight}
-                        onChange={(e) => handleChange('ratePerNight', parseFloat(e.target.value) || 0)}
+                        onChange={(e) => {
+                            const newRate = parseFloat(e.target.value) || 0;
+                            // Update baseRate based on current meal plan
+                            const currentMeal = mealTypes.find(m => m.shortCode === room.mealPlan);
+                            const mealPrice = currentMeal ? (currentMeal.price || 0) : 0;
+
+                            onUpdate(index, {
+                                ...room,
+                                ratePerNight: newRate,
+                                baseRate: newRate - mealPrice
+                            });
+                        }}
                         readOnly={readOnly}
                     />
                 </div>

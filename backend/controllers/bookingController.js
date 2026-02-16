@@ -265,7 +265,7 @@ exports.deleteBooking = async (req, res) => {
 // Update booking status
 exports.updateBookingStatus = async (req, res) => {
     try {
-        const { status } = req.body;
+        const { status, invoiceId } = req.body;
         const validStatuses = ['Upcoming', 'Checked-in', 'Checked-out', 'Cancelled'];
 
         if (!validStatuses.includes(status)) {
@@ -275,9 +275,12 @@ exports.updateBookingStatus = async (req, res) => {
             });
         }
 
+        const updateData = { status, updatedAt: Date.now() };
+        if (invoiceId) updateData.invoiceId = invoiceId;
+
         const booking = await Booking.findByIdAndUpdate(
             req.params.id,
-            { status, updatedAt: Date.now() },
+            updateData,
             { new: true }
         );
 

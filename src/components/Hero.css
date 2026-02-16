@@ -1,15 +1,22 @@
+/* Hero Styles - Image 2 White Theme */
 .hero {
-    padding: 80px 20px;
-    background: linear-gradient(135deg, #fef2f4 0%, #ffffff 100%);
+    padding: 100px 20px;
+    background-color: #ffffff;
+    background-image: radial-gradient(#fecaca 1.5px, transparent 1.5px);
+    background-size: 30px 30px;
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
 }
 
 .hero-flex {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 3rem;
+    gap: 4rem;
     max-width: 1200px;
     margin: 0 auto;
+    width: 100%;
 }
 
 .hero-text {
@@ -17,17 +24,17 @@
 }
 
 .hero-text h1 {
-    font-size: 3rem;
-    font-weight: 700;
+    font-size: 3.5rem;
+    font-weight: 800;
     color: #1f2937;
     margin-bottom: 1.5rem;
-    line-height: 1.2;
+    line-height: 1.1;
 }
 
 .hero-text p {
     font-size: 1.25rem;
-    color: #6b7280;
-    margin-bottom: 2rem;
+    color: #4b5563;
+    margin-bottom: 2.5rem;
     line-height: 1.6;
 }
 
@@ -38,15 +45,16 @@
     border: none;
     border-radius: 8px;
     font-size: 1.1rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(225, 29, 72, 0.3);
 }
 
 .cta-btn:hover {
     background: #be123c;
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(225, 29, 72, 0.3);
+    box-shadow: 0 6px 20px rgba(225, 29, 72, 0.4);
 }
 
 .hero-image {
@@ -59,27 +67,20 @@
     width: 100%;
     max-width: 500px;
     height: auto;
+    filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.1));
 }
 
 @media (max-width: 768px) {
     .hero {
-        padding: 40px 20px;
+        padding: 60px 20px;
+        text-align: center;
     }
 
     .hero-flex {
         flex-direction: column;
-        text-align: center;
     }
 
     .hero-text h1 {
-        font-size: 2rem;
-    }
-
-    .hero-text p {
-        font-size: 1rem;
-    }
-
-    .hero-image {
-        margin-top: 2rem;
+        font-size: 2.5rem;
     }
 }

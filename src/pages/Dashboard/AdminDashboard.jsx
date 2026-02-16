@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import soundManager from '../../utils/soundManager';
 import API_URL from '../../config/api';
 import FoodMenuDashboard from '../FoodMenu/FoodMenuDashboard';
 import FoodOrderPage from '../../components/FoodOrderPage';
@@ -560,10 +561,9 @@ const AdminDashboard = () => {
             price: '',
             capacity: '',
             floor: '',
-            isSmartRoom: false,
-            dynamicRateEnabled: false,
-            weekendMultiplier: 1.2,
-            seasonalMultiplier: 1.1
+            bedType: 'Double',
+            status: 'Available',
+            isSmartRoom: false
         });
         setRoomErrorMessage('');
         setPriceOption('custom');
@@ -579,10 +579,9 @@ const AdminDashboard = () => {
             price: room.price.toString(),
             capacity: room.capacity.toString(),
             floor: room.floor || '',
-            isSmartRoom: room.isSmartRoom || false,
-            dynamicRateEnabled: room.dynamicRateEnabled || false,
-            weekendMultiplier: room.weekendMultiplier || 1.2,
-            seasonalMultiplier: room.seasonalMultiplier || 1.1
+            bedType: room.bedType || 'Double',
+            status: room.status || 'Available',
+            isSmartRoom: room.isSmartRoom || false
         });
         setRoomErrorMessage('');
         setPriceOption('custom');
@@ -606,11 +605,10 @@ const AdminDashboard = () => {
                     floor: roomFormData.floor,
                     capacity: parseInt(roomFormData.capacity),
                     price: parseInt(roomFormData.price),
-                    status: 'Available',
+                    bedType: roomFormData.bedType,
+                    status: roomFormData.status,
                     isSmartRoom: roomFormData.isSmartRoom,
-                    dynamicRateEnabled: roomFormData.dynamicRateEnabled,
-                    weekendMultiplier: parseFloat(roomFormData.weekendMultiplier),
-                    seasonalMultiplier: parseFloat(roomFormData.seasonalMultiplier)
+
                 };
 
                 const response = await fetch(`${API_URL}/api/rooms/add`, {
@@ -626,6 +624,7 @@ const AdminDashboard = () => {
                     return;
                 }
 
+                soundManager.play('success');
                 await fetchRoomsFromAPI();
                 setShowAddRoomModal(false);
             } else if (showEditRoomModal) {
@@ -635,10 +634,10 @@ const AdminDashboard = () => {
                     floor: roomFormData.floor,
                     capacity: parseInt(roomFormData.capacity),
                     price: parseInt(roomFormData.price),
+                    bedType: roomFormData.bedType,
+                    status: roomFormData.status,
                     isSmartRoom: roomFormData.isSmartRoom,
-                    dynamicRateEnabled: roomFormData.dynamicRateEnabled,
-                    weekendMultiplier: parseFloat(roomFormData.weekendMultiplier),
-                    seasonalMultiplier: parseFloat(roomFormData.seasonalMultiplier)
+
                 };
 
                 const response = await fetch(`${API_URL}/api/rooms/update/${currentRoom._id}`, {
@@ -655,6 +654,7 @@ const AdminDashboard = () => {
                 }
 
                 await fetchRoomsFromAPI();
+                soundManager.play('success');
                 setShowEditRoomModal(false);
             }
 
@@ -706,6 +706,11 @@ const AdminDashboard = () => {
 
     const handleUpdateRoomStatusPanel = (updatedRoom) => {
         setRooms(prevRooms => prevRooms.map(r => r._id === updatedRoom._id ? updatedRoom : r));
+        if (updatedRoom.status === 'Under Maintenance' || updatedRoom.status === 'Dirty') {
+            soundManager.play('alert');
+        } else if (updatedRoom.status === 'Available') {
+            soundManager.play('success');
+        }
     };
 
     const handleQuickBook = (room) => {
@@ -776,8 +781,8 @@ const AdminDashboard = () => {
 
                                 <select className="filter-select" value={filters.roomType} onChange={(e) => setFilters({ ...filters, roomType: e.target.value })}>
                                     <option value="All">Room Type: All</option>
-                                    {roomTypes.map(type => (
-                                        <option key={type._id} value={type.name}>{type.name}</option>
+                                    {getAllRoomTypes().filter(t => t !== 'All Types').map(type => (
+                                        <option key={type} value={type}>{type}</option>
                                     ))}
                                 </select>
 
@@ -834,11 +839,9 @@ const AdminDashboard = () => {
                                                         📅 Book
                                                     </button>
                                                 )}
-                                                {room.status === 'Available' && (
-                                                    <button className="edit-btn" onClick={(e) => { e.stopPropagation(); handleEditRoom(room); }}>
-                                                        ✏️ Edit
-                                                    </button>
-                                                )}
+                                                <button className="edit-btn" onClick={(e) => { e.stopPropagation(); handleEditRoom(room); }}>
+                                                    ✏️ Edit
+                                                </button>
                                             </div>
                                         </div>
                                     </motion.div>
@@ -1391,110 +1394,50 @@ const AdminDashboard = () => {
                                         onChange={(e) => setRoomFormData({ ...roomFormData, roomType: e.target.value })}
                                     >
                                         <option value="">-- Select Room Type --</option>
-                                        {roomTypes.map(type => (
+                                        {getAllRoomTypes().filter(t => t !== 'All Types').map(type => (
+                                            <option key={type} value={type}>{type}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="form-group">
+                                    <label>BED TYPE *</label>
+                                    <select
+                                        className="form-input"
+                                        value={roomFormData.bedType}
+                                        onChange={(e) => setRoomFormData({ ...roomFormData, bedType: e.target.value })}
+                                    >
+                                        {bedTypes.map(type => (
                                             <option key={type._id} value={type.name}>{type.name}</option>
                                         ))}
                                     </select>
                                 </div>
 
-                                {currentPricing && (
-                                    <div className="pricing-info" style={{ borderRadius: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', marginBottom: '1.25rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                                            <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Allowed Range</span>
-                                            <span style={{ fontSize: '12px', fontWeight: '800', color: '#1e293b' }}>₹{currentPricing.minPrice} – ₹{currentPricing.maxPrice}</span>
-                                        </div>
-                                        <div className="range-bar" style={{ height: '6px', background: '#e2e8f0', borderRadius: '10px', position: 'relative', overflow: 'hidden' }}>
-                                            <div style={{ height: '100%', background: '#ff4d4d', width: '100%' }}></div>
-                                        </div>
-                                    </div>
-                                )}
+                                <div className="form-group">
+                                    <label>STATUS *</label>
+                                    <select
+                                        className="form-input"
+                                        value={roomFormData.status}
+                                        onChange={(e) => setRoomFormData({ ...roomFormData, status: e.target.value })}
+                                    >
+                                        {statusOptions.slice(1).map(status => (
+                                            <option key={status} value={status}>{status}</option>
+                                        ))}
+                                    </select>
+                                </div>
 
                                 <div className="form-group">
                                     <label>PRICE PER NIGHT (₹) *</label>
-                                    <select
-                                        className="form-input"
-                                        value={priceOption}
-                                        onChange={(e) => {
-                                            const opt = e.target.value;
-                                            setPriceOption(opt);
-                                            if (currentPricing) {
-                                                if (opt === 'min') setRoomFormData({ ...roomFormData, price: currentPricing.minPrice.toString() });
-                                                else if (opt === 'mid') setRoomFormData({ ...roomFormData, price: Math.round((currentPricing.minPrice + currentPricing.maxPrice) / 2).toString() });
-                                                else if (opt === 'max') setRoomFormData({ ...roomFormData, price: currentPricing.maxPrice.toString() });
-                                            }
-                                        }}
-                                        style={{ marginBottom: '10px' }}
-                                    >
-                                        <option value="custom">Custom Price</option>
-                                        {currentPricing && (
-                                            <>
-                                                <option value="min">Suggested Min (₹{currentPricing.minPrice})</option>
-                                                <option value="mid">Mid Price (₹{Math.round((currentPricing.minPrice + currentPricing.maxPrice) / 2)})</option>
-                                                <option value="max">Suggested Max (₹{currentPricing.maxPrice})</option>
-                                            </>
-                                        )}
-                                    </select>
-
                                     <input
                                         type="number"
                                         className="form-input"
-                                        style={{ borderColor: (currentPricing && (roomFormData.price < currentPricing.minPrice || roomFormData.price > currentPricing.maxPrice)) ? '#ef4444' : '#e2e8f0' }}
                                         placeholder="Enter Amount"
                                         value={roomFormData.price}
-                                        onChange={(e) => {
-                                            setRoomFormData({ ...roomFormData, price: e.target.value });
-                                            setPriceOption('custom');
-                                        }}
-                                        disabled={priceOption !== 'custom'}
+                                        onChange={(e) => setRoomFormData({ ...roomFormData, price: e.target.value })}
                                     />
-                                    {currentPricing && (roomFormData.price < currentPricing.minPrice || roomFormData.price > currentPricing.maxPrice) && (
-                                        <p style={{ color: '#ef4444', fontSize: '11px', marginTop: '5px', fontWeight: '600' }}>
-                                            ⚠️ Price must be between ₹{currentPricing.minPrice} and ₹{currentPricing.maxPrice}
-                                        </p>
-                                    )}
                                 </div>
 
-                                <div className="form-group" style={{ background: '#fff1f2', padding: '15px', borderRadius: '12px', border: '1px solid #fecaca' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                                        <input
-                                            type="checkbox"
-                                            id="dynamic-pricing"
-                                            checked={roomFormData.dynamicRateEnabled}
-                                            onChange={(e) => setRoomFormData({ ...roomFormData, dynamicRateEnabled: e.target.checked })}
-                                            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                                        />
-                                        <label htmlFor="dynamic-pricing" style={{ margin: 0, fontWeight: '700', color: '#b91c1c', cursor: 'pointer' }}>
-                                            Enable Dynamic Pricing Engine
-                                        </label>
-                                    </div>
 
-                                    {roomFormData.dynamicRateEnabled && (
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                            <div>
-                                                <label style={{ fontSize: '10px', fontWeight: '800', color: '#991b1b' }}>WEEKEND MULTIPLIER</label>
-                                                <input
-                                                    type="number"
-                                                    step="0.1"
-                                                    className="form-input"
-                                                    value={roomFormData.weekendMultiplier}
-                                                    onChange={(e) => setRoomFormData({ ...roomFormData, weekendMultiplier: e.target.value })}
-                                                    style={{ height: '35px', fontSize: '12px' }}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label style={{ fontSize: '10px', fontWeight: '800', color: '#991b1b' }}>SEASON MULTIPLIER</label>
-                                                <input
-                                                    type="number"
-                                                    step="0.1"
-                                                    className="form-input"
-                                                    value={roomFormData.seasonalMultiplier}
-                                                    onChange={(e) => setRoomFormData({ ...roomFormData, seasonalMultiplier: e.target.value })}
-                                                    style={{ height: '35px', fontSize: '12px' }}
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
 
                                 <div className="form-group">
                                     <label>ROOM CAPACITY *</label>
@@ -1514,8 +1457,6 @@ const AdminDashboard = () => {
                                     <button
                                         type="submit"
                                         className="btn-submit"
-                                        disabled={currentPricing && (roomFormData.price < currentPricing.minPrice || roomFormData.price > currentPricing.maxPrice)}
-                                        style={{ opacity: (currentPricing && (roomFormData.price < currentPricing.minPrice || roomFormData.price > currentPricing.maxPrice)) ? 0.5 : 1 }}
                                     >
                                         Add Room
                                     </button>
@@ -1570,8 +1511,34 @@ const AdminDashboard = () => {
                                         onChange={(e) => setRoomFormData({ ...roomFormData, roomType: e.target.value })}
                                     >
                                         <option value="">-- Select Room Type --</option>
-                                        {roomTypes.map(type => (
+                                        {getAllRoomTypes().filter(t => t !== 'All Types').map(type => (
+                                            <option key={type} value={type}>{type}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="form-group">
+                                    <label>BED TYPE *</label>
+                                    <select
+                                        className="form-input"
+                                        value={roomFormData.bedType}
+                                        onChange={(e) => setRoomFormData({ ...roomFormData, bedType: e.target.value })}
+                                    >
+                                        {bedTypes.map(type => (
                                             <option key={type._id} value={type.name}>{type.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="form-group">
+                                    <label>STATUS *</label>
+                                    <select
+                                        className="form-input"
+                                        value={roomFormData.status}
+                                        onChange={(e) => setRoomFormData({ ...roomFormData, status: e.target.value })}
+                                    >
+                                        {statusOptions.slice(1).map(status => (
+                                            <option key={status} value={status}>{status}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -1626,6 +1593,11 @@ const AdminDashboard = () => {
                                         }}
                                         disabled={priceOption !== 'custom'}
                                     />
+
+
+
+
+
                                     {currentPricing && (roomFormData.price < currentPricing.minPrice || roomFormData.price > currentPricing.maxPrice) && (
                                         <p style={{ color: '#ef4444', fontSize: '11px', marginTop: '5px', fontWeight: '600' }}>
                                             ⚠️ Price must be between ₹{currentPricing.minPrice} and ₹{currentPricing.maxPrice}
@@ -1633,47 +1605,7 @@ const AdminDashboard = () => {
                                     )}
                                 </div>
 
-                                <div className="form-group" style={{ background: '#fff1f2', padding: '15px', borderRadius: '12px', border: '1px solid #fecaca' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                                        <input
-                                            type="checkbox"
-                                            id="dynamic-pricing-edit"
-                                            checked={roomFormData.dynamicRateEnabled}
-                                            onChange={(e) => setRoomFormData({ ...roomFormData, dynamicRateEnabled: e.target.checked })}
-                                            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                                        />
-                                        <label htmlFor="dynamic-pricing-edit" style={{ margin: 0, fontWeight: '700', color: '#b91c1c', cursor: 'pointer' }}>
-                                            Enable Dynamic Pricing Engine
-                                        </label>
-                                    </div>
 
-                                    {roomFormData.dynamicRateEnabled && (
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                            <div>
-                                                <label style={{ fontSize: '10px', fontWeight: '800', color: '#991b1b' }}>WEEKEND MULTIPLIER</label>
-                                                <input
-                                                    type="number"
-                                                    step="0.1"
-                                                    className="form-input"
-                                                    value={roomFormData.weekendMultiplier}
-                                                    onChange={(e) => setRoomFormData({ ...roomFormData, weekendMultiplier: e.target.value })}
-                                                    style={{ height: '35px', fontSize: '12px' }}
-                                                />
-                                            </div>
-                                            <div>
-                                                <label style={{ fontSize: '10px', fontWeight: '800', color: '#991b1b' }}>SEASON MULTIPLIER</label>
-                                                <input
-                                                    type="number"
-                                                    step="0.1"
-                                                    className="form-input"
-                                                    value={roomFormData.seasonalMultiplier}
-                                                    onChange={(e) => setRoomFormData({ ...roomFormData, seasonalMultiplier: e.target.value })}
-                                                    style={{ height: '35px', fontSize: '12px' }}
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
 
                                 <div className="form-group">
                                     <label>ROOM CAPACITY *</label>
@@ -1700,8 +1632,8 @@ const AdminDashboard = () => {
                                     </button>
                                 </div>
                             </form>
-                        </motion.div>
-                    </div>
+                        </motion.div >
+                    </div >
                 )
             }
 

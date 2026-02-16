@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import soundManager from '../utils/soundManager';
 import RoleBadge from './RoleBadge';
 import './AdminNavbar.css';
 
@@ -13,6 +14,13 @@ const AdminNavbar = ({
     const navigate = useNavigate();
     const { user } = useAuth(); // Get current user
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+    const [soundEnabled, setSoundEnabled] = useState(soundManager.isEnabled());
+
+    const toggleSound = () => {
+        const newState = !soundEnabled;
+        setSoundEnabled(newState);
+        soundManager.toggle(newState);
+    };
 
     // Hardcoded user initials as per Image 2 (HY)
     const userInitials = "HY";
@@ -48,6 +56,16 @@ const AdminNavbar = ({
             </div>
 
             <div className="top-bar-right">
+                {/* Sound Toggle */}
+                <button
+                    className="top-icon-btn"
+                    title={soundEnabled ? "Mute Sounds" : "Enable Sounds"}
+                    onClick={toggleSound}
+                    style={{ marginRight: '10px' }}
+                >
+                    <span style={{ fontSize: '18px' }}>{soundEnabled ? '🔊' : '🔇'}</span>
+                </button>
+
                 {/* Icons from Image 2: Monitor, Gear, H, Mail, Avatar */}
                 {/* 1. Monitor Icon */}
                 <button className="top-icon-btn" title="Guest Meal Service" onClick={() => navigate('/admin/guest-meal-service')}>
