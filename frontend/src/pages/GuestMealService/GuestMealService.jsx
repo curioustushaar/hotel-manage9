@@ -510,11 +510,61 @@ const GuestMealService = () => {
     };
 
     const handleReserveSubmit = async () => {
-        if (!reserveTargetTable || !reserveFormData.name || !reserveFormData.startTime || !reserveFormData.endTime) return;
+        if (!reserveTargetTable || !reserveFormData.name || !reserveFormData.startTime || !reserveFormData.endTime) {
+            alert("Please fill all required fields.");
+            return;
+        }
 
+        // --- VALIDATIONS ---
+        // 1. Phone Validation (10 digits)
+        if (reserveFormData.phone && !/^\d{10}$/.test(reserveFormData.phone)) {
+            alert("Phone number must be exactly 10 digits.");
+            return;
+        }
+
+        // 2. Name Validation (Alphabets only)
+        if (!/^[a-zA-Z\s]+$/.test(reserveFormData.name)) {
+            alert("Guest name should only contain alphabets.");
+            return;
+        }
+
+        // 3. Duration Validation (Min 30 mins)
+        const [sh, sm] = reserveFormData.startTime.split(':').map(Number);
+        const [eh, em] = reserveFormData.endTime.split(':').map(Number);
+        const startTotal = sh * 60 + sm;
+        const endTotal = eh * 60 + em;
+
+        if (endTotal <= startTotal) {
+            alert("End time must be after start time.");
+            return;
+        }
+
+        if (endTotal - startTotal < 30) {
+            alert("Reservation duration must be at least 30 minutes.");
+            return;
+        }
+
+        // 4. Past Time Validation
+        const now = new Date();
+        const selectedDate = new Date(reserveFormData.date);
+        const todayStr = now.toISOString().split('T')[0];
+
+        if (reserveFormData.date === todayStr) {
+            const currentTotal = now.getHours() * 60 + now.getMinutes();
+            if (startTotal < currentTotal) {
+                alert("Cannot book a reservation for a past time.");
+                return;
+            }
+        } else if (selectedDate < new Date().setHours(0, 0, 0, 0)) {
+            alert("Cannot book a reservation for a past date.");
+            return;
+        }
+
+        // 5. Time Conflict Validation matches user request: "same time pe do log na kare"
+        // Also checks explicit overlap range
         const conflict = checkReservationConflict(reserveTargetTable, reserveFormData);
         if (conflict) {
-            alert(`Conflict! Table is already reserved for ${conflict.startTime} - ${conflict.endTime} by ${conflict.name}`);
+            alert(`Conflict! Table is already reserved for this time slot:\n${conflict.startTime} - ${conflict.endTime} by ${conflict.name}`);
             return;
         }
 
@@ -1367,11 +1417,12 @@ const GuestMealService = () => {
                                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#4b5563' }}>Guest Mobile Number</label>
                                     <div style={{ position: 'relative' }}>
                                         <input
-                                            type="text" className="form-input" placeholder="Enter phone number"
+                                            type="tel" className="form-input" placeholder="Enter phone number (10 digits)"
+                                            maxLength={10}
                                             style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '1rem' }}
                                             value={reserveFormData.phone}
                                             onChange={e => {
-                                                const val = e.target.value;
+                                                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
                                                 // Auto-fill name if phone exists in any table's reservations
                                                 let existingName = '';
                                                 tables.forEach(t => {
@@ -1388,10 +1439,14 @@ const GuestMealService = () => {
                                 <div className="form-group" style={{ marginBottom: '16px' }}>
                                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#4b5563' }}>Guest Name</label>
                                     <input
-                                        type="text" className="form-input" placeholder="Enter guest name"
+                                        type="text" className="form-input" placeholder="Enter guest name (Alphabets only)"
                                         style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '1rem' }}
                                         value={reserveFormData.name}
-                                        onChange={e => setReserveFormData({ ...reserveFormData, name: e.target.value })}
+                                        onChange={e => {
+                                            if (/^[a-zA-Z\s]*$/.test(e.target.value)) {
+                                                setReserveFormData({ ...reserveFormData, name: e.target.value });
+                                            }
+                                        }}
                                     />
                                 </div>
 
@@ -1400,6 +1455,7 @@ const GuestMealService = () => {
                                         <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#4b5563' }}>Date</label>
                                         <input
                                             type="date" className="form-input"
+                                            min={new Date().toISOString().split('T')[0]} // Restrict past dates
                                             style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                                             value={reserveFormData.date}
                                             onChange={e => setReserveFormData({ ...reserveFormData, date: e.target.value })}
@@ -1451,7 +1507,8 @@ const GuestMealService = () => {
                                     if (conflict) {
                                         return (
                                             <div style={{ marginTop: '12px', padding: '10px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#dc2626', fontSize: '0.85rem', fontWeight: '600' }}>
-                                                ⚠️ Reservation already exist: {conflict.startTime} - {conflict.endTime} ({conflict.name})
+                                                ⚠️ Reservation Overlap Detected: <br />
+                                                {conflict.startTime} - {conflict.endTime} ({conflict.name})
                                             </div>
                                         );
                                     }
@@ -1619,21 +1676,21 @@ const GuestMealService = () => {
                                     </div>
                                 ) : (
                                     <div className="reservation-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                        {[...reservationListTable.reservations]
-                                            .filter(res =>
-                                                res.name.toLowerCase().includes(reservationSearchQuery.toLowerCase()) ||
-                                                res.phone.includes(reservationSearchQuery)
-                                            )
-                                            .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                                        {(reservationListTable.reservations || [])
+                                            .filter(res => res && (
+                                                (res.name || '').toLowerCase().includes((reservationSearchQuery || '').toLowerCase()) ||
+                                                (res.phone || '').includes(reservationSearchQuery || '')
+                                            ))
+                                            .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''))
                                             .map((res, index) => (
                                                 <div key={res.id || index} style={{
                                                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                                                     padding: '12px 16px', background: '#f9fafb', borderRadius: '12px', border: '1px solid #f3f4f6'
                                                 }}>
                                                     <div>
-                                                        <div style={{ fontWeight: '700', color: '#111827', fontSize: '1rem' }}>{res.startTime} - {res.name}</div>
+                                                        <div style={{ fontWeight: '700', color: '#111827', fontSize: '1rem' }}>{res.startTime || 'N/A'} - {res.name || 'Guest'}</div>
                                                         <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                                                            {res.guests} Guests • {res.phone} {res.date && `• ${res.date}`}
+                                                            {res.guests || 0} Guests • {res.phone || 'No Phone'} {res.date && `• ${res.date}`}
                                                         </div>
                                                         {res.note && <div style={{ fontSize: '0.8rem', color: '#dc2626', marginTop: '4px' }}>Note: {res.note}</div>}
                                                     </div>

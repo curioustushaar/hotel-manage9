@@ -1,52 +1,70 @@
 const mongoose = require('mongoose');
 
 const visitorSchema = new mongoose.Schema({
-    // Determines existing guest or new visitor
-    guest: {
+    // Relationship links
+    reservationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Booking',
+        required: true,
+        index: true
+    },
+    roomId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Room',
+        required: true,
+        index: true
+    },
+    guestId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Guest',
-        required: false // If null, use name/mobile below
+        required: false
     },
 
-    // Visitor details if not a registered guest
+    // Visitor Details
     name: {
         type: String,
         trim: true,
-        required: function () { return !this.guest; }
+        required: true
     },
     mobile: {
         type: String,
         trim: true,
-        required: function () { return !this.guest; }
-    },
-
-    // Visit Context
-    booking: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Booking',
         required: true
     },
-    room: { // Explicit room ref for easier querying "Current visitors in Room 101"
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Room'
-    },
+    idType: String,
+    idNumber: String,
 
     purpose: String,
+    chargeAmount: {
+        type: Number,
+        default: 0
+    },
 
     // Timings
-    checkIn: {
+    inTime: {
         type: Date,
         default: Date.now
     },
-    checkOut: Date,
+    outTime: Date,
 
     status: {
         type: String,
-        enum: ['Active', 'Exited', 'Overstay'],
-        default: 'Active'
+        enum: ['ACTIVE', 'EXITED', 'OVERSTAY'],
+        default: 'ACTIVE'
+    },
+    isConvertedToGuest: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true
 });
+
+// Virtual aliases for compatibility if needed
+visitorSchema.virtual('reservation').get(function () { return this.reservationId; });
+visitorSchema.virtual('room').get(function () { return this.roomId; });
+visitorSchema.virtual('checkIn').get(function () { return this.inTime; });
+visitorSchema.virtual('checkOut').get(function () { return this.outTime; });
+
 
 module.exports = mongoose.model('Visitor', visitorSchema);

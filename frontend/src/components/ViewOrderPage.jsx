@@ -16,6 +16,13 @@ const ViewOrderPage = () => {
     const [loading, setLoading] = useState(true);
 
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [toast, setToast] = useState(null);
+
+    // Show toast notification
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    };
 
     // Local storage for preparing start times
     const [preparingTimes, setPreparingTimes] = useState({});
@@ -44,10 +51,12 @@ const ViewOrderPage = () => {
                     id: order._id,
                     createdAt: new Date(order.createdAt),
                     time: new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    table: order.roomNumber || order.tableNumber.toString(),
+                    table: order.roomNumber || order.tableNumber?.toString() || '-',
                     type: order.orderType || 'Dine In',
                     items: order.items || [],
-                    status: order.status === 'Active' ? 'Pending' : order.status,
+                    status: order.status === 'Active' ? 'Pending' :
+                        order.status === 'Started' ? 'In Service' : order.status,
+                    rawStatus: order.status, // Keep raw for API calls
                     amount: order.finalAmount || 0,
                     updatedAt: new Date(order.updatedAt),
                     guestName: order.guestName || ''
@@ -72,7 +81,7 @@ const ViewOrderPage = () => {
 
     useEffect(() => {
         fetchOrders();
-        const interval = setInterval(fetchOrders, 30000);
+        const interval = setInterval(fetchOrders, 10000);
         return () => clearInterval(interval);
     }, []);
 
@@ -82,11 +91,13 @@ const ViewOrderPage = () => {
         if (orderIndex === -1) return;
 
         const order = orders[orderIndex];
-        if (order.status === 'Billed' || order.status === newStatus) return;
+        // Use rawStatus for comparison to avoid display-mapped values
+        const currentRaw = order.rawStatus || order.status;
+        if (currentRaw === 'Billed' || currentRaw === newStatus) return;
 
         // Validation: No backward transition
-        if (order.status === 'Ready' && (newStatus === 'Preparing' || newStatus === 'Pending')) return;
-        if (order.status === 'Preparing' && newStatus === 'Pending') return;
+        if ((currentRaw === 'Ready' || order.status === 'Ready') && (newStatus === 'Preparing' || newStatus === 'Pending')) return;
+        if ((currentRaw === 'Preparing' || order.status === 'Preparing') && newStatus === 'Pending') return;
 
         // OPTIMISTIC UPDATE
         const previousOrders = [...orders];
@@ -124,30 +135,30 @@ const ViewOrderPage = () => {
     };
 
     const handleSendNotification = async (orderId, status) => {
-        if (status !== 'Ready') {
+        if (status !== 'Ready' && status !== 'In Service') {
             alert('Order must be READY before sending.');
             return;
         }
 
-        // Find the order to check its type
         const order = orders.find(o => o.id === orderId);
         if (!order) return;
 
-        if (order.type === 'Take Away' || order.type === 'Post to Room' || order.type === 'Room Order') {
-            // Take Away / Room Service: Set to 'Pending Payment' and navigate to cashier
+        if (order.type === 'Post to Room' || order.type === 'Room Order') {
+            // Room Service: Mark as 'Started' → shows in Room Service 'In Service' tab
+            const success = await handleStatusUpdate(orderId, 'Started');
+            if (success) showToast('✅ Order sent — delivery started!');
+        } else if (order.type === 'Take Away') {
             const success = await handleStatusUpdate(orderId, 'Pending Payment');
-            if (success) {
-                alert('Order sent to cashier successfully');
-            }
+            if (success) showToast('✅ Order sent to cashier!');
         } else {
-            // Table orders: Set to 'Served' (green blink in table view)
             await handleStatusUpdate(orderId, 'Served');
+            showToast('✅ Order served to table!');
         }
     };
 
     const handleCompleteOrder = (orderId, status) => {
-        if (status !== 'Ready') {
-            alert('Order must be READY before completing.');
+        if (status !== 'Ready' && status !== 'In Service') {
+            alert('Order must be READY or In Service before completing.');
             return;
         }
         handleStatusUpdate(orderId, 'Billed');
@@ -180,6 +191,25 @@ const ViewOrderPage = () => {
 
     return (
         <div className="view-order-container">
+            {/* Toast Notification */}
+            {toast && (
+                <div style={{
+                    position: 'fixed',
+                    top: '80px',
+                    right: '24px',
+                    background: toast.type === 'success' ? '#22c55e' : '#ef4444',
+                    color: '#fff',
+                    padding: '12px 20px',
+                    borderRadius: '10px',
+                    fontWeight: '600',
+                    fontSize: '14px',
+                    zIndex: 9999,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                    animation: 'slideInRight 0.3s ease'
+                }}>
+                    {toast.message}
+                </div>
+            )}
             {/* Top Tabs */}
             <div className="view-order-tabs">
                 {['Bill View', 'KOT View', 'Outlet Current Status', 'Item Stock Status'].map(tab => (
@@ -227,13 +257,12 @@ const ViewOrderPage = () => {
                     <div className="orders-grid">
                         {filteredOrders.map(order => {
                             const isBilled = order.status === 'Billed';
-                            const isReady = order.status === 'Ready';
+                            const isReady = order.status === 'Ready' || order.status === 'In Service';
                             const pendingElapsed = getMinutesElapsed(order.createdAt);
                             const prepElapsed = getMinutesElapsed(preparingTimes[order.id]);
 
                             return (
                                 <div className={`order-card ${isBilled ? 'completed' : ''}`} key={order.id}>
-                                    {/* Header */}
                                     {/* Header - Clickable for navigation */}
                                     <div
                                         className="card-header"
@@ -242,9 +271,8 @@ const ViewOrderPage = () => {
                                             if (order.type === 'Take Away') {
                                                 navigate('/admin/cashier', { state: { activeTab: 'Take Away' } });
                                             } else if (order.type === 'Post to Room' || order.type === 'Room Order') {
-                                                navigate('/admin/dashboard', { state: { activeMenu: 'reservations', viewMode: 'roomservice' } });
+                                                navigate('/admin/dashboard', { state: { activeMenu: 'guest-meal-service' } });
                                             } else {
-                                                // For table orders (Dine In), navigate to guest meal service
                                                 navigate('/admin/dashboard', { state: { activeMenu: 'guestmealservice' } });
                                             }
                                         }}
@@ -268,6 +296,11 @@ const ViewOrderPage = () => {
                                             {prepElapsed > 15 ? `⚠️ DELAY in preparation (${prepElapsed}m)` : `Preparing • ${prepElapsed}m`}
                                         </div>
                                     )}
+                                    {!isBilled && order.status === 'In Service' && (
+                                        <div className="status-strip" style={{ background: '#8b5cf6', color: '#fff', fontWeight: '700' }}>
+                                            🛵 In Service — Delivery on the way
+                                        </div>
+                                    )}
                                     {(isBilled || order.status === 'Ready') && (
                                         <div className="status-strip"></div>
                                     )}
@@ -287,25 +320,28 @@ const ViewOrderPage = () => {
                                         </div>
                                     </div>
 
-                                    {/* Status Buttons Row */}
+                                    {/* Status Buttons Row — locked when In Service */}
                                     <div className="status-actions">
                                         <button
-                                            className={`status-btn ${order.status === 'Pending' && !isBilled ? 'blinking pending' : ''} ${isBilled ? 'disabled' : ''}`}
+                                            className={`status-btn ${order.status === 'Pending' && !isBilled ? 'blinking pending' : ''} ${(isBilled || order.status === 'In Service') ? 'disabled' : ''}`}
                                             onClick={() => handleStatusUpdate(order.id, 'Pending')}
+                                            disabled={isBilled || order.status === 'In Service'}
                                         >
                                             <span className="status-icon">⏱</span>
                                             <span>Pending</span>
                                         </button>
                                         <button
-                                            className={`status-btn ${order.status === 'Preparing' && !isBilled ? 'blinking preparing' : ''} ${isBilled ? 'disabled' : ''}`}
+                                            className={`status-btn ${order.status === 'Preparing' && !isBilled ? 'blinking preparing' : ''} ${(isBilled || order.status === 'In Service') ? 'disabled' : ''}`}
                                             onClick={() => handleStatusUpdate(order.id, 'Preparing')}
+                                            disabled={isBilled || order.status === 'In Service'}
                                         >
                                             <span className="status-icon">🔥</span>
                                             <span>Preparing</span>
                                         </button>
                                         <button
-                                            className={`status-btn ${order.status === 'Ready' && !isBilled ? 'blinking ready' : ''} ${isBilled ? 'disabled' : ''}`}
+                                            className={`status-btn ${order.status === 'Ready' && !isBilled ? 'blinking ready' : ''} ${(isBilled || order.status === 'In Service') ? 'disabled' : ''}`}
                                             onClick={() => handleStatusUpdate(order.id, 'Ready')}
+                                            disabled={isBilled || order.status === 'In Service'}
                                         >
                                             <span className="status-icon">✔</span>
                                             <span>Ready</span>
@@ -315,7 +351,7 @@ const ViewOrderPage = () => {
                                     {/* Footer Actions */}
                                     <div className="card-footer">
                                         <button
-                                            className={`action-btn send ${order.status === 'Ready' && !isBilled ? 'blinking-green' : ''} ${!isReady || isBilled ? 'disabled' : ''}`}
+                                            className={`action-btn send ${isReady && !isBilled ? 'blinking-green' : ''} ${!isReady || isBilled ? 'disabled' : ''}`}
                                             onClick={() => handleSendNotification(order.id, order.status)}
                                             style={{
                                                 opacity: isReady && !isBilled ? 1 : 0.4,
@@ -324,7 +360,7 @@ const ViewOrderPage = () => {
                                                 color: isReady && !isBilled ? '#dc2626' : '#94a3b8'
                                             }}
                                         >
-                                            {(order.type === 'Take Away' || order.type === 'Post to Room' || order.type === 'Room Order') ? 'Send To' : 'Send'}
+                                            {order.type === 'Take Away' ? 'Send To' : 'Send'}
                                         </button>
                                         <button
                                             className={`action-btn complete ${isBilled ? 'completed-done' : (isReady ? '' : 'disabled')}`}

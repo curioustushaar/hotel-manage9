@@ -49,12 +49,16 @@ const tableSchema = new mongoose.Schema({
 
     // Reservations
     reservations: [{
-        id: String, // legacy or simple ID
-        guestName: String,
-        date: Date,
-        time: String,
+        id: String,
+        name: String,
+        guestName: String, // legacy support
+        date: String,      // YYYY-MM-DD
+        startTime: String,
+        endTime: String,
         guests: Number,
-        contact: String
+        phone: String,
+        contact: String,   // legacy support
+        note: String
     }],
 
     location: {
