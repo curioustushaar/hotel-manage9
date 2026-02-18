@@ -1,4 +1,5 @@
 const Booking = require('../models/bookingModel');
+const { findOverlappingBooking } = require('../services/availabilityService');
 
 // Get all bookings
 exports.getBookings = async (req, res) => {
@@ -88,16 +89,12 @@ exports.addBooking = async (req, res) => {
                     });
                 }
 
-                // Check for date overlap correctly
-                const existingBooking = await Booking.findOne({
-                    $or: [
-                        { roomNumber: roomNumber },
-                        { "rooms.roomNumber": roomNumber }
-                    ],
-                    checkInDate: { $lt: new Date(bookingData.checkOutDate) },
-                    checkOutDate: { $gt: new Date(bookingData.checkInDate) },
-                    status: { $in: ['Upcoming', 'Checked-in'] }
-                });
+                // Check for date overlap via centralized availability service
+                const existingBooking = await findOverlappingBooking(
+                    roomNumber,
+                    bookingData.checkInDate,
+                    bookingData.checkOutDate
+                );
 
                 if (existingBooking) {
                     return res.status(409).json({
@@ -131,18 +128,17 @@ exports.addBooking = async (req, res) => {
                 return res.status(409).json({ success: false, message: `Room ${bookingData.roomNumber} is ${room.status}` });
             }
 
-            // Conflict check (Checking both single and multi-room records)
-            const existingBooking = await Booking.findOne({
-                $or: [
-                    { roomNumber: bookingData.roomNumber },
-                    { "rooms.roomNumber": bookingData.roomNumber }
-                ],
-                checkInDate: { $lt: new Date(bookingData.checkOutDate) },
-                checkOutDate: { $gt: new Date(bookingData.checkInDate) },
-                status: { $in: ['Upcoming', 'Checked-in'] }
-            });
+            // Conflict check via centralized availability service
+            const existingBooking = await findOverlappingBooking(
+                bookingData.roomNumber,
+                bookingData.checkInDate,
+                bookingData.checkOutDate
+            );
 
-            if (existingBooking) return res.status(409).json({ success: false, message: 'Room already booked' });
+            if (existingBooking) return res.status(409).json({
+                success: false,
+                message: `Room ${bookingData.roomNumber} is already booked for the selected dates.`
+            });
 
             roomsToUpdate.push(room);
         }

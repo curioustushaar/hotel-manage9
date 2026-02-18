@@ -1,48 +1,66 @@
 const Room = require('../models/roomModel');
+const { computeStatusForRooms } = require('../services/availabilityService');
 
-// @desc    Get all rooms
-// @route   GET /api/rooms/list
+// @desc    Get all rooms (with optional date-based dynamic status)
+// @route   GET /api/rooms/list?date=YYYY-MM-DD
 // @access  Public
 const getRooms = async (req, res) => {
     try {
-        const { floor, roomType, bedType, status } = req.query;
+        const { floor, roomType, bedType, status, date } = req.query;
         let query = {};
 
         if (floor && floor !== 'All') query.floor = floor;
         if (roomType && roomType !== 'All') query.roomType = roomType;
         if (bedType && bedType !== 'All') query.bedType = bedType;
-        if (status && status !== 'All') query.status = status;
+
+        // Only apply static status filter if no date is provided
+        // (when date is provided, status is computed dynamically)
+        if (status && status !== 'All' && !date) query.status = status;
 
         let rooms = await Room.find(query).sort({ roomNumber: 1 });
 
-        // FEATURE 1 & 9: Smart Filter & Optional Smart Upgrade
+        // FEATURE: Smart Filter fallback
         let exactMatch = true;
         if (rooms.length === 0 && (floor || roomType || bedType)) {
             exactMatch = false;
-            // Find closest matches
-            // We'll relax filters one by one or just fetch all and sort
             const allAvailable = await Room.find({ status: 'Available' });
-
             rooms = allAvailable.sort((a, b) => {
-                // Priority 1: Same floor
                 if (a.floor === floor && b.floor !== floor) return -1;
                 if (a.floor !== floor && b.floor === floor) return 1;
-
-                // Priority 2: Same room type
                 if (a.roomType === roomType && b.roomType !== roomType) return -1;
                 if (a.roomType !== roomType && b.roomType === roomType) return 1;
-
-                // Priority 3: Same price range (closest price)
-                // Since we don't have a target price in query, we can't do exact price range comparison
-                // but we can sort by price as a fallback
                 return a.price - b.price;
-            }).slice(0, 10); // Return top 10 closest
+            }).slice(0, 10);
+        }
+
+        // DATE-BASED DYNAMIC STATUS: Compute status for each room based on bookings
+        if (date) {
+            const targetDate = new Date(date);
+            if (!isNaN(targetDate.getTime())) {
+                const roomsWithStatus = await computeStatusForRooms(rooms, targetDate);
+
+                // Apply status filter AFTER computing dynamic status
+                let filtered = roomsWithStatus;
+                if (status && status !== 'All') {
+                    filtered = roomsWithStatus.filter(r => r.computedStatus === status);
+                }
+
+                return res.status(200).json({
+                    success: true,
+                    count: filtered.length,
+                    exactMatch,
+                    dateFiltered: true,
+                    filterDate: date,
+                    data: filtered
+                });
+            }
         }
 
         res.status(200).json({
             success: true,
             count: rooms.length,
             exactMatch,
+            dateFiltered: false,
             data: rooms
         });
     } catch (error) {
@@ -242,38 +260,58 @@ const deleteRoom = async (req, res) => {
     }
 };
 
-// @desc    Get available rooms for a date range
-// @route   GET /api/rooms/available
+// @desc    Get available rooms for a date range (real overlap detection)
+// @route   GET /api/rooms/available?from=YYYY-MM-DD&to=YYYY-MM-DD
 // @access  Public
 const getAvailableRooms = async (req, res) => {
     try {
         const { from, to, type, roomViewType, smokingPolicy, isSmartRoom } = req.query;
 
-        // Basic filtering for available status
-        // In a real system, we'd check against bookings for these dates
-        let query = { status: 'Available' };
-
-        if (type) {
-            query.roomType = type;
-        }
-
-        // PHASE 1 UPGRADE: Support filtering by new enterprise fields
-        if (roomViewType) {
-            query.roomViewType = roomViewType;
-        }
-
-        if (smokingPolicy) {
-            query.smokingPolicy = smokingPolicy;
-        }
-
+        // Build base room filter
+        let query = {};
+        if (type) query.roomType = type;
+        if (roomViewType) query.roomViewType = roomViewType;
+        if (smokingPolicy) query.smokingPolicy = smokingPolicy;
         if (isSmartRoom !== undefined) {
             query.isSmartRoom = isSmartRoom === 'true' || isSmartRoom === true;
         }
 
-        const rooms = await Room.find(query).sort({ roomNumber: 1 });
+        // Exclude rooms that are under maintenance
+        query.status = { $ne: 'Under Maintenance' };
+
+        let rooms = await Room.find(query).sort({ roomNumber: 1 });
+
+        // If date range provided, filter by real booking overlap
+        if (from && to) {
+            const Booking = require('../models/bookingModel');
+            const checkIn = new Date(from);
+            const checkOut = new Date(to);
+
+            // Find all room numbers that have overlapping bookings
+            const conflictingBookings = await Booking.find({
+                checkInDate: { $lt: checkOut },
+                checkOutDate: { $gt: checkIn },
+                status: { $in: ['Upcoming', 'Checked-in'] }
+            }).select('roomNumber rooms');
+
+            // Collect all conflicting room numbers
+            const bookedRoomNumbers = new Set();
+            conflictingBookings.forEach(b => {
+                if (b.roomNumber) bookedRoomNumbers.add(b.roomNumber);
+                if (b.rooms && b.rooms.length > 0) {
+                    b.rooms.forEach(r => {
+                        if (r.roomNumber) bookedRoomNumbers.add(r.roomNumber);
+                    });
+                }
+            });
+
+            // Filter out booked rooms
+            rooms = rooms.filter(r => !bookedRoomNumbers.has(r.roomNumber));
+        }
 
         res.status(200).json({
             success: true,
+            count: rooms.length,
             data: rooms
         });
     } catch (error) {
@@ -284,6 +322,7 @@ const getAvailableRooms = async (req, res) => {
         });
     }
 };
+
 
 module.exports = {
     getRooms,

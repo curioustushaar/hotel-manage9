@@ -338,4 +338,12 @@ bookingSchema.pre('save', function (next) {
     next();
 });
 
+// Performance indexes for availability queries
+// Compound index: fast overlap detection for single-room bookings
+bookingSchema.index({ roomNumber: 1, checkInDate: 1, checkOutDate: 1, status: 1 });
+// Index for multi-room booking overlap detection
+bookingSchema.index({ 'rooms.roomNumber': 1, checkInDate: 1, checkOutDate: 1, status: 1 });
+// Index for status-based queries (dashboard, reports)
+bookingSchema.index({ status: 1, checkInDate: -1 });
+
 module.exports = mongoose.model('Booking', bookingSchema);
