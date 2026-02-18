@@ -457,10 +457,13 @@ exports.createOrder = async (req, res) => {
         const { tableId, tableNumber, orderType = 'Direct Payment', roomNumber, guestName, numberOfGuests = 1, taxRate = 0 } = req.body;
 
         let table = null;
+        let room = null;
 
         // Skip table validation for Take Away and Post to Room
         if (orderType !== 'Take Away' && orderType !== 'Post to Room') {
-            // Validate table exists and is available
+            if (!tableId || !tableId.match(/^[0-9a-fA-F]{24}$/)) {
+                return res.status(400).json({ success: false, message: 'Invalid or missing tableId' });
+            }
             table = await Table.findById(tableId);
             if (!table) {
                 return res.status(404).json({
@@ -487,18 +490,30 @@ exports.createOrder = async (req, res) => {
             }
         }
 
+        // For Room Service (Post to Room), try to find the room for linking
+        if (orderType === 'Post to Room' && roomNumber) {
+            const Room = require('../models/Room');
+            room = await Room.findOne({ roomNumber: roomNumber });
+        }
+
         // Create new order
         const orderData = {
             tableId: (orderType === 'Take Away' || orderType === 'Post to Room') ? null : tableId,
-            tableNumber: (orderType === 'Take Away') ? 0 : tableNumber, // Keep tableNumber for Post to Room if provided (e.g. room number as int), or strict 0
+            table: (orderType === 'Take Away' || orderType === 'Post to Room') ? null : tableId,
+            tableNumber: (orderType === 'Take Away') ? 0 : tableNumber,
+            room: room ? room._id : null,
             orderType,
             roomNumber: orderType === 'Post to Room' ? roomNumber : null,
             guestName: guestName || (orderType === 'Take Away' ? 'Walk-in Customer' : null),
-            guestPhone: req.body.guestPhone || null, // Capture phone
-            numberOfGuests,
-            items: req.body.items || [],
-            taxRate,
-            status: 'Active',
+            guestPhone: req.body.guestPhone || null,
+            numberOfGuests: Number(numberOfGuests) || 1,
+            items: (req.body.items || []).map(item => ({
+                ...item,
+                menuItem: item.id && item.id.match(/^[0-9a-fA-F]{24}$/) ? item.id : null,
+                total: (item.price || 0) * (item.quantity || 1)
+            })),
+            taxRate: Number(taxRate) || 0,
+            status: orderType === 'Post to Room' ? 'Pending' : 'Active',
             paymentMethod: 'Pending',
             paymentStatus: 'Pending'
         };
@@ -519,7 +534,6 @@ exports.createOrder = async (req, res) => {
         if (req.body.items && req.body.items.length > 0) {
             for (const item of req.body.items) {
                 try {
-                    // Try to find by ID first, then Name
                     let menuItem;
                     const menuItemId = item.id || item.menuItemId || item._id;
 
@@ -533,13 +547,11 @@ exports.createOrder = async (req, res) => {
 
                     if (menuItem) {
                         const qtyToDeduct = parseInt(item.quantity) || 1;
-                        // Avoid negative stock, cap at 0
                         menuItem.quantity = Math.max(0, (menuItem.quantity || 0) - qtyToDeduct);
                         await menuItem.save();
                     }
                 } catch (stockError) {
-                    console.error(`Error updating stock for item ${item.name}:`, stockError);
-                    // Continue with other items even if one fails
+                    console.error(`Error updating stock:`, stockError);
                 }
             }
         }
@@ -553,6 +565,7 @@ exports.createOrder = async (req, res) => {
             }
         });
     } catch (error) {
+        console.error('Create Order Error:', error);
         res.status(400).json({
             success: false,
             message: 'Error creating order',
@@ -633,52 +646,64 @@ exports.updateOrderItems = async (req, res) => {
         }
 
         if (items) {
+            // Mapping items for consistency
+            const mappedItems = items.map(item => ({
+                ...item,
+                menuItem: item.id && item.id.match(/^[0-9a-fA-F]{24}$/) ? item.id :
+                    (item.menuItem || null),
+                total: (item.price || 0) * (item.quantity || 1)
+            }));
+
             // STOCK SYNC LOGIC: Compare old items and new items to adjust stock
             const oldItemsMap = new Map();
             order.items.forEach(item => {
-                const id = (item.id || item.menuItemId || item._id)?.toString();
-                if (id) oldItemsMap.set(id, (oldItemsMap.get(id) || 0) + (item.quantity || 0));
+                const id = (item.id || item.menuItemId || item.menuItem || item._id)?.toString();
+                if (id && id.match(/^[0-9a-fA-F]{24}$/)) {
+                    oldItemsMap.set(id, (oldItemsMap.get(id) || 0) + (item.quantity || 0));
+                }
             });
 
             const newItemsMap = new Map();
-            items.forEach(item => {
-                const id = (item.id || item.menuItemId || item._id)?.toString();
-                if (id) newItemsMap.set(id, (newItemsMap.get(id) || 0) + (item.quantity || 0));
+            mappedItems.forEach(item => {
+                const id = (item.id || item.menuItemId || item.menuItem || item._id)?.toString();
+                if (id && id.match(/^[0-9a-fA-F]{24}$/)) {
+                    newItemsMap.set(id, (newItemsMap.get(id) || 0) + (item.quantity || 0));
+                }
             });
 
-            // Iterate through all unique item IDs from both sets
             const allItemIds = new Set([...oldItemsMap.keys(), ...newItemsMap.keys()]);
 
             for (const itemId of allItemIds) {
                 const oldQty = oldItemsMap.get(itemId) || 0;
                 const newQty = newItemsMap.get(itemId) || 0;
-                const diff = newQty - oldQty; // Positive means we need more stock (deduct), negative means return
+                const diff = newQty - oldQty;
 
                 if (diff !== 0) {
                     try {
                         const menuItem = await MenuItem.findById(itemId);
                         if (menuItem) {
-                            // Deduct the difference from stock
                             menuItem.quantity = Math.max(0, (menuItem.quantity || 0) - diff);
                             await menuItem.save();
                         }
                     } catch (err) {
-                        console.error(`Error updating stock for item ${itemId} during order update:`, err);
+                        console.error(`Error updating stock for item ${itemId}:`, err);
                     }
                 }
             }
 
-            order.items = items;
+            order.items = mappedItems;
         }
 
-        if (taxRate !== undefined) order.taxRate = taxRate;
+        if (taxRate !== undefined) order.taxRate = Number(taxRate) || 0;
         await order.save();
 
-        // Update table running order amount
-        const table = await Table.findById(order.tableId);
-        if (table) {
-            table.runningOrderAmount = order.finalAmount;
-            await table.save();
+        // Update table running order amount if linked to a table
+        if (order.tableId) {
+            const table = await Table.findById(order.tableId);
+            if (table) {
+                table.runningOrderAmount = order.finalAmount || 0;
+                await table.save();
+            }
         }
 
         res.status(200).json({
@@ -687,9 +712,10 @@ exports.updateOrderItems = async (req, res) => {
             data: order
         });
     } catch (error) {
+        console.error('Update Order Error:', error);
         res.status(400).json({
             success: false,
-            message: 'Error updating order items',
+            message: 'Error updating order',
             error: error.message
         });
     }
@@ -872,7 +898,7 @@ exports.closeOrder = async (req, res) => {
 exports.getAllOrders = async (req, res) => {
     try {
         const orders = await GuestMealOrder.find({
-            status: { $ne: 'Closed' }
+            status: { $nin: ['Closed', 'Cancelled'] }
         }).populate('tableId').sort({ createdAt: -1 });
 
         res.status(200).json({
@@ -889,57 +915,49 @@ exports.getAllOrders = async (req, res) => {
     }
 };
 
-// Update order status (Pending, Preparing, Ready, Billed)
+// Update order status — unified handler for ViewOrderPage and RoomService
 exports.updateOrderStatus = async (req, res) => {
     try {
         const { orderId } = req.params;
         const { status } = req.body;
 
-        const order = await GuestMealOrder.findById(orderId);
-        if (!order) {
-            return res.status(404).json({
-                success: false,
-                message: 'Order not found'
-            });
-        }
+        const validStatuses = ['Pending', 'Active', 'Preparing', 'Ready', 'Started', 'Served', 'Pending Payment', 'Billed', 'Closed', 'Cancelled'];
 
-        const validStatuses = ['Pending', 'Preparing', 'Ready', 'Served', 'Pending Payment', 'Billed'];
-
-        console.log(`[updateOrderStatus] Received status: "${status}" for Order ID: ${orderId}`);
-        console.log(`[updateOrderStatus] Valid statuses: ${JSON.stringify(validStatuses)}`);
-
-        if (validStatuses.includes(status)) {
-            // Update the status
-            order.status = status;
-            await order.save();
-
-            // If status is Billed, update the table status as well to reflect it
-            if (status === 'Billed') {
-                const table = await Table.findById(order.tableId);
-                if (table) {
-                    table.status = 'Billed';
-                    await table.save();
-                }
-            }
-
-            return res.status(200).json({
-                success: true,
-                message: `Order status updated to ${status}`,
-                data: order
-            });
-        } else {
+        if (!validStatuses.includes(status)) {
             return res.status(400).json({
                 success: false,
-                message: `Invalid status provided: "${status}". Valid: ${validStatuses.join(', ')}`
+                message: `Invalid status: "${status}". Valid: ${validStatuses.join(', ')}`
             });
         }
+
+        const order = await GuestMealOrder.findById(orderId);
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        order.status = status;
+        if (status === 'Closed') order.closedAt = new Date();
+        if (status === 'Billed') order.billedAt = new Date();
+        await order.save();
+
+        // Sync table status if linked
+        if (order.tableId) {
+            const table = await Table.findById(order.tableId);
+            if (table) {
+                if (status === 'Billed') table.status = 'Billed';
+                else if (status === 'Closed') { table.status = 'Available'; table.currentOrderId = null; }
+                await table.save();
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: `Order status updated to ${status}`,
+            data: order
+        });
     } catch (error) {
         console.error('Error updating order status:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error updating order status',
-            error: error.message
-        });
+        res.status(500).json({ success: false, message: 'Error updating order status', error: error.message });
     }
 };
 
@@ -1006,7 +1024,31 @@ exports.getDashboardStats = async (req, res) => {
     }
 };
 
-// Duplicate function removed - using the first updateOrderStatus function above
+// Get all orders for room service view
+exports.getRoomServiceOrders = async (req, res) => {
+    try {
+        // Find all active-like orders that are for rooms (Post to Room or linked to a room)
+        const query = {
+            status: { $in: ['Pending', 'Preparing', 'Ready', 'Started', 'Active'] },
+            orderType: 'Post to Room'
+        };
+
+        const orders = await GuestMealOrder.find(query)
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            count: orders.length,
+            data: orders
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching room service orders',
+            error: error.message
+        });
+    }
+};
 
 
 // Get revenue report

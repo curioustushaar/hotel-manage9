@@ -51,20 +51,20 @@ const seedUser = async (email, password, role, name) => {
  */
 const seedAdmin = async () => {
     // Seed Super Admin User
-    const superAdminEmail = process.env.BIREENA_SUPER_ADMIN_EMAIL;
-    const superAdminPassword = process.env.BIREENA_SUPER_ADMIN_PASSWORD;
-    
+    const superAdminEmail = process.env.BIREENA_SUPER_ADMIN_EMAIL || process.env.SUPER_ADMIN_EMAIL;
+    const superAdminPassword = process.env.BIREENA_SUPER_ADMIN_PASSWORD || process.env.SUPER_ADMIN_PASSWORD;
+
     if (superAdminEmail && superAdminPassword) {
         await seedUser(superAdminEmail, superAdminPassword, 'super_admin', 'Super Admin');
     } else {
-        console.warn('[Super Admin Seed] BIREENA_SUPER_ADMIN_EMAIL or BIREENA_SUPER_ADMIN_PASSWORD not set in .env — skipping super admin seed.');
+        console.warn('[Super Admin Seed] SUPER_ADMIN_EMAIL or SUPER_ADMIN_PASSWORD not set in .env — skipping super admin seed.');
     }
 
     // Seed Admin User
     const adminEmail = process.env.BIREENA_ADMIN_EMAIL || process.env.ADMIN_EMAIL;
     const adminPassword = process.env.BIREENA_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD;
 
-    
+
     if (adminEmail && adminPassword) {
         await seedUser(adminEmail, adminPassword, 'admin', 'Admin User');
     } else {
@@ -74,7 +74,7 @@ const seedAdmin = async () => {
     // Seed Staff User
     const staffEmail = process.env.BIREENA_STAFF_EMAIL;
     const staffPassword = process.env.BIREENA_STAFF_PASSWORD;
-    
+
     if (staffEmail && staffPassword) {
         await seedUser(staffEmail, staffPassword, 'staff', 'Staff User');
     } else {

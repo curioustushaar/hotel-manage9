@@ -43,6 +43,9 @@ router.get('/orders', guestMealController.getAllOrders);
 // Get pending orders (for Cashier Dashboard) - MUST be before /:orderId
 router.get('/orders/pending', guestMealController.getPendingOrders);
 
+// Get room service specific orders
+router.get('/orders/room-service', guestMealController.getRoomServiceOrders);
+
 // Create new order
 router.post('/orders/create', guestMealController.createOrder);
 

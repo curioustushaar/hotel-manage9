@@ -59,9 +59,23 @@ export const AuthProvider = ({ children }) => {
             }
         } catch (error) {
             console.error('Login error:', error);
+            let errorMessage = 'An unexpected error occurred';
+
+            if (error.response) {
+                // The request was made and the server responded with a status code
+                // that falls out of the range of 2xx
+                errorMessage = error.response.data.message || 'Invalid email or password';
+            } else if (error.request) {
+                // The request was made but no response was received
+                errorMessage = 'Server is unreachable. Please try again later.';
+            } else {
+                // Something happened in setting up the request that triggered an Error
+                errorMessage = error.message;
+            }
+
             return {
                 success: false,
-                error: error.response?.data?.message || 'Invalid email or password'
+                error: errorMessage
             };
         }
     };

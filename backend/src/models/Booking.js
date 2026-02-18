@@ -79,7 +79,7 @@ const bookingSchema = new mongoose.Schema({
 
     // Payment History (Embedded for transactional integrity within booking context)
     transactions: [{
-        type: { type: String, enum: ['Payment', 'Refund', 'Adjustment'], required: true },
+        type: { type: String, enum: ['Payment', 'Refund', 'Adjustment', 'Charge'], required: true },
         amount: { type: Number, required: true },
         method: { type: String, enum: ['Cash', 'Card', 'UPI', 'Transfer'], default: 'Cash' },
         referenceId: String, // Transaction ID from payment gateway

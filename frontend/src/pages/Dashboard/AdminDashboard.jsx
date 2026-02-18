@@ -37,6 +37,7 @@ import BedType from '../BedType/BedType';
 import FloorSetup from '../FloorSetup/FloorSetup';
 import TableManagement from '../TableManagement/TableManagement';
 import RoomDetailsPanel from '../../components/rooms/RoomDetailsPanel';
+import RoomService from '../../components/RoomService';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -165,7 +166,7 @@ const AdminDashboard = () => {
         else if (path.includes('/stay-overview')) setActiveMenu('stay-overview');
         else if (path.includes('/reservation-stay-management')) setActiveMenu('reservations');
         else if (path.includes('/view-reservation')) setActiveMenu('reservations');
-        else if (path.includes('/room-service')) setActiveMenu('guest-meal-service');
+        else if (path.includes('/room-service')) setActiveMenu('room-service');
         else if (path.includes('/view-order')) setActiveMenu('view-order');
         else if (path.includes('/dashboard')) setActiveMenu('dashboard');
         else if (path.includes('/cashier-section')) setActiveMenu('cashier-section');
@@ -900,8 +901,12 @@ const AdminDashboard = () => {
                                 mode: 'takeaway'
                             } : { roomNumber: 'POS', guestName: 'Walk-in / Direct' })}
                             onClose={() => {
-                                setActiveMenu('reservations');
-                                setReservationView('roomservice');
+                                if (location.state?.source === 'room-service') {
+                                    navigate('/admin/room-service');
+                                } else {
+                                    setActiveMenu('reservations');
+                                    setReservationView('roomservice');
+                                }
                                 setPosGuestDetails(null);
                             }}
                         />
@@ -913,6 +918,13 @@ const AdminDashboard = () => {
             {
                 activeMenu === 'guest-meal-service' && (
                     <GuestMealService />
+                )
+            }
+
+            {/* Room Service View */}
+            {
+                activeMenu === 'room-service' && (
+                    <RoomService />
                 )
             }
 
