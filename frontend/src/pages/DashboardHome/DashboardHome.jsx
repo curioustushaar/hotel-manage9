@@ -73,10 +73,10 @@ const DashboardHome = () => {
         // Initial load
         calculateStatistics();
 
-        // Auto-refresh every 5 seconds to show real-time updates
+        // Auto-refresh every 60 seconds to show real-time updates
         const interval = setInterval(() => {
             calculateStatistics();
-        }, 5000);
+        }, 60000);
 
         // Cleanup interval on unmount
         return () => clearInterval(interval);

@@ -31,7 +31,7 @@ const roomSchema = new mongoose.Schema({
     },
     floor: {
         type: String, // Kept as String to allow "Ground Floor" etc.
-        required: true,
+        required: false,
         trim: true
     },
     status: {

@@ -17,6 +17,7 @@
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -39,6 +40,7 @@
         transform: translateY(20px);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;
@@ -262,22 +264,7 @@
 }
 
 /* Scrollbar Styling */
-.apply-discount-modal::-webkit-scrollbar {
-    width: 8px;
-}
-
-.apply-discount-modal::-webkit-scrollbar-track {
-    background: #f1f1f1;
-}
-
-.apply-discount-modal::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 4px;
-}
-
-.apply-discount-modal::-webkit-scrollbar-thumb:hover {
-    background: #555;
-}
+/* Scrollbar Styling - Global Policy Applies */
 
 /* Responsive Design */
 @media (max-width: 640px) {

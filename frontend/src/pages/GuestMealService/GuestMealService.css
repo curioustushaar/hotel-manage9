@@ -28,17 +28,12 @@
     --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-* {
-    margin: 0;
-    padding: 0;
+.gms-wrapper *,
+.gms-wrapper *::before,
+.gms-wrapper *::after {
     box-sizing: border-box;
 }
 
-html,
-body,
-#root {
-    height: 100%;
-}
 
 .gms-wrapper {
     width: 100%;
@@ -55,9 +50,10 @@ body,
 .gms-header {
     background: #ffffff;
     border-bottom: 1px solid var(--color-neutral-200);
-    padding: 2rem 2.5rem;
+    padding: 1rem 2.5rem;
     box-shadow: var(--shadow-sm);
 }
+
 
 .gms-header-content {
     display: flex;

@@ -17,8 +17,5 @@ body {
   min-height: 100vh;
 }
 
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
+/* .container for marketing pages is defined in index.css.
+   Do not add max-width here as it would affect dashboard pages. */

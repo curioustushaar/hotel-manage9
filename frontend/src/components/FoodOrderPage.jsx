@@ -77,8 +77,7 @@ const FoodOrderPage = ({ onClose }) => {
 
             if (data.success && data.data) {
                 // Filter only active items
-                const activeItems = data.data.filter(item => item.status === 'Active');
-                setMenuItems(activeItems);
+                setMenuItems(data.data);
             }
         } catch (error) {
             console.error('Error fetching menu items:', error);
@@ -103,6 +102,7 @@ const FoodOrderPage = ({ onClose }) => {
             category: item.category,
             price: item.price,
             quantityAvailable: item.quantity !== undefined ? item.quantity : 0,
+            status: item.status,
             description: item.description
         }));
 
@@ -486,7 +486,7 @@ const FoodOrderPage = ({ onClose }) => {
                                         // Find current quantity in cart
                                         const cartItem = cart.find(x => x.id === item.id);
                                         const inCartQty = cartItem ? cartItem.quantity : 0;
-                                        const isOutOfStock = (item.quantityAvailable || 0) <= 0;
+                                        const isOutOfStock = (item.quantityAvailable || 0) <= 0 || item.status === 'Inactive';
 
                                         return (
                                             <div

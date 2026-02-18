@@ -34,7 +34,7 @@
 .loading-container,
 .error-container {
     text-align: center;
-    padding: 60px 40px;
+    padding: 6px 40px;
     background: white;
     border-radius: 16px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
@@ -51,7 +51,9 @@
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .loading-container p {

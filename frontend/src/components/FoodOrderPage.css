@@ -87,14 +87,7 @@
 }
 
 /* Scrollbar hide */
-.pos-category-sidebar::-webkit-scrollbar {
-    width: 4px;
-}
-
-.pos-category-sidebar::-webkit-scrollbar-thumb {
-    background: #ddd;
-    border-radius: 4px;
-}
+/* Scrollbar Styling - Global Policy Applies */
 
 .pos-category-item {
     padding: 12px 10px;

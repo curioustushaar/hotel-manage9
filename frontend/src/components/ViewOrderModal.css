@@ -401,23 +401,4 @@
 }
 
 /* Scrollbar Styling */
-.view-order-items::-webkit-scrollbar,
-.food-selector-section::-webkit-scrollbar {
-    width: 8px;
-}
-
-.view-order-items::-webkit-scrollbar-track,
-.food-selector-section::-webkit-scrollbar-track {
-    background: #f3f4f6;
-}
-
-.view-order-items::-webkit-scrollbar-thumb,
-.food-selector-section::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 4px;
-}
-
-.view-order-items::-webkit-scrollbar-thumb:hover,
-.food-selector-section::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
-}
+/* Scrollbar Styling - Global Policy Applies */

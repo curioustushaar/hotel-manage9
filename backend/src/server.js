@@ -10,6 +10,9 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const superAdminRoutes = require('./routes/superAdminRoutes');
+
+// Admin seeder - ensures admin always exists in DB
+const seedAdmin = require('./scripts/seedAdmin');
 const menuRoutes = require('./routes/menuRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const roomRoutes = require('./routes/roomRoutes');
@@ -27,14 +30,6 @@ const app = express();
 
 // CORS configuration - Allow production and development origins
 const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:5175',
-    'http://localhost:5176',
-    'http://localhost:5177',
-    'http://localhost:5178',
-    'http://localhost:5179',
-    'http://localhost:5180',
     'http://localhost:3000',
     process.env.FRONTEND_URL || 'http://localhost:5173'
 ].filter(Boolean);
@@ -106,10 +101,12 @@ const connectDB = async () => {
     }
 };
 
-// Connect to database
-connectDB().catch(err => {
-    console.error('Failed to connect to MongoDB:', err);
-});
+// Connect to database and seed admin
+connectDB()
+    .then(() => seedAdmin())
+    .catch(err => {
+        console.error('Failed to connect to MongoDB:', err);
+    });
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -206,13 +203,36 @@ const startServer = (port) => {
         if (err.code === 'EADDRINUSE') {
             const nextPort = numericPort + 1;
             console.error(`Port ${numericPort} is already in use.`);
-            console.log(`Trying next available port: ${nextPort}...`);
-            startServer(nextPort);
+            console.log(`Trying next available port: ${nextPort} in 1 second...`);
+            setTimeout(() => {
+                startServer(nextPort);
+            }, 1000);
         } else {
             console.error('Server error:', err);
         }
     });
 };
+
+// Handle Uncaught Exceptions - MUST be at the top level
+process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION! 💥 Shutting down...');
+    console.error(err.name, err.message);
+    // In production we might want to exit, but for dev stability request we log and keep running if possible, 
+    // or exit gracefully. However, uncaught exception usually means undefined state.
+    // For now, let's log and exit with error code 1 to let nodemon restart it.
+    process.exit(1);
+});
+
+// Handle Unhandled Promise Rejections
+process.on('unhandledRejection', (err) => {
+    console.error('UNHANDLED REJECTION! 💥 Shutting down...');
+    console.error(err.name, err.message);
+    // server.close(() => {
+    //     process.exit(1);
+    // });
+    // For "keep running" stability during dev:
+    console.error('Unhandled rejection occurred. Server continuing.');
+});
 
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
     startServer(PORT);
