@@ -107,6 +107,26 @@ const bookingSchema = new mongoose.Schema(
             calculated: true
         },
 
+        // Multi-Room Support
+        isMulti: {
+            type: Boolean,
+            default: false
+        },
+        rooms: [{
+            roomId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Room'
+            },
+            roomNumber: String,
+            roomType: String,
+            ratePerNight: Number,
+            mealPlan: String,
+            adults: Number,
+            children: Number,
+            discount: Number,
+            total: Number
+        }],
+
         // Status
         status: {
             type: String,

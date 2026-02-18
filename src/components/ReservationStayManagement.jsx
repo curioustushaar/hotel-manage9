@@ -31,89 +31,16 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [isSearching, setIsSearching] = useState(false);
     const [searchResults, setSearchResults] = useState([]);
 
-    // Sync internal view state with prop changes
-    useEffect(() => {
-        if (viewMode) {
-            setView(viewMode);
-        }
-
-        // Check for pre-filled data from navigation state
-        if (location.state && location.state.prefilledData) {
-            setPrefilledData(location.state.prefilledData);
-        }
-
-        // Auto-open guest modal if requested
-        if (location.state && location.state.autoOpenGuestModal) {
-            console.log('🎯 Auto-opening Create Guest modal...');
-            // Delay to ensure form is rendered first
-            setTimeout(() => {
-                setShowGuestModal(true);
-                // Update navigation state: remove autoOpenGuestModal but keep viewMode and prefilledData
-                const newState = { ...location.state };
-                delete newState.autoOpenGuestModal;
-                navigate('.', { replace: true, state: newState });
-            }, 300);
-        }
-    }, [viewMode, location, navigate]);
-    const [activeTab, setActiveTab] = useState('all'); // 'all', 'reserved', 'in-house', 'checked-out'
-    const [showEditModal, setShowEditModal] = useState(false); // Edit Reservation Modal state
-
-    const [fromRoomsPage, setFromRoomsPage] = useState(false);
-
-    useEffect(() => {
-        // FEATURE 3: Auto Prefill Room Details
-        if (location.state?.prefilledData) {
-            const data = location.state.prefilledData;
-            setFromRoomsPage(true);
-            setRooms([{
-                id: 1,
-                categoryId: data.roomType || '',
-                roomNumber: data.roomNumber,
-                mealPlan: 'CP',
-                adultsCount: 1,
-                childrenCount: 0,
-                ratePerNight: data.price,
-                discount: 0
-            }]);
-
-            // Set dates
-            const today = new Date().toISOString().split('T')[0];
-            const tomorrow = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0];
-            setCheckInDate(today);
-            setCheckOutDate(tomorrow);
-
-            // If we have roomId, fetch full details
-            if (data.roomId) {
-                fetch(`${API_URL_CONFIG}/api/rooms/${data.roomId}`)
-                    .then(res => res.json())
-                    .then(resData => {
-                        if (resData.success) {
-                            const room = resData.data;
-                            setRooms([{
-                                id: 1,
-                                categoryId: room.roomType,
-                                roomNumber: room.roomNumber,
-                                mealPlan: 'CP',
-                                adultsCount: room.capacity || 1,
-                                childrenCount: 0,
-                                ratePerNight: room.price,
-                                discount: 0
-                            }]);
-                        }
-                    });
-            }
-        } else {
-            setFromRoomsPage(false);
-        }
-    }, [location.state]);
-
     // Reservation/Booking Data
     const [reservations, setReservations] = useState([]);
+    const [activeTab, setActiveTab] = useState('all'); // 'all', 'reserved', 'in-house', 'checked-out'
     const [isEditingMode, setIsEditingMode] = useState(false);
     const [editingReservationId, setEditingReservationId] = useState(null);
     const [selectedReservation, setSelectedReservation] = useState(null);
     const [showBookingHistory, setShowBookingHistory] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [fromRoomsPage, setFromRoomsPage] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
 
     // Filter reservations
     const filteredReservations = useMemo(() => {
@@ -142,7 +69,107 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         };
     }, [reservations]);
 
-    // Fetch reservations from MongoDB
+    // Helper function to convert room type name to category ID
+    const getCategoryIdFromRoomType = (roomType) => {
+        // Use exact name if it's one of the common types we see in the UI
+        if (['AC / Non-AC', 'Deluxe Room', 'Standard Room', 'Suite Double', 'Deluxe AC Double', 'Premium'].includes(roomType)) {
+            return roomType;
+        }
+
+        const typeMapping = {
+            'Deluxe Room': 'deluxe-ac-double',
+            'Club AC Double Room': 'club-ac-double',
+            'Suite Double Room': 'suite-double',
+            'Suite Single Room': 'suite-single',
+            'Standard Room': 'standard-room',
+            'Deluxe AC Double': 'deluxe-ac-double'
+        };
+
+        if (typeMapping[roomType]) return typeMapping[roomType];
+
+        return roomType?.toLowerCase().replace(/ /g, '-').replace(/\//g, '-') || 'deluxe-ac-double';
+    };
+
+    // Sync internal view state with prop changes
+    useEffect(() => {
+        if (viewMode) {
+            setView(viewMode);
+        }
+
+        // FEATURE: Consolidate Navigation State Handling (Pre-filling)
+        // Check if we have specific data to consume
+        if (location.state && (location.state.prefilledData || location.state.autoOpenGuestModal)) {
+            const data = location.state.prefilledData;
+
+            if (data) {
+                console.log('📝 Pre-filling form with data:', data);
+                setPrefilledData(data);
+                setFromRoomsPage(true);
+
+                // Prefill Rooms State
+                setRooms([{
+                    id: 1,
+                    categoryId: data.roomType ? getCategoryIdFromRoomType(data.roomType) : '',
+                    roomNumber: data.roomNumber || '',
+                    mealPlan: 'CP',
+                    adultsCount: data.capacity || 1,
+                    childrenCount: 0,
+                    ratePerNight: data.price || 0,
+                    discount: 0
+                }]);
+
+                // Set Dates if available
+                const todayDate = new Date().toISOString().split('T')[0];
+                const tomorrowDate = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0];
+                setCheckInDate(data.checkInDate || todayDate);
+                if (data.checkInTime) setCheckInTime(data.checkInTime);
+                setCheckOutDate(data.checkOutDate || tomorrowDate);
+                if (data.checkOutTime) setCheckOutTime(data.checkOutTime);
+
+                // Fetch full details if roomId exists
+                if (data.roomId) {
+                    fetch(`${API_URL_CONFIG}/api/rooms/${data.roomId}`)
+                        .then(res => res.json())
+                        .then(resData => {
+                            if (resData.success) {
+                                const room = resData.data;
+                                setRooms([{
+                                    id: 1,
+                                    categoryId: room.roomType ? getCategoryIdFromRoomType(room.roomType) : '',
+                                    roomNumber: room.roomNumber,
+                                    mealPlan: 'CP',
+                                    adultsCount: room.capacity || 1,
+                                    childrenCount: 0,
+                                    ratePerNight: room.price || 0,
+                                    discount: 0
+                                }]);
+                            }
+                        });
+                }
+            }
+
+            // Auto-open guest modal if requested
+            if (location.state.autoOpenGuestModal) {
+                console.log('🎯 Auto-opening Create Guest modal...');
+                setTimeout(() => setShowGuestModal(true), 300);
+            }
+
+            // IMPORTANT: Clear navigation state once consumed but keep fromRoomsPage flag
+            // Use replace: true so it doesn't add to history
+            navigate('.', { replace: true, state: { processed: true } });
+        } else if (!location.state || !location.state.processed) {
+            // Only reset if we don't have a 'processed' flag in state
+            // and we aren't coming from another pre-fill
+            if (viewMode === 'form' && !isEditingMode) {
+                setFromRoomsPage(false);
+            }
+        }
+    }, [viewMode, location, navigate]);
+
+
+
+
+    // Initial Fetch for data dependencies
     useEffect(() => {
         fetchReservationsFromAPI();
         fetchGuestsFromAPI();
@@ -257,16 +284,27 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             flexibleCheckout: false,
             roomNumber: booking.roomNumber,
             roomType: booking.roomType,
-            rooms: [{
-                id: 1,
-                categoryId: booking.roomType?.toLowerCase().replace(/ /g, '-') || 'deluxe-ac-double',
-                roomNumber: booking.roomNumber || '',
-                mealPlan: 'CP',
-                adultsCount: booking.numberOfAdults || booking.numberOfGuests || 1,
-                childrenCount: booking.numberOfChildren || 0,
-                ratePerNight: booking.pricePerNight || 0,
-                discount: 0
-            }],
+            rooms: booking.rooms && booking.rooms.length > 0
+                ? booking.rooms.map((r, idx) => ({
+                    id: idx + 1,
+                    categoryId: r.roomType?.toLowerCase().replace(/ /g, '-') || 'deluxe-ac-double',
+                    roomNumber: r.roomNumber || '',
+                    mealPlan: r.mealPlan || 'CP',
+                    adultsCount: r.adults || 1,
+                    childrenCount: r.children || 0,
+                    ratePerNight: r.ratePerNight || 0,
+                    discount: r.discount || 0
+                }))
+                : [{
+                    id: 1,
+                    categoryId: booking.roomType?.toLowerCase().replace(/ /g, '-') || 'deluxe-ac-double',
+                    roomNumber: booking.roomNumber || '',
+                    mealPlan: 'CP',
+                    adultsCount: booking.numberOfAdults || booking.numberOfGuests || 1,
+                    childrenCount: booking.numberOfChildren || 0,
+                    ratePerNight: booking.pricePerNight || 0,
+                    discount: 0
+                }],
             nights: booking.numberOfNights || 1,
             status: booking.status === 'Upcoming' ? 'RESERVED' :
                 booking.status === 'Checked-in' || booking.status === 'IN_HOUSE' ? 'IN_HOUSE' :
@@ -457,17 +495,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         }
     }, [businessSourcesList]);
 
-    // Helper function to convert room type name to category ID
-    const getCategoryIdFromRoomType = (roomType) => {
-        const typeMapping = {
-            'Deluxe Room': 'deluxe-ac-double',
-            'Club AC Double Room': 'club-ac-double',
-            'Suite Double Room': 'suite-double',
-            'Suite Single Room': 'suite-single',
-            'Standard Room': 'standard-room'
-        };
-        return typeMapping[roomType] || 'deluxe-ac-double';
-    };
+
 
     // Current Date for Calendar Restriction
     const today = new Date().toISOString().split('T')[0];
@@ -490,12 +518,12 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     // Form State - Room Details (with pre-fill support)
     const [rooms, setRooms] = useState([{
         id: 1,
-        categoryId: prefilledData?.roomType ? getCategoryIdFromRoomType(prefilledData.roomType) : '',
-        roomNumber: prefilledData?.roomNumber || '',
-        mealPlan: mealTypes.length > 0 ? mealTypes[0].shortCode : 'CP',
+        categoryId: '',
+        roomNumber: '',
+        mealPlan: '',
         adultsCount: 1,
         childrenCount: 0,
-        ratePerNight: 3000,
+        ratePerNight: 0,
         discount: 0
     }]);
 
@@ -547,7 +575,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     // Update form fields when prefilledData changes
     useEffect(() => {
         if (prefilledData) {
-            console.log('📝 Pre-filling form with data:', prefilledData);
+            console.log('📝 Applying prefilledData to form fields:', prefilledData);
 
             if (prefilledData.checkInDate) setCheckInDate(prefilledData.checkInDate);
             if (prefilledData.checkInTime) setCheckInTime(prefilledData.checkInTime);
@@ -557,12 +585,12 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             if (prefilledData.roomType || prefilledData.roomNumber) {
                 setRooms([{
                     id: 1,
-                    categoryId: prefilledData.roomType ? getCategoryIdFromRoomType(prefilledData.roomType) : 'deluxe-ac-double',
+                    categoryId: prefilledData.roomType ? getCategoryIdFromRoomType(prefilledData.roomType) : '',
                     roomNumber: prefilledData.roomNumber || '',
                     mealPlan: 'CP',
                     adultsCount: 1,
                     childrenCount: 0,
-                    ratePerNight: 3000,
+                    ratePerNight: prefilledData.price || 0,
                     discount: 0
                 }]);
             }
@@ -660,7 +688,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     // Calculate billing
     const billingData = useMemo(() => {
         const roomCharges = rooms.reduce((sum, room) => sum + (room.ratePerNight * nights), 0);
-        const totalDiscount = rooms.reduce((sum, room) => sum + (room.discount * nights), 0);
+        const totalDiscount = rooms.reduce((sum, room) => sum + (Number(room.discount) || 0), 0);
         const subtotal = roomCharges - totalDiscount;
         const taxAmount = taxExempt ? 0 : Math.round(subtotal * 0.12);
         const totalAmount = subtotal + taxAmount;
@@ -910,7 +938,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         setCheckOutDate('');
         setCheckOutTime('11:00');
         setFlexibleCheckout(false);
-        setRooms([{ id: 1, categoryId: '', roomNumber: '', mealPlan: mealTypes.length > 0 ? mealTypes[0].shortCode : 'CP', adultsCount: 1, childrenCount: 0, ratePerNight: 3000, discount: 0 }]);
+        setRooms([{ id: 1, categoryId: '', roomNumber: '', mealPlan: '', adultsCount: 1, childrenCount: 0, ratePerNight: 0, discount: 0 }]);
         setSelectedGuest(null);
         setPaidAmount(0);
         setPaymentMode('Cash');
@@ -939,21 +967,33 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             return;
         }
 
-        // Map reservation data to MongoDB booking format
-        const totalGuests = (rooms[0].adultsCount || 0) + (rooms[0].childrenCount || 0);
-        const validGuests = totalGuests > 0 ? totalGuests : 1; // Ensure at least 1 guest
+        // Map all rooms to backend format
+        const mappedRooms = rooms.map(room => ({
+            roomType: room.categoryId?.replace(/-/g, ' ').toUpperCase() || 'STANDARD',
+            roomNumber: room.roomNumber || 'TBD',
+            ratePerNight: Number(room.ratePerNight) || 0,
+            mealPlan: room.mealPlan || 'CP',
+            adults: Number(room.adultsCount) || 1,
+            children: Number(room.childrenCount) || 0,
+            discount: Number(room.discount) || 0,
+            total: (Number(room.ratePerNight) * (Number(nights) || 1)) - (Number(room.discount) || 0)
+        }));
+
+        const totalGuests = mappedRooms.reduce((sum, r) => sum + r.adults + r.children, 0);
 
         const bookingData = {
-            guestName: selectedGuest.fullName || selectedGuest.name || selectedGuest.guestName, // robust check
+            guestName: selectedGuest.fullName || selectedGuest.name || selectedGuest.guestName,
             mobileNumber: selectedGuest.mobile || selectedGuest.phone || selectedGuest.mobileNumber,
             email: selectedGuest.email || selectedGuest.guestEmail,
-            roomType: rooms[0].categoryId?.replace(/-/g, ' ').toUpperCase() || 'STANDARD',
-            roomNumber: rooms[0].roomNumber || 'TBD',
-            numberOfGuests: validGuests,
+            rooms: mappedRooms,
+            isMulti: mappedRooms.length > 1,
+            roomType: mappedRooms[0].roomType, // Primary room for legacy support
+            roomNumber: mappedRooms[0].roomNumber,
+            numberOfGuests: totalGuests > 0 ? totalGuests : 1,
             checkInDate,
             checkOutDate,
             numberOfNights: Number(nights) || 1,
-            pricePerNight: Number(rooms[0].ratePerNight) || 0,
+            pricePerNight: mappedRooms[0].ratePerNight,
             totalAmount: Number(billingData.totalAmount) || 0,
             advancePaid: Number(billingData.paidAmount) || 0,
             status: status === 'IN_HOUSE' ? 'Checked-in' : 'Upcoming',
@@ -967,7 +1007,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             referenceId: referenceNumber || `REF-${Date.now()}`
         };
 
-        console.log('Sending booking data:', bookingData);
+        console.log('Sending multi-room booking data:', bookingData);
 
         try {
             if (isEditingMode) {
@@ -1281,6 +1321,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                             key={index}
                                             room={room}
                                             index={index}
+                                            nights={nights}
                                             roomCategories={roomCategories}
                                             readOnly={fromRoomsPage && index === 0}
                                             onUpdate={(idx, updatedRoom) => {
