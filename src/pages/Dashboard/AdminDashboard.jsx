@@ -114,26 +114,6 @@ const AdminDashboard = () => {
     const [qrLoading, setQRLoading] = useState(false);
 
     // Room type categories
-    const roomTypeCategories = {
-        'Club Rooms': [
-            'Club AC Single Room',
-            'Club AC Double Room',
-            'Club Non-AC Single Room',
-            'Club Non-AC Double Room'
-        ],
-        'Deluxe Rooms': [
-            'Deluxe AC Single Room',
-            'Deluxe AC Double Room',
-            'Deluxe Non-AC Single Room',
-            'Deluxe Non-AC Double Room'
-        ],
-        'Suite Rooms': [
-            'Suite Single Room',
-            'Suite Double Room',
-            'Family Suite'
-        ]
-    };
-
     const statusOptions = ['All Status', 'Available', 'Booked', 'Occupied', 'Under Maintenance'];
 
     // Load user data from localStorage
@@ -548,8 +528,8 @@ const AdminDashboard = () => {
     // Room management functions
     const getAllRoomTypes = () => {
         const types = ['All Types'];
-        Object.values(roomTypeCategories).forEach(category => {
-            types.push(...category);
+        roomTypes.forEach(type => {
+            types.push(type.name);
         });
         return types;
     };
@@ -724,7 +704,8 @@ const AdminDashboard = () => {
                     roomType: room.roomType,
                     floor: room.floor,
                     bedType: room.bedType,
-                    price: room.price
+                    price: room.price,
+                    capacity: room.capacity
                 },
                 autoOpenGuestModal: true
             }

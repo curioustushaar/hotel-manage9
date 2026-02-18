@@ -47,7 +47,7 @@ exports.addBooking = async (req, res) => {
         const bookingData = req.body;
 
         // Validate required fields
-        if (!bookingData.guestName || !bookingData.mobileNumber || !bookingData.roomNumber ||
+        if (!bookingData.guestName || !bookingData.mobileNumber ||
             !bookingData.checkInDate || !bookingData.checkOutDate) {
             return res.status(400).json({
                 success: false,
@@ -55,101 +55,134 @@ exports.addBooking = async (req, res) => {
             });
         }
 
-        // FEATURE 6: Safe Reservation Create - Backend verification of room status (AVAILABLE)
-        // FEATURE: Dynamic Pricing Verification
         const Room = require('../models/roomModel');
-        const room = await Room.findOne({ roomNumber: bookingData.roomNumber });
+        const roomsToUpdate = [];
+        let totalCalculatedAmount = 0;
 
-        if (!room) {
-            return res.status(404).json({ success: false, message: 'Room not found' });
-        }
+        // Determine if it's a multi-room booking
+        const multiRooms = bookingData.rooms && Array.isArray(bookingData.rooms) && bookingData.rooms.length > 0;
 
-        if (room.status !== 'Available') {
-            return res.status(409).json({
-                success: false,
-                message: `Room ${bookingData.roomNumber} is currently ${room.status}. Please select another room.`
-            });
-        }
-
-        // Calculate dynamic price if enabled
-        if (room.dynamicRateEnabled) {
-            const { calculateDynamicPrice } = require('./pricingController');
-            const dynamicPrice = await calculateDynamicPrice(room.roomType, bookingData.checkInDate);
-            if (dynamicPrice) {
-                bookingData.pricePerNight = dynamicPrice;
+        if (multiRooms) {
+            // Check for duplicate room numbers in the same request
+            const roomNumsInRequest = bookingData.rooms.map(r => r.roomNumber).filter(n => n && n !== 'TBD');
+            if (new Set(roomNumsInRequest).size !== roomNumsInRequest.length) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Duplicate room numbers selected in the same booking'
+                });
             }
+
+            // Validate all rooms in multi-room booking
+            for (const roomItem of bookingData.rooms) {
+                const roomNumber = roomItem.roomNumber;
+                const room = await Room.findOne({ roomNumber });
+
+                if (!room) {
+                    return res.status(404).json({ success: false, message: `Room ${roomNumber} not found` });
+                }
+
+                if (room.status !== 'Available') {
+                    return res.status(409).json({
+                        success: false,
+                        message: `Room ${roomNumber} is currently ${room.status}. Please select another room.`
+                    });
+                }
+
+                // Check for date overlap correctly
+                const existingBooking = await Booking.findOne({
+                    $or: [
+                        { roomNumber: roomNumber },
+                        { "rooms.roomNumber": roomNumber }
+                    ],
+                    checkInDate: { $lt: new Date(bookingData.checkOutDate) },
+                    checkOutDate: { $gt: new Date(bookingData.checkInDate) },
+                    status: { $in: ['Upcoming', 'Checked-in'] }
+                });
+
+                if (existingBooking) {
+                    return res.status(409).json({
+                        success: false,
+                        message: `Room ${roomNumber} is already booked for the selected dates.`
+                    });
+                }
+
+                roomsToUpdate.push(room);
+                // Calculate individual room total if not provided
+                const nights = Number(bookingData.numberOfNights) || 1;
+                const roomTotal = (Number(roomItem.ratePerNight) * nights) - (Number(roomItem.discount) || 0);
+                roomItem.total = roomTotal;
+                totalCalculatedAmount += roomTotal;
+            }
+
+            bookingData.isMulti = bookingData.rooms.length > 1;
+            bookingData.totalAmount = totalCalculatedAmount;
+            // For backward compatibility, set primary room number/type to first room
+            bookingData.roomNumber = bookingData.rooms[0].roomNumber;
+            bookingData.roomType = bookingData.rooms[0].roomType;
+            bookingData.pricePerNight = bookingData.rooms[0].ratePerNight;
+        } else {
+            // Single room traditional path
+            if (!bookingData.roomNumber) {
+                return res.status(400).json({ success: false, message: 'Room number is required' });
+            }
+            const room = await Room.findOne({ roomNumber: bookingData.roomNumber });
+            if (!room) return res.status(404).json({ success: false, message: 'Room not found' });
+            if (room.status !== 'Available') {
+                return res.status(409).json({ success: false, message: `Room ${bookingData.roomNumber} is ${room.status}` });
+            }
+
+            // Conflict check (Checking both single and multi-room records)
+            const existingBooking = await Booking.findOne({
+                $or: [
+                    { roomNumber: bookingData.roomNumber },
+                    { "rooms.roomNumber": bookingData.roomNumber }
+                ],
+                checkInDate: { $lt: new Date(bookingData.checkOutDate) },
+                checkOutDate: { $gt: new Date(bookingData.checkInDate) },
+                status: { $in: ['Upcoming', 'Checked-in'] }
+            });
+
+            if (existingBooking) return res.status(409).json({ success: false, message: 'Room already booked' });
+
+            roomsToUpdate.push(room);
         }
 
-        // Update room status
-        room.status = bookingData.status === 'Checked-in' ? 'Occupied' : 'Booked';
-        await room.save();
-
-        // Check for date overlap as well (Secondary check)
-        const existingBooking = await Booking.findOne({
-            roomNumber: bookingData.roomNumber,
-            $or: [
-                {
-                    checkInDate: { $lt: new Date(bookingData.checkOutDate) },
-                    checkOutDate: { $gt: new Date(bookingData.checkInDate) }
-                }
-            ],
-            status: { $in: ['Upcoming', 'Checked-in'] }
-        });
-
-        if (existingBooking) {
-            // Rollback room status
-            await Room.findOneAndUpdate({ roomNumber: bookingData.roomNumber }, { status: 'Available' });
-            return res.status(409).json({
-                success: false,
-                message: 'Room is already booked for the selected dates (Conflict found in existing schedules)'
-            });
+        // Update all room statuses
+        const newStatus = bookingData.status === 'Checked-in' ? 'Occupied' : 'Booked';
+        for (const room of roomsToUpdate) {
+            room.status = newStatus;
+            await room.save();
         }
 
         const booking = new Booking(bookingData);
 
-        console.log('Creating booking with data:', bookingData);
-
         // Add initial room charge transaction
-        const checkInDate = new Date(bookingData.checkInDate);
+        const checkInDateObj = new Date(bookingData.checkInDate);
         const initialTransaction = {
             type: 'charge',
-            day: checkInDate.toLocaleDateString('en-GB', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                weekday: 'short'
-            }),
+            day: checkInDateObj.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
             particulars: 'Room Tariff',
-            description: `Room Charges - ${bookingData.totalAmount} for ${checkInDate.toLocaleDateString('en-GB')} Room No: ${bookingData.roomNumber}`,
+            description: `Room Charges - ${bookingData.totalAmount} for ${checkInDateObj.toLocaleDateString('en-GB')} ${multiRooms ? '(' + bookingData.rooms.length + ' Rooms)' : 'Room No: ' + bookingData.roomNumber}`,
             amount: bookingData.totalAmount || 0,
             user: 'system'
         };
 
-        console.log('Initial transaction:', initialTransaction);
         booking.transactions.push(initialTransaction);
 
         // Add advance payment transaction if advance is paid
         if (bookingData.advancePaid && bookingData.advancePaid > 0) {
             const advancePaymentTransaction = {
                 type: 'payment',
-                day: new Date().toLocaleDateString('en-GB', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    weekday: 'short'
-                }),
+                day: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
                 particulars: 'Advance Payment',
                 description: 'Advance payment received at booking',
                 amount: -Math.abs(bookingData.advancePaid),
                 user: 'system'
             };
-            console.log('Advance payment transaction:', advancePaymentTransaction);
             booking.transactions.push(advancePaymentTransaction);
         }
 
-        console.log('Booking before save - transactions:', booking.transactions);
         await booking.save();
-        console.log('Booking saved - transactions:', booking.transactions);
 
         res.status(201).json({
             success: true,
@@ -275,14 +308,7 @@ exports.updateBookingStatus = async (req, res) => {
             });
         }
 
-        const updateData = { status, updatedAt: Date.now() };
-        if (invoiceId) updateData.invoiceId = invoiceId;
-
-        const booking = await Booking.findByIdAndUpdate(
-            req.params.id,
-            updateData,
-            { new: true }
-        );
+        const booking = await Booking.findById(req.params.id);
 
         if (!booking) {
             return res.status(404).json({
@@ -291,12 +317,44 @@ exports.updateBookingStatus = async (req, res) => {
             });
         }
 
+        // Update room statuses based on record status
+        const Room = require('../models/roomModel');
+        const roomNumbers = [];
+
+        if (booking.isMulti && booking.rooms && booking.rooms.length > 0) {
+            booking.rooms.forEach(r => roomNumbers.push(r.roomNumber));
+        } else if (booking.roomNumber) {
+            roomNumbers.push(booking.roomNumber);
+        }
+
+        const roomStatusMap = {
+            'Upcoming': 'Booked',
+            'Checked-in': 'Occupied',
+            'Checked-out': 'Available',
+            'Cancelled': 'Available'
+        };
+
+        const newRoomStatus = roomStatusMap[status];
+
+        if (newRoomStatus) {
+            for (const roomNo of roomNumbers) {
+                await Room.findOneAndUpdate({ roomNumber: roomNo }, { status: newRoomStatus });
+            }
+        }
+
+        booking.status = status;
+        booking.updatedAt = Date.now();
+        if (invoiceId) booking.invoiceId = invoiceId;
+
+        await booking.save();
+
         res.status(200).json({
             success: true,
             message: 'Booking status updated successfully',
             data: booking
         });
     } catch (error) {
+        console.error('Error updating booking status:', error);
         res.status(500).json({
             success: false,
             message: 'Error updating booking status',
