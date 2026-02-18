@@ -4,8 +4,9 @@ dotenv.config();
 
 const test = async () => {
     try {
-        console.log('Connecting to:', process.env.MONGODB_URI || 'mongodb://localhost:27017/bareena-atithi');
-        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bareena-atithi');
+        if (!process.env.MONGODB_URI) throw new Error('MONGODB_URI not found in .env');
+        console.log('Connecting to:', process.env.MONGODB_URI);
+        await mongoose.connect(process.env.MONGODB_URI);
         console.log('Connected!');
         const Room = mongoose.model('Room', new mongoose.Schema({ roomNumber: String }));
         const rooms = await Room.find();

@@ -7,14 +7,15 @@ dotenv.config();
 const migrateBookings = async () => {
     try {
         // Connect to MongoDB
-        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bareena-atithi', {
+        if (!process.env.MONGODB_URI) throw new Error("Missing MONGODB_URI");
+        await mongoose.connect(process.env.MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });
         console.log('MongoDB Connected');
 
         // Find all bookings without transactions
-        const bookings = await Booking.find({ 
+        const bookings = await Booking.find({
             $or: [
                 { transactions: { $exists: false } },
                 { transactions: { $size: 0 } }
@@ -25,17 +26,17 @@ const migrateBookings = async () => {
 
         for (const booking of bookings) {
             console.log(`\nMigrating booking: ${booking.guestName} (${booking._id})`);
-            
+
             const transactions = [];
-            
+
             // Add room charge transaction
             if (booking.totalAmount && booking.totalAmount > 0) {
                 const checkInDate = new Date(booking.checkInDate);
                 const roomChargeTransaction = {
                     type: 'charge',
-                    day: checkInDate.toLocaleDateString('en-GB', { 
-                        day: '2-digit', 
-                        month: '2-digit', 
+                    day: checkInDate.toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
                         year: 'numeric',
                         weekday: 'short'
                     }),
@@ -48,14 +49,14 @@ const migrateBookings = async () => {
                 transactions.push(roomChargeTransaction);
                 console.log(`  ✓ Added room charge: ₹${booking.totalAmount}`);
             }
-            
+
             // Add advance payment transaction
             if (booking.advancePaid && booking.advancePaid > 0) {
                 const advancePaymentTransaction = {
                     type: 'payment',
-                    day: new Date(booking.createdAt || new Date()).toLocaleDateString('en-GB', { 
-                        day: '2-digit', 
-                        month: '2-digit', 
+                    day: new Date(booking.createdAt || new Date()).toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
                         year: 'numeric',
                         weekday: 'short'
                     }),
@@ -68,7 +69,7 @@ const migrateBookings = async () => {
                 transactions.push(advancePaymentTransaction);
                 console.log(`  ✓ Added advance payment: ₹${booking.advancePaid}`);
             }
-            
+
             // Update booking with transactions
             if (transactions.length > 0) {
                 booking.transactions = transactions;

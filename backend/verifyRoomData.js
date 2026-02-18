@@ -3,7 +3,11 @@ require('dotenv').config();
 
 async function verifyRoomData() {
     try {
-        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bareena-atithi');
+        if (!process.env.MONGODB_URI) {
+            console.error('Error: MONGODB_URI not found in .env');
+            process.exit(1);
+        }
+        await mongoose.connect(process.env.MONGODB_URI);
         const db = mongoose.connection.db;
 
         const rooms = await db.collection('rooms').find({}).toArray();
