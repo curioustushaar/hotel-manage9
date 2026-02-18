@@ -1,318 +1,378 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { 
+    FaBell, 
+    FaCog, 
+    FaHotel, 
+    FaShieldAlt, 
+    FaExclamationTriangle, 
+    FaClock, 
+    FaPlus, 
+    FaChevronRight,
+    FaBars,
+    FaBuilding
+} from 'react-icons/fa';
+import { MdDashboard, MdLogout } from 'react-icons/md';
 
 const SuperAdminDashboard = () => {
     const { logout, user } = useAuth();
-    const navigate = useNavigate();
-    const [admins, setAdmins] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        password: '',
-        phone: '',
-        hotelName: '',
-        gstNumber: '',
-        subscriptionStart: '',
-        subscriptionEnd: ''
-    });
+    const [activePage, setActivePage] = useState('dashboard');
+    const [showCreateModal, setShowCreateModal] = useState(false);
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    // Mock statistics data
+    const statistics = {
+        totalHotels: 12,
+        activeHotels: 9,
+        suspended: 3,
+        expiringSoon: 2
+    };
 
-    useEffect(() => {
-        fetchAdmins();
-    }, []);
-
-    const fetchAdmins = async () => {
-        try {
-            const token = user?.token || localStorage.getItem('authToken');
-            const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-            const response = await axios.get(`${API_URL}/super-admin/admins`, config);
-            setAdmins(response.data);
-            setLoading(false);
-        } catch (error) {
-            console.error('Error fetching admins:', error);
-            setLoading(false);
+    // Mock subscription data
+    const subscriptions = [
+        {
+            id: 1,
+            hotelName: 'Ocean View Resort',
+            rating: '⭐ 5028 8** 991',
+            admin: 'rohan@oceanview.com',
+            expiration: 'April 21, 2024',
+            daysLeft: 5,
+            status: 'expiring'
+        },
+        {
+            id: 2,
+            hotelName: 'Grand Palace Hotel',
+            rating: '⭐ 5028 8** 991',
+            admin: 'neha@grandpalace.com',
+            expiration: 'April 25, 2024',
+            daysLeft: 9,
+            status: 'warning'
+        },
+        {
+            id: 3,
+            hotelName: 'City Lights Inn',
+            rating: '⭐ 5028 8** 506',
+            admin: 'arjun@citylights.com',
+            expiration: 'April 25, 2024',
+            daysLeft: 9,
+            status: 'warning'
         }
-    };
-
-    const handleInputChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const handleCreateAdmin = async (e) => {
-        e.preventDefault();
-        try {
-            const token = user?.token || localStorage.getItem('authToken');
-            const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-            await axios.post(`${API_URL}/super-admin/create-admin`, formData, config);
-            setShowModal(false);
-            setFormData({
-                name: '',
-                email: '',
-                password: '',
-                phone: '',
-                hotelName: '',
-                gstNumber: '',
-                subscriptionStart: '',
-                subscriptionEnd: ''
-            });
-            fetchAdmins();
-        } catch (error) {
-            console.error('Error creating admin:', error);
-            alert(error.response?.data?.message || 'Error creating admin');
-        }
-    };
-
-    const toggleStatus = async (id) => {
-        try {
-            const token = user?.token || localStorage.getItem('authToken');
-            const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-            await axios.put(`${API_URL}/super-admin/toggle-status/${id}`, {}, config);
-            fetchAdmins();
-        } catch (error) {
-            console.error('Error toggling status:', error);
-        }
-    };
+    ];
 
     const handleLogout = () => {
         logout();
-        window.location.href = '/login'; // Force full reload to clear state
+        window.location.href = '/login';
+    };
+
+    const getInitials = (name) => {
+        if (!name) return 'SA';
+        return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
-            {/* Header */}
-            <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
-                <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-red-600 text-white p-2 rounded-lg shadow-sm">
-                            <span className="text-xl font-bold tracking-tight">BA</span>
-                        </div>
-                        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-                            Bireena Atithi <span className="text-red-600">Super Admin</span>
-                        </h1>
-                    </div>
+        <div className="flex h-screen bg-gray-50 overflow-hidden">
+            {/* Left Sidebar */}
+            <aside className="w-56 bg-white shadow-lg flex flex-col">
+                {/* Sidebar Navigation */}
+                <nav className="flex-1 p-4">
+                    <button
+                        onClick={() => setActivePage('dashboard')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-2 transition-all ${
+                            activePage === 'dashboard'
+                                ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg'
+                                : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                    >
+                        <MdDashboard className="text-xl" />
+                        <span className="font-medium">Dashboard</span>
+                    </button>
+
+                    <button
+                        onClick={() => setActivePage('hotels')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-2 transition-all ${
+                            activePage === 'hotels'
+                                ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg'
+                                : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                    >
+                        <FaHotel className="text-xl" />
+                        <span className="font-medium">Hotels</span>
+                    </button>
+
+                    <button
+                        onClick={() => setShowCreateModal(true)}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-2 transition-all ${
+                            activePage === 'create'
+                                ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg'
+                                : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                    >
+                        <FaHotel className="text-xl" />
+                        <span className="font-medium">Create Hotel</span>
+                    </button>
 
                     <button
                         onClick={handleLogout}
-                        className="px-5 py-2.5 border border-red-200 text-sm font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-gray-100 transition-all"
                     >
-                        Sign Out
+                        <MdLogout className="text-xl" />
+                        <span className="font-medium">Logout</span>
                     </button>
-                </div>
-            </header>
+                </nav>
 
-            {/* Main Content */}
-            <main className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-                    <div>
-                        <h2 className="text-3xl font-bold text-gray-900">Hotel Management</h2>
-                        <p className="mt-1 text-sm text-gray-500">Overview of all registered hotels and administrators.</p>
-                    </div>
+                {/* Bottom Logout Button */}
+                <div className="p-4 border-t border-gray-200">
                     <button
-                        onClick={() => setShowModal(true)}
-                        className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg shadow-md text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all transform hover:-translate-y-0.5"
+                        onClick={handleLogout}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all shadow-lg font-semibold"
                     >
-                        + Onboard New Hotel
+                        <MdLogout className="text-lg" />
+                        <span>Logout</span>
                     </button>
                 </div>
+            </aside>
 
-                {/* Statistics Cards (Optional placeholder for future) */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <p className="text-sm font-medium text-gray-500">Total Hotels</p>
-                        <p className="text-3xl font-bold text-gray-900 mt-2">{admins.length}</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <p className="text-sm font-medium text-gray-500">Active Subscriptions</p>
-                        <p className="text-3xl font-bold text-green-600 mt-2">{admins.filter(a => a.isActive).length}</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <p className="text-sm font-medium text-gray-500">Pending Actions</p>
-                        <p className="text-3xl font-bold text-orange-500 mt-2">0</p>
-                    </div>
-                </div>
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Top Navbar */}
+                <header className="bg-white shadow-sm">
+                    <div className="flex items-center justify-between px-8 py-4">
+                        {/* Left Side */}
+                        <div className="flex items-center gap-4">
+                            <button className="text-gray-600 hover:text-gray-900">
+                                <FaBars className="text-xl" />
+                            </button>
+                            <h1 className="text-xl font-bold text-gray-800 uppercase tracking-wide">
+                                SUPER ADMIN DASHBOARD
+                            </h1>
+                        </div>
 
-                {/* Table Section */}
-                <div className="bg-white shadow-lg rounded-xl border border-gray-200 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Hotel Details</th>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Administrator</th>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact</th>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Subscription</th>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {loading ? (
-                                    <tr>
-                                        <td colSpan="6" className="px-6 py-12 text-center">
-                                            <div className="flex justify-center flex-col items-center">
-                                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-600 mb-4"></div>
-                                                <p className="text-sm text-gray-500">Loading hotel data...</p>
-                                            </div>
-                                        </td>
+                        {/* Right Side */}
+                        <div className="flex items-center gap-4">
+                            <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-all">
+                                <FaCog className="text-xl" />
+                            </button>
+
+                            <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-all">
+                                <FaBell className="text-xl" />
+                                <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md">
+                                    3
+                                </span>
+                            </button>
+
+                            <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-lg">
+                                {getInitials(user?.name)}
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                {/* Content Area */}
+                <main className="flex-1 overflow-y-auto p-8">
+                    {/* Page Header */}
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-2xl font-bold text-gray-800 uppercase tracking-wide">
+                            SUPER ADMIN DASHBOARD
+                        </h2>
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all shadow-lg font-semibold"
+                        >
+                            <FaPlus />
+                            Create Hotel
+                        </button>
+                    </div>
+
+                    {/* Hotel Statistics Section */}
+                    <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+                        <h3 className="text-lg font-bold text-gray-700 uppercase mb-6 tracking-wide">
+                            HOTEL STATISTICS
+                        </h3>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {/* Card 1: Total Hotels */}
+                            <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 text-white shadow-lg flex items-center gap-4">
+                                <div className="bg-white bg-opacity-20 rounded-full p-4">
+                                    <FaBuilding className="text-3xl" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide opacity-90 mb-1">
+                                        TOTAL HOTELS
+                                    </p>
+                                    <p className="text-5xl font-bold">{statistics.totalHotels}</p>
+                                </div>
+                            </div>
+
+                            {/* Card 2: Active Hotels */}
+                            <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 text-white shadow-lg flex items-center gap-4">
+                                <div className="bg-white bg-opacity-20 rounded-full p-4">
+                                    <FaShieldAlt className="text-3xl" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide opacity-90 mb-1">
+                                        ACTIVE HOTELS
+                                    </p>
+                                    <p className="text-5xl font-bold">{statistics.activeHotels}</p>
+                                </div>
+                            </div>
+
+                            {/* Card 3: Suspended Hotels */}
+                            <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 text-white shadow-lg flex items-center gap-4">
+                                <div className="bg-white bg-opacity-20 rounded-full p-4">
+                                    <FaExclamationTriangle className="text-3xl" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide opacity-90 mb-1">
+                                        SUSPENDED HOTELS
+                                    </p>
+                                    <p className="text-5xl font-bold">{statistics.suspended}</p>
+                                </div>
+                            </div>
+
+                            {/* Card 4: Expiring Soon */}
+                            <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 text-white shadow-lg flex items-center gap-4">
+                                <div className="bg-white bg-opacity-20 rounded-full p-4">
+                                    <FaClock className="text-3xl" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide opacity-90 mb-1">
+                                        EXPIRING SOON
+                                    </p>
+                                    <p className="text-5xl font-bold">{statistics.expiringSoon}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Subscription Status Section */}
+                    <div className="bg-white rounded-xl shadow-lg p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-bold text-gray-700 uppercase tracking-wide">
+                                SUBSCRIPTION STATUS
+                            </h3>
+                            <button className="flex items-center gap-2 text-red-500 hover:text-red-600 font-semibold transition-all">
+                                <FaChevronRight className="text-xs" />
+                                <span>View All</span>
+                                <FaChevronRight className="text-xs" />
+                            </button>
+                        </div>
+
+                        {/* Table */}
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b-2 border-gray-200">
+                                        <th className="text-left py-4 px-4 text-sm font-bold text-gray-500 uppercase tracking-wide">
+                                            HOTEL
+                                        </th>
+                                        <th className="text-left py-4 px-4 text-sm font-bold text-gray-500 uppercase tracking-wide">
+                                            ADMIN
+                                        </th>
+                                        <th className="text-left py-4 px-4 text-sm font-bold text-gray-500 uppercase tracking-wide">
+                                            EXPIRATION
+                                        </th>
+                                        <th className="text-right py-4 px-4 text-sm font-bold text-gray-500 uppercase tracking-wide">
+                                            STATUS
+                                        </th>
                                     </tr>
-                                ) : admins.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
-                                            No hotels found. Click "Onboard New Hotel" to get started.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    admins.map((admin) => (
-                                        <tr key={admin._id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center">
-                                                    <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold text-lg">
-                                                        {admin.hotelName ? admin.hotelName.charAt(0).toUpperCase() : 'H'}
-                                                    </div>
-                                                    <div className="ml-4">
-                                                        <div className="text-sm font-bold text-gray-900">{admin.hotelName || 'N/A'}</div>
-                                                        <div className="text-xs text-gray-500">GST: {admin.gstNumber || 'N/A'}</div>
-                                                    </div>
+                                </thead>
+                                <tbody>
+                                    {subscriptions.map((sub) => (
+                                        <tr 
+                                            key={sub.id} 
+                                            className="border-b border-gray-100 hover:bg-gray-50 transition-all cursor-pointer"
+                                        >
+                                            <td className="py-4 px-4">
+                                                <div className="font-bold text-gray-800">{sub.hotelName}</div>
+                                                <div className="text-sm text-gray-500 mt-1">{sub.rating}</div>
+                                            </td>
+                                            <td className="py-4 px-4">
+                                                <div className="text-gray-700">{sub.admin}</div>
+                                                <div className="text-sm text-gray-500 mt-1">{sub.admin}</div>
+                                            </td>
+                                            <td className="py-4 px-4">
+                                                <div className="font-bold text-red-500">{sub.expiration}</div>
+                                                <div className="flex items-center gap-1 text-sm text-red-500 mt-1">
+                                                    <FaExclamationTriangle />
+                                                    <span>{sub.daysLeft} days left</span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900 font-medium">{admin.name}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">{admin.username}</div>
-                                                <div className="text-xs text-gray-500">{admin.phone}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-700">
-                                                    Ends: <span className="font-semibold">{admin.subscriptionEnd ? new Date(admin.subscriptionEnd).toLocaleDateString() : 'N/A'}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${admin.isActive
-                                                        ? 'bg-green-50 text-green-700 border-green-200'
-                                                        : 'bg-red-50 text-red-700 border-red-200'
-                                                    }`}>
-                                                    {admin.isActive ? 'Active' : 'Disabled'}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <button
-                                                    onClick={() => toggleStatus(admin._id)}
-                                                    className={`px-3 py-1.5 rounded-md text-xs font-semibold border transition-colors ${admin.isActive
-                                                            ? 'border-red-200 text-red-600 hover:bg-red-50'
-                                                            : 'border-green-200 text-green-600 hover:bg-green-50'
-                                                        }`}
-                                                >
-                                                    {admin.isActive ? 'Disable Access' : 'Enable Access'}
+                                            <td className="py-4 px-4 text-right">
+                                                <button className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-all font-semibold">
+                                                    <span>{sub.daysLeft} days left</span>
+                                                    <FaExclamationTriangle />
+                                                    <FaChevronRight className="text-xs" />
                                                 </button>
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-            </main>
+                </main>
+            </div>
 
-            {/* Modal Overlay */}
-            {showModal && (
-                <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-                    <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                        {/* Backdrop */}
-                        <div
-                            className="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity"
-                            aria-hidden="true"
-                            onClick={() => setShowModal(false)}
-                        ></div>
-
-                        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-                        {/* Modal Panel */}
-                        <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-gray-100">
-                            <div className="bg-red-600 px-6 py-4 flex justify-between items-center">
-                                <h3 className="text-lg leading-6 font-bold text-white flex items-center gap-2">
-                                    <span className="bg-white text-red-600 rounded-full h-6 w-6 flex items-center justify-center text-sm">+</span>
-                                    Onboard New Hotel
-                                </h3>
-                                <button onClick={() => setShowModal(false)} className="text-red-100 hover:text-white text-2xl leading-none">&times;</button>
-                            </div>
-
-                            <form onSubmit={handleCreateAdmin}>
-                                <div className="px-8 py-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Hotel Info */}
-                                        <div className="md:col-span-2">
-                                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 border-b pb-1">Hotel Details</h4>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Hotel Name</label>
-                                            <input type="text" name="hotelName" placeholder="e.g. Grand Plaza" value={formData.hotelName} onChange={handleInputChange} required
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">GST Number</label>
-                                            <input type="text" name="gstNumber" placeholder="e.g. 29ABCDE1234F1Z5" value={formData.gstNumber} onChange={handleInputChange} required
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" />
-                                        </div>
-
-                                        {/* Admin Info */}
-                                        <div className="md:col-span-2 mt-2">
-                                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 border-b pb-1">Administrator Details</h4>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Admin Name</label>
-                                            <input type="text" name="name" placeholder="Full Name" value={formData.name} onChange={handleInputChange} required
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                                            <input type="text" name="phone" placeholder="+91 98765 43210" value={formData.phone} onChange={handleInputChange} required
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-xs text-gray-400">(Login Username)</span></label>
-                                            <input type="email" name="email" placeholder="admin@hotel.com" value={formData.email} onChange={handleInputChange} required
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                                            <input type="password" name="password" placeholder="••••••••" value={formData.password} onChange={handleInputChange} required
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" />
-                                        </div>
-
-                                        {/* Subscription Info */}
-                                        <div className="md:col-span-2 mt-2">
-                                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 border-b pb-1">Subscription Plan</h4>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                                            <input type="date" name="subscriptionStart" value={formData.subscriptionStart} onChange={handleInputChange} required
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                                            <input type="date" name="subscriptionEnd" value={formData.subscriptionEnd} onChange={handleInputChange} required
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" />
-                                        </div>
-                                    </div>
+            {/* Create Hotel Modal */}
+            {showCreateModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="sticky top-0 bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-4 flex items-center justify-between rounded-t-xl">
+                            <h3 className="text-xl font-bold">Create New Hotel</h3>
+                            <button
+                                onClick={() => setShowCreateModal(false)}
+                                className="text-3xl hover:text-red-100 transition-all leading-none"
+                            >
+                                ×
+                            </button>
+                        </div>
+                        
+                        <div className="p-6">
+                            <form className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                        Hotel Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                                        placeholder="Enter hotel name"
+                                    />
                                 </div>
 
-                                <div className="bg-gray-50 px-6 py-4 sm:flex sm:flex-row-reverse border-t border-gray-100">
-                                    <button type="submit" className="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-6 py-2.5 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm transition-all shadow-md">
-                                        Create Account
-                                    </button>
-                                    <button type="button" onClick={() => setShowModal(false)} className="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-6 py-2.5 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-all">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                        Admin Email
+                                    </label>
+                                    <input
+                                        type="email"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                                        placeholder="admin@hotel.com"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                        Subscription End Date
+                                    </label>
+                                    <input
+                                        type="date"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                                    />
+                                </div>
+
+                                <div className="flex gap-3 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCreateModal(false)}
+                                        className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-semibold"
+                                    >
                                         Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all shadow-lg font-semibold"
+                                    >
+                                        Create Hotel
                                     </button>
                                 </div>
                             </form>
