@@ -36,7 +36,7 @@ const ProtectedRoute = ({ children, module }) => {
     }
 
     // If module is specified, check if user has access
-    if (module && !hasModuleAccess(user.role, module)) {
+    if (module && !hasModuleAccess(user, module)) {
         return (
             <div style={{
                 display: 'flex',

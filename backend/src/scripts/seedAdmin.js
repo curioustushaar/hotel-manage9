@@ -6,7 +6,7 @@ const User = require('../models/User');
  * - If user does not exist: creates from ENV credentials
  * - If user exists but password changed in ENV: updates the password
  */
-const seedUser = async (email, password, role, name) => {
+const seedUser = async (email, password, role, name, hotelId = null) => {
     if (!email || !password) {
         return;
     }
@@ -14,31 +14,57 @@ const seedUser = async (email, password, role, name) => {
     try {
         const existingUser = await User.findOne({ username: email });
 
+        // Default permissions for Staff to ensure they see something
+        let defaultPermissions = [];
+        if (role === 'staff') {
+            defaultPermissions = ['Dashboard', 'Rooms', 'Reservation', 'Food Order', 'Table View'];
+        }
+
         if (!existingUser) {
             // User does not exist — create from ENV
-            // Don't hash here - let the model's pre-save hook handle it
-            await User.create({
+            const userData = {
                 username: email,
-                password: password, // Pass plain password, pre-save hook will hash it
+                password: password, // Pre-save hook will hash it
                 name: name,
                 role: role,
+                permissions: defaultPermissions, // Assign default permissions
                 isActive: true
-            });
+            };
+
+            if (hotelId) {
+                userData.hotelId = hotelId;
+                userData.hotelName = 'Default Hotel';
+            }
+
+            await User.create(userData);
             console.log(`[${role.toUpperCase()} Seed] User created: ${email}`);
         } else {
-            // User exists — verify password matches ENV, update if different
+            // User exists — verify password match, update role/permissions/hotel
             const passwordMatches = await bcrypt.compare(password, existingUser.password);
+            const updateData = {
+                isActive: true,
+                role: role // FORCE update role to match strict seed type
+            };
+
             if (!passwordMatches) {
-                const hashedPassword = await bcrypt.hash(password, 10);
-                // Use updateOne to bypass pre-save hook (which would double-hash)
-                await User.updateOne(
-                    { username: email },
-                    { $set: { password: hashedPassword, isActive: true } }
-                );
-                console.log(`[${role.toUpperCase()} Seed] Password updated: ${email}`);
-            } else {
-                console.log(`[${role.toUpperCase()} Seed] User verified OK: ${email}`);
+                updateData.password = await bcrypt.hash(password, 10);
             }
+
+            if (hotelId) {
+                updateData.hotelId = hotelId;
+                updateData.hotelName = 'Default Hotel';
+            }
+
+            // Only update permissions if they are currently empty for staff
+            if (role === 'staff' && (!existingUser.permissions || existingUser.permissions.length === 0)) {
+                updateData.permissions = defaultPermissions;
+            }
+
+            await User.updateOne(
+                { username: email },
+                { $set: updateData }
+            );
+            console.log(`[${role.toUpperCase()} Seed] User verified/updated: ${email}`);
         }
     } catch (error) {
         console.error(`[${role.toUpperCase()} Seed] Error seeding user:`, error.message);
@@ -60,13 +86,49 @@ const seedAdmin = async () => {
         console.warn('[Super Admin Seed] SUPER_ADMIN_EMAIL or SUPER_ADMIN_PASSWORD not set in .env — skipping super admin seed.');
     }
 
-    // Seed Admin User
+    // Seed Hotel
+    let hotelId = null;
+    const Hotel = require('../models/Hotel');
+
+    // Admin Credentials
     const adminEmail = process.env.BIREENA_ADMIN_EMAIL || process.env.ADMIN_EMAIL;
     const adminPassword = process.env.BIREENA_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD;
 
+    if (adminEmail) {
+        try {
+            // Check if there is already a hotel called 'Default Hotel'
+            let hotel = await Hotel.findOne({ name: 'Default Hotel' });
 
+            if (!hotel) {
+                const now = new Date();
+                const nextYear = new Date();
+                nextYear.setFullYear(now.getFullYear() + 1);
+
+                hotel = await Hotel.create({
+                    name: 'Default Hotel',
+                    address: '123 Default Street, City',
+                    phone: '9876543210',
+                    subscription: {
+                        plan: 'premium',
+                        startDate: now,
+                        expiryDate: nextYear,
+                        isActive: true
+                    },
+                    isActive: true
+                });
+                console.log('[Hotel Seed] Default Hotel created successfully');
+            } else {
+                // console.log('[Hotel Seed] Default Hotel already exists');
+            }
+            hotelId = hotel._id;
+        } catch (err) {
+            console.error('[Hotel Seed] Error ensuring default hotel:', err.message);
+        }
+    }
+
+    // Seed Admin User
     if (adminEmail && adminPassword) {
-        await seedUser(adminEmail, adminPassword, 'admin', 'Admin User');
+        await seedUser(adminEmail, adminPassword, 'admin', 'Admin User', hotelId);
     } else {
         console.warn('[Admin Seed] BIREENA_ADMIN_EMAIL or BIREENA_ADMIN_PASSWORD not set in .env — skipping admin seed.');
     }
@@ -76,7 +138,7 @@ const seedAdmin = async () => {
     const staffPassword = process.env.BIREENA_STAFF_PASSWORD;
 
     if (staffEmail && staffPassword) {
-        await seedUser(staffEmail, staffPassword, 'staff', 'Staff User');
+        await seedUser(staffEmail, staffPassword, 'staff', 'Staff User', hotelId);
     } else {
         console.warn('[Staff Seed] BIREENA_STAFF_EMAIL or BIREENA_STAFF_PASSWORD not set in .env — skipping staff seed.');
     }

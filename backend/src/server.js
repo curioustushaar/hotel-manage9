@@ -51,7 +51,7 @@ app.use(helmet());
 app.use('/api', limiter);
 
 // Body parser, reading data from body into req.body
-app.use(express.json({ limit: '10kb' }));
+app.use(express.json({ limit: '1mb' }));
 
 // Data sanitization against NoSQL query injection
 app.use(mongoSanitize());
@@ -111,6 +111,8 @@ connectDB()
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/super-admin', superAdminRoutes);
+const staffRoutes = require('./routes/staffRoutes');
+app.use('/api/staff', staffRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/rooms', roomRoutes);
@@ -156,6 +158,9 @@ app.use('/api/tables', tableRoutes);
 const visitorRoutes = require('./routes/visitorRoutes');
 console.log("Registering /api/visitors routes...");
 app.use('/api/visitors', visitorRoutes);
+
+
+// Root route
 
 
 
