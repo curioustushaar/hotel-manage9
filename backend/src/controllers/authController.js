@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Hotel = require('../models/Hotel');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
@@ -67,7 +68,13 @@ const loginUser = async (req, res) => {
                 return res.status(403).json({ message: 'No hotel assigned to your account. Please contact support.' });
             }
 
-            const hotel = user.hotelId;
+            // Fetch hotel details
+            const hotel = await Hotel.findById(user.hotelId);
+            
+            if (!hotel) {
+                console.log(`[Auth] Hotel not found for user: ${username}`);
+                return res.status(403).json({ message: 'Hotel not found. Please contact support.' });
+            }
 
             // Check if hotel is active
             if (!hotel.isActive) {
@@ -86,8 +93,21 @@ const loginUser = async (req, res) => {
                 console.log(`[Auth] Subscription expired for user: ${username}`);
                 return res.status(403).json({ message: 'Your subscription has expired. Please renew to continue.' });
             }
+
+            console.log(`[Auth] Login successful: ${username} (${user.role})`);
+
+            return res.json({
+                _id: user._id,
+                username: user.username,
+                role: user.role,
+                name: user.name,
+                hotelId: hotel._id,
+                hotelName: hotel.name,
+                token: generateToken(user._id),
+            });
         }
 
+        // For super_admin
         console.log(`[Auth] Login successful: ${username} (${user.role})`);
 
         res.json({
@@ -95,8 +115,6 @@ const loginUser = async (req, res) => {
             username: user.username,
             role: user.role,
             name: user.name,
-            hotelId: user.hotelId?._id,
-            hotelName: user.hotelId?.name,
             token: generateToken(user._id),
         });
     } catch (error) {

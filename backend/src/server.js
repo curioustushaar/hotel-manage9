@@ -10,6 +10,7 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const superAdminRoutes = require('./routes/superAdminRoutes');
+const hotelRoutes = require('./routes/hotelRoutes');
 
 // Admin seeder - ensures admin always exists in DB
 const seedAdmin = require('./scripts/seedAdmin');
@@ -111,6 +112,7 @@ connectDB()
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/super-admin', superAdminRoutes);
+app.use('/api/hotel', hotelRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/rooms', roomRoutes);
