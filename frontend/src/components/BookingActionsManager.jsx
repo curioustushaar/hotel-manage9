@@ -19,6 +19,7 @@ import SendInvoiceForm from './forms/SendInvoiceForm';
 import AddVisitorDrawer from './visitors/AddVisitorDrawer';
 import { LayoutGrid } from 'lucide-react';
 import API_URL from '../config/api';
+import soundManager from '../utils/soundManager';
 
 const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -127,16 +128,16 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
 
             if (data.success) {
                 console.log("Response data for Check-In:", data);
-                if (actionType !== 'check-in') {
-                    if (actionType === 'amend-stay') {
-                        setToast({ message: 'Stay amended successfully', type: 'success' });
-                    } else if (actionType === 'room-move') {
-                        setToast({ message: data.message || 'Room moved successfully', type: 'success' });
-                    } else if (actionType === 'exchange-room') {
-                        setToast({ message: data.message || 'Room exchanged successfully', type: 'success' });
-                    } else {
-                        alert(`✅ ${getActionTitle()} completed successfully!`);
-                    }
+                if (actionType === 'check-in') {
+                    soundManager.play('success');
+                } else if (actionType === 'amend-stay') {
+                    setToast({ message: 'Stay amended successfully', type: 'success' });
+                } else if (actionType === 'room-move') {
+                    setToast({ message: data.message || 'Room moved successfully', type: 'success' });
+                } else if (actionType === 'exchange-room') {
+                    setToast({ message: data.message || 'Room exchanged successfully', type: 'success' });
+                } else {
+                    alert(`✅ ${getActionTitle()} completed successfully!`);
                 }
                 const updatedData = data.data || data.updatedReservation;
                 if (updatedData) {

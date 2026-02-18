@@ -13,7 +13,7 @@ const getMealTypes = async (req, res) => {
 // @desc    Add new meal type
 const addMealType = async (req, res) => {
     try {
-        const { name, shortCode, includedMeals, chargeableMeals } = req.body;
+        const { name, shortCode, includedMeals, chargeableMeals, price } = req.body;
         if (!name || !shortCode) {
             return res.status(400).json({ success: false, message: 'Please provide name and short code' });
         }
@@ -22,7 +22,8 @@ const addMealType = async (req, res) => {
             name,
             shortCode,
             includedMeals,
-            chargeableMeals
+            chargeableMeals,
+            price
         });
 
         res.status(201).json({ success: true, data: mealType });

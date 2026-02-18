@@ -21,6 +21,10 @@ const mealTypeSchema = new mongoose.Schema({
         type: [String],
         default: []
     },
+    price: {
+        type: Number,
+        default: 0
+    },
     active: {
         type: Boolean,
         default: true
