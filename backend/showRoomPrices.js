@@ -3,7 +3,8 @@ require('dotenv').config();
 
 async function showRoomPrices() {
     try {
-        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/bareena-atithi');
+        if (!process.env.MONGODB_URI) throw new Error("Missing MONGODB_URI");
+        await mongoose.connect(process.env.MONGODB_URI);
         const db = mongoose.connection.db;
 
         const rooms = await db.collection('rooms').find({}).toArray();

@@ -1,0 +1,45 @@
+/* Copying styles from Login.css to ensure consistency */
+@import '../Login/Login.css';
+
+/* Override specific tweaks for Super Admin Layout if needed */
+.super-admin-login-wrapper {
+    background: #ffffff;
+    /* Ensure white background */
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Ensure the container behaves like the main login */
+.super-admin-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+/* Customize the badge for Super Admin */
+.super-admin-badge {
+    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+    /* Indigo for Super Admin */
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+}
+
+.super-admin-subtitle {
+    color: #4f46e5;
+}
+
+/* Override button color for Super Admin to distinguish */
+.super-admin-btn {
+    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+}
+
+.super-admin-btn:hover:not(:disabled) {
+    box-shadow: 0 12px 24px rgba(79, 70, 229, 0.4);
+}
+
+.super-admin-input:focus-within {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
