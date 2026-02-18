@@ -33,7 +33,7 @@ const FoodOrderPage = ({ onClose }) => {
 
     const handleLogout = () => {
         localStorage.removeItem('authToken');
-        localStorage.removeItem('userData');
+        localStorage.removeItem('authUser');
         navigate('/login');
     };
 

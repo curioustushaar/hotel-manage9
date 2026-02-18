@@ -34,7 +34,7 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
     // Helper function to check if user has access to a module
     const canAccessModule = (moduleId) => {
         if (!user) return false;
-        return hasModuleAccess(user.role, moduleId);
+        return hasModuleAccess(user, moduleId);
     };
 
     const toggleDropdown = (id) => {
@@ -202,6 +202,10 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
                             <div className={`nav-dropdown-menu ${showDropdown ? 'show' : ''}`}>
                                 {item.dropdownItems.map((subItem) => {
                                     if (searchQuery && !subItem.label.toLowerCase().includes(searchQuery.toLowerCase())) return null;
+
+                                    // Check permission for sub-item - allow if parent module (item.id) is authorized
+                                    const hasSubAccess = canAccessModule(subItem.id) || canAccessModule(item.id);
+                                    if (!hasSubAccess) return null;
 
                                     const isActive = activeMenu === subItem.id;
                                     return (

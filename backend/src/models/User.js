@@ -42,9 +42,13 @@ const userSchema = new mongoose.Schema({
     hotelId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Hotel',
-        required: function() {
+        required: function () {
             return this.role !== 'super_admin'; // Only non-super_admin users need hotelId
         }
+    },
+    permissions: {
+        type: [String],
+        default: []
     }
 }, {
     timestamps: true
