@@ -43,26 +43,48 @@ import './AdminDashboard.css';
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { logout } = useAuth();
+    const { user, logout } = useAuth();
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-    const [activeMenu, setActiveMenu] = useState('dashboard');
+
+    // Determine initial active menu based on permissions
+    const getInitialMenu = () => {
+        const path = location.pathname;
+        // Strip prefix (/admin or /staff)
+        const cleanPath = path.replace(/^\/(admin|staff)/, '');
+
+        if (cleanPath === '/dashboard' || cleanPath === '' || cleanPath === '/') return 'dashboard';
+
+        // Match path to menu items
+        const menuMap = {
+            '/rooms': 'rooms',
+            '/reservations': 'reservations',
+            '/guest-meal-service': 'guest-meal-service',
+            '/food-menu': 'food-menu',
+            '/customers': 'customers',
+            '/settings': 'settings',
+            '/cashier-section': 'cashier-section'
+        };
+
+        for (const [route, menu] of Object.entries(menuMap)) {
+            if (cleanPath.startsWith(route)) return menu;
+        }
+
+        return 'dashboard';
+    };
+
+    const [activeMenu, setActiveMenu] = useState(getInitialMenu());
     const [reservationView, setReservationView] = useState('dashboard'); // State for Reservation Sub-views
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [showViewProfile, setShowViewProfile] = useState(false);
     const [showChangePassword, setShowChangePassword] = useState(false);
     const [openConfigDropdown, setOpenConfigDropdown] = useState(false);
     const [openReservationDropdown, setOpenReservationDropdown] = useState(false); // State for Reservation Dropdown
-    const [userData, setUserData] = useState({
-        name: 'Admin User',
-        email: 'admin@bireena.com',
-        role: 'Administrator',
-        password: ''
-    });
     const [passwordData, setPasswordData] = useState({
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
     });
+
     const [passwordError, setPasswordError] = useState('');
     const [passwordSuccess, setPasswordSuccess] = useState('');
 
@@ -118,14 +140,6 @@ const AdminDashboard = () => {
 
     // Room type categories
     const statusOptions = ['All Status', 'Available', 'Booked', 'Occupied', 'Under Maintenance'];
-
-    // Load user data from localStorage
-    useEffect(() => {
-        const storedUserData = localStorage.getItem('userData');
-        if (storedUserData) {
-            setUserData(JSON.parse(storedUserData));
-        }
-    }, []);
 
     const [posGuestDetails, setPosGuestDetails] = useState(null);
 
@@ -345,6 +359,7 @@ const AdminDashboard = () => {
 
     // Function to get user initials
     const getUserInitials = (name) => {
+        if (!name) return '??';
         const names = name.split(' ');
         if (names.length >= 2) {
             return (names[0][0] + names[names.length - 1][0]).toUpperCase();
@@ -357,7 +372,7 @@ const AdminDashboard = () => {
         logout();
         // Clear legacy/extra keys if any
         localStorage.removeItem('authToken');
-        localStorage.removeItem('userData');
+        localStorage.removeItem('authUser');
 
         // Force reload and redirect to login to ensure clean state
         window.location.href = '/login';
@@ -378,11 +393,14 @@ const AdminDashboard = () => {
         setPasswordError('');
         setPasswordSuccess('');
 
-        // Validate current password
+        // Password change logic should ideally be handled by an API call
+        // For now, we'll disable the client-side local check as userData is deprecated
+        /*
         if (passwordData.currentPassword !== userData.password) {
             setPasswordError('Current password is incorrect');
             return;
         }
+        */
 
         // Validate new password
         if (passwordData.newPassword.length < 6) {
@@ -396,13 +414,15 @@ const AdminDashboard = () => {
             return;
         }
 
-        // Update password in localStorage
+        // Update password functionality requires backend API integration
+        alert('Password change requires backend API call. Coming soon!');
+        /*
         const updatedUserData = {
-            ...userData,
+            ...user,
             password: passwordData.newPassword
         };
-        localStorage.setItem('userData', JSON.stringify(updatedUserData));
-        setUserData(updatedUserData);
+        localStorage.setItem('authUser', JSON.stringify(updatedUserData));
+        */
 
         // Show success message
         setPasswordSuccess('Password changed successfully!');
@@ -423,20 +443,22 @@ const AdminDashboard = () => {
 
 
     const handleMenuClick = (menuId) => {
+        const prefix = user?.role === 'staff' ? '/staff' : '/admin';
+
         // Handle Sub-menu routing for Reservation Dropdown
         if (menuId === 'reservations-dashboard') {
-            navigate('/admin/reservations', { state: { viewMode: 'dashboard' } });
+            navigate(`${prefix}/reservations`, { state: { viewMode: 'dashboard' } });
         } else if (menuId === 'new-reservation') {
-            navigate('/admin/reservations', { state: { viewMode: 'form' } });
+            navigate(`${prefix}/reservations`, { state: { viewMode: 'form' } });
         } else if (menuId === 'housekeeping') {
-            navigate('/admin/reservations', { state: { viewMode: 'housekeeping' } });
+            navigate(`${prefix}/reservations`, { state: { viewMode: 'housekeeping' } });
         } else if (menuId === 'room-service') {
-            navigate('/admin/room-service');
+            navigate(`${prefix}/room-service`);
         } else if (menuId === 'food-order') {
             navigate('/food-order');
         }
         // Handle main menu items with navigation
-        else if (menuId === 'dashboard') navigate('/admin/dashboard');
+        else if (menuId === 'dashboard') navigate(`${prefix}/dashboard`);
         else if (menuId === 'rooms') {
             // Reset search and filters when switching menus
             setSearchQuery('');
@@ -446,40 +468,40 @@ const AdminDashboard = () => {
                 bedType: 'All',
                 status: 'All'
             });
-            navigate('/admin/rooms');
+            navigate(`${prefix}/rooms`);
         }
         else if (menuId === 'reservations') {
             toggleDropdown('reservations');
         }
-        else if (menuId === 'cashier-section') navigate('/admin/cashier-section');
-        else if (menuId === 'guest-meal-service') navigate('/admin/guest-meal-service');
-        else if (menuId === 'food-menu') navigate('/admin/food-menu');
-        else if (menuId === 'customers') navigate('/admin/customers');
-        else if (menuId === 'settings') navigate('/admin/settings');
-        else if (menuId === 'cashier-report') navigate('/admin/cashier-report');
-        else if (menuId === 'food-payment-report') navigate('/admin/food-payment-report');
+        else if (menuId === 'cashier-section') navigate(`${prefix}/cashier-section`);
+        else if (menuId === 'guest-meal-service') navigate(`${prefix}/guest-meal-service`);
+        else if (menuId === 'food-menu') navigate(`${prefix}/food-menu`);
+        else if (menuId === 'customers') navigate(`${prefix}/customers`);
+        else if (menuId === 'settings') navigate(`${prefix}/settings`);
+        else if (menuId === 'cashier-report') navigate(`${prefix}/cashier-report`);
+        else if (menuId === 'food-payment-report') navigate(`${prefix}/food-payment-report`);
 
         // Property Setup
-        else if (menuId === 'discount') navigate('/admin/discount');
-        else if (menuId === 'taxes') navigate('/admin/taxes');
-        else if (menuId === 'tax-mapping') navigate('/admin/tax-mapping');
-        else if (menuId === 'generate-room-qr') navigate('/admin/generate-room-qr');
+        else if (menuId === 'discount') navigate(`${prefix}/discount`);
+        else if (menuId === 'taxes') navigate(`${prefix}/taxes`);
+        else if (menuId === 'tax-mapping') navigate(`${prefix}/tax-mapping`);
+        else if (menuId === 'generate-room-qr') navigate(`${prefix}/generate-room-qr`);
 
         // Property Config
-        else if (menuId === 'room-setup') navigate('/admin/room-setup');
-        else if (menuId === 'floor-setup') navigate('/admin/floor-setup');
-        else if (menuId === 'bed-type') navigate('/admin/bed-type');
-        else if (menuId === 'room-facilities') navigate('/admin/room-facilities');
-        else if (menuId === 'room-facilities-type') navigate('/admin/room-facilities-type');
-        else if (menuId === 'meal-type') navigate('/admin/meal-type');
-        else if (menuId === 'reservation-type') navigate('/admin/reservation-type');
-        else if (menuId === 'extra-charges') navigate('/admin/extra-charges');
-        else if (menuId === 'complimentary-services') navigate('/admin/complimentary-services');
-        else if (menuId === 'customer-identity') navigate('/admin/customer-identity');
-        else if (menuId === 'booking-source') navigate('/admin/booking-source');
-        else if (menuId === 'business-source') navigate('/admin/business-source');
-        else if (menuId === 'maintenance-block') navigate('/admin/maintenance-block');
-        else if (menuId === 'table-management') navigate('/admin/table-management');
+        else if (menuId === 'room-setup') navigate(`${prefix}/room-setup`);
+        else if (menuId === 'floor-setup') navigate(`${prefix}/floor-setup`);
+        else if (menuId === 'bed-type') navigate(`${prefix}/bed-type`);
+        else if (menuId === 'room-facilities') navigate(`${prefix}/room-facilities`);
+        else if (menuId === 'room-facilities-type') navigate(`${prefix}/room-facilities-type`);
+        else if (menuId === 'meal-type') navigate(`${prefix}/meal-type`);
+        else if (menuId === 'reservation-type') navigate(`${prefix}/reservation-type`);
+        else if (menuId === 'extra-charges') navigate(`${prefix}/extra-charges`);
+        else if (menuId === 'complimentary-services') navigate(`${prefix}/complimentary-services`);
+        else if (menuId === 'customer-identity') navigate(`${prefix}/customer-identity`);
+        else if (menuId === 'booking-source') navigate(`${prefix}/booking-source`);
+        else if (menuId === 'business-source') navigate(`${prefix}/business-source`);
+        else if (menuId === 'maintenance-block') navigate(`${prefix}/maintenance-block`);
+        else if (menuId === 'table-management') navigate(`${prefix}/table-management`);
         else if (menuId === 'company') {
             // Future implementation
             alert('Coming Soon');
@@ -1245,17 +1267,17 @@ const AdminDashboard = () => {
                             <div className="modal-body">
                                 <div className="profile-avatar-section">
                                     <div className="profile-avatar-large">
-                                        {getUserInitials(userData.name)}
+                                        {getUserInitials(user?.name || 'Admin')}
                                     </div>
                                 </div>
                                 <div className="profile-details">
                                     <div className="detail-row">
                                         <span className="detail-label">Email:</span>
-                                        <span className="detail-value">{userData.email}</span>
+                                        <span className="detail-value">{user?.email || 'N/A'}</span>
                                     </div>
                                     <div className="detail-row">
                                         <span className="detail-label">Role:</span>
-                                        <span className="detail-value role-badge">{userData.role}</span>
+                                        <span className="detail-value role-badge">{user?.role || 'User'}</span>
                                     </div>
                                 </div>
                             </div>

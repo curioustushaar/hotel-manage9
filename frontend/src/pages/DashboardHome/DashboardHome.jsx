@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import API_URL from '../../config/api';
+import { useAuth } from '../../context/AuthContext';
 import './DashboardHome.css';
 
 const DashboardHome = () => {
+    const { user } = useAuth();
+    const isStaff = user?.role === 'staff';
     const [roomStats, setRoomStats] = useState({
         total: 0,
         occupied: 0,
@@ -755,187 +758,189 @@ const DashboardHome = () => {
                     </div>
                 </div>
 
-                {/* Additional Revenue and Analytics Section */}
-                <div className="revenue-analytics-section">
-                    {/* Revenue Cards Row */}
-                    <div className="revenue-stats-grid">
-                        {/* Total Revenue Card */}
-                        <div className="revenue-stat-card total-revenue-card">
-                            <h3>Total Revenue</h3>
-                            <div className="revenue-main-value">6250</div>
-                            <div className="revenue-sub-text">Today: 0</div>
-                            <div className="revenue-percentage">
-                                <span className="percentage-badge">-61%</span>
+                {/* Additional Revenue and Analytics Section - Hidden for Staff */}
+                {!isStaff && (
+                    <div className="revenue-analytics-section">
+                        {/* Revenue Cards Row */}
+                        <div className="revenue-stats-grid">
+                            {/* Total Revenue Card */}
+                            <div className="revenue-stat-card total-revenue-card">
+                                <h3>Total Revenue</h3>
+                                <div className="revenue-main-value">6250</div>
+                                <div className="revenue-sub-text">Today: 0</div>
+                                <div className="revenue-percentage">
+                                    <span className="percentage-badge">-61%</span>
+                                </div>
+                            </div>
+
+                            {/* Revenue Breakup Card */}
+                            <div className="revenue-stat-card breakup-card">
+                                <h3>Revenue Breakup</h3>
+                                <div className="revenue-main-value">RS 6250</div>
+                                <div className="breakup-grid">
+                                    <div className="breakup-item">
+                                        <span className="breakup-label">Rooms</span>
+                                        <span className="breakup-value">6S250</span>
+                                    </div>
+                                    <div className="breakup-item">
+                                        <span className="breakup-label">Restaurant</span>
+                                        <span className="breakup-value">0</span>
+                                        <span className="breakup-icon"></span>
+                                    </div>
+                                    <div className="breakup-item">
+                                        <span className="breakup-label">Fragoas</span>
+                                        <span className="breakup-value">0</span>
+                                        <span className="breakup-icon"></span>
+                                    </div>
+                                    <div className="breakup-item">
+                                        <span className="breakup-label">Other</span>
+                                        <span className="breakup-value">0.0</span>
+                                        <span className="breakup-icon"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Average Daily Room Rate Card */}
+                            <div className="revenue-stat-card avg-rate-card">
+                                <h3>Average Daily Room Rate</h3>
+                                <div className="revenue-main-value">1604.51</div>
+                                <div className="revenue-sub-text">Yesterday: RS 6097.56</div>
+                                <div className="revenue-percentage negative">
+                                    <span className="percentage-badge">📉 -73.6%</span>
+                                </div>
+                            </div>
+
+                            {/* Total Receipts Card */}
+                            <div className="revenue-stat-card receipts-card">
+                                <h3>Total Receipts</h3>
+                                <div className="revenue-main-value">RS 6250</div>
+                                <div className="receipts-detail">
+                                    <div className="receipt-row">
+                                        <span>Cash</span>
+                                        <span className="receipt-amount">RS 6250</span>
+                                    </div>
+                                    <div className="receipt-row">
+                                        <span>💳 0</span>
+                                    </div>
+                                    <div className="receipt-row">
+                                        <span>Orline</span>
+                                        <span className="receipt-amount">0</span>
+                                    </div>
+                                    <div className="receipt-row">
+                                        <span>🚫 0</span>
+                                        <span>💵 0</span>
+                                    </div>
+                                    <div className="receipt-legend">
+                                        <span><span className="dot" style={{ background: '#ef4444' }}></span> Cams</span>
+                                        <span><span className="dot" style={{ background: '#fb923c' }}></span> Onae</span>
+                                        <span><span className="dot" style={{ background: '#10b981' }}></span> -23.5%</span>
+                                        <span><span className="dot" style={{ background: '#9ca3af' }}></span> Bank</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Revenue Breakup Card */}
-                        <div className="revenue-stat-card breakup-card">
-                            <h3>Revenue Breakup</h3>
-                            <div className="revenue-main-value">RS 6250</div>
-                            <div className="breakup-grid">
-                                <div className="breakup-item">
-                                    <span className="breakup-label">Rooms</span>
-                                    <span className="breakup-value">6S250</span>
-                                </div>
-                                <div className="breakup-item">
-                                    <span className="breakup-label">Restaurant</span>
-                                    <span className="breakup-value">0</span>
-                                    <span className="breakup-icon"></span>
-                                </div>
-                                <div className="breakup-item">
-                                    <span className="breakup-label">Fragoas</span>
-                                    <span className="breakup-value">0</span>
-                                    <span className="breakup-icon"></span>
-                                </div>
-                                <div className="breakup-item">
-                                    <span className="breakup-label">Other</span>
-                                    <span className="breakup-value">0.0</span>
-                                    <span className="breakup-icon"></span>
+                        {/* Charts Row */}
+                        <div className="analytics-charts-row">
+                            {/* Housekeeping Status Chart */}
+                            <div className="chart-card-analytics housekeeping-chart">
+                                <h3>Housekeeping Status</h3>
+                                <div className="bar-chart-container">
+                                    <svg width="100%" height="300" viewBox="0 0 600 300">
+                                        {/* Grid lines */}
+                                        <line x1="50" y1="250" x2="550" y2="250" stroke="#e5e7eb" strokeWidth="1" />
+                                        <line x1="50" y1="200" x2="550" y2="200" stroke="#e5e7eb" strokeWidth="1" />
+                                        <line x1="50" y1="150" x2="550" y2="150" stroke="#e5e7eb" strokeWidth="1" />
+                                        <line x1="50" y1="100" x2="550" y2="100" stroke="#e5e7eb" strokeWidth="1" />
+                                        <line x1="50" y1="50" x2="550" y2="50" stroke="#e5e7eb" strokeWidth="1" />
+
+                                        {/* Y-axis labels */}
+                                        <text x="30" y="255" fontSize="12" fill="#6b7280">0</text>
+                                        <text x="30" y="205" fontSize="12" fill="#6b7280">4</text>
+                                        <text x="30" y="155" fontSize="12" fill="#6b7280">6</text>
+                                        <text x="30" y="105" fontSize="12" fill="#6b7280">12</text>
+                                        <text x="30" y="55" fontSize="12" fill="#6b7280">10</text>
+
+                                        {/* Bars */}
+                                        <rect x="70" y="100" width="30" height="150" fill="#ef4444" rx="4" />
+                                        <rect x="130" y="240" width="30" height="10" fill="#ef4444" rx="4" />
+                                        <rect x="190" y="240" width="30" height="10" fill="#ef4444" rx="4" />
+                                        <rect x="250" y="240" width="30" height="10" fill="#ef4444" rx="4" />
+                                        <rect x="310" y="240" width="30" height="10" fill="#ef4444" rx="4" />
+                                        <rect x="370" y="240" width="30" height="10" fill="#ef4444" rx="4" />
+                                        <rect x="430" y="240" width="30" height="10" fill="#ef4444" rx="4" />
+                                        <rect x="490" y="240" width="30" height="10" fill="#ef4444" rx="4" />
+
+                                        {/* X-axis labels */}
+                                        <text x="75" y="270" fontSize="12" fill="#6b7280">1</text>
+                                        <text x="135" y="270" fontSize="12" fill="#6b7280">2</text>
+                                        <text x="195" y="270" fontSize="12" fill="#6b7280">3</text>
+                                        <text x="255" y="270" fontSize="12" fill="#6b7280">6</text>
+                                        <text x="315" y="270" fontSize="12" fill="#6b7280">6</text>
+                                        <text x="375" y="270" fontSize="12" fill="#6b7280">17</text>
+                                        <text x="435" y="270" fontSize="12" fill="#6b7280">12</text>
+                                        <text x="495" y="270" fontSize="12" fill="#6b7280">12</text>
+
+                                        <text x="560" y="270" fontSize="12" fill="#6b7280">13</text>
+                                        <text x="600" y="270" fontSize="12" fill="#6b7280">14</text>
+                                    </svg>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Average Daily Room Rate Card */}
-                        <div className="revenue-stat-card avg-rate-card">
-                            <h3>Average Daily Room Rate</h3>
-                            <div className="revenue-main-value">1604.51</div>
-                            <div className="revenue-sub-text">Yesterday: RS 6097.56</div>
-                            <div className="revenue-percentage negative">
-                                <span className="percentage-badge">📉 -73.6%</span>
-                            </div>
-                        </div>
+                            {/* Rooms Availability Chart */}
+                            <div className="chart-card-analytics availability-chart">
+                                <div className="chart-header-row">
+                                    <h3>Rooms Availability</h3>
+                                    <div className="date-range">From: 01-02-2028 <span className="next-days">+Next 14 Days</span></div>
+                                </div>
+                                <div className="bar-chart-container">
+                                    <svg width="100%" height="300" viewBox="0 0 700 300">
+                                        {/* Grid lines */}
+                                        <line x1="50" y1="250" x2="650" y2="250" stroke="#e5e7eb" strokeWidth="1" />
+                                        <line x1="50" y1="200" x2="650" y2="200" stroke="#e5e7eb" strokeWidth="1" />
+                                        <line x1="50" y1="150" x2="650" y2="150" stroke="#e5e7eb" strokeWidth="1" />
+                                        <line x1="50" y1="100" x2="650" y2="100" stroke="#e5e7eb" strokeWidth="1" />
+                                        <line x1="50" y1="50" x2="650" y2="50" stroke="#e5e7eb" strokeWidth="1" />
 
-                        {/* Total Receipts Card */}
-                        <div className="revenue-stat-card receipts-card">
-                            <h3>Total Receipts</h3>
-                            <div className="revenue-main-value">RS 6250</div>
-                            <div className="receipts-detail">
-                                <div className="receipt-row">
-                                    <span>Cash</span>
-                                    <span className="receipt-amount">RS 6250</span>
-                                </div>
-                                <div className="receipt-row">
-                                    <span>💳 0</span>
-                                </div>
-                                <div className="receipt-row">
-                                    <span>Orline</span>
-                                    <span className="receipt-amount">0</span>
-                                </div>
-                                <div className="receipt-row">
-                                    <span>🚫 0</span>
-                                    <span>💵 0</span>
-                                </div>
-                                <div className="receipt-legend">
-                                    <span><span className="dot" style={{ background: '#ef4444' }}></span> Cams</span>
-                                    <span><span className="dot" style={{ background: '#fb923c' }}></span> Onae</span>
-                                    <span><span className="dot" style={{ background: '#10b981' }}></span> -23.5%</span>
-                                    <span><span className="dot" style={{ background: '#9ca3af' }}></span> Bank</span>
+                                        {/* Y-axis labels */}
+                                        <text x="30" y="255" fontSize="12" fill="#6b7280">0</text>
+                                        <text x="30" y="205" fontSize="12" fill="#6b7280">2</text>
+                                        <text x="30" y="155" fontSize="12" fill="#6b7280">4</text>
+                                        <text x="30" y="105" fontSize="12" fill="#6b7280">6</text>
+                                        <text x="30" y="55" fontSize="12" fill="#6b7280">10</text>
+
+                                        {/* Bars - Availability Chart */}
+                                        <rect x="70" y="210" width="35" height="40" fill="#10b981" rx="4" />
+                                        <rect x="115" y="200" width="35" height="50" fill="#10b981" rx="4" />
+                                        <rect x="160" y="190" width="35" height="60" fill="#10b981" rx="4" />
+                                        <rect x="205" y="180" width="35" height="70" fill="#10b981" rx="4" />
+                                        <rect x="250" y="170" width="35" height="80" fill="#10b981" rx="4" />
+                                        <rect x="295" y="160" width="35" height="90" fill="#10b981" rx="4" />
+                                        <rect x="340" y="150" width="35" height="100" fill="#10b981" rx="4" />
+                                        <rect x="385" y="140" width="35" height="110" fill="#10b981" rx="4" />
+                                        <rect x="430" y="130" width="35" height="120" fill="#10b981" rx="4" />
+                                        <rect x="475" y="120" width="35" height="130" fill="#10b981" rx="4" />
+                                        <rect x="520" y="110" width="35" height="140" fill="#10b981" rx="4" />
+                                        <rect x="565" y="100" width="35" height="150" fill="#10b981" rx="4" />
+
+                                        {/* X-axis labels */}
+                                        <text x="72" y="270" fontSize="11" fill="#6b7280">Day</text>
+                                        <text x="115" y="270" fontSize="11" fill="#6b7280">Tun</text>
+                                        <text x="160" y="270" fontSize="11" fill="#6b7280">Way</text>
+                                        <text x="205" y="270" fontSize="11" fill="#6b7280">Tho</text>
+                                        <text x="250" y="270" fontSize="11" fill="#6b7280">Thu</text>
+                                        <text x="297" y="270" fontSize="11" fill="#6b7280">Jat</text>
+                                        <text x="342" y="270" fontSize="11" fill="#6b7280">Day</text>
+                                        <text x="387" y="270" fontSize="11" fill="#6b7280">Thu</text>
+                                        <text x="432" y="270" fontSize="11" fill="#6b7280">Thu</text>
+                                        <text x="477" y="270" fontSize="11" fill="#6b7280">Jao</text>
+                                        <text x="522" y="270" fontSize="11" fill="#6b7280">Jaf</text>
+                                    </svg>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    {/* Charts Row */}
-                    <div className="analytics-charts-row">
-                        {/* Housekeeping Status Chart */}
-                        <div className="chart-card-analytics housekeeping-chart">
-                            <h3>Housekeeping Status</h3>
-                            <div className="bar-chart-container">
-                                <svg width="100%" height="300" viewBox="0 0 600 300">
-                                    {/* Grid lines */}
-                                    <line x1="50" y1="250" x2="550" y2="250" stroke="#e5e7eb" strokeWidth="1" />
-                                    <line x1="50" y1="200" x2="550" y2="200" stroke="#e5e7eb" strokeWidth="1" />
-                                    <line x1="50" y1="150" x2="550" y2="150" stroke="#e5e7eb" strokeWidth="1" />
-                                    <line x1="50" y1="100" x2="550" y2="100" stroke="#e5e7eb" strokeWidth="1" />
-                                    <line x1="50" y1="50" x2="550" y2="50" stroke="#e5e7eb" strokeWidth="1" />
-
-                                    {/* Y-axis labels */}
-                                    <text x="30" y="255" fontSize="12" fill="#6b7280">0</text>
-                                    <text x="30" y="205" fontSize="12" fill="#6b7280">4</text>
-                                    <text x="30" y="155" fontSize="12" fill="#6b7280">6</text>
-                                    <text x="30" y="105" fontSize="12" fill="#6b7280">12</text>
-                                    <text x="30" y="55" fontSize="12" fill="#6b7280">10</text>
-
-                                    {/* Bars */}
-                                    <rect x="70" y="100" width="30" height="150" fill="#ef4444" rx="4" />
-                                    <rect x="130" y="240" width="30" height="10" fill="#ef4444" rx="4" />
-                                    <rect x="190" y="240" width="30" height="10" fill="#ef4444" rx="4" />
-                                    <rect x="250" y="240" width="30" height="10" fill="#ef4444" rx="4" />
-                                    <rect x="310" y="240" width="30" height="10" fill="#ef4444" rx="4" />
-                                    <rect x="370" y="240" width="30" height="10" fill="#ef4444" rx="4" />
-                                    <rect x="430" y="240" width="30" height="10" fill="#ef4444" rx="4" />
-                                    <rect x="490" y="240" width="30" height="10" fill="#ef4444" rx="4" />
-
-                                    {/* X-axis labels */}
-                                    <text x="75" y="270" fontSize="12" fill="#6b7280">1</text>
-                                    <text x="135" y="270" fontSize="12" fill="#6b7280">2</text>
-                                    <text x="195" y="270" fontSize="12" fill="#6b7280">3</text>
-                                    <text x="255" y="270" fontSize="12" fill="#6b7280">6</text>
-                                    <text x="315" y="270" fontSize="12" fill="#6b7280">6</text>
-                                    <text x="375" y="270" fontSize="12" fill="#6b7280">17</text>
-                                    <text x="435" y="270" fontSize="12" fill="#6b7280">12</text>
-                                    <text x="495" y="270" fontSize="12" fill="#6b7280">12</text>
-
-                                    <text x="560" y="270" fontSize="12" fill="#6b7280">13</text>
-                                    <text x="600" y="270" fontSize="12" fill="#6b7280">14</text>
-                                </svg>
-                            </div>
-                        </div>
-
-                        {/* Rooms Availability Chart */}
-                        <div className="chart-card-analytics availability-chart">
-                            <div className="chart-header-row">
-                                <h3>Rooms Availability</h3>
-                                <div className="date-range">From: 01-02-2028 <span className="next-days">+Next 14 Days</span></div>
-                            </div>
-                            <div className="bar-chart-container">
-                                <svg width="100%" height="300" viewBox="0 0 700 300">
-                                    {/* Grid lines */}
-                                    <line x1="50" y1="250" x2="650" y2="250" stroke="#e5e7eb" strokeWidth="1" />
-                                    <line x1="50" y1="200" x2="650" y2="200" stroke="#e5e7eb" strokeWidth="1" />
-                                    <line x1="50" y1="150" x2="650" y2="150" stroke="#e5e7eb" strokeWidth="1" />
-                                    <line x1="50" y1="100" x2="650" y2="100" stroke="#e5e7eb" strokeWidth="1" />
-                                    <line x1="50" y1="50" x2="650" y2="50" stroke="#e5e7eb" strokeWidth="1" />
-
-                                    {/* Y-axis labels */}
-                                    <text x="30" y="255" fontSize="12" fill="#6b7280">0</text>
-                                    <text x="30" y="205" fontSize="12" fill="#6b7280">2</text>
-                                    <text x="30" y="155" fontSize="12" fill="#6b7280">4</text>
-                                    <text x="30" y="105" fontSize="12" fill="#6b7280">6</text>
-                                    <text x="30" y="55" fontSize="12" fill="#6b7280">10</text>
-
-                                    {/* Bars - Availability Chart */}
-                                    <rect x="70" y="210" width="35" height="40" fill="#10b981" rx="4" />
-                                    <rect x="115" y="200" width="35" height="50" fill="#10b981" rx="4" />
-                                    <rect x="160" y="190" width="35" height="60" fill="#10b981" rx="4" />
-                                    <rect x="205" y="180" width="35" height="70" fill="#10b981" rx="4" />
-                                    <rect x="250" y="170" width="35" height="80" fill="#10b981" rx="4" />
-                                    <rect x="295" y="160" width="35" height="90" fill="#10b981" rx="4" />
-                                    <rect x="340" y="150" width="35" height="100" fill="#10b981" rx="4" />
-                                    <rect x="385" y="140" width="35" height="110" fill="#10b981" rx="4" />
-                                    <rect x="430" y="130" width="35" height="120" fill="#10b981" rx="4" />
-                                    <rect x="475" y="120" width="35" height="130" fill="#10b981" rx="4" />
-                                    <rect x="520" y="110" width="35" height="140" fill="#10b981" rx="4" />
-                                    <rect x="565" y="100" width="35" height="150" fill="#10b981" rx="4" />
-
-                                    {/* X-axis labels */}
-                                    <text x="72" y="270" fontSize="11" fill="#6b7280">Day</text>
-                                    <text x="115" y="270" fontSize="11" fill="#6b7280">Tun</text>
-                                    <text x="160" y="270" fontSize="11" fill="#6b7280">Way</text>
-                                    <text x="205" y="270" fontSize="11" fill="#6b7280">Tho</text>
-                                    <text x="250" y="270" fontSize="11" fill="#6b7280">Thu</text>
-                                    <text x="297" y="270" fontSize="11" fill="#6b7280">Jat</text>
-                                    <text x="342" y="270" fontSize="11" fill="#6b7280">Day</text>
-                                    <text x="387" y="270" fontSize="11" fill="#6b7280">Thu</text>
-                                    <text x="432" y="270" fontSize="11" fill="#6b7280">Thu</text>
-                                    <text x="477" y="270" fontSize="11" fill="#6b7280">Jao</text>
-                                    <text x="522" y="270" fontSize="11" fill="#6b7280">Jaf</text>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                )}
             </div>
             {/* End of Zotaki Dashboard */}
         </div>

@@ -92,7 +92,8 @@ function App() {
             </ProtectedRoute>
           } />
 
-          {/* Protected Admin Routes */}
+          {/* Protected Routes */}
+          {/* ADMIN Routes */}
           <Route path="/admin/dashboard" element={
             <ProtectedRoute module={MODULES.DASHBOARD}>
               <AdminDashboard />
@@ -174,12 +175,101 @@ function App() {
             </ProtectedRoute>
           } />
 
+          {/* STAFF Routes */}
+          <Route path="/staff/dashboard" element={
+            <ProtectedRoute module={MODULES.DASHBOARD}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/rooms" element={
+            <ProtectedRoute module={MODULES.ROOMS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/reservations" element={
+            <ProtectedRoute module={MODULES.RESERVATIONS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/guest-meal-service" element={
+            <ProtectedRoute module={MODULES.GUEST_MEAL_SERVICE}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/food-menu" element={
+            <ProtectedRoute module={MODULES.FOOD_MENU}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/customers" element={
+            <ProtectedRoute module={MODULES.CUSTOMERS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/settings" element={
+            <ProtectedRoute module={MODULES.STAFF_MANAGEMENT}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/stay-overview" element={
+            <ProtectedRoute module={MODULES.RESERVATIONS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/reservation-stay-management" element={
+            <ProtectedRoute module={MODULES.RESERVATIONS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/view-reservation" element={
+            <ProtectedRoute module={MODULES.RESERVATIONS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/room-service" element={
+            <ProtectedRoute module={MODULES.RESERVATIONS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/view-order" element={
+            <ProtectedRoute module={MODULES.GUEST_MEAL_SERVICE}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/my-profile" element={
+            <ProtectedRoute module={MODULES.PROFILE}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/cashier-report" element={
+            <ProtectedRoute module={MODULES.CASHIER_LOGS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/food-payment-report" element={
+            <ProtectedRoute module={MODULES.PAYMENT_LOGS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/cashier-section" element={
+            <ProtectedRoute module={MODULES.CASHIER_SECTION}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+
           {/* Property Setup Routes */}
+          {/* Property Setup Routes (Admin Only usually, but let's standard prefix) */}
           <Route path="/admin/discount" element={<ProtectedRoute module={MODULES.PROPERTY_SETUP}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/taxes" element={<ProtectedRoute module={MODULES.PROPERTY_SETUP}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/tax-mapping" element={<ProtectedRoute module={MODULES.PROPERTY_SETUP}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/generate-room-qr" element={<ProtectedRoute module={MODULES.PROPERTY_SETUP}><AdminDashboard /></ProtectedRoute>} />
 
+          <Route path="/staff/discount" element={<ProtectedRoute module={MODULES.PROPERTY_SETUP}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/staff/taxes" element={<ProtectedRoute module={MODULES.PROPERTY_SETUP}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/staff/tax-mapping" element={<ProtectedRoute module={MODULES.PROPERTY_SETUP}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/staff/generate-room-qr" element={<ProtectedRoute module={MODULES.PROPERTY_SETUP}><AdminDashboard /></ProtectedRoute>} />
+
+          {/* Property Configuration Routes */}
           {/* Property Configuration Routes */}
           <Route path="/admin/room-setup" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/floor-setup" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
@@ -195,6 +285,21 @@ function App() {
           <Route path="/admin/business-source" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/maintenance-block" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/table-management" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
+
+          <Route path="/staff/room-setup" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/staff/floor-setup" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/staff/bed-type" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/staff/room-facilities" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/staff/room-facilities-type" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/staff/meal-type" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/staff/reservation-type" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/staff/extra-charges" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/staff/complimentary-services" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/staff/customer-identity" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/staff/booking-source" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/staff/business-source" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/staff/maintenance-block" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/staff/table-management" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
 
           {/* Public Routes */}
           <Route path="/scan-qr/:roomId" element={<QRScanPage />} />

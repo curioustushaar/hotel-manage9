@@ -41,8 +41,8 @@ const loginUser = async (req, res) => {
 
         console.log(`[Auth] Login attempt: ${username}`);
 
-        // Find user in database
-        const user = await User.findOne({ username });
+        // Find user in database and include hotel information
+        const user = await User.findOne({ username }).populate('hotelId');
 
         if (!user) {
             console.log(`[Auth] User not found: ${username}`);
@@ -115,6 +115,9 @@ const loginUser = async (req, res) => {
             username: user.username,
             role: user.role,
             name: user.name,
+            hotelId: user.hotelId?._id,
+            hotelName: user.hotelId?.name,
+            permissions: user.permissions || [],
             token: generateToken(user._id),
         });
     } catch (error) {

@@ -7,10 +7,31 @@ import API_URL from '../config/api';
 
 const AuthContext = createContext(null);
 
-// Configure axios default base URL if not already set
+// Configure axios
 if (API_URL) {
     axios.defaults.baseURL = API_URL;
 }
+
+// Add a request interceptor to include the auth token
+axios.interceptors.request.use(
+    (config) => {
+        const savedUser = localStorage.getItem('authUser');
+        if (savedUser) {
+            try {
+                const { token } = JSON.parse(savedUser);
+                if (token) {
+                    config.headers.Authorization = `Bearer ${token}`;
+                }
+            } catch (error) {
+                console.error('Error parsing authUser for token:', error);
+            }
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
 
 export const useAuth = () => {
     const context = useContext(AuthContext);

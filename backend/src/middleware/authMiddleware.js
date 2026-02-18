@@ -32,6 +32,14 @@ const superAdmin = (req, res, next) => {
     }
 };
 
+const admin = (req, res, next) => {
+    if (req.user && (req.user.role === 'admin' || req.user.role === 'super_admin')) {
+        next();
+    } else {
+        res.status(403).json({ message: 'Not authorized as admin' });
+    }
+};
+
 // Generic role authorization middleware
 const authorizeRoles = (...roles) => {
     return (req, res, next) => {
@@ -49,4 +57,4 @@ const authorizeRoles = (...roles) => {
     };
 };
 
-module.exports = { protect, superAdmin, authorizeRoles };
+module.exports = { protect, superAdmin, admin, authorizeRoles };

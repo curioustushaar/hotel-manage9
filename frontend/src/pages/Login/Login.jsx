@@ -90,8 +90,8 @@ const Login = () => {
         const result = await login(email, password);
 
         if (result.success) {
-            // Smart redirect based on role's first accessible page
-            const defaultRoute = getDefaultRoute(result.user.role);
+            // Smart redirect based on user's first accessible page
+            const defaultRoute = getDefaultRoute(result.user);
             navigate(defaultRoute);
         } else {
             setError(result.error);
