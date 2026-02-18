@@ -9,8 +9,6 @@ const Rooms = () => {
     const [rooms, setRooms] = useState([]);
     const [filteredRooms, setFilteredRooms] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [filterDate, setFilterDate] = useState(''); // Date-based availability filter
-    const [isDateFiltered, setIsDateFiltered] = useState(false);
 
     // Dynamic Filter State
     const [filters, setFilters] = useState({
@@ -63,22 +61,15 @@ const Rooms = () => {
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, []);
 
-    const fetchRoomsFromAPI = async (date = filterDate) => {
+    const fetchRoomsFromAPI = async () => {
         try {
             // Clear old localStorage data first
             localStorage.removeItem('hotelRooms');
 
-            // Build URL with optional date param for dynamic status
-            let url = `${API_URL}/api/rooms/list`;
-            if (date) {
-                url += `?date=${date}`;
-            }
-
-            const response = await fetch(url);
+            const response = await fetch(`${API_URL}/api/rooms/list`);
             const data = await response.json();
             if (data.success) {
                 setRooms(data.data);
-                setIsDateFiltered(data.dateFiltered || false);
             }
         } catch (error) {
             console.error('Error fetching rooms from database:', error);
@@ -313,22 +304,19 @@ const Rooms = () => {
         }
     };
 
-    const getStatusClass = (room) => {
-        // When date-filtered, use computedStatus for accurate badge
-        const status = isDateFiltered && room.computedStatus ? room.computedStatus : room.status;
+    const getStatusClass = (status) => {
         switch (status) {
-            case 'Available': return 'status-available';
-            case 'Booked': return 'status-booked';
-            case 'Reserved': return 'status-booked'; // alias
-            case 'Occupied': return 'status-occupied';
-            case 'Under Maintenance': return 'status-maintenance';
-            default: return '';
+            case 'Available':
+                return 'status-available';
+            case 'Booked':
+                return 'status-booked';
+            case 'Occupied':
+                return 'status-occupied';
+            case 'Under Maintenance':
+                return 'status-maintenance';
+            default:
+                return '';
         }
-    };
-
-    const getDisplayStatus = (room) => {
-        if (isDateFiltered && room.computedStatus) return room.computedStatus;
-        return room.status;
     };
 
     const getRoomTypeShort = (roomType) => {
@@ -384,6 +372,8 @@ const Rooms = () => {
                         ))}
                     </select>
 
+
+
                     <select className="filter-select" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
                         <option value="All">Status: All</option>
                         <option value="Available">Available</option>
@@ -391,49 +381,6 @@ const Rooms = () => {
                         <option value="Occupied">Occupied</option>
                         <option value="Under Maintenance">Maintenance</option>
                     </select>
-
-                    {/* DATE PICKER: Dynamic availability filter */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>📅 Check Date:</span>
-                        <input
-                            type="date"
-                            className="filter-select"
-                            value={filterDate}
-                            style={{ cursor: 'pointer' }}
-                            onChange={(e) => {
-                                const newDate = e.target.value;
-                                setFilterDate(newDate);
-                                fetchRoomsFromAPI(newDate);
-                            }}
-                        />
-                        {filterDate && (
-                            <button
-                                onClick={() => {
-                                    setFilterDate('');
-                                    fetchRoomsFromAPI('');
-                                }}
-                                style={{
-                                    background: '#fee2e2', color: '#dc2626', border: 'none',
-                                    borderRadius: '6px', padding: '4px 8px', cursor: 'pointer',
-                                    fontSize: '0.75rem', fontWeight: 700
-                                }}
-                                title="Clear date filter"
-                            >
-                                ✕ Clear
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Date filter active indicator */}
-                    {isDateFiltered && filterDate && (
-                        <span style={{
-                            background: '#eff6ff', color: '#1d4ed8', fontSize: '0.72rem',
-                            fontWeight: 700, padding: '3px 8px', borderRadius: '6px',
-                            border: '1px solid #bfdbfe'
-                        }}>
-                            🔵 Live Status for {new Date(filterDate + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </span>
-                    )}
                 </div>
             </div>
 
@@ -442,8 +389,8 @@ const Rooms = () => {
                 <AnimatePresence>
                     {filteredRooms.map((room) => (
                         <motion.div
-                            key={room._id || room.id}
-                            className={`room-card ${getStatusClass(room)}`}
+                            key={room.id}
+                            className={`room-card ${getStatusClass(room.status)}`}
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
@@ -467,8 +414,8 @@ const Rooms = () => {
                                 <p className="room-price">₹{room.price}/night</p>
                             </div>
                             <div className="room-card-footer">
-                                <span className={`room-status ${getStatusClass(room)}`}>
-                                    {getDisplayStatus(room)}
+                                <span className={`room-status ${getStatusClass(room.status)}`}>
+                                    {room.status}
                                 </span>
                                 {room.status === 'Available' && (
                                     <button className="edit-btn" onClick={() => handleEditRoom(room)}>

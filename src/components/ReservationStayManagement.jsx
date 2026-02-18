@@ -267,37 +267,6 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     };
 
     const mapBookingToReservation = (booking) => {
-        // AUTO STATUS TRANSITION: Compute effective status based on today's date
-        const computeEffectiveStatus = (booking) => {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            // Finalized statuses are never auto-transitioned
-            if (['Checked-out', 'Cancelled', 'No-Show', 'Voided'].includes(booking.status)) {
-                return booking.status === 'Checked-out' ? 'CHECKED_OUT' : 'RESERVED';
-            }
-
-            if (!booking.checkInDate || !booking.checkOutDate) {
-                return 'RESERVED';
-            }
-
-            const checkIn = new Date(booking.checkInDate);
-            checkIn.setHours(0, 0, 0, 0);
-            const checkOut = new Date(booking.checkOutDate);
-            checkOut.setHours(0, 0, 0, 0);
-
-            // Auto-transition: today is past checkout → CHECKED_OUT
-            if (today >= checkOut) return 'CHECKED_OUT';
-
-            // Auto-transition: today is within stay → IN_HOUSE
-            if (today >= checkIn && today < checkOut) return 'IN_HOUSE';
-
-            // Future reservation
-            return 'RESERVED';
-        };
-
-        const effectiveStatus = computeEffectiveStatus(booking);
-
         return {
             id: booking._id || `booking-${Math.random()}`,
             reservationType: booking.reservationType || 'Confirm',
@@ -337,7 +306,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                     discount: 0
                 }],
             nights: booking.numberOfNights || 1,
-            status: effectiveStatus,
+            status: booking.status === 'Upcoming' ? 'RESERVED' :
+                booking.status === 'Checked-in' || booking.status === 'IN_HOUSE' ? 'IN_HOUSE' :
+                    booking.status === 'Checked-out' || booking.status === 'CHECKED_OUT' ? 'CHECKED_OUT' : 'RESERVED',
             roomCharges: (booking.pricePerNight || 0) * (booking.numberOfNights || 1),
             discount: 0,
             tax: (booking.totalAmount || 0) - ((booking.pricePerNight || 0) * (booking.numberOfNights || 1)),
