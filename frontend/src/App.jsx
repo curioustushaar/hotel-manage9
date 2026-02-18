@@ -16,6 +16,9 @@ import Footer from './components/Footer'
 import Login from './pages/Login/Login'
 import AdminDashboard from './pages/Dashboard/AdminDashboard'
 import SuperAdminDashboard from './pages/SuperAdmin/SuperAdminDashboard'
+import HotelsManagement from './pages/SuperAdmin/HotelsManagement'
+import CreateHotel from './pages/SuperAdmin/CreateHotel'
+import HotelDetails from './pages/SuperAdmin/HotelDetails'
 import SuperAdminLogin from './pages/SuperAdmin/SuperAdminLogin'
 import QRScanPage from './pages/QRScan/QRScanPage'
 import FoodOrderPage from './components/FoodOrderPage'
@@ -65,6 +68,27 @@ function App() {
           <Route path="/super-admin/dashboard" element={
             <ProtectedRoute module={MODULES.SUPER_ADMIN_DASHBOARD}>
               <SuperAdminDashboard />
+            </ProtectedRoute>
+          } />
+
+          {/* Super Admin Hotels Management */}
+          <Route path="/super-admin/hotels" element={
+            <ProtectedRoute module={MODULES.SUPER_ADMIN_DASHBOARD}>
+              <HotelsManagement />
+            </ProtectedRoute>
+          } />
+
+          {/* Super Admin Create Hotel */}
+          <Route path="/super-admin/create-hotel" element={
+            <ProtectedRoute module={MODULES.SUPER_ADMIN_DASHBOARD}>
+              <CreateHotel />
+            </ProtectedRoute>
+          } />
+
+          {/* Super Admin Hotel Details */}
+          <Route path="/super-admin/hotel/:id" element={
+            <ProtectedRoute module={MODULES.SUPER_ADMIN_DASHBOARD}>
+              <HotelDetails />
             </ProtectedRoute>
           } />
 

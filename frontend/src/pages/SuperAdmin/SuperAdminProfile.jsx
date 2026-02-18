@@ -1,23 +1,16 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import axios from 'axios';
-import './MyProfile.css';
+import '../Profile/MyProfile.css';
 
-const MyProfile = () => {
+const SuperAdminProfile = () => {
     const { user } = useAuth();
 
     // Form state
     const [formData, setFormData] = useState({
         fullName: user?.name || '',
-        mobileNumber: user?.phone || '',
         email: user?.username || user?.email || '',
-        role: user?.role === 'admin' ? 'Administrator' : user?.role === 'super_admin' ? 'Super Admin' : 'Staff'
+        role: 'Super Administrator'
     });
-
-    // Hotel information state
-    const [hotelInfo, setHotelInfo] = useState(null);
-    const [loadingHotel, setLoadingHotel] = useState(false);
 
     const [passwordData, setPasswordData] = useState({
         currentPassword: '',
@@ -30,44 +23,6 @@ const MyProfile = () => {
     const [editMode, setEditMode] = useState(false);
     const [photoPreview, setPhotoPreview] = useState(null);
 
-    // Fetch hotel information if user is admin
-    useEffect(() => {
-        const fetchHotelInfo = async () => {
-            if (user?.hotelId && user?.role !== 'super_admin') {
-                setLoadingHotel(true);
-                try {
-                    const token = user?.token;
-                    const config = {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    };
-                    
-                    // Fetch hotel details
-                    const response = await axios.get(`/api/hotel/${user.hotelId}`, config);
-                    setHotelInfo(response.data);
-                } catch (error) {
-                    console.error('Error fetching hotel info:', error);
-                } finally {
-                    setLoadingHotel(false);
-                }
-            }
-        };
-
-        fetchHotelInfo();
-    }, [user]);
-
-    // Update form data when user changes
-    useEffect(() => {
-        setFormData({
-            fullName: user?.name || '',
-            mobileNumber: user?.phone || '',
-            email: user?.username || user?.email || '',
-            role: user?.role === 'admin' ? 'Administrator' : user?.role === 'super_admin' ? 'Super Admin' : 'Staff'
-        });
-    }, [user]);
-
     // Account activity data
     const accountActivity = {
         lastLogin: user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'N/A',
@@ -77,11 +32,11 @@ const MyProfile = () => {
 
     // Get user initials
     const getUserInitials = (name) => {
-        const names = name.split(' ');
+        const names = name?.split(' ') || [];
         if (names.length >= 2) {
             return (names[0][0] + names[names.length - 1][0]).toUpperCase();
         }
-        return name.substring(0, 2).toUpperCase();
+        return name ? name.substring(0, 2).toUpperCase() : 'SA';
     };
 
     // Handle form input changes
@@ -161,14 +116,13 @@ const MyProfile = () => {
         setEditMode(false);
         setFormData({
             fullName: user?.name || '',
-            mobileNumber: user?.phone || '',
             email: user?.username || user?.email || '',
-            role: user?.role === 'admin' ? 'Administrator' : user?.role === 'super_admin' ? 'Super Admin' : 'Staff'
+            role: 'Super Administrator'
         });
     };
 
     return (
-        <div className="my-profile-container">
+        <div className="my-profile-container" style={{ padding: '0' }}>
             {/* Page Header */}
             <motion.div 
                 className="profile-header"
@@ -178,7 +132,7 @@ const MyProfile = () => {
             >
                 <div className="header-content">
                     <h1 className="header-title">My Profile</h1>
-                    <p className="header-subtitle">Manage your personal information and security</p>
+                    <p className="header-subtitle">Manage your super admin account settings</p>
                 </div>
                 <div className="breadcrumb">
                     <span>Dashboard</span> / <span className="breadcrumb-active">My Profile</span>
@@ -233,15 +187,13 @@ const MyProfile = () => {
                             </div>
                             <div className="info-row">
                                 <span className="info-label">Role</span>
-                                <span className="role-badge">{formData.role}</span>
+                                <span className="role-badge" style={{ background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', color: 'white' }}>
+                                    {formData.role}
+                                </span>
                             </div>
                             <div className="info-row">
                                 <span className="info-label">Email</span>
                                 <span className="info-value">{formData.email}</span>
-                            </div>
-                            <div className="info-row">
-                                <span className="info-label">Mobile</span>
-                                <span className="info-value">{formData.mobileNumber}</span>
                             </div>
                         </div>
                     </div>
@@ -280,24 +232,7 @@ const MyProfile = () => {
                                     disabled={!editMode}
                                     placeholder="Enter your full name"
                                 />
-                                <span className="helper-text">Your legal name as used in official documents</span>
-                            </div>
-
-                            {/* Mobile Number */}
-                            <div className="form-group">
-                                <label className="form-label">
-                                    Mobile Number <span className="required">*</span>
-                                </label>
-                                <input
-                                    type="tel"
-                                    name="mobileNumber"
-                                    className={`form-input ${!editMode ? 'disabled' : ''}`}
-                                    value={formData.mobileNumber}
-                                    onChange={handleFormChange}
-                                    disabled={!editMode}
-                                    placeholder="+91 XXXXX XXXXX"
-                                />
-                                <span className="helper-text">Contact number for important notifications</span>
+                                <span className="helper-text">Your legal name as super administrator</span>
                             </div>
 
                             {/* Email Address (Disabled) */}
@@ -323,9 +258,9 @@ const MyProfile = () => {
                                     className="form-input disabled"
                                     value={formData.role}
                                     disabled
-                                    placeholder="Administrator"
+                                    placeholder="Super Administrator"
                                 />
-                                <span className="helper-text">Role is assigned by account owner</span>
+                                <span className="helper-text">Highest level of system access</span>
                             </div>
                         </div>
                     </div>
@@ -439,108 +374,6 @@ const MyProfile = () => {
                         </div>
                     </div>
                 </motion.div>
-
-                {/* CARD 5: Hotel Information - Only for Admin and Staff */}
-                {user?.role !== 'super_admin' && (
-                    <motion.div 
-                        className="profile-card"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: 0.5 }}
-                    >
-                        <div className="card-header">
-                            <h2>🏨 Hotel Information</h2>
-                        </div>
-
-                        {loadingHotel ? (
-                            <div className="loading-state">
-                                <p>Loading hotel information...</p>
-                            </div>
-                        ) : hotelInfo ? (
-                            <div className="hotel-info-content">
-                                <div className="hotel-info-grid">
-                                    <div className="info-card">
-                                        <div className="info-icon">🏨</div>
-                                        <div className="info-details">
-                                            <span className="info-label">Hotel Name</span>
-                                            <span className="info-value">{hotelInfo.name}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="info-card">
-                                        <div className="info-icon">📍</div>
-                                        <div className="info-details">
-                                            <span className="info-label">Address</span>
-                                            <span className="info-value">{hotelInfo.address}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="info-card">
-                                        <div className="info-icon">📞</div>
-                                        <div className="info-details">
-                                            <span className="info-label">Phone</span>
-                                            <span className="info-value">{hotelInfo.phone || 'N/A'}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="info-card">
-                                        <div className="info-icon">🏷️</div>
-                                        <div className="info-details">
-                                            <span className="info-label">GST Number</span>
-                                            <span className="info-value">{hotelInfo.gstNumber || 'N/A'}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="info-card">
-                                        <div className="info-icon">⭐</div>
-                                        <div className="info-details">
-                                            <span className="info-label">Subscription Plan</span>
-                                            <span className={`subscription-badge ${hotelInfo.subscription?.plan}`}>
-                                                {hotelInfo.subscription?.plan?.toUpperCase() || 'N/A'}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="info-card">
-                                        <div className="info-icon">📅</div>
-                                        <div className="info-details">
-                                            <span className="info-label">Subscription Expiry</span>
-                                            <span className="info-value">
-                                                {hotelInfo.subscription?.expiryDate 
-                                                    ? new Date(hotelInfo.subscription.expiryDate).toLocaleDateString()
-                                                    : 'N/A'}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="info-card">
-                                        <div className="info-icon">✅</div>
-                                        <div className="info-details">
-                                            <span className="info-label">Hotel Status</span>
-                                            <span className={`status-badge ${hotelInfo.isActive ? 'active' : 'inactive'}`}>
-                                                {hotelInfo.isActive ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="info-card">
-                                        <div className="info-icon">🔒</div>
-                                        <div className="info-details">
-                                            <span className="info-label">Subscription Status</span>
-                                            <span className={`status-badge ${hotelInfo.subscription?.isActive ? 'active' : 'inactive'}`}>
-                                                {hotelInfo.subscription?.isActive ? 'Active' : 'Expired'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="no-hotel-info">
-                                <p>No hotel information available. Please contact support.</p>
-                            </div>
-                        )}
-                    </motion.div>
-                )}
             </div>
 
             {/* Action Buttons */}
@@ -563,4 +396,4 @@ const MyProfile = () => {
     );
 };
 
-export default MyProfile;
+export default SuperAdminProfile;
