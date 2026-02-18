@@ -999,7 +999,8 @@ const GuestMealService = () => {
     return (
         <div className="gms-wrapper">
             {/* Header / Stats */}
-            <div className="gms-header" style={{ marginBottom: '24px', background: '#fff', padding: '24px', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div className="gms-header" style={{ marginBottom: '24px', background: '#fff', padding: '0 24px 24px 24px', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <div>
                         <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: '800', color: '#111827' }}>Dining Dashboard</h1>

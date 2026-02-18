@@ -6,8 +6,9 @@
     width: 100%;
     max-width: 1400px;
     margin: 0 auto;
-    padding: 2rem 1.5rem;
+    padding: 0 1.5rem 2rem 1.5rem;
 }
+
 
 /* Header Section */
 .room-service-header {

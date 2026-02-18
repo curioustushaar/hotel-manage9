@@ -2,10 +2,10 @@
 
 .my-profile-container {
     padding: 20px;
-    max-width: 1000px;
-    margin: 0 auto;
+    width: 100%;
     background-color: #f9f9f9;
-    min-height: calc(100vh - 80px);
+    min-height: calc(100vh - 60px);
+    box-sizing: border-box;
 }
 
 /* Page Header */

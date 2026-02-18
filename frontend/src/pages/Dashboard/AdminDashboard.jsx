@@ -202,11 +202,11 @@ const AdminDashboard = () => {
         fetchRoomsFromAPI();
     }, []);
 
-    // Auto-refresh rooms data every 5 seconds to show real-time updates
+    // Auto-refresh rooms data every 60 seconds to show real-time updates
     useEffect(() => {
         const interval = setInterval(() => {
             fetchRoomsFromAPI();
-        }, 5000); // Refresh every 5 seconds
+        }, 60000); // Refresh every 60 seconds
 
         return () => clearInterval(interval);
     }, []);

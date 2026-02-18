@@ -170,19 +170,9 @@
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
-/* ========== MAIN CONTENT ========== */
-.main-content {
-    margin-left: 280px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    transition: margin-left 0.3s ease;
-}
+/* ========== MAIN CONTENT (managed by AdminLayout.css) ========== */
+/* .main-content is defined in AdminLayout.css — do not redefine here */
 
-.main-content.full-width {
-    margin-left: 0;
-}
 
 /* ========== TOP BAR ========== */
 .top-bar {
@@ -371,13 +361,15 @@
 /* ========== DASHBOARD CONTENT ========== */
 .dashboard-content {
     flex: 1;
-    padding: 30px;
+    padding: 20px;
     background: #f9fafb;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .admin-profile-section {
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
+    padding: 0;
 }
 
 .profile-header {
@@ -776,7 +768,9 @@
 }
 
 .content-section {
-    padding: 30px;
+    padding: 20px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .content-section .section-header h1 {
@@ -803,7 +797,7 @@
     background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
     border: 2px dashed #ef4444;
     border-radius: 16px;
-    padding: 60px 40px;
+    padding: 6px 40px;
     margin-top: 40px;
     text-align: center;
 }
@@ -1101,7 +1095,7 @@
 
 .no-rooms {
     text-align: center;
-    padding: 60px 20px;
+    padding: 6px 20px;
     background: white;
     border-radius: 12px;
     color: #666;

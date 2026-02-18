@@ -755,3 +755,38 @@
         width: 100%;
     }
 }
+
+/* Out of Stock Styling */
+.gmo-item-card.out-of-stock {
+    opacity: 0.6;
+    background-color: #f3f4f6;
+    border-color: #e5e7eb;
+}
+
+.gmo-item-card.out-of-stock:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: #e5e7eb;
+    cursor: not-allowed;
+}
+
+.gmo-item-card.out-of-stock .item-price {
+    color: #9ca3af;
+    text-decoration: line-through;
+}
+
+.gmo-item-card.out-of-stock .item-image {
+    filter: grayscale(100%);
+}
+
+.item-add-btn.disabled {
+    background-color: #ef4444 !important; /* Red for visibility or Gray? User said 'out of stock dikhna chhaiye' */
+    /* I'll use Gray as per standard practice, but maybe red text 'Out of Stock' inside button handles it. */
+    /* JSX has inline style {{ background: '#ccc' }}. That overrides this class usually unless !important. */
+    /* I'll stick to JSX inline style I added, but this class helps for hover states. */
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
+    opacity: 0.8;
+}
+

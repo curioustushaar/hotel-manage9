@@ -1139,20 +1139,18 @@ exports.settleOrder = async (req, res) => {
             const Transaction = require('../models/Transaction');
 
             // Map paymentMode to transaction type enum
-            let transType = 'Collection Cash';
-            if (paymentMode === 'UPI') transType = 'Collection UPI';
-            else if (paymentMode === 'Card') transType = 'Collection Card';
-            else if (paymentMode === 'Bank Transfer') transType = 'Collection Bank Transfer';
+            // Valid types: ['Income', 'Expense', 'Refund', 'Void']
+            // Valid categories: ['Room', 'Restaurant', 'Service', 'Other']
 
             await Transaction.create({
                 date: new Date(),
-                type: transType,
-                category: 'collection',
+                type: 'Income',
+                category: 'Restaurant',
                 amount: order.finalAmount,
-                by: 'Cashier',
-                reference: `ORDER-${orderId.toString().substr(-6).toUpperCase()}`,
-                notes: `Restaurant Bill - Table ${order.tableNumber}`,
-                paymentMethod: paymentMode.toLowerCase()
+                // by: 'Cashier', // 'by' is not in schema, 'performedBy' expects ObjectId
+                referenceId: `ORDER-${orderId.toString().substr(-6).toUpperCase()}`, // Schema expects referenceId
+                description: `Restaurant Bill - Table ${order.tableNumber}`, // Schema expects description
+                paymentMethod: paymentMode // Schema expects Title Case e.g. 'Cash', 'Card'
             });
         }
 
