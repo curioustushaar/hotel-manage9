@@ -1,0 +1,112 @@
+/* Main Section */
+.services-section {
+    position: relative;
+    padding: 100px 0;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.services-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+}
+
+/* Header */
+.services-title {
+    font-size: 42px;
+    font-weight: 800;
+    color: #d61c3c;
+    margin-bottom: 12px;
+}
+
+.services-subtitle {
+    font-size: 18px;
+    color: #555;
+    margin-bottom: 40px;
+    /* Reduced from 80px */
+}
+
+/* Grid Layout - 3 Columns */
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+    max-width: 1100px;
+    margin: 0 auto;
+    align-items: start;
+    /* Align cols to top */
+}
+
+/* Column Flex */
+.services-col {
+    display: flex;
+    flex-direction: column;
+    gap: 60px;
+    /* Vertical gap between cards in same column */
+    align-items: center;
+}
+
+/* Center Column Offset (optional visual balance if needed, but not strictly requested as offset, just 3 cols) 
+   User asked for s2 top s5 bottom, standard stack. 
+*/
+
+/* Card Style (Strict) */
+.service-card {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0;
+    width: 350px;
+    height: auto;
+    transition: transform 0.4s ease, opacity 0.4s ease;
+
+    /* Reveal Animation Starts invisible */
+    opacity: 0;
+    transform: translateY(30px);
+}
+
+.service-card:hover {
+    transform: translateY(-10px) !important;
+    /* Move up slightly on hover */
+}
+
+.service-card img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+}
+
+/* Reveal State */
+.service-card.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Ensure hover still works after animation */
+.service-card.show:hover {
+    transform: translateY(-10px);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .services-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* For 2 cols, maybe re-flow? 
+       Left: s1, s4
+       Center: s2, s5
+       Right: s3, s6
+       In 2 col grid, 3rd col wraps. 
+    */
+}
+
+@media (max-width: 768px) {
+    .services-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -2,9 +2,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
-
 const path = require('path');
-// Load environment variables
+
+// Load environment variables from root folder
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 // Import routes
@@ -30,14 +30,9 @@ const pricingRoutes = require('./routes/pricingRoutes');
 const app = express();
 
 // CORS configuration - Allow production and development origins
-const allowedOrigins = [
-    'http://localhost:3000',
-    process.env.FRONTEND_URL || 'http://localhost:5173'
-].filter(Boolean);
-
 app.use(cors()); // Simplified CORS for development per user request
-// app.use(express.json()); // Moved below for size limiting
 app.use(express.urlencoded({ extended: true }));
+
 // Security enhancements
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
@@ -88,7 +83,6 @@ const connectDB = async () => {
 
     try {
         if (!process.env.MONGODB_URI) {
-            // Check if we are in production, if so error out. development might rely on local but we are enforcing no hardcoding.
             console.error('CRITICAL ERROR: MONGODB_URI environment variable is not defined.');
             throw new Error('MONGODB_URI environment variable is missing');
         }
@@ -126,6 +120,7 @@ app.use('/api/facilities', roomFacilityRoutes);
 app.use('/api/bed-types', bedTypeRoutes);
 app.use('/api/floors', floorRoutes);
 app.use('/api/pricing', pricingRoutes);
+
 const roomFacilityTypeRoutes = require('./routes/roomFacilityTypeRoutes');
 app.use('/api/facility-types', roomFacilityTypeRoutes);
 const mealTypeRoutes = require('./routes/mealTypeRoutes');
@@ -158,18 +153,12 @@ const tableRoutes = require('./routes/tableRoutes');
 app.use('/api/tables', tableRoutes);
 
 const visitorRoutes = require('./routes/visitorRoutes');
-console.log("Registering /api/visitors routes...");
 app.use('/api/visitors', visitorRoutes);
-
-
-// Root route
-
-
 
 // Root route
 app.get('/', (req, res) => {
     res.json({
-        message: 'Bareena Atithi API - Food Menu Management',
+        message: 'Bareena Atithi API - Hotel Management System',
         version: '1.0.0'
     });
 });
@@ -197,8 +186,6 @@ app.use((req, res) => {
 // Server configuration
 const PORT = process.env.PORT || 5000;
 
-// Only listen if not in serverless environment (Vercel)
-// Function to start server with port fallback
 // Function to start server with port fallback
 const startServer = (port) => {
     const numericPort = parseInt(port, 10);
@@ -220,13 +207,10 @@ const startServer = (port) => {
     });
 };
 
-// Handle Uncaught Exceptions - MUST be at the top level
+// Handle Uncaught Exceptions
 process.on('uncaughtException', (err) => {
     console.error('UNCAUGHT EXCEPTION! 💥 Shutting down...');
     console.error(err.name, err.message);
-    // In production we might want to exit, but for dev stability request we log and keep running if possible, 
-    // or exit gracefully. However, uncaught exception usually means undefined state.
-    // For now, let's log and exit with error code 1 to let nodemon restart it.
     process.exit(1);
 });
 
@@ -234,10 +218,6 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (err) => {
     console.error('UNHANDLED REJECTION! 💥 Shutting down...');
     console.error(err.name, err.message);
-    // server.close(() => {
-    //     process.exit(1);
-    // });
-    // For "keep running" stability during dev:
     console.error('Unhandled rejection occurred. Server continuing.');
 });
 

@@ -11,6 +11,11 @@
   font-family: 'Poppins', sans-serif;
 }
 
+html,
+body {
+  overflow-x: hidden;
+}
+
 /* =============================================
    GLOBAL SCROLLBAR HIDE — scroll still works
    via mouse wheel / touch / cursor
@@ -31,9 +36,10 @@ body {
   background: #ffffff;
 }
 
-body.no-scroll {
-  overflow: hidden;
+.landing-page {
+  background: linear-gradient(to bottom, #ffffff 0%, #f5f6f8 100%);
 }
+
 
 /* ---------- COMMON ---------- */
 .container {
@@ -61,7 +67,7 @@ body.no-scroll {
 
 .logo {
   font-weight: 700;
-  font-size: 1.5rem;
+  font-size: 2rem;
 }
 
 #sidebarNav {
@@ -412,6 +418,7 @@ body.no-scroll {
   overflow: hidden;
 }
 
+
 .hero::before {
   content: '';
   position: absolute;
@@ -429,19 +436,9 @@ body.no-scroll {
   opacity: 0.18;
 }
 
+.hero::before,
 .hero::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background-image:
-    radial-gradient(circle, #e11d48 2px, transparent 2px);
-  background-size: 80px 80px;
-  animation: dotScrollReverse 18s linear infinite;
-  z-index: 0;
-  opacity: 0.12;
+  display: none;
 }
 
 .hero>* {
@@ -484,10 +481,11 @@ body.no-scroll {
 
 .hero-image {
   flex: 1;
-  display: flex;
+  /* display: flex; */
   justify-content: flex-end;
-  align-items: flex-start;
+  /* align-items: flex-start; */
   margin-top: -20px;
+  margin-right: -10px;
 }
 
 .pricing-li {
@@ -532,6 +530,7 @@ body.no-scroll {
   max-width: 100%;
   height: auto;
   margin-top: 0;
+  margin-right: -5px;
 }
 
 /* Trusted Section */
@@ -566,6 +565,7 @@ body.no-scroll {
 
 .logo-track img {
   width: 140px;
+  height: 120px;
   margin: 0 30px;
   filter: grayscale(100%);
   opacity: 100%;

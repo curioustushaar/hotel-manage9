@@ -13,7 +13,7 @@ const AdminNavbar = ({
     title = "BIREENA ATITHI"
 }) => {
     const navigate = useNavigate();
-    const { user } = useAuth(); // Get current user
+    const { user, logout } = useAuth(); // Get current user and logout function
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
     const [soundEnabled, setSoundEnabled] = useState(soundManager.isEnabled());
 
@@ -29,8 +29,7 @@ const AdminNavbar = ({
     ) : "ST";
 
     const handleLogout = () => {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('authUser');
+        logout(); // Use centralized logout from AuthContext
         navigate('/login');
     };
 

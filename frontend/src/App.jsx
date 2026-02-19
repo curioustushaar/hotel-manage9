@@ -1,11 +1,11 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
-import { MODULES } from './config/rbac'
+import { MODULES, ROLES } from './config/rbac'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import TrustedBy from './components/TrustedBy'
-import Features from './components/Features'
+import FeaturesList from './components/Features'
 import Marketplace from './components/Marketplace'
 import Integrations from './components/Integrations'
 import OutletTypes from './components/OutletTypes'
@@ -22,289 +22,115 @@ import HotelDetails from './pages/SuperAdmin/HotelDetails'
 import SuperAdminLogin from './pages/SuperAdmin/SuperAdminLogin'
 import QRScanPage from './pages/QRScan/QRScanPage'
 import FoodOrderPage from './components/FoodOrderPage'
+import About from './pages/About'
+import FeaturesPage from './pages/Features'
 import './index.css'
 
-// Home Page Component
-function HomePage() {
+function HomePageContent() {
   return (
-    <div className="App">
-      <Navbar />
+    <>
       <Hero />
       <TrustedBy />
-      <Features />
+      <FeaturesList />
       <Marketplace />
       <Integrations />
       <OutletTypes />
       <Testimonials />
       <Ratings />
       <DemoForm />
-      <Footer />
+    </>
+  )
+}
+
+const AppRoutes = () => {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/super-admin');
+
+  return (
+    <div className="App">
+      {!isAdminRoute && <Navbar />}
+      <Routes>
+        <Route path="/" element={<HomePageContent />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/features" element={<FeaturesPage />} />
+        <Route path="/pricing" element={<HomePageContent />} />
+        <Route path="/contact" element={<HomePageContent />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/superadmin/login" element={<SuperAdminLogin />} />
+
+        {/* Protected Admin Routes */}
+        <Route path="/admin/dashboard" element={
+          <ProtectedRoute module={MODULES.DASHBOARD}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/rooms" element={
+          <ProtectedRoute module={MODULES.ROOMS}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/reservations" element={
+          <ProtectedRoute module={MODULES.RESERVATIONS}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/guest-meal-service" element={
+          <ProtectedRoute module={MODULES.GUEST_MEAL_SERVICE}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/food-menu" element={
+          <ProtectedRoute module={MODULES.FOOD_MENU}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/customers" element={
+          <ProtectedRoute module={MODULES.CUSTOMERS}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/staff" element={
+          <ProtectedRoute module={MODULES.STAFF}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+
+        {/* Superadmin Routes */}
+        <Route path="/super-admin/dashboard" element={
+          <ProtectedRoute role={ROLES.SUPER_ADMIN}>
+            <SuperAdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/super-admin/hotels" element={
+          <ProtectedRoute role={ROLES.SUPER_ADMIN}>
+            <HotelsManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="/super-admin/hotels/create" element={
+          <ProtectedRoute role={ROLES.SUPER_ADMIN}>
+            <CreateHotel />
+          </ProtectedRoute>
+        } />
+        <Route path="/super-admin/hotels/:id" element={
+          <ProtectedRoute role={ROLES.SUPER_ADMIN}>
+            <HotelDetails />
+          </ProtectedRoute>
+        } />
+
+        {/* Other Routes */}
+        <Route path="/qr-scan/:hotelId/:tableId" element={<QRScanPage />} />
+        <Route path="/order" element={<FoodOrderPage />} />
+      </Routes>
+      {!isAdminRoute && <Footer />}
     </div>
   )
 }
 
-import useGlobalClickSound from './hooks/useGlobalClickSound';
-import useTypingSound from './hooks/useTypingSound';
-
 function App() {
-  useGlobalClickSound();
-  useTypingSound();
-
   return (
     <AuthProvider>
       <Router>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/about" element={<HomePage />} />
-          <Route path="/features" element={<HomePage />} />
-          <Route path="/pricing" element={<HomePage />} />
-          <Route path="/contact" element={<HomePage />} />
-          <Route path="/login" element={<Login />} />
-
-          {/* HIDDEN SUPER ADMIN LOGIN */}
-          <Route path="/secure-owner-login" element={<SuperAdminLogin />} />
-
-          {/* Super Admin Route */}
-          <Route path="/super-admin/dashboard" element={
-            <ProtectedRoute module={MODULES.SUPER_ADMIN_DASHBOARD}>
-              <SuperAdminDashboard />
-            </ProtectedRoute>
-          } />
-
-          {/* Super Admin Hotels Management */}
-          <Route path="/super-admin/hotels" element={
-            <ProtectedRoute module={MODULES.SUPER_ADMIN_DASHBOARD}>
-              <HotelsManagement />
-            </ProtectedRoute>
-          } />
-
-          {/* Super Admin Create Hotel */}
-          <Route path="/super-admin/create-hotel" element={
-            <ProtectedRoute module={MODULES.SUPER_ADMIN_DASHBOARD}>
-              <CreateHotel />
-            </ProtectedRoute>
-          } />
-
-          {/* Super Admin Hotel Details */}
-          <Route path="/super-admin/hotel/:id" element={
-            <ProtectedRoute module={MODULES.SUPER_ADMIN_DASHBOARD}>
-              <HotelDetails />
-            </ProtectedRoute>
-          } />
-
-          {/* Protected Routes */}
-          {/* ADMIN Routes */}
-          <Route path="/admin/dashboard" element={
-            <ProtectedRoute module={MODULES.DASHBOARD}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/rooms" element={
-            <ProtectedRoute module={MODULES.ROOMS}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/reservations" element={
-            <ProtectedRoute module={MODULES.RESERVATIONS}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/guest-meal-service" element={
-            <ProtectedRoute module={MODULES.GUEST_MEAL_SERVICE}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/food-menu" element={
-            <ProtectedRoute module={MODULES.FOOD_MENU}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/customers" element={
-            <ProtectedRoute module={MODULES.CUSTOMERS}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/settings" element={
-            <ProtectedRoute module={MODULES.STAFF_MANAGEMENT}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/stay-overview" element={
-            <ProtectedRoute module={MODULES.RESERVATIONS}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/reservation-stay-management" element={
-            <ProtectedRoute module={MODULES.RESERVATIONS}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/view-reservation" element={
-            <ProtectedRoute module={MODULES.RESERVATIONS}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/room-service" element={
-            <ProtectedRoute module={MODULES.RESERVATIONS}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/view-order" element={
-            <ProtectedRoute module={MODULES.GUEST_MEAL_SERVICE}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/my-profile" element={
-            <ProtectedRoute module={MODULES.PROFILE}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/cashier-report" element={
-            <ProtectedRoute module={MODULES.CASHIER_LOGS}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/food-payment-report" element={
-            <ProtectedRoute module={MODULES.PAYMENT_LOGS}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/cashier-section" element={
-            <ProtectedRoute module={MODULES.CASHIER_SECTION}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-
-          {/* STAFF Routes */}
-          <Route path="/staff/dashboard" element={
-            <ProtectedRoute module={MODULES.DASHBOARD}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/staff/rooms" element={
-            <ProtectedRoute module={MODULES.ROOMS}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/staff/reservations" element={
-            <ProtectedRoute module={MODULES.RESERVATIONS}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/staff/guest-meal-service" element={
-            <ProtectedRoute module={MODULES.GUEST_MEAL_SERVICE}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/staff/food-menu" element={
-            <ProtectedRoute module={MODULES.FOOD_MENU}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/staff/customers" element={
-            <ProtectedRoute module={MODULES.CUSTOMERS}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/staff/settings" element={
-            <ProtectedRoute module={MODULES.STAFF_MANAGEMENT}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/staff/stay-overview" element={
-            <ProtectedRoute module={MODULES.RESERVATIONS}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/staff/reservation-stay-management" element={
-            <ProtectedRoute module={MODULES.RESERVATIONS}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/staff/view-reservation" element={
-            <ProtectedRoute module={MODULES.RESERVATIONS}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/staff/room-service" element={
-            <ProtectedRoute module={MODULES.RESERVATIONS}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/staff/view-order" element={
-            <ProtectedRoute module={MODULES.GUEST_MEAL_SERVICE}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/staff/my-profile" element={
-            <ProtectedRoute module={MODULES.PROFILE}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/staff/cashier-report" element={
-            <ProtectedRoute module={MODULES.CASHIER_LOGS}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/staff/food-payment-report" element={
-            <ProtectedRoute module={MODULES.PAYMENT_LOGS}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/staff/cashier-section" element={
-            <ProtectedRoute module={MODULES.CASHIER_SECTION}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-
-          {/* Property Setup Routes */}
-          {/* Property Setup Routes (Admin Only usually, but let's standard prefix) */}
-          <Route path="/admin/discount" element={<ProtectedRoute module={MODULES.PROPERTY_SETUP}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/taxes" element={<ProtectedRoute module={MODULES.PROPERTY_SETUP}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/tax-mapping" element={<ProtectedRoute module={MODULES.PROPERTY_SETUP}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/generate-room-qr" element={<ProtectedRoute module={MODULES.PROPERTY_SETUP}><AdminDashboard /></ProtectedRoute>} />
-
-          <Route path="/staff/discount" element={<ProtectedRoute module={MODULES.PROPERTY_SETUP}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/staff/taxes" element={<ProtectedRoute module={MODULES.PROPERTY_SETUP}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/staff/tax-mapping" element={<ProtectedRoute module={MODULES.PROPERTY_SETUP}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/staff/generate-room-qr" element={<ProtectedRoute module={MODULES.PROPERTY_SETUP}><AdminDashboard /></ProtectedRoute>} />
-
-          {/* Property Configuration Routes */}
-          {/* Property Configuration Routes */}
-          <Route path="/admin/room-setup" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/floor-setup" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/bed-type" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/room-facilities" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/room-facilities-type" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/meal-type" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/reservation-type" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/extra-charges" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/complimentary-services" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/customer-identity" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/booking-source" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/business-source" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/maintenance-block" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/table-management" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-
-          <Route path="/staff/room-setup" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/staff/floor-setup" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/staff/bed-type" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/staff/room-facilities" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/staff/room-facilities-type" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/staff/meal-type" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/staff/reservation-type" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/staff/extra-charges" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/staff/complimentary-services" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/staff/customer-identity" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/staff/booking-source" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/staff/business-source" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/staff/maintenance-block" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/staff/table-management" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-
-          {/* Public Routes */}
-          <Route path="/scan-qr/:roomId" element={<QRScanPage />} />
-          <Route path="/food-order" element={<FoodOrderPage />} />
-        </Routes>
+        <AppRoutes />
       </Router>
     </AuthProvider>
   )

@@ -43,7 +43,7 @@ const MyProfile = () => {
                             'Content-Type': 'application/json'
                         }
                     };
-                    
+
                     // Fetch hotel details
                     const response = await axios.get(`/api/hotel/${user.hotelId}`, config);
                     setHotelInfo(response.data);
@@ -170,7 +170,7 @@ const MyProfile = () => {
     return (
         <div className="my-profile-container">
             {/* Page Header */}
-            <motion.div 
+            <motion.div
                 className="profile-header"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -188,7 +188,7 @@ const MyProfile = () => {
             {/* Profile Content */}
             <div className="profile-content">
                 {/* CARD 1: Profile Overview */}
-                <motion.div 
+                <motion.div
                     className="profile-card"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -202,9 +202,9 @@ const MyProfile = () => {
                         <div className="avatar-section">
                             <div className="avatar-container">
                                 {photoPreview ? (
-                                    <img 
-                                        src={photoPreview} 
-                                        alt="Profile" 
+                                    <img
+                                        src={photoPreview}
+                                        alt="Profile"
                                         className="avatar-image"
                                     />
                                 ) : (
@@ -248,7 +248,7 @@ const MyProfile = () => {
                 </motion.div>
 
                 {/* CARD 2: Personal Information */}
-                <motion.div 
+                <motion.div
                     className="profile-card"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -332,7 +332,7 @@ const MyProfile = () => {
                 </motion.div>
 
                 {/* CARD 3: Security Settings */}
-                <motion.div 
+                <motion.div
                     className="profile-card"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -414,7 +414,7 @@ const MyProfile = () => {
                 </motion.div>
 
                 {/* CARD 4: Account Activity */}
-                <motion.div 
+                <motion.div
                     className="profile-card"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -442,7 +442,7 @@ const MyProfile = () => {
 
                 {/* CARD 5: Hotel Information - Only for Admin and Staff */}
                 {user?.role !== 'super_admin' && (
-                    <motion.div 
+                    <motion.div
                         className="profile-card"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -506,7 +506,7 @@ const MyProfile = () => {
                                         <div className="info-details">
                                             <span className="info-label">Subscription Expiry</span>
                                             <span className="info-value">
-                                                {hotelInfo.subscription?.expiryDate 
+                                                {hotelInfo.subscription?.expiryDate
                                                     ? new Date(hotelInfo.subscription.expiryDate).toLocaleDateString()
                                                     : 'N/A'}
                                             </span>
@@ -545,7 +545,7 @@ const MyProfile = () => {
 
             {/* Action Buttons */}
             {editMode && (
-                <motion.div 
+                <motion.div
                     className="action-buttons"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}

@@ -1,0 +1,214 @@
+/* 1️⃣ SECTION WRAPPER (NO OVERFLOW ISSUE) */
+.why-section {
+    position: relative;
+    width: 100%;
+    padding: 60px 0 100px;
+    overflow: hidden;
+    /* prevent accidental overflow */
+    background: #f8f9fb;
+}
+
+/* 2️⃣ HEADER STYLE (Premium Look) */
+.why-section h2 {
+    font-size: 42px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 10px;
+    color: #111827;
+}
+
+.why-section h2 span {
+    color: #e11d48;
+}
+
+.why-section p.subtitle {
+    text-align: center;
+    font-size: 18px;
+    color: #6b7280;
+    max-width: 650px;
+    margin: 0 auto 30px auto;
+    /* Combined bottom margin */
+}
+
+/* 3️⃣ MAIN LAYOUT GRID (NO OVERLAP) */
+.why-layout {
+    position: relative;
+    width: 1200px;
+    max-width: 95%;
+    margin: auto;
+    min-height: 550px;
+}
+
+/* 4️⃣ C CENTER (BIGGER NOW) */
+.c-center {
+    position: absolute;
+    width: 520px;
+    /* increased */
+    height: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 40px;
+    /* reduced margin */
+    z-index: 2;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    animation: floatCenter 4s ease-in-out infinite;
+}
+
+/* Floating animation only for center */
+@keyframes floatCenter {
+    0% {
+        transform: translate(-50%, 0px);
+    }
+
+    50% {
+        transform: translate(-50%, -8px);
+    }
+
+    100% {
+        transform: translate(-50%, 0px);
+    }
+}
+
+/* 5️⃣ COMMON CARD SIZE (ALL SMALL CARDS EQUAL) */
+.why-card {
+    position: absolute;
+    width: 260px;
+    /* equal size for all */
+    height: auto;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    z-index: 5;
+}
+
+.why-card img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    display: block;
+}
+
+/* 6️⃣ RIGHT SIDE CARDS (NOW BIGGER & EQUAL) */
+.card-top-right {
+    top: 0px;
+    right: 60px;
+}
+
+.card-bottom-right {
+    bottom: 80px;
+    right: 80px;
+    height: auto;
+    width: 320px;
+}
+
+/* 7️⃣ LEFT SIDE CARDS */
+.card-top-left {
+    top: 0px;
+    /* Reduced from 40px */
+    left: 60px;
+}
+
+.card-bottom-left {
+    bottom: 80px;
+    left: 80px;
+}
+
+/* 8️⃣ BOTTOM CENTER CARD (NOW SLIGHTLY BIGGER) */
+.card-bottom-center {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    width: 280px;
+    /* slightly bigger */
+}
+
+/* Specific hover for centered card: ZOOM OUT, NO MOVEMENT */
+.card-bottom-center:hover {
+    transform: translateX(-50%) scale(0.95);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* 9️⃣ HOVER FIX (NO JUMP) */
+.why-card:not(.card-bottom-center):hover {
+    transform: translateY(-6px);
+    /* same as other cards */
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.08);
+}
+
+/* Disable hover on center */
+.c-center:hover {
+    filter: none !important;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .c-center {
+        width: 420px;
+    }
+
+    .why-card {
+        width: 220px;
+    }
+
+    .card-top-left {
+        left: 20px;
+    }
+
+    .card-top-right {
+        right: 20px;
+    }
+
+    .card-bottom-left {
+        left: 40px;
+    }
+
+    .card-bottom-right {
+        right: 40px;
+    }
+}
+
+@media (max-width: 900px) {
+    .why-layout {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: auto;
+        min-height: auto;
+    }
+
+    .c-center {
+        position: relative;
+        top: auto;
+        left: auto;
+        transform: none;
+        width: 90%;
+        max-width: 400px;
+        margin-bottom: 40px;
+        animation: none;
+    }
+
+    .why-card {
+        position: relative;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        transform: none !important;
+        margin-bottom: 20px;
+        width: 80%;
+    }
+
+    .why-card:hover {
+        transform: none;
+    }
+
+    .card-bottom-center {
+        width: 80%;
+    }
+}

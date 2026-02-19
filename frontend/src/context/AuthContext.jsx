@@ -1,8 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
-// import { MOCK_USERS } from '../data/mockUsers'; // Removed for security
 import { ROLES } from '../config/rbac';
-
 import API_URL from '../config/api';
 
 const AuthContext = createContext(null);
@@ -18,7 +16,8 @@ axios.interceptors.request.use(
         const savedUser = localStorage.getItem('authUser');
         if (savedUser) {
             try {
-                const { token } = JSON.parse(savedUser);
+                const parsedUser = JSON.parse(savedUser);
+                const { token } = parsedUser;
                 if (token) {
                     config.headers.Authorization = `Bearer ${token}`;
                 }
@@ -83,14 +82,10 @@ export const AuthProvider = ({ children }) => {
             let errorMessage = 'An unexpected error occurred';
 
             if (error.response) {
-                // The request was made and the server responded with a status code
-                // that falls out of the range of 2xx
                 errorMessage = error.response.data.message || 'Invalid email or password';
             } else if (error.request) {
-                // The request was made but no response was received
                 errorMessage = 'Server is unreachable. Please try again later.';
             } else {
-                // Something happened in setting up the request that triggered an Error
                 errorMessage = error.message;
             }
 
@@ -128,8 +123,6 @@ export const AuthProvider = ({ children }) => {
     const getSubscriptionTier = () => {
         return user?.subscriptionTier || null;
     };
-
-    // Quick login removed for security
 
     const value = {
         user,
