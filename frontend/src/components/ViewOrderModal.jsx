@@ -368,13 +368,13 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
                             className={`tab-btn ${activeTab === 'food' ? 'active' : ''}`}
                             onClick={() => setActiveTab('food')}
                         >
-                            🍽️ Food Order
+                            Food Order
                         </button>
                         <button
                             className={`tab-btn ${activeTab === 'service' ? 'active' : ''}`}
                             onClick={() => setActiveTab('service')}
                         >
-                            🔔 Room Service
+                            Room Service
                         </button>
                     </div>
 
@@ -386,13 +386,13 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
                                     className="view-order-btn add-food"
                                     onClick={() => setShowFoodSelector(!showFoodSelector)}
                                 >
-                                    ➕ Add Food Item
+                                    Add Food Item
                                 </button>
                                 <button
                                     className="view-order-btn cancel-order"
                                     onClick={handleCancelOrder}
                                 >
-                                    ❌ Clear Order
+                                    Clear Order
                                 </button>
                             </>
                         ) : (
@@ -530,8 +530,8 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
                     {/* Bottom Actions */}
                     <div className="view-order-footer">
                         <button className="footer-btn cancel" onClick={onClose}>Cancel</button>
-                        <button className="footer-btn room-posting" onClick={handleRoomPosting}>🔵 Room Posting</button>
-                        <button className="footer-btn save-print" onClick={handleSaveAndPrint}>🔴 Save & Print</button>
+                        <button className="footer-btn room-posting" onClick={handleRoomPosting}>Room Posting</button>
+                        <button className="footer-btn save-print" onClick={handleSaveAndPrint}>Save & Print</button>
                     </div>
                 </div>
             </div>

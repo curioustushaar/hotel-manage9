@@ -413,7 +413,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
             console.log('📦 Response data.data:', data.data);
 
             if (data.success) {
-                const successMsg = editingGuest ? 'Guest updated successfully! ✓' : 'Guest created successfully! ✓';
+                const successMsg = editingGuest ? 'Guest updated successfully!' : 'Guest created successfully!';
                 console.log('✅', successMsg);
                 console.log('✅ Updated Guest Object:', data.data);
                 console.log('✅ Guest _id:', data.data?._id);
@@ -438,10 +438,10 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
     };
 
     const sections = [
-        { id: 'basic', label: 'Basic Info', icon: '👤' },
-        { id: 'address', label: 'Address', icon: '📍' },
-        { id: 'kyc', label: 'ID Proof', icon: '🪪' },
-        { id: 'optional', label: 'More Info', icon: '📋' }
+        { id: 'basic', label: 'Basic Info', icon: '' },
+        { id: 'address', label: 'Address', icon: '' },
+        { id: 'kyc', label: 'ID Proof', icon: '' },
+        { id: 'optional', label: 'More Info', icon: '' }
     ];
 
     return (
@@ -508,8 +508,8 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                 maxLength="50"
                                 className={errors.fullName ? 'input-error' : ''}
                             />
-                            {errors.fullName && <span className="form-error-text"><span className="form-error-icon">⚠️</span> {errors.fullName}</span>}
-                            {!errors.fullName && formData.fullName && <span className="form-success-text"><span className="form-success-icon">✓</span> Valid name</span>}
+                            {errors.fullName && <span className="form-error-text"><span className="form-error-icon"></span> {errors.fullName}</span>}
+                            {!errors.fullName && formData.fullName && <span className="form-success-text"><span className="form-success-icon"></span> Valid name</span>}
                         </div>
 
                         <div className="form-group">
@@ -526,8 +526,8 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                 maxLength="10"
                                 className={errors.mobile ? 'input-error' : ''}
                             />
-                            {errors.mobile && <span className="form-error-text"><span className="form-error-icon">⚠️</span> {errors.mobile}</span>}
-                            {!errors.mobile && formData.mobile && <span className="form-success-text"><span className="form-success-icon">✓</span> Valid mobile number</span>}
+                            {errors.mobile && <span className="form-error-text"><span className="form-error-icon"></span> {errors.mobile}</span>}
+                            {!errors.mobile && formData.mobile && <span className="form-success-text"><span className="form-success-icon"></span> Valid mobile number</span>}
                         </div>
 
                         <div className="form-group">
@@ -540,8 +540,8 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                 onChange={handleChange}
                                 className={errors.email ? 'input-error' : ''}
                             />
-                            {errors.email && <span className="form-error-text"><span className="form-error-icon">⚠️</span> {errors.email}</span>}
-                            {!errors.email && formData.email && <span className="form-success-text"><span className="form-success-icon">✓</span> Valid email</span>}
+                            {errors.email && <span className="form-error-text"><span className="form-error-icon"></span> {errors.email}</span>}
+                            {!errors.email && formData.email && <span className="form-success-text"><span className="form-success-icon"></span> Valid email</span>}
                         </div>
 
                         <div className="form-row-2">
@@ -584,7 +584,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                 onChange={handleChange}
                                 className={errors.address ? 'input-error' : ''}
                             />
-                            {errors.address && <span className="form-error-text"><span className="form-error-icon">⚠️</span> {errors.address}</span>}
+                            {errors.address && <span className="form-error-text"><span className="form-error-icon"></span> {errors.address}</span>}
                         </div>
 
                         <div className="form-row-3">
@@ -600,7 +600,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                     onChange={handleChange}
                                     className={errors.city ? 'input-error' : ''}
                                 />
-                                {errors.city && <span className="form-error-text"><span className="form-error-icon">⚠️</span> {errors.city}</span>}
+                                {errors.city && <span className="form-error-text"><span className="form-error-icon"></span> {errors.city}</span>}
                             </div>
 
                             <div className="form-group">
@@ -615,7 +615,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                     onChange={handleChange}
                                     className={errors.state ? 'input-error' : ''}
                                 />
-                                {errors.state && <span className="form-error-text"><span className="form-error-icon">⚠️</span> {errors.state}</span>}
+                                {errors.state && <span className="form-error-text"><span className="form-error-icon"></span> {errors.state}</span>}
                             </div>
 
                             <div className="form-group">
@@ -631,8 +631,8 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                     maxLength="6"
                                     className={errors.pinCode ? 'input-error' : ''}
                                 />
-                                {errors.pinCode && <span className="form-error-text"><span className="form-error-icon">⚠️</span> {errors.pinCode}</span>}
-                                {!errors.pinCode && formData.pinCode && <span className="form-success-text"><span className="form-success-icon">✓</span> Valid PIN Code</span>}
+                                {errors.pinCode && <span className="form-error-text"><span className="form-error-icon"></span> {errors.pinCode}</span>}
+                                {!errors.pinCode && formData.pinCode && <span className="form-success-text"><span className="form-success-icon"></span> Valid PIN Code</span>}
                             </div>
 
                         </div>
@@ -681,8 +681,8 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                     disabled={!formData.idType}
                                     className={`id-number-input ${errors.idNumber ? 'input-error' : ''}`}
                                 />
-                                {errors.idNumber && <span className="form-error-text"><span className="form-error-icon">⚠️</span> {errors.idNumber}</span>}
-                                {!errors.idNumber && formData.idNumber && <span className="form-success-text"><span className="form-success-icon">✓</span> Valid ID number</span>}
+                                {errors.idNumber && <span className="form-error-text"><span className="form-error-icon"></span> {errors.idNumber}</span>}
+                                {!errors.idNumber && formData.idNumber && <span className="form-success-text"><span className="form-success-icon"></span> Valid ID number</span>}
                             </div>
                         </div>
 
@@ -726,7 +726,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
 
                         {!(formData.idFrontFile && formData.idBackFile) && (
                             <div className="kyc-info-box">
-                                <span className="info-icon">ℹ️</span>
+                                <span className="info-icon"></span>
                                 <div className="info-content">
                                     <p><strong>KYC Information</strong></p>
                                     <p style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.5rem' }}>

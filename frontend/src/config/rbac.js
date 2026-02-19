@@ -2,13 +2,13 @@
 
 // ==================== ROLE DEFINITIONS ====================
 export const ROLES = {
-    SUPER_ADMIN: 'Super Admin',
-    ADMIN: 'Admin',
-    MANAGER: 'Manager',
-    RECEPTIONIST: 'Receptionist',
-    ACCOUNTANT: 'Accountant',
-    WAITER: 'Waiter',
-    STAFF: 'Staff'
+    SUPER_ADMIN: 'super_admin',
+    ADMIN: 'admin',
+    MANAGER: 'manager',
+    RECEPTIONIST: 'receptionist',
+    ACCOUNTANT: 'accountant',
+    WAITER: 'waiter',
+    STAFF: 'staff'
 };
 
 // Role descriptions for real-world hotel scenario
@@ -34,6 +34,7 @@ export const PERMISSIONS = {
 // ==================== MODULE DEFINITIONS ====================
 export const MODULES = {
     DASHBOARD: 'dashboard',
+    SUPER_ADMIN_DASHBOARD: 'super-admin-dashboard',
     ROOMS: 'rooms',
     RESERVATIONS: 'reservations',
     CASHIER_SECTION: 'cashier-section',
@@ -55,13 +56,24 @@ export const MODULES = {
 export const ACCESS_MATRIX = {
     // DASHBOARD
     [MODULES.DASHBOARD]: {
-        [ROLES.SUPER_ADMIN]: [PERMISSIONS.FULL],
+        [ROLES.SUPER_ADMIN]: [],
         [ROLES.ADMIN]: [PERMISSIONS.FULL],
         [ROLES.MANAGER]: [PERMISSIONS.VIEW],
         [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
         [ROLES.WAITER]: [],
         [ROLES.STAFF]: [PERMISSIONS.VIEW]
+    },
+
+    // SUPER ADMIN DASHBOARD
+    [MODULES.SUPER_ADMIN_DASHBOARD]: {
+        [ROLES.SUPER_ADMIN]: [PERMISSIONS.FULL],
+        [ROLES.ADMIN]: [],
+        [ROLES.MANAGER]: [],
+        [ROLES.RECEPTIONIST]: [],
+        [ROLES.ACCOUNTANT]: [],
+        [ROLES.WAITER]: [],
+        [ROLES.STAFF]: []
     },
 
     // ROOMS
@@ -72,7 +84,7 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW],
         [ROLES.ACCOUNTANT]: [],
         [ROLES.WAITER]: [],
-        [ROLES.STAFF]: []
+        [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
     // RESERVATIONS & STAY MANAGEMENT
@@ -94,7 +106,7 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW, PERMISSIONS.CREATE],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.FULL],
         [ROLES.WAITER]: [],
-        [ROLES.STAFF]: []
+        [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
     // GUEST MEAL SERVICE (Table View)
@@ -116,7 +128,7 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
         [ROLES.WAITER]: [PERMISSIONS.VIEW],
-        [ROLES.STAFF]: []
+        [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
     // PROPERTY SETUP (Discount, Taxes, etc.)
@@ -127,7 +139,7 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
         [ROLES.WAITER]: [],
-        [ROLES.STAFF]: []
+        [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
     // PROPERTY CONFIGURATION (Room Setup, Floor Setup, etc.)
@@ -138,7 +150,7 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [],
         [ROLES.ACCOUNTANT]: [],
         [ROLES.WAITER]: [],
-        [ROLES.STAFF]: []
+        [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
     // CUSTOMERS
@@ -149,7 +161,7 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW, PERMISSIONS.CREATE, PERMISSIONS.EDIT],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
         [ROLES.WAITER]: [],
-        [ROLES.STAFF]: []
+        [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
     // STAFF MANAGEMENT
@@ -160,7 +172,7 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [],
         [ROLES.ACCOUNTANT]: [],
         [ROLES.WAITER]: [],
-        [ROLES.STAFF]: []
+        [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
     // CASHIER LOGS
@@ -171,7 +183,7 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
         [ROLES.WAITER]: [],
-        [ROLES.STAFF]: []
+        [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
     // PAYMENT LOGS
@@ -182,7 +194,7 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.FULL],
         [ROLES.WAITER]: [],
-        [ROLES.STAFF]: []
+        [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
     // PROFILE
@@ -268,7 +280,43 @@ export const SUBSCRIPTION_FEATURES = {
 /**
  * Check if a user has permission for a specific module and action
  */
-export const hasPermission = (userRole, module, permission) => {
+export const hasPermission = (user, module, permission) => {
+    if (!user) return false;
+    const userRole = user.role;
+
+    // If user is Staff, check their specific permissions array first for module access
+    if (userRole === ROLES.STAFF) {
+        const userPermissions = user.permissions || [];
+        const moduleLabelMap = {
+            [MODULES.DASHBOARD]: 'Dashboard',
+            [MODULES.ROOMS]: 'Rooms',
+            [MODULES.RESERVATIONS]: 'Reservation',
+            [MODULES.CASHIER_SECTION]: 'Cashier Section',
+            [MODULES.GUEST_MEAL_SERVICE]: 'Table View',
+            [MODULES.FOOD_MENU]: 'Food Order',
+            [MODULES.CUSTOMERS]: 'Customer List',
+            [MODULES.CASHIER_LOGS]: 'Cashier Logs',
+            [MODULES.PAYMENT_LOGS]: 'Payment Logs',
+            'housekeeping': 'HouseKeeping View',
+            'room-service': 'Room Service',
+            'view-order': 'View order',
+            'registration-card': 'Registration Card',
+            [MODULES.PROPERTY_SETUP]: 'Property Setup',
+            [MODULES.PROPERTY_CONFIG]: 'Property Configuration'
+        };
+
+        const permissionLabel = moduleLabelMap[module];
+        if (permissionLabel) {
+            return userPermissions.includes(permissionLabel);
+        }
+
+        // Everyone has permission for their own profile
+        if (module === MODULES.PROFILE) return true;
+
+        // If it's a staff member and the module is not explicitly granted, deny access
+        return false;
+    }
+
     if (!ACCESS_MATRIX[module]) return false;
     const modulePermissions = ACCESS_MATRIX[module][userRole] || [];
 
@@ -281,7 +329,52 @@ export const hasPermission = (userRole, module, permission) => {
 /**
  * Check if a user has any access to a module
  */
-export const hasModuleAccess = (userRole, module) => {
+export const hasModuleAccess = (user, module) => {
+    if (!user) return false;
+    const userRole = user.role;
+
+    // Special handling for Staff role based on their custom permissions
+    if (userRole === ROLES.STAFF) {
+        const userPermissions = user.permissions || [];
+        const moduleLabelMap = {
+            [MODULES.DASHBOARD]: 'Dashboard',
+            [MODULES.ROOMS]: 'Rooms',
+            [MODULES.RESERVATIONS]: 'Reservation',
+            [MODULES.CASHIER_SECTION]: 'Cashier Section',
+            [MODULES.GUEST_MEAL_SERVICE]: 'Table View',
+            [MODULES.FOOD_MENU]: 'Food Order',
+            [MODULES.CUSTOMERS]: 'Customer List',
+            [MODULES.CASHIER_LOGS]: 'Cashier Logs',
+            [MODULES.PAYMENT_LOGS]: 'Payment Logs',
+            [MODULES.PROPERTY_SETUP]: 'Property Setup',
+            [MODULES.PROPERTY_CONFIG]: 'Property Configuration'
+        };
+
+        const staffPermissionLabel = moduleLabelMap[module];
+        if (staffPermissionLabel) {
+            return userPermissions.includes(staffPermissionLabel);
+        }
+
+        // Check for specific sub-modules that might be checked individually
+        const subModuleMap = {
+            'housekeeping': 'HouseKeeping View',
+            'room-service': 'Room Service',
+            'view-order': 'View order',
+            'registration-card': 'Registration Card'
+        };
+
+        const subPermissionLabel = subModuleMap[module];
+        if (subPermissionLabel) {
+            return userPermissions.includes(subPermissionLabel);
+        }
+
+        // Everyone can access their own profile
+        if (module === MODULES.PROFILE) return true;
+
+        // If it's a staff member and the module is not explicitly granted, deny access
+        return false;
+    }
+
     if (!ACCESS_MATRIX[module]) return false;
     const modulePermissions = ACCESS_MATRIX[module][userRole] || [];
     return modulePermissions.length > 0;
@@ -290,18 +383,23 @@ export const hasModuleAccess = (userRole, module) => {
 /**
  * Get all permissions for a user on a specific module
  */
-export const getModulePermissions = (userRole, module) => {
+export const getModulePermissions = (user, module) => {
+    if (!user || user.role === ROLES.STAFF) {
+        // Staff permissions are binary (module access or not)
+        return hasModuleAccess(user, module) ? [PERMISSIONS.VIEW] : [];
+    }
+    const userRole = user.role;
     if (!ACCESS_MATRIX[module]) return [];
     return ACCESS_MATRIX[module][userRole] || [];
 };
 
 /**
- * Get all modules accessible by a role
+ * Get all modules accessible by a user
  */
-export const getAccessibleModules = (userRole) => {
+export const getAccessibleModules = (user) => {
+    if (!user) return [];
     return Object.keys(ACCESS_MATRIX).filter(module => {
-        const permissions = ACCESS_MATRIX[module][userRole] || [];
-        return permissions.length > 0;
+        return hasModuleAccess(user, module);
     });
 };
 
@@ -314,12 +412,12 @@ export const hasSubscriptionFeature = (subscriptionTier, feature) => {
 };
 
 /**
- * Combined permission check (Role + Subscription)
- * Access = Role Permission + Subscription Permission
+ * Combined permission check (User + Subscription)
+ * Access = User Permission + Subscription Permission
  */
-export const canAccess = (userRole, module, permission, subscriptionTier) => {
-    // First check role-based permission
-    const hasRolePermission = hasPermission(userRole, module, permission);
+export const canAccess = (user, module, permission, subscriptionTier) => {
+    // First check role/user-based permission
+    const hasRolePermission = hasPermission(user, module, permission);
 
     if (!hasRolePermission) return false;
 
@@ -342,9 +440,10 @@ export const canAccess = (userRole, module, permission, subscriptionTier) => {
 };
 
 /**
- * Get sidebar menu items filtered by role
+ * Get sidebar menu items filtered by user
  */
-export const getFilteredMenuItems = (userRole) => {
+export const getFilteredMenuItems = (user) => {
+    if (!user) return [];
     const allMenuItems = [
         { id: MODULES.DASHBOARD, label: 'Dashboard' },
         { id: MODULES.ROOMS, label: 'Rooms' },
@@ -360,35 +459,46 @@ export const getFilteredMenuItems = (userRole) => {
         { id: MODULES.PAYMENT_LOGS, label: 'Payment Logs' }
     ];
 
-    return allMenuItems.filter(item => hasModuleAccess(userRole, item.id));
+    return allMenuItems.filter(item => hasModuleAccess(user, item.id));
 };
 
 /**
- * Get default route for a role after login
- * Returns the first accessible page based on role permissions
+ * Get default route for a user after login
+ * Returns the first accessible page based on user permissions
  */
-export const getDefaultRoute = (userRole) => {
-    // Define route priority order
+export const getDefaultRoute = (user) => {
+    if (!user) return '/login';
+
+    // Determine prefix based on role
+    const prefix = user.role === ROLES.STAFF ? '/staff' : '/admin';
+
+    // Define route priority order (generic paths)
     const routePriority = [
-        { module: MODULES.DASHBOARD, route: '/admin/dashboard' },
-        { module: MODULES.GUEST_MEAL_SERVICE, route: '/admin/guest-meal-service' },
-        { module: MODULES.FOOD_MENU, route: '/admin/food-menu' },
-        { module: MODULES.RESERVATIONS, route: '/admin/reservations' },
-        { module: MODULES.ROOMS, route: '/admin/rooms' },
-        { module: MODULES.CASHIER_SECTION, route: '/admin/cashier-section' },
-        { module: MODULES.CUSTOMERS, route: '/admin/customers' },
-        { module: MODULES.PROFILE, route: '/admin/my-profile' }
+        { module: MODULES.SUPER_ADMIN_DASHBOARD, route: '/super-admin/dashboard', absolute: true },
+        { module: MODULES.DASHBOARD, route: '/dashboard' },
+        { module: MODULES.GUEST_MEAL_SERVICE, route: '/guest-meal-service' },
+        { module: MODULES.FOOD_MENU, route: '/food-menu' },
+        { module: MODULES.RESERVATIONS, route: '/reservations' },
+        { module: MODULES.ROOMS, route: '/rooms' },
+        { module: MODULES.CASHIER_SECTION, route: '/cashier-section' },
+        { module: MODULES.CUSTOMERS, route: '/customers' },
+        { module: MODULES.STAFF_MANAGEMENT, route: '/settings' },
+        { module: MODULES.CASHIER_LOGS, route: '/cashier-report' },
+        { module: MODULES.PAYMENT_LOGS, route: '/food-payment-report' },
+        { module: MODULES.PROPERTY_SETUP, route: '/discount' },
+        { module: MODULES.PROPERTY_CONFIG, route: '/room-setup' },
+        { module: MODULES.PROFILE, route: '/my-profile' }
     ];
 
     // Find first accessible route
-    for (const { module, route } of routePriority) {
-        if (hasModuleAccess(userRole, module)) {
-            return route;
+    for (const { module, route, absolute } of routePriority) {
+        if (hasModuleAccess(user, module)) {
+            return absolute ? route : `${prefix}${route}`;
         }
     }
 
-    // Fallback to profile (everyone has access)
-    return '/admin/my-profile';
+    // Fallback to profile
+    return `${prefix}/my-profile`;
 };
 
 export default {

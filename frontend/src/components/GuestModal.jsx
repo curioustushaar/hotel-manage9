@@ -111,10 +111,10 @@ const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGues
                 <div className="modal-header">
                     <h2>
                         {view === 'selection'
-                            ? '👥 Select Guest'
+                            ? 'Select Guest'
                             : editingGuest
-                                ? '✏️ Edit Guest Profile'
-                                : '🆕 Create New Guest'
+                                ? 'Edit Guest Profile'
+                                : 'Create New Guest'
                         }
                     </h2>
                     <button className="modal-close" onClick={onClose}>✕</button>
@@ -125,7 +125,7 @@ const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGues
                         <>
                             {/* Search Box - Direct Child, Full Width */}
                             <div className="search-box">
-                                <span className="search-icon">🔍</span>
+                                <span className="search-icon"></span>
                                 <input
                                     type="text"
                                     placeholder="Search by name or phone..."
@@ -154,8 +154,8 @@ const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGues
 
                                                     <div className="guest-item-info">
                                                         <p className="guest-name">{guest.fullName || guest.name}</p>
-                                                        <p className="guest-phone">📱 {guest.mobile || guest.phone}</p>
-                                                        {(guest.email) && <p className="guest-email">✉️ {guest.email}</p>}
+                                                        <p className="guest-phone">Mobile: {guest.mobile || guest.phone}</p>
+                                                        {(guest.email) && <p className="guest-email">Email: {guest.email}</p>}
                                                     </div>
                                                 </div>
 
@@ -168,7 +168,7 @@ const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGues
                                                         }}
                                                         title="Edit Guest"
                                                     >
-                                                        ✏️
+                                                        Edit
                                                     </button>
                                                     <button
                                                         className="action-btn delete-btn"
@@ -180,7 +180,7 @@ const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGues
                                                         }}
                                                         title="Delete Guest"
                                                     >
-                                                        🗑️
+                                                        Delete
                                                     </button>
                                                 </div>
                                             </div>
@@ -189,13 +189,13 @@ const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGues
                                         <div className="no-results">
                                             {guestsList.length === 0 ? (
                                                 <>
-                                                    <p className="no-results-icon">😔</p>
+                                                    <p className="no-results-icon"></p>
                                                     <p>No guests available</p>
                                                     <p className="no-results-hint">Create a new guest to get started</p>
                                                 </>
                                             ) : (
                                                 <>
-                                                    <p className="no-results-icon">🔍</p>
+                                                    <p className="no-results-icon"></p>
                                                     <p>No guests found</p>
                                                     <p className="no-results-hint">Try a different search term</p>
                                                 </>

@@ -106,7 +106,8 @@ const ReservationModal = ({ table, onClose, onReserve }) => {
                             title="Search Guest"
                             style={{ cursor: 'pointer', opacity: searching ? 0.5 : 1 }}
                         >
-                            {searching ? '⏳' : '🔍'}
+                            {searching ? '...' : 'Search'}
+
                         </span>
                     </div>
                     {errors.guestPhone && <span className="error-text">{errors.guestPhone}</span>}

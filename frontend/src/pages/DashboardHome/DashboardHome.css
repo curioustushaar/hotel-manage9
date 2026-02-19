@@ -1,9 +1,9 @@
 /* Dashboard Home Styles - v4 Solid Colors - Feb 5 2026 */
 .dashboard-home {
-    padding: 0px 30px 30px 30px;
+    padding: 0px 20px 30px 20px;
     max-width: 100%;
-    margin: 0 auto;
-    height: calc(100vh - 80px);
+    margin: 0;
+    height: calc(100vh - 60px);
     overflow-y: auto;
     overflow-x: hidden;
     display: flex;
@@ -533,17 +533,17 @@
     .stat-card {
         padding: 20px 18px;
     }
-    
+
     .stat-card .stat-icon {
         width: 55px !important;
         height: 55px !important;
         font-size: 28px !important;
     }
-    
+
     .stat-card .stat-label {
         font-size: 14px !important;
     }
-    
+
     .stat-card .stat-value {
         font-size: 36px !important;
     }
@@ -555,7 +555,7 @@
     .chart-card {
         padding: 20px;
     }
-    
+
     .circular-chart {
         width: 180px;
         height: 180px;
@@ -565,7 +565,7 @@
         width: 180px;
         height: 180px;
     }
-    
+
     .chart-percentage {
         font-size: 40px;
     }
@@ -573,7 +573,7 @@
     .horizontal-bar {
         height: 60px;
     }
-    
+
     .bar-value {
         font-size: 22px;
     }
@@ -583,7 +583,7 @@
     .dashboard-home {
         padding: 15px;
     }
-    
+
     .stat-card {
         padding: 18px 15px;
         gap: 15px;
@@ -602,7 +602,7 @@
     .stat-card .stat-value {
         font-size: 32px !important;
     }
-    
+
     .chart-card {
         padding: 18px;
     }
@@ -620,7 +620,7 @@
     .chart-percentage {
         font-size: 36px;
     }
-    
+
     .chart-label {
         font-size: 13px;
     }
@@ -632,7 +632,7 @@
     .bar-value {
         font-size: 20px;
     }
-    
+
     .bar-label {
         font-size: 12px;
     }
@@ -1032,11 +1032,11 @@
     .donut-stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-    
+
     .middle-section-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .revenue-cards-grid {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -1046,15 +1046,15 @@
     .donut-stats-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .gauges-container {
         grid-template-columns: 1fr;
     }
-    
+
     .revenue-cards-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .reservations-grid {
         grid-template-columns: 1fr;
     }
@@ -1266,4 +1266,3 @@
     width: 100%;
     height: 100%;
 }
-

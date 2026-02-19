@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import API_URL from '../config/api';
 
-const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = [], readOnly = false, checkInDate = new Date().toISOString().split('T')[0] }) => {
+const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = [], readOnly = false, checkInDate = new Date().toISOString().split('T')[0], nights = 1 }) => {
     const prevCategoryId = useRef(room.categoryId);
 
     const handleChange = (field, value) => {
@@ -78,7 +78,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                         placeholder="e.g., 101, A1"
                         value={room.roomNumber || ''}
                         onChange={(e) => handleChange('roomNumber', e.target.value)}
-                        readOnly={readOnly}
+                        disabled={readOnly}
                     />
                 </div>
 
@@ -167,7 +167,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                                 baseRate: newRate - mealPrice
                             });
                         }}
-                        readOnly={readOnly}
+                        disabled={readOnly}
                     />
                 </div>
 
@@ -186,7 +186,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                     <input
                         type="text"
                         disabled
-                        value={`₹${((room.ratePerNight - room.discount) * 1).toFixed(2)}`}
+                        value={`₹${((room.ratePerNight - room.discount) * nights).toFixed(2)}`}
                         className="total-field"
                     />
                 </div>

@@ -1,4 +1,5 @@
 .pos-features {
+<<<<<<< HEAD
   padding: 60px 20px;
   text-align: center;
   background: white;
@@ -23,6 +24,32 @@
   font-size: 1.1rem;
   color: #6b7280;
   line-height: 1.6;
+=======
+    padding: 6px 20px;
+    text-align: center;
+    background: white;
+}
+
+.pos-tag {
+    color: #e11d48;
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    margin-bottom: 1rem;
+}
+
+.pos-title {
+    font-size: 2.5rem;
+    color: #1f2937;
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+.pos-desc {
+    font-size: 1.1rem;
+    color: #6b7280;
+    line-height: 1.6;
+>>>>>>> main
 }
 
 /* Billing Section */
@@ -30,95 +57,156 @@
 .inventory-section,
 .reports-section,
 .ordering-section {
+<<<<<<< HEAD
   padding: 80px 20px;
   background: white;
+=======
+    padding: 6px 20px 80px;
+    background: white;
+>>>>>>> main
 }
 
 .billing-section:nth-of-type(even),
 .reports-section {
+<<<<<<< HEAD
   background: #f9fafb;
+=======
+    background: #f9fafb;
+>>>>>>> main
 }
 
 .billing-container,
 .inventory-container,
 .reports-container,
 .ordering-container {
+<<<<<<< HEAD
   max-width: 1200px;
   margin: 0 auto;
   display: flex;
   align-items: center;
   gap: 4rem;
+=======
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 4rem;
+>>>>>>> main
 }
 
 .inventory-container,
 .ordering-container {
+<<<<<<< HEAD
   flex-direction: row-reverse;
+=======
+    flex-direction: row-reverse;
+>>>>>>> main
 }
 
 .billing-image,
 .inventory-image,
 .reports-image,
 .ordering-image {
+<<<<<<< HEAD
   flex: 1;
+=======
+    flex: 1;
+>>>>>>> main
 }
 
 .image-bg,
 .inventory-bg,
 .reports-bg,
 .ordering-bg {
+<<<<<<< HEAD
   background: linear-gradient(135deg, #fef2f4 0%, #ffffff 100%);
   border-radius: 20px;
   padding: 2rem;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+=======
+    background: linear-gradient(135deg, #fef2f4 0%, #ffffff 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+>>>>>>> main
 }
 
 .image-bg img,
 .inventory-bg img,
 .reports-bg img,
 .ordering-bg img {
+<<<<<<< HEAD
   width: 100%;
   height: auto;
   border-radius: 12px;
+=======
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+>>>>>>> main
 }
 
 .billing-content,
 .inventory-content,
 .reports-content,
 .ordering-content {
+<<<<<<< HEAD
   flex: 1;
+=======
+    flex: 1;
+>>>>>>> main
 }
 
 .billing-content h3,
 .inventory-content h3,
 .reports-content h3,
 .ordering-content h3 {
+<<<<<<< HEAD
   font-size: 2.5rem;
   color: #1f2937;
   margin-bottom: 1.5rem;
   line-height: 1.2;
+=======
+    font-size: 2.5rem;
+    color: #1f2937;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+>>>>>>> main
 }
 
 .billing-content h3 span,
 .inventory-content h3 span,
 .reports-content h3 span,
 .ordering-content h3 span {
+<<<<<<< HEAD
   color: #e11d48;
+=======
+    color: #e11d48;
+>>>>>>> main
 }
 
 .billing-content p,
 .inventory-content p,
 .reports-content p,
 .ordering-content p {
+<<<<<<< HEAD
   font-size: 1.1rem;
   color: #6b7280;
   line-height: 1.6;
   margin-bottom: 2rem;
+=======
+    font-size: 1.1rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+>>>>>>> main
 }
 
 .billing-link,
 .inventory-link,
 .reports-link,
 .ordering-link {
+<<<<<<< HEAD
   color: #e11d48;
   font-weight: 600;
   text-decoration: none;
@@ -127,12 +215,23 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+=======
+    color: #e11d48;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 1.1rem;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+>>>>>>> main
 }
 
 .billing-link:hover,
 .inventory-link:hover,
 .reports-link:hover,
 .ordering-link:hover {
+<<<<<<< HEAD
   gap: 1rem;
   color: #be123c;
 }
@@ -281,4 +380,45 @@
   .ordering-content p {
     font-size: 1rem;
   }
+=======
+    gap: 1rem;
+    color: #be123c;
+}
+
+@media (max-width: 768px) {
+    .pos-title {
+        font-size: 1.8rem;
+    }
+
+    .pos-desc {
+        font-size: 1rem;
+    }
+
+    .billing-container,
+    .inventory-container,
+    .reports-container,
+    .ordering-container {
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .inventory-container,
+    .ordering-container {
+        flex-direction: column;
+    }
+
+    .billing-content h3,
+    .inventory-content h3,
+    .reports-content h3,
+    .ordering-content h3 {
+        font-size: 1.8rem;
+    }
+
+    .billing-content p,
+    .inventory-content p,
+    .reports-content p,
+    .ordering-content p {
+        font-size: 1rem;
+    }
+>>>>>>> main
 }

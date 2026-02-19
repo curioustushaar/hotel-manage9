@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -9,13 +9,21 @@ import './Login.css';
 
 const Login = () => {
     const navigate = useNavigate();
-    const { login, quickLogin } = useAuth();
+    const { login, user, isAuthenticated } = useAuth();
     const [activeTab, setActiveTab] = useState('admin');
     const [loading, setLoading] = useState(false);
+
+    // Redirect if already logged in (Guest Guard) - Client requested to check/fix login page visibility
+    // useEffect(() => {
+    //     if (isAuthenticated() && user) {
+    //         const defaultRoute = getDefaultRoute(user.role);
+    //         navigate(defaultRoute, { replace: true });
+    //     }
+    // }, [isAuthenticated, user, navigate]);
     const [rememberMe, setRememberMe] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
-    const [showQuickLogin, setShowQuickLogin] = useState(true); // Dev mode
+    // const [showQuickLogin, setShowQuickLogin] = useState(true); // Removed for security
     const [formData, setFormData] = useState({
         admin_email: '',
         admin_password: '',
@@ -71,46 +79,27 @@ const Login = () => {
         setError(''); // Clear error on input change
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
-        // Simulate network delay
-        setTimeout(() => {
-            const email = activeTab === 'admin' ? formData.admin_email : formData.staff_id;
-            const password = activeTab === 'admin' ? formData.admin_password : formData.staff_password;
+        const email = activeTab === 'admin' ? formData.admin_email : formData.staff_id;
+        const password = activeTab === 'admin' ? formData.admin_password : formData.staff_password;
 
-            const result = login(email, password);
+        const result = await login(email, password);
 
-            if (result.success) {
-                // Smart redirect based on role's first accessible page
-                const defaultRoute = getDefaultRoute(result.user.role);
-                navigate(defaultRoute);
-            } else {
-                setError(result.error);
-                setLoading(false);
-            }
-        }, 1000);
+        if (result.success) {
+            // Smart redirect based on user's first accessible page
+            const defaultRoute = getDefaultRoute(result.user);
+            navigate(defaultRoute);
+        } else {
+            setError(result.error);
+            setLoading(false);
+        }
     };
 
-    const handleQuickLogin = (role) => {
-        setLoading(true);
-        setError('');
-
-        setTimeout(() => {
-            const result = quickLogin(role);
-
-            if (result.success) {
-                // Smart redirect based on role's first accessible page
-                const defaultRoute = getDefaultRoute(result.user.role);
-                navigate(defaultRoute);
-            } else {
-                setError(result.error || 'Failed to login');
-                setLoading(false);
-            }
-        }, 500);
-    };
+    // QuickLogin removed for security
 
     return (
         <>
@@ -171,7 +160,7 @@ const Login = () => {
                                 className="security-badge"
                                 variants={itemVariants}
                             >
-                                <span className="badge-icon">🔒</span>
+                                <span className="badge-icon"></span>
                                 <span>Secure Login</span>
                             </motion.div>
                         </div>
@@ -247,7 +236,7 @@ const Login = () => {
                                                     className="input-icon"
                                                     animate={{ scale: 1 }}
                                                 >
-                                                    ✉️
+
                                                 </motion.span>
                                             </motion.div>
                                         </div>
@@ -273,7 +262,7 @@ const Login = () => {
                                                     onClick={() => setShowPassword(!showPassword)}
                                                     tabIndex="-1"
                                                 >
-                                                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                                                    {showPassword ? 'Hide' : 'Show'}
                                                 </button>
                                             </motion.div>
                                         </div>
@@ -306,7 +295,7 @@ const Login = () => {
                                                     className="input-icon"
                                                     animate={{ scale: 1 }}
                                                 >
-                                                    👤
+
                                                 </motion.span>
                                             </motion.div>
                                         </div>
@@ -332,7 +321,7 @@ const Login = () => {
                                                     onClick={() => setShowPassword(!showPassword)}
                                                     tabIndex="-1"
                                                 >
-                                                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                                                    {showPassword ? 'Hide' : 'Show'}
                                                 </button>
                                             </motion.div>
                                         </div>
@@ -378,7 +367,7 @@ const Login = () => {
                                             gap: '8px'
                                         }}
                                     >
-                                        <span>⚠️</span>
+                                        <span></span>
                                         <span>{error}</span>
                                     </motion.div>
                                 )}
@@ -417,82 +406,6 @@ const Login = () => {
                                     )}
                                 </motion.button>
 
-                                {/* Quick Login Buttons (Dev Mode) */}
-                                {showQuickLogin && (
-                                    <motion.div
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        style={{
-                                            marginTop: '20px',
-                                            padding: '15px',
-                                            background: '#f9fafb',
-                                            borderRadius: '10px',
-                                            border: '1px dashed #d1d5db'
-                                        }}
-                                    >
-                                        <div style={{
-                                            fontSize: '12px',
-                                            fontWeight: '600',
-                                            color: '#6b7280',
-                                            marginBottom: '12px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between'
-                                        }}>
-                                            <span>🚀 Quick Login (Testing)</span>
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowQuickLogin(false)}
-                                                style={{
-                                                    background: 'none',
-                                                    border: 'none',
-                                                    cursor: 'pointer',
-                                                    fontSize: '14px',
-                                                    color: '#6b7280'
-                                                }}
-                                            >
-                                                ✕
-                                            </button>
-                                        </div>
-                                        <div style={{
-                                            display: 'grid',
-                                            gridTemplateColumns: 'repeat(2, 1fr)',
-                                            gap: '8px'
-                                        }}>
-                                            {Object.values(ROLES).map(role => (
-                                                <motion.button
-                                                    key={role}
-                                                    type="button"
-                                                    onClick={() => handleQuickLogin(role)}
-                                                    disabled={loading}
-                                                    whileHover={{ scale: 1.02 }}
-                                                    whileTap={{ scale: 0.98 }}
-                                                    style={{
-                                                        padding: '8px 12px',
-                                                        fontSize: '12px',
-                                                        background: 'white',
-                                                        border: '1px solid #e5e7eb',
-                                                        borderRadius: '6px',
-                                                        cursor: 'pointer',
-                                                        fontWeight: '500',
-                                                        color: '#374151',
-                                                        transition: 'all 0.2s'
-                                                    }}
-                                                >
-                                                    {role}
-                                                </motion.button>
-                                            ))}
-                                        </div>
-                                        <div style={{
-                                            marginTop: '10px',
-                                            fontSize: '11px',
-                                            color: '#9ca3af',
-                                            textAlign: 'center'
-                                        }}>
-                                            Click any role to login instantly for testing
-                                        </div>
-                                    </motion.div>
-                                )}
                             </motion.form>
 
 

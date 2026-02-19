@@ -118,7 +118,11 @@ const sampleMenuItems = [
 const mongoose = require('mongoose');
 const MenuItem = require('./backend/models/menuModel');
 
-mongoose.connect('mongodb://localhost:27017/bareena-atithi');
+if (!process.env.MONGODB_URI) {
+    console.error("MONGODB_URI must be defined in .env");
+    process.exit(1);
+}
+mongoose.connect(process.env.MONGODB_URI);
 
 async function importSampleData() {
   try {

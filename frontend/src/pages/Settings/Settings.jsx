@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './Settings.css';
 
 const Settings = () => {
@@ -21,99 +22,70 @@ const Settings = () => {
     const [availablePermissions, setAvailablePermissions] = useState([
         'Dashboard',
         'Rooms',
-        'Bookings',
-        'Food Menu',
-        'Customers',
-        'Settings',
-        'Cashier Report',
-        'Food Payment Report'
+        'Reservation',
+        'Room Service',
+        'HouseKeeping View',
+        'Food Order',
+        'Cashier Section',
+        'Table View',
+        'Customer List',
+        'Cashier Logs',
+        'Payment Logs',
+        'View order',
+        'Registration Card',
+        'Property Setup',
+        'Property Configuration'
     ]);
     const [isPermissionsOpen, setIsPermissionsOpen] = useState(false);
-    const [isAddingPermission, setIsAddingPermission] = useState(false);
-    const [newPermission, setNewPermission] = useState('');
 
-    const handleAddPermission = () => {
-        if (!newPermission.trim()) return;
-        const permission = newPermission.trim();
-        if (!availablePermissions.includes(permission)) {
-            setAvailablePermissions([...availablePermissions, permission]);
-            setFormData(prev => ({
-                ...prev,
-                permissions: [...prev.permissions, permission]
+
+    // Load staff from backend
+    const fetchStaff = async () => {
+        try {
+            const response = await axios.get('/api/staff');
+            const mappedStaff = response.data.map(staff => ({
+                id: staff._id,
+                fullName: staff.name,
+                phone: staff.phone,
+                email: staff.username,
+                active: staff.isActive,
+                permissions: staff.permissions || []
             }));
-        } else {
-            if (!formData.permissions.includes(permission)) {
-                setFormData(prev => ({
-                    ...prev,
-                    permissions: [...prev.permissions, permission]
-                }));
-            }
+            setStaffData(mappedStaff);
+        } catch (error) {
+            console.error('Error fetching staff from database:', error);
+            setStaffData([]); // Clear list on error or show empty
         }
-        setIsAddingPermission(false);
-        setNewPermission('');
     };
 
-    // Load staff from localStorage
     useEffect(() => {
-        const storedStaff = localStorage.getItem('staffMembers');
-        if (storedStaff) {
-            setStaffData(JSON.parse(storedStaff));
-        } else {
-            // Sample data
-            const sampleStaff = [
-                {
-                    id: 1,
-                    fullName: 'Amal',
-                    phone: '8092702248',
-                    email: 'amal@bireena.com',
-                    active: true,
-                    permissions: ['Bookings', 'FoodMenu', 'Add Bookings', 'FoodPaymentReport']
-                },
-                {
-                    id: 2,
-                    fullName: 'Ayush Kumar',
-                    phone: '9771041624',
-                    email: 'ayush@bireena.com',
-                    active: true,
-                    permissions: []
-                },
-                {
-                    id: 3,
-                    fullName: 'ABC',
-                    phone: '9304942225',
-                    email: 'abc@bireena.com',
-                    active: false,
-                    permissions: []
-                }
-            ];
-            setStaffData(sampleStaff);
-            localStorage.setItem('staffMembers', JSON.stringify(sampleStaff));
-        }
+        fetchStaff();
     }, []);
 
     const saveToLocalStorage = (data) => {
         localStorage.setItem('staffMembers', JSON.stringify(data));
     };
 
-    const handleAddStaff = (e) => {
+    const handleAddStaff = async (e) => {
         e.preventDefault();
         if (formData.password !== formData.confirmPassword) {
             alert('Password and Confirm Password do not match!');
             return;
         }
-        const newStaff = {
-            id: Date.now(),
-            fullName: formData.fullName,
-            phone: formData.phone,
-            email: formData.email,
-            active: true,
-            permissions: formData.permissions
-        };
-        const updatedStaff = [...staffData, newStaff];
-        setStaffData(updatedStaff);
-        saveToLocalStorage(updatedStaff);
-        setShowAddModal(false);
-        resetForm();
+        try {
+            await axios.post('/api/staff', {
+                fullName: formData.fullName,
+                phone: formData.phone,
+                email: formData.email,
+                password: formData.password,
+                permissions: formData.permissions
+            });
+            fetchStaff();
+            setShowAddModal(false);
+            resetForm();
+        } catch (error) {
+            alert(error.response?.data?.message || 'Error adding staff');
+        }
     };
 
     const handleEditStaff = (staff) => {
@@ -129,42 +101,46 @@ const Settings = () => {
         setShowEditModal(true);
     };
 
-    const handleUpdateStaff = (e) => {
+    const handleUpdateStaff = async (e) => {
         e.preventDefault();
         if (formData.password && formData.password !== formData.confirmPassword) {
             alert('Password and Confirm Password do not match!');
             return;
         }
-        const updatedStaff = staffData.map(staff =>
-            staff.id === editingStaff.id
-                ? {
-                    ...staff,
-                    fullName: formData.fullName,
-                    phone: formData.phone,
-                    email: formData.email,
-                    permissions: formData.permissions
-                }
-                : staff
-        );
-        setStaffData(updatedStaff);
-        saveToLocalStorage(updatedStaff);
-        setShowEditModal(false);
-        setEditingStaff(null);
-        resetForm();
+        try {
+            await axios.put(`/api/staff/${editingStaff.id}`, {
+                fullName: formData.fullName,
+                phone: formData.phone,
+                email: formData.email,
+                password: formData.password || undefined,
+                permissions: formData.permissions
+            });
+            fetchStaff();
+            setShowEditModal(false);
+            setEditingStaff(null);
+            resetForm();
+        } catch (error) {
+            alert(error.response?.data?.message || 'Error updating staff');
+        }
     };
 
-    const handleDeleteStaff = (id) => {
-        const updatedStaff = staffData.filter(staff => staff.id !== id);
-        setStaffData(updatedStaff);
-        saveToLocalStorage(updatedStaff);
+    const handleDeleteStaff = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this staff member?')) return;
+        try {
+            await axios.delete(`/api/staff/${id}`);
+            fetchStaff();
+        } catch (error) {
+            alert(error.response?.data?.message || 'Error deleting staff');
+        }
     };
 
-    const handleToggleActive = (id) => {
-        const updatedStaff = staffData.map(staff =>
-            staff.id === id ? { ...staff, active: !staff.active } : staff
-        );
-        setStaffData(updatedStaff);
-        saveToLocalStorage(updatedStaff);
+    const handleToggleActive = async (id) => {
+        try {
+            await axios.put(`/api/staff/toggle/${id}`);
+            fetchStaff();
+        } catch (error) {
+            alert(error.response?.data?.message || 'Error toggling status');
+        }
     };
 
     const handleManagePermissions = (staff) => {
@@ -187,16 +163,17 @@ const Settings = () => {
         setManagingPermissions(updatedStaff);
     };
 
-    const handleSavePermissions = () => {
+    const handleSavePermissions = async () => {
         if (!managingPermissions) return;
-
-        const updatedStaffData = staffData.map(staff =>
-            staff.id === managingPermissions.id ? managingPermissions : staff
-        );
-
-        setStaffData(updatedStaffData);
-        saveToLocalStorage(updatedStaffData);
-        setManagingPermissions(null);
+        try {
+            await axios.put(`/api/staff/${managingPermissions.id}`, {
+                permissions: managingPermissions.permissions
+            });
+            fetchStaff();
+            setManagingPermissions(null);
+        } catch (error) {
+            alert(error.response?.data?.message || 'Error saving permissions');
+        }
     };
 
     const handlePermissionToggle = (permission) => {
@@ -223,8 +200,6 @@ const Settings = () => {
             permissions: []
         });
         setIsPermissionsOpen(false);
-        setIsAddingPermission(false);
-        setNewPermission('');
     };
 
     const filteredStaff = staffData.filter(staff =>
@@ -595,43 +570,6 @@ const Settings = () => {
                                                     ))}
                                                 </div>
 
-                                                {/* Add New Permission Section */}
-                                                {!isAddingPermission ? (
-                                                    <button
-                                                        type="button"
-                                                        className="add-permission-btn"
-                                                        onClick={(e) => { e.stopPropagation(); setIsAddingPermission(true); }}
-                                                        style={{ width: '100%', padding: '8px', marginTop: '8px', border: '1px dashed #ccc', background: 'transparent', cursor: 'pointer', borderRadius: '4px' }}
-                                                    >
-                                                        + Add New Permission
-                                                    </button>
-                                                ) : (
-                                                    <div className="add-permission-input" style={{ display: 'flex', gap: '5px', marginTop: '8px' }}>
-                                                        <input
-                                                            type="text"
-                                                            value={newPermission}
-                                                            onChange={(e) => setNewPermission(e.target.value)}
-                                                            placeholder="New Permission..."
-                                                            autoFocus
-                                                            style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => { e.stopPropagation(); handleAddPermission(); }}
-                                                            style={{ background: '#22c55e', color: 'white', border: 'none', padding: '0 12px', borderRadius: '4px', cursor: 'pointer' }}
-                                                        >
-                                                            ✓
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => { e.stopPropagation(); setIsAddingPermission(false); setNewPermission(''); }}
-                                                            style={{ background: '#ef4444', color: 'white', border: 'none', padding: '0 12px', borderRadius: '4px', cursor: 'pointer' }}
-                                                        >
-                                                            ✕
-                                                        </button>
-                                                    </div>
-                                                )}
                                             </div>
                                         )}
                                     </div>

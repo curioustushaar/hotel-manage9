@@ -633,19 +633,4 @@
 }
 
 /* Scrollbar Styling */
-.create-guest-form::-webkit-scrollbar {
-    width: 6px;
-}
-
-.create-guest-form::-webkit-scrollbar-track {
-    background: #f1f5f9;
-}
-
-.create-guest-form::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 3px;
-}
-
-.create-guest-form::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
+/* Scrollbar Styling - Global Policy Applies */

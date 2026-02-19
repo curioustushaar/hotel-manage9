@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
 import soundManager from '../../utils/soundManager';
 import API_URL from '../../config/api';
 import FoodMenuDashboard from '../FoodMenu/FoodMenuDashboard';
@@ -36,30 +37,54 @@ import BedType from '../BedType/BedType';
 import FloorSetup from '../FloorSetup/FloorSetup';
 import TableManagement from '../TableManagement/TableManagement';
 import RoomDetailsPanel from '../../components/rooms/RoomDetailsPanel';
+import RoomService from '../../components/RoomService';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { user, logout } = useAuth();
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-    const [activeMenu, setActiveMenu] = useState('dashboard');
+
+    // Determine initial active menu based on permissions
+    const getInitialMenu = () => {
+        const path = location.pathname;
+        // Strip prefix (/admin or /staff)
+        const cleanPath = path.replace(/^\/(admin|staff)/, '');
+
+        if (cleanPath === '/dashboard' || cleanPath === '' || cleanPath === '/') return 'dashboard';
+
+        // Match path to menu items
+        const menuMap = {
+            '/rooms': 'rooms',
+            '/reservations': 'reservations',
+            '/guest-meal-service': 'guest-meal-service',
+            '/food-menu': 'food-menu',
+            '/customers': 'customers',
+            '/settings': 'settings',
+            '/cashier-section': 'cashier-section'
+        };
+
+        for (const [route, menu] of Object.entries(menuMap)) {
+            if (cleanPath.startsWith(route)) return menu;
+        }
+
+        return 'dashboard';
+    };
+
+    const [activeMenu, setActiveMenu] = useState(getInitialMenu());
     const [reservationView, setReservationView] = useState('dashboard'); // State for Reservation Sub-views
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [showViewProfile, setShowViewProfile] = useState(false);
     const [showChangePassword, setShowChangePassword] = useState(false);
     const [openConfigDropdown, setOpenConfigDropdown] = useState(false);
     const [openReservationDropdown, setOpenReservationDropdown] = useState(false); // State for Reservation Dropdown
-    const [userData, setUserData] = useState({
-        name: 'Admin User',
-        email: 'admin@bireena.com',
-        role: 'Administrator',
-        password: ''
-    });
     const [passwordData, setPasswordData] = useState({
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
     });
+
     const [passwordError, setPasswordError] = useState('');
     const [passwordSuccess, setPasswordSuccess] = useState('');
 
@@ -114,35 +139,7 @@ const AdminDashboard = () => {
     const [qrLoading, setQRLoading] = useState(false);
 
     // Room type categories
-    const roomTypeCategories = {
-        'Club Rooms': [
-            'Club AC Single Room',
-            'Club AC Double Room',
-            'Club Non-AC Single Room',
-            'Club Non-AC Double Room'
-        ],
-        'Deluxe Rooms': [
-            'Deluxe AC Single Room',
-            'Deluxe AC Double Room',
-            'Deluxe Non-AC Single Room',
-            'Deluxe Non-AC Double Room'
-        ],
-        'Suite Rooms': [
-            'Suite Single Room',
-            'Suite Double Room',
-            'Family Suite'
-        ]
-    };
-
     const statusOptions = ['All Status', 'Available', 'Booked', 'Occupied', 'Under Maintenance'];
-
-    // Load user data from localStorage
-    useEffect(() => {
-        const storedUserData = localStorage.getItem('userData');
-        if (storedUserData) {
-            setUserData(JSON.parse(storedUserData));
-        }
-    }, []);
 
     const [posGuestDetails, setPosGuestDetails] = useState(null);
 
@@ -174,33 +171,45 @@ const AdminDashboard = () => {
             setReservationView(location.state.viewMode);
         }
 
-        if (path.includes('/reservations')) {
-            setActiveMenu('reservations');
-        } else if (path.includes('/rooms')) {
-            setActiveMenu('rooms');
-        } else if (path.includes('/guest-meal-service')) {
-            setActiveMenu('guest-meal-service');
-        } else if (path.includes('/food-menu')) {
-            setActiveMenu('food-menu');
-        } else if (path.includes('/customers')) {
-            setActiveMenu('customers');
-        } else if (path.includes('/settings')) {
-            setActiveMenu('settings');
-        } else if (path.includes('/stay-overview')) {
-            setActiveMenu('stay-overview');
-        } else if (path.includes('/reservation-stay-management')) {
-            setActiveMenu('reservations');
-        } else if (path.includes('/view-reservation')) {
-            setActiveMenu('reservations');
-        } else if (path.includes('/room-service')) {
-            setActiveMenu('guest-meal-service');
-        } else if (path.includes('/view-order')) {
-            setActiveMenu('view-order');
-        } else if (path.includes('/dashboard')) {
-            setActiveMenu('dashboard');
-        } else if (path.includes('/cashier-section')) {
-            setActiveMenu('cashier-section');
-        }
+        if (path.includes('/reservations')) setActiveMenu('reservations');
+        else if (path.includes('/rooms')) setActiveMenu('rooms');
+        else if (path.includes('/guest-meal-service')) setActiveMenu('guest-meal-service');
+        else if (path.includes('/food-menu')) setActiveMenu('food-menu');
+        else if (path.includes('/customers')) setActiveMenu('customers');
+        else if (path.includes('/settings')) setActiveMenu('settings');
+        else if (path.includes('/stay-overview')) setActiveMenu('stay-overview');
+        else if (path.includes('/reservation-stay-management')) setActiveMenu('reservations');
+        else if (path.includes('/view-reservation')) setActiveMenu('reservations');
+        else if (path.includes('/room-service')) setActiveMenu('room-service');
+        else if (path.includes('/view-order')) setActiveMenu('view-order');
+        else if (path.includes('/dashboard')) setActiveMenu('dashboard');
+        else if (path.includes('/cashier-section')) setActiveMenu('cashier-section');
+        else if (path.includes('/cashier-report')) setActiveMenu('cashier-report');
+        else if (path.includes('/food-payment-report')) setActiveMenu('food-payment-report');
+        else if (path.includes('/my-profile')) setActiveMenu('my-profile');
+
+        // Property Setup
+        else if (path.includes('/discount')) setActiveMenu('discount');
+        else if (path.includes('/taxes')) setActiveMenu('taxes');
+        else if (path.includes('/tax-mapping')) setActiveMenu('tax-mapping');
+        else if (path.includes('/generate-room-qr')) setActiveMenu('generate-room-qr');
+
+        // Property Configuration
+        else if (path.includes('/room-setup')) setActiveMenu('room-setup');
+        else if (path.includes('/floor-setup')) setActiveMenu('floor-setup');
+        else if (path.includes('/bed-type')) setActiveMenu('bed-type');
+        else if (path.includes('/room-facilities')) setActiveMenu('room-facilities');
+        else if (path.includes('/room-facilities-type')) setActiveMenu('room-facilities-type');
+        else if (path.includes('/meal-type')) setActiveMenu('meal-type');
+        else if (path.includes('/reservation-type')) setActiveMenu('reservation-type');
+        else if (path.includes('/extra-charges')) setActiveMenu('extra-charges');
+        else if (path.includes('/complimentary-services')) setActiveMenu('complimentary-services');
+        else if (path.includes('/customer-identity')) setActiveMenu('customer-identity');
+        else if (path.includes('/booking-source')) setActiveMenu('booking-source');
+        else if (path.includes('/business-source')) setActiveMenu('business-source');
+        else if (path.includes('/maintenance-block')) setActiveMenu('maintenance-block');
+        else if (path.includes('/table-management')) setActiveMenu('table-management');
+
     }, [location]);
 
     // Load rooms from MongoDB API
@@ -208,11 +217,11 @@ const AdminDashboard = () => {
         fetchRoomsFromAPI();
     }, []);
 
-    // Auto-refresh rooms data every 5 seconds to show real-time updates
+    // Auto-refresh rooms data every 60 seconds to show real-time updates
     useEffect(() => {
         const interval = setInterval(() => {
             fetchRoomsFromAPI();
-        }, 5000); // Refresh every 5 seconds
+        }, 60000); // Refresh every 60 seconds
 
         return () => clearInterval(interval);
     }, []);
@@ -350,6 +359,7 @@ const AdminDashboard = () => {
 
     // Function to get user initials
     const getUserInitials = (name) => {
+        if (!name) return '??';
         const names = name.split(' ');
         if (names.length >= 2) {
             return (names[0][0] + names[names.length - 1][0]).toUpperCase();
@@ -358,11 +368,14 @@ const AdminDashboard = () => {
     };
 
     const handleLogout = () => {
-        // Clear any stored tokens/session
+        // Use context logout to clear authUser and state
+        logout();
+        // Clear legacy/extra keys if any
         localStorage.removeItem('authToken');
-        localStorage.removeItem('userData');
-        // Redirect to login
-        navigate('/login');
+        localStorage.removeItem('authUser');
+
+        // Force reload and redirect to login to ensure clean state
+        window.location.href = '/login';
     };
 
     const handleViewProfile = () => {
@@ -380,11 +393,14 @@ const AdminDashboard = () => {
         setPasswordError('');
         setPasswordSuccess('');
 
-        // Validate current password
+        // Password change logic should ideally be handled by an API call
+        // For now, we'll disable the client-side local check as userData is deprecated
+        /*
         if (passwordData.currentPassword !== userData.password) {
             setPasswordError('Current password is incorrect');
             return;
         }
+        */
 
         // Validate new password
         if (passwordData.newPassword.length < 6) {
@@ -398,13 +414,15 @@ const AdminDashboard = () => {
             return;
         }
 
-        // Update password in localStorage
+        // Update password functionality requires backend API integration
+        alert('Password change requires backend API call. Coming soon!');
+        /*
         const updatedUserData = {
-            ...userData,
+            ...user,
             password: passwordData.newPassword
         };
-        localStorage.setItem('userData', JSON.stringify(updatedUserData));
-        setUserData(updatedUserData);
+        localStorage.setItem('authUser', JSON.stringify(updatedUserData));
+        */
 
         // Show success message
         setPasswordSuccess('Password changed successfully!');
@@ -421,70 +439,28 @@ const AdminDashboard = () => {
         }, 2000);
     };
 
-    const menuItems = [
-        { id: 'dashboard', icon: '🏠', label: 'Dashboard' },
-        { id: 'rooms', icon: '🛏️', label: 'Rooms' },
-        {
-            id: 'reservations',
-            icon: '🏨',
-            label: 'Reservation & Stay Management',
-            hasDropdown: true,
-            dropdownItems: [
-                { id: 'new-reservation', label: 'New Reservation', icon: '📅' },
-                { id: 'housekeeping', label: 'Housekeeping View', icon: '🧹' },
-                { id: 'room-service', label: 'Room Service', icon: '🛎️' },
-                { id: 'food-order', label: 'Food Order', icon: '🍽️' }
-            ]
-        },
-        { id: 'guest-meal-service', icon: '🍴', label: 'Guest Meal Service' },
-        { id: 'table-management', icon: '🍽️', label: 'Table POS' },
-        { id: 'food-menu', icon: '📜', label: 'Food Menu' },
-        {
-            id: 'proper-configuration',
-            icon: '⚙️',
-            label: 'Proper Configuration',
-            hasDropdown: true,
-            dropdownItems: [
-                { id: 'discount', label: 'Discount', icon: '💸' },
-                { id: 'taxes', label: 'Taxes', icon: '🧾' },
-                { id: 'tax-mapping', label: 'Tax Mapping', icon: '🔗' },
-                { id: 'generate-room-qr', label: 'Generate Room QR', icon: '📱' }
-            ]
-        },
-        { id: 'add-booking', icon: '➕', label: 'Add Booking' },
-        { id: 'customers', icon: '👥', label: 'Customers' },
-        { id: 'settings', icon: '👨‍💼', label: 'Add Staff' },
-        { id: 'cashier-report', icon: '💰', label: 'Cashier Report' },
-        { id: 'food-payment-report', icon: '🧾', label: 'Food Payment Report' },
-    ];
+    // Unified menu items are now managed in Sidebar.jsx
+
 
     const handleMenuClick = (menuId) => {
+        const prefix = user?.role === 'staff' ? '/staff' : '/admin';
+
         // Handle Sub-menu routing for Reservation Dropdown
         if (menuId === 'reservations-dashboard') {
-            setActiveMenu('reservations');
-            setReservationView('dashboard');
+            navigate(`${prefix}/reservations`, { state: { viewMode: 'dashboard' } });
         } else if (menuId === 'new-reservation') {
-            setActiveMenu('reservations');
-            setReservationView('form');
+            navigate(`${prefix}/reservations`, { state: { viewMode: 'form' } });
         } else if (menuId === 'housekeeping') {
-            setActiveMenu('reservations');
-            setReservationView('housekeeping');
+            navigate(`${prefix}/reservations`, { state: { viewMode: 'housekeeping' } });
         } else if (menuId === 'room-service') {
-            setActiveMenu('reservations');
-            setReservationView('roomservice');
+            navigate(`${prefix}/room-service`);
         } else if (menuId === 'food-order') {
-            setActiveMenu('food-order-pos'); // Separate view for POS
+            navigate('/food-order');
         }
-        // Handle main menu items
-        else if (menuId === 'reservations') {
-            toggleDropdown('reservations');
-        }
-        else {
-            setActiveMenu(menuId);
-        }
-
-        // Reset search and filters when switching menus
-        if (menuId === 'rooms') {
+        // Handle main menu items with navigation
+        else if (menuId === 'dashboard') navigate(`${prefix}/dashboard`);
+        else if (menuId === 'rooms') {
+            // Reset search and filters when switching menus
             setSearchQuery('');
             setFilters({
                 floor: 'All',
@@ -492,6 +468,55 @@ const AdminDashboard = () => {
                 bedType: 'All',
                 status: 'All'
             });
+            navigate(`${prefix}/rooms`);
+        }
+        else if (menuId === 'reservations') {
+            toggleDropdown('reservations');
+        }
+        else if (menuId === 'cashier-section') navigate(`${prefix}/cashier-section`);
+        else if (menuId === 'guest-meal-service') navigate(`${prefix}/guest-meal-service`);
+        else if (menuId === 'food-menu') navigate(`${prefix}/food-menu`);
+        else if (menuId === 'customers') navigate(`${prefix}/customers`);
+        else if (menuId === 'settings') navigate(`${prefix}/settings`);
+        else if (menuId === 'cashier-report') navigate(`${prefix}/cashier-report`);
+        else if (menuId === 'food-payment-report') navigate(`${prefix}/food-payment-report`);
+
+        // Property Setup
+        else if (menuId === 'discount') navigate(`${prefix}/discount`);
+        else if (menuId === 'taxes') navigate(`${prefix}/taxes`);
+        else if (menuId === 'tax-mapping') navigate(`${prefix}/tax-mapping`);
+        else if (menuId === 'generate-room-qr') navigate(`${prefix}/generate-room-qr`);
+
+        // Property Config
+        else if (menuId === 'room-setup') navigate(`${prefix}/room-setup`);
+        else if (menuId === 'floor-setup') navigate(`${prefix}/floor-setup`);
+        else if (menuId === 'bed-type') navigate(`${prefix}/bed-type`);
+        else if (menuId === 'room-facilities') navigate(`${prefix}/room-facilities`);
+        else if (menuId === 'room-facilities-type') navigate(`${prefix}/room-facilities-type`);
+        else if (menuId === 'meal-type') navigate(`${prefix}/meal-type`);
+        else if (menuId === 'reservation-type') navigate(`${prefix}/reservation-type`);
+        else if (menuId === 'extra-charges') navigate(`${prefix}/extra-charges`);
+        else if (menuId === 'complimentary-services') navigate(`${prefix}/complimentary-services`);
+        else if (menuId === 'customer-identity') navigate(`${prefix}/customer-identity`);
+        else if (menuId === 'booking-source') navigate(`${prefix}/booking-source`);
+        else if (menuId === 'business-source') navigate(`${prefix}/business-source`);
+        else if (menuId === 'maintenance-block') navigate(`${prefix}/maintenance-block`);
+        else if (menuId === 'table-management') navigate(`${prefix}/table-management`);
+        else if (menuId === 'company') {
+            // Future implementation
+            alert('Coming Soon');
+        }
+        else if (menuId === 'hotel-customer') {
+            // Future implementation
+            alert('Coming Soon');
+        }
+        else if (menuId === 'housekeeping-config') {
+            // Future implementation
+            alert('Coming Soon');
+        }
+        else if (menuId === 'screen-field-rule') {
+            // Future implementation
+            alert('Coming Soon');
         }
     };
 
@@ -548,8 +573,8 @@ const AdminDashboard = () => {
     // Room management functions
     const getAllRoomTypes = () => {
         const types = ['All Types'];
-        Object.values(roomTypeCategories).forEach(category => {
-            types.push(...category);
+        roomTypes.forEach(type => {
+            types.push(type.name);
         });
         return types;
     };
@@ -724,7 +749,8 @@ const AdminDashboard = () => {
                     roomType: room.roomType,
                     floor: room.floor,
                     bedType: room.bedType,
-                    price: room.price
+                    price: room.price,
+                    capacity: room.capacity
                 },
                 autoOpenGuestModal: true
             }
@@ -754,15 +780,15 @@ const AdminDashboard = () => {
                 activeMenu === 'rooms' && (
                     <div className="rooms-section">
                         {/* Rooms Header */}
-                        <div className="section-header">
-                            <h2>🛏️ Rooms Management</h2>
-                        </div>
+                        <h2>Rooms Management</h2>
+
 
                         {/* Search and Filters */}
                         {/* Search and Filters */}
                         <div className="rooms-controls">
                             <div className="search-box">
-                                <span className="search-icon">🔍</span>
+                                <span className="search-icon"></span>
+
                                 <input
                                     type="text"
                                     placeholder="Search room..."
@@ -897,8 +923,12 @@ const AdminDashboard = () => {
                                 mode: 'takeaway'
                             } : { roomNumber: 'POS', guestName: 'Walk-in / Direct' })}
                             onClose={() => {
-                                setActiveMenu('reservations');
-                                setReservationView('roomservice');
+                                if (location.state?.source === 'room-service') {
+                                    navigate('/admin/room-service');
+                                } else {
+                                    setActiveMenu('reservations');
+                                    setReservationView('roomservice');
+                                }
                                 setPosGuestDetails(null);
                             }}
                         />
@@ -910,6 +940,13 @@ const AdminDashboard = () => {
             {
                 activeMenu === 'guest-meal-service' && (
                     <GuestMealService />
+                )
+            }
+
+            {/* Room Service View */}
+            {
+                activeMenu === 'room-service' && (
+                    <RoomService />
                 )
             }
 
@@ -1230,17 +1267,17 @@ const AdminDashboard = () => {
                             <div className="modal-body">
                                 <div className="profile-avatar-section">
                                     <div className="profile-avatar-large">
-                                        {getUserInitials(userData.name)}
+                                        {getUserInitials(user?.name || 'Admin')}
                                     </div>
                                 </div>
                                 <div className="profile-details">
                                     <div className="detail-row">
                                         <span className="detail-label">Email:</span>
-                                        <span className="detail-value">{userData.email}</span>
+                                        <span className="detail-value">{user?.email || 'N/A'}</span>
                                     </div>
                                     <div className="detail-row">
                                         <span className="detail-label">Role:</span>
-                                        <span className="detail-value role-badge">{userData.role}</span>
+                                        <span className="detail-value role-badge">{user?.role || 'User'}</span>
                                     </div>
                                 </div>
                             </div>

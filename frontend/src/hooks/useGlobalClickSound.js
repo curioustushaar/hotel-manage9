@@ -3,6 +3,7 @@ import soundManager from '../utils/soundManager';
 
 const useGlobalClickSound = () => {
     useEffect(() => {
+<<<<<<< HEAD
         const handleClick = (e) => {
             const target = e.target;
             const isClickable = target.tagName === 'BUTTON' ||
@@ -14,14 +15,26 @@ const useGlobalClickSound = () => {
                 target.getAttribute('role') === 'button';
 
             if (isClickable && soundManager.isEnabled()) {
+=======
+        const handleClick = () => {
+            // Only play sound if clicked on interactive elements
+            if (soundManager.isEnabled()) {
+>>>>>>> main
                 soundManager.play('click');
             }
         };
 
+<<<<<<< HEAD
         window.addEventListener('click', handleClick, true); // Capture phase to ensure we catch it
 
         return () => {
             window.removeEventListener('click', handleClick, true);
+=======
+        document.addEventListener('click', handleClick);
+
+        return () => {
+            document.removeEventListener('click', handleClick);
+>>>>>>> main
         };
     }, []);
 };

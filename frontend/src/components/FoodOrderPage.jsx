@@ -33,7 +33,7 @@ const FoodOrderPage = ({ onClose }) => {
 
     const handleLogout = () => {
         localStorage.removeItem('authToken');
-        localStorage.removeItem('userData');
+        localStorage.removeItem('authUser');
         navigate('/login');
     };
 
@@ -77,8 +77,7 @@ const FoodOrderPage = ({ onClose }) => {
 
             if (data.success && data.data) {
                 // Filter only active items
-                const activeItems = data.data.filter(item => item.status === 'Active');
-                setMenuItems(activeItems);
+                setMenuItems(data.data);
             }
         } catch (error) {
             console.error('Error fetching menu items:', error);
@@ -103,6 +102,7 @@ const FoodOrderPage = ({ onClose }) => {
             category: item.category,
             price: item.price,
             quantityAvailable: item.quantity !== undefined ? item.quantity : 0,
+            status: item.status,
             description: item.description
         }));
 
@@ -240,8 +240,10 @@ const FoodOrderPage = ({ onClose }) => {
     // Handlers
     const saveOrderToBackend = async () => {
         try {
-            // Robust check: allow missing room if order type is takeaway
-            const effectiveRoom = room || (activeOrderType === 'takeaway' ? { roomNumber: 'Take Away', guestName: 'Walk-in' } : null);
+            // Robust check: allow missing room for takeaway and room service
+            const effectiveRoom = room ||
+                (activeOrderType === 'takeaway' ? { roomNumber: 'Take Away', guestName: 'Walk-in' } :
+                    (activeOrderType === 'roomservice' ? { roomNumber: 'Room Service', guestName: 'Guest' } : null));
 
             if (!effectiveRoom) return false;
 
@@ -249,23 +251,28 @@ const FoodOrderPage = ({ onClose }) => {
             const tNum = parseInt((effectiveRoom.roomNumber ? String(effectiveRoom.roomNumber) : '0').replace(/\D/g, ''), 10) || 0;
             const finalGuestName = effectiveRoom.guestName || location.state?.customerName || 'Walk-in';
 
-            if (!tId && !orderId && activeOrderType !== 'takeaway' && activeOrderType !== 'roomservice') {
+            // Only block if it's a dine-in order with no table
+            if (!tId && !orderId && activeOrderType !== 'takeaway' && activeOrderType !== 'roomservice' && activeOrderType !== 'room') {
                 console.error('Missing table ID and order ID');
                 return false;
             }
 
             const orderData = {
-                tableId: (activeOrderType === 'takeaway' || activeOrderType === 'roomservice') ? null : tId,
+                tableId: (activeOrderType === 'takeaway' || activeOrderType === 'roomservice' || activeOrderType === 'room') ? null : tId,
                 tableNumber: activeOrderType === 'takeaway' ? 0 : tNum,
                 guestName: finalGuestName,
                 guestPhone: effectiveRoom.phoneNumber || location.state?.customerPhone || null,
                 roomNumber: effectiveRoom.roomNumber || 'Take Away',
-                orderType: activeOrderType === 'roomservice' ? 'Post to Room' :
+                orderType: (activeOrderType === 'roomservice' || activeOrderType === 'room') ? 'Post to Room' :
                     activeOrderType === 'takeaway' ? 'Take Away' : 'Direct Payment',
-                taxRate: isTaxApplied ? taxRate : 0,
+                taxRate: isTaxApplied ? Number(taxRate) : 0,
                 items: cart.map(item => ({
-                    ...item,
-                    subtotal: item.price * item.quantity
+                    id: item.id || item._id, // Ensure id is passed
+                    name: item.name,
+                    price: Number(item.price),
+                    quantity: Number(item.quantity),
+                    category: item.category,
+                    subtotal: Number(item.price) * Number(item.quantity)
                 }))
             };
 
@@ -312,13 +319,18 @@ const FoodOrderPage = ({ onClose }) => {
         const success = await saveOrderToBackend();
         if (success) {
             addToast('Saved to KOT');
-            // Navigate immediately based on activeOrderType
+            // Navigate immediately
             let targetFilter = 'All';
             if (activeOrderType === 'takeaway') targetFilter = 'Take Away';
-            else if (activeOrderType === 'roomservice') targetFilter = 'Room Order';
+            else if (activeOrderType === 'roomservice' || activeOrderType === 'room') targetFilter = 'Room Order';
             else if (activeOrderType === 'dinein') targetFilter = 'Dine In';
 
-            navigate('/admin/dashboard', { state: { activeMenu: 'view-order', activeFilter: targetFilter } });
+            navigate('/admin/dashboard', {
+                state: {
+                    activeMenu: 'view-order',
+                    activeFilter: targetFilter
+                }
+            });
         } else {
             addToast('Failed to save KOT');
         }
@@ -486,7 +498,7 @@ const FoodOrderPage = ({ onClose }) => {
                                         // Find current quantity in cart
                                         const cartItem = cart.find(x => x.id === item.id);
                                         const inCartQty = cartItem ? cartItem.quantity : 0;
-                                        const isOutOfStock = (item.quantityAvailable || 0) <= 0;
+                                        const isOutOfStock = (item.quantityAvailable || 0) <= 0 || item.status === 'Inactive';
 
                                         return (
                                             <div

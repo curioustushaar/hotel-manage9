@@ -26,13 +26,15 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
     const { user } = useAuth();
     const [openConfigDropdown, setOpenConfigDropdown] = useState(false);
     const [openReservationDropdown, setOpenReservationDropdown] = useState(false);
+    const [openPropertySetupDropdown, setOpenPropertySetupDropdown] = useState(false);
     const [openPropertyConfigDropdown, setOpenPropertyConfigDropdown] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+
 
     // Helper function to check if user has access to a module
     const canAccessModule = (moduleId) => {
         if (!user) return false;
-        return hasModuleAccess(user.role, moduleId);
+        return hasModuleAccess(user, moduleId);
     };
 
     const toggleDropdown = (id) => {
@@ -40,10 +42,13 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
             setOpenConfigDropdown(!openConfigDropdown);
         } else if (id === 'reservations') {
             setOpenReservationDropdown(!openReservationDropdown);
+        } else if (id === 'property-setup') {
+            setOpenPropertySetupDropdown(!openPropertySetupDropdown);
         } else if (id === 'property-configuration') {
             setOpenPropertyConfigDropdown(!openPropertyConfigDropdown);
         }
     };
+
 
     const handleSearch = (e) => {
         setSearchQuery(e.target.value);
@@ -167,7 +172,9 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
                 {filteredItems.map((item) => {
                     const isOpenDropdown = item.id === 'proper-configuration' ? openConfigDropdown :
                         item.id === 'reservations' ? openReservationDropdown :
-                            item.id === 'property-configuration' ? openPropertyConfigDropdown : false;
+                            item.id === 'property-setup' ? openPropertySetupDropdown :
+                                item.id === 'property-configuration' ? openPropertyConfigDropdown : false;
+
 
                     // If searching, auto-expand if matched
                     const isSearchMatch = searchQuery && item.hasDropdown && item.dropdownItems.some(sub => sub.label.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -195,6 +202,10 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
                             <div className={`nav-dropdown-menu ${showDropdown ? 'show' : ''}`}>
                                 {item.dropdownItems.map((subItem) => {
                                     if (searchQuery && !subItem.label.toLowerCase().includes(searchQuery.toLowerCase())) return null;
+
+                                    // Check permission for sub-item - allow if parent module (item.id) is authorized
+                                    const hasSubAccess = canAccessModule(subItem.id) || canAccessModule(item.id);
+                                    if (!hasSubAccess) return null;
 
                                     const isActive = activeMenu === subItem.id;
                                     return (

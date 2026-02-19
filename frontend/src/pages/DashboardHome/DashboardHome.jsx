@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import API_URL from '../../config/api';
+import { useAuth } from '../../context/AuthContext';
 import './DashboardHome.css';
 
 const DashboardHome = () => {
+    const { user } = useAuth();
+    const isStaff = user?.role === 'staff';
     const [roomStats, setRoomStats] = useState({
         total: 0,
         occupied: 0,
@@ -72,11 +75,11 @@ const DashboardHome = () => {
     useEffect(() => {
         // Initial load
         calculateStatistics();
-        
-        // Auto-refresh every 5 seconds to show real-time updates
+
+        // Auto-refresh every 60 seconds to show real-time updates
         const interval = setInterval(() => {
             calculateStatistics();
-        }, 5000);
+        }, 60000);
 
         // Cleanup interval on unmount
         return () => clearInterval(interval);
@@ -161,7 +164,7 @@ const DashboardHome = () => {
     const getDonutSegments = (values) => {
         const total = values.reduce((sum, val) => sum + val, 0);
         if (total === 0) return [];
-        
+
         let currentAngle = -90;
         return values.map((value, index) => {
             const percentage = (value / total) * 100;
@@ -194,7 +197,7 @@ const DashboardHome = () => {
                     {/* Total Rooms */}
                     <div className="stat-card stat-card-total">
                         <div className="stat-icon">
-                            <span className="icon-bed">🛏️</span>
+                            <span className="icon-bed"></span>
                         </div>
                         <div className="stat-content">
                             <div className="stat-label">Total Rooms</div>
@@ -205,7 +208,7 @@ const DashboardHome = () => {
                     {/* Occupied Rooms */}
                     <div className="stat-card stat-card-occupied">
                         <div className="stat-icon">
-                            <span className="icon-bed">🛏️</span>
+                            <span className="icon-bed"></span>
                         </div>
                         <div className="stat-content">
                             <div className="stat-label">Occupied Rooms</div>
@@ -216,7 +219,7 @@ const DashboardHome = () => {
                     {/* Booked Rooms */}
                     <div className="stat-card stat-card-booked">
                         <div className="stat-icon">
-                            <span className="icon-calendar">📅</span>
+                            <span className="icon-calendar"></span>
                         </div>
                         <div className="stat-content">
                             <div className="stat-label">Booked Rooms</div>
@@ -227,7 +230,7 @@ const DashboardHome = () => {
                     {/* Available Rooms */}
                     <div className="stat-card stat-card-available">
                         <div className="stat-icon">
-                            <span className="icon-check">✓</span>
+                            <span className="icon-check"></span>
                         </div>
                         <div className="stat-content">
                             <div className="stat-label">Available Rooms</div>
@@ -244,7 +247,7 @@ const DashboardHome = () => {
                     {/* Current Guests */}
                     <div className="stat-card stat-card-current-guests">
                         <div className="stat-icon">
-                            <span className="icon-person">👤</span>
+                            <span className="icon-person"></span>
                         </div>
                         <div className="stat-content">
                             <div className="stat-label">Current Guests</div>
@@ -255,7 +258,7 @@ const DashboardHome = () => {
                     {/* Today's Check-ins */}
                     <div className="stat-card stat-card-checkin">
                         <div className="stat-icon">
-                            <span className="icon-calendar">📅</span>
+                            <span className="icon-calendar"></span>
                         </div>
                         <div className="stat-content">
                             <div className="stat-label">Today's Check-ins</div>
@@ -266,7 +269,7 @@ const DashboardHome = () => {
                     {/* Today's Check-outs */}
                     <div className="stat-card stat-card-checkout">
                         <div className="stat-icon">
-                            <span className="icon-exit">🚪</span>
+                            <span className="icon-exit"></span>
                         </div>
                         <div className="stat-content">
                             <div className="stat-label">Today's Check-outs</div>
@@ -277,7 +280,7 @@ const DashboardHome = () => {
                     {/* Upcoming Bookings */}
                     <div className="stat-card stat-card-upcoming">
                         <div className="stat-icon">
-                            <span className="icon-clock">⏰</span>
+                            <span className="icon-clock"></span>
                         </div>
                         <div className="stat-content">
                             <div className="stat-label">Upcoming Bookings</div>
@@ -347,8 +350,8 @@ const DashboardHome = () => {
                     <div className="distribution-chart-container">
                         <div className="horizontal-bar">
                             {roomStats.occupied > 0 && (
-                                <div 
-                                    className="bar-segment bar-occupied" 
+                                <div
+                                    className="bar-segment bar-occupied"
                                     style={{ width: `${(roomStats.occupied / roomStats.total) * 100}%` }}
                                 >
                                     <span className="bar-value">{roomStats.occupied}</span>
@@ -356,16 +359,16 @@ const DashboardHome = () => {
                                 </div>
                             )}
                             {roomStats.booked > 0 && (
-                                <div 
-                                    className="bar-segment bar-booked" 
+                                <div
+                                    className="bar-segment bar-booked"
                                     style={{ width: `${(roomStats.booked / roomStats.total) * 100}%` }}
                                 >
                                     <span className="bar-value">{roomStats.booked}</span>
                                 </div>
                             )}
                             {roomStats.available > 0 && (
-                                <div 
-                                    className="bar-segment bar-available" 
+                                <div
+                                    className="bar-segment bar-available"
                                     style={{ width: `${(roomStats.available / roomStats.total) * 100}%` }}
                                 >
                                     <span className="bar-value">{roomStats.available}</span>
@@ -440,11 +443,11 @@ const DashboardHome = () => {
                         </div>
                         <div className="donut-legend">
                             <div className="donut-legend-item">
-                                <span className="dot" style={{background: '#fb923c'}}></span>
+                                <span className="dot" style={{ background: '#fb923c' }}></span>
                                 <span>Pending ({arrivalStats.pending})</span>
                             </div>
                             <div className="donut-legend-item">
-                                <span className="dot" style={{background: '#86efac'}}></span>
+                                <span className="dot" style={{ background: '#86efac' }}></span>
                                 <span>Arrived ({arrivalStats.arrived})</span>
                             </div>
                         </div>
@@ -487,11 +490,11 @@ const DashboardHome = () => {
                         </div>
                         <div className="donut-legend">
                             <div className="donut-legend-item">
-                                <span className="dot" style={{background: '#fb923c'}}></span>
+                                <span className="dot" style={{ background: '#fb923c' }}></span>
                                 <span>Pending ({departureStats.pending})</span>
                             </div>
                             <div className="donut-legend-item">
-                                <span className="dot" style={{background: '#ef4444'}}></span>
+                                <span className="dot" style={{ background: '#ef4444' }}></span>
                                 <span>Check Out ({departureStats.checkOut})</span>
                             </div>
                         </div>
@@ -534,11 +537,11 @@ const DashboardHome = () => {
                         </div>
                         <div className="donut-legend">
                             <div className="donut-legend-item">
-                                <span className="dot" style={{background: '#ef4444'}}></span>
+                                <span className="dot" style={{ background: '#ef4444' }}></span>
                                 <span>Adults ({guestInHouse.adults})</span>
                             </div>
                             <div className="donut-legend-item">
-                                <span className="dot" style={{background: '#7c3aed'}}></span>
+                                <span className="dot" style={{ background: '#7c3aed' }}></span>
                                 <span>Children ({guestInHouse.children})</span>
                             </div>
                         </div>
@@ -581,11 +584,11 @@ const DashboardHome = () => {
                         </div>
                         <div className="donut-legend">
                             <div className="donut-legend-item">
-                                <span className="dot" style={{background: '#ef4444'}}></span>
+                                <span className="dot" style={{ background: '#ef4444' }}></span>
                                 <span>Vacant ({roomStats.available})</span>
                             </div>
                             <div className="donut-legend-item">
-                                <span className="dot" style={{background: '#10b981'}}></span>
+                                <span className="dot" style={{ background: '#10b981' }}></span>
                                 <span>Booked ({roomStats.booked})</span>
                             </div>
                         </div>
@@ -629,8 +632,8 @@ const DashboardHome = () => {
                                 <div className="gauge-footer">
                                     <div className="gauge-label">Today</div>
                                     <div className="gauge-stats">
-                                        <span className="gauge-stat"><span className="dot" style={{background: '#ef4444'}}></span> {advancedOccupancy.todayOccupied}</span>
-                                        <span className="gauge-stat"><span className="dot" style={{background: '#fb923c'}}></span> {advancedOccupancy.todayBooked} Booked</span>
+                                        <span className="gauge-stat"><span className="dot" style={{ background: '#ef4444' }}></span> {advancedOccupancy.todayOccupied}</span>
+                                        <span className="gauge-stat"><span className="dot" style={{ background: '#fb923c' }}></span> {advancedOccupancy.todayBooked} Booked</span>
                                     </div>
                                 </div>
                             </div>
@@ -664,8 +667,8 @@ const DashboardHome = () => {
                                 <div className="gauge-footer">
                                     <div className="gauge-label">Tomorrow</div>
                                     <div className="gauge-stats">
-                                        <span className="gauge-stat"><span className="dot" style={{background: '#fb923c'}}></span> {advancedOccupancy.tomorrowBooked} Booked</span>
-                                        <span className="gauge-stat"><span className="dot" style={{background: '#10b981'}}></span> Booked</span>
+                                        <span className="gauge-stat"><span className="dot" style={{ background: '#fb923c' }}></span> {advancedOccupancy.tomorrowBooked} Booked</span>
+                                        <span className="gauge-stat"><span className="dot" style={{ background: '#10b981' }}></span> Booked</span>
                                     </div>
                                 </div>
                             </div>
@@ -699,8 +702,8 @@ const DashboardHome = () => {
                                 <div className="gauge-footer">
                                     <div className="gauge-label">This Month</div>
                                     <div className="gauge-stats">
-                                        <span className="gauge-stat"><span className="dot" style={{background: '#ef4444'}}></span> {advancedOccupancy.monthBooked} Available</span>
-                                        <span className="gauge-stat"><span className="dot" style={{background: '#10b981'}}></span> Booked</span>
+                                        <span className="gauge-stat"><span className="dot" style={{ background: '#ef4444' }}></span> {advancedOccupancy.monthBooked} Available</span>
+                                        <span className="gauge-stat"><span className="dot" style={{ background: '#10b981' }}></span> Booked</span>
                                     </div>
                                 </div>
                             </div>
@@ -716,226 +719,228 @@ const DashboardHome = () => {
                             <div className="reservation-item today-item">
                                 <div className="reservation-label">Today</div>
                                 <div className="reservation-value">{upcomingReservations.today}</div>
-                                <div className="reservation-icon">📅</div>
+                                <div className="reservation-icon"></div>
                             </div>
                             <div className="reservation-item tomorrow-item">
                                 <div className="reservation-label">Tomorrow</div>
                                 <div className="reservation-value">{upcomingReservations.tomorrow}</div>
-                                <div className="reservation-icon">📅</div>
+                                <div className="reservation-icon"></div>
                             </div>
                             <div className="reservation-item week-item">
                                 <div className="reservation-label">Next 7 Days</div>
                                 <div className="reservation-value">{upcomingReservations.next7Days}</div>
-                                <div className="reservation-icon">📋</div>
+                                <div className="reservation-icon"></div>
                             </div>
                             <div className="reservation-item total-item">
                                 <div className="reservation-label"></div>
                                 <div className="reservation-value">{upcomingReservations.next7Days}</div>
-                                <div className="reservation-icon">🏦</div>
+                                <div className="reservation-icon"></div>
                             </div>
                         </div>
                         <div className="payment-methods">
                             <div className="payment-item">
-                                <span className="dot" style={{background: '#ef4444'}}></span>
+                                <span className="dot" style={{ background: '#ef4444' }}></span>
                                 <span>Cash</span>
                             </div>
                             <div className="payment-item">
-                                <span className="dot" style={{background: '#fb923c'}}></span>
+                                <span className="dot" style={{ background: '#fb923c' }}></span>
                                 <span>Ode</span>
                             </div>
                             <div className="payment-item">
-                                <span className="dot" style={{background: '#10b981'}}></span>
+                                <span className="dot" style={{ background: '#10b981' }}></span>
                                 <span>Di Card</span>
                             </div>
                             <div className="payment-item">
-                                <span className="dot" style={{background: '#22d3ee'}}></span>
+                                <span className="dot" style={{ background: '#22d3ee' }}></span>
                                 <span>Bank</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Additional Revenue and Analytics Section */}
-                <div className="revenue-analytics-section">
-                    {/* Revenue Cards Row */}
-                    <div className="revenue-stats-grid">
-                        {/* Total Revenue Card */}
-                        <div className="revenue-stat-card total-revenue-card">
-                            <h3>Total Revenue</h3>
-                            <div className="revenue-main-value">6250</div>
-                            <div className="revenue-sub-text">Today: 0</div>
-                            <div className="revenue-percentage">
-                                <span className="percentage-badge">📊 -61%</span>
+                {/* Additional Revenue and Analytics Section - Hidden for Staff */}
+                {!isStaff && (
+                    <div className="revenue-analytics-section">
+                        {/* Revenue Cards Row */}
+                        <div className="revenue-stats-grid">
+                            {/* Total Revenue Card */}
+                            <div className="revenue-stat-card total-revenue-card">
+                                <h3>Total Revenue</h3>
+                                <div className="revenue-main-value">6250</div>
+                                <div className="revenue-sub-text">Today: 0</div>
+                                <div className="revenue-percentage">
+                                    <span className="percentage-badge">-61%</span>
+                                </div>
+                            </div>
+
+                            {/* Revenue Breakup Card */}
+                            <div className="revenue-stat-card breakup-card">
+                                <h3>Revenue Breakup</h3>
+                                <div className="revenue-main-value">RS 6250</div>
+                                <div className="breakup-grid">
+                                    <div className="breakup-item">
+                                        <span className="breakup-label">Rooms</span>
+                                        <span className="breakup-value">6S250</span>
+                                    </div>
+                                    <div className="breakup-item">
+                                        <span className="breakup-label">Restaurant</span>
+                                        <span className="breakup-value">0</span>
+                                        <span className="breakup-icon"></span>
+                                    </div>
+                                    <div className="breakup-item">
+                                        <span className="breakup-label">Fragoas</span>
+                                        <span className="breakup-value">0</span>
+                                        <span className="breakup-icon"></span>
+                                    </div>
+                                    <div className="breakup-item">
+                                        <span className="breakup-label">Other</span>
+                                        <span className="breakup-value">0.0</span>
+                                        <span className="breakup-icon"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Average Daily Room Rate Card */}
+                            <div className="revenue-stat-card avg-rate-card">
+                                <h3>Average Daily Room Rate</h3>
+                                <div className="revenue-main-value">1604.51</div>
+                                <div className="revenue-sub-text">Yesterday: RS 6097.56</div>
+                                <div className="revenue-percentage negative">
+                                    <span className="percentage-badge">📉 -73.6%</span>
+                                </div>
+                            </div>
+
+                            {/* Total Receipts Card */}
+                            <div className="revenue-stat-card receipts-card">
+                                <h3>Total Receipts</h3>
+                                <div className="revenue-main-value">RS 6250</div>
+                                <div className="receipts-detail">
+                                    <div className="receipt-row">
+                                        <span>Cash</span>
+                                        <span className="receipt-amount">RS 6250</span>
+                                    </div>
+                                    <div className="receipt-row">
+                                        <span>💳 0</span>
+                                    </div>
+                                    <div className="receipt-row">
+                                        <span>Orline</span>
+                                        <span className="receipt-amount">0</span>
+                                    </div>
+                                    <div className="receipt-row">
+                                        <span>🚫 0</span>
+                                        <span>💵 0</span>
+                                    </div>
+                                    <div className="receipt-legend">
+                                        <span><span className="dot" style={{ background: '#ef4444' }}></span> Cams</span>
+                                        <span><span className="dot" style={{ background: '#fb923c' }}></span> Onae</span>
+                                        <span><span className="dot" style={{ background: '#10b981' }}></span> -23.5%</span>
+                                        <span><span className="dot" style={{ background: '#9ca3af' }}></span> Bank</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Revenue Breakup Card */}
-                        <div className="revenue-stat-card breakup-card">
-                            <h3>Revenue Breakup</h3>
-                            <div className="revenue-main-value">RS 6250</div>
-                            <div className="breakup-grid">
-                                <div className="breakup-item">
-                                    <span className="breakup-label">Rooms</span>
-                                    <span className="breakup-value">6S250</span>
-                                </div>
-                                <div className="breakup-item">
-                                    <span className="breakup-label">Restaurant</span>
-                                    <span className="breakup-value">0</span>
-                                    <span className="breakup-icon">🍽️</span>
-                                </div>
-                                <div className="breakup-item">
-                                    <span className="breakup-label">Fragoas</span>
-                                    <span className="breakup-value">0</span>
-                                    <span className="breakup-icon">🍕</span>
-                                </div>
-                                <div className="breakup-item">
-                                    <span className="breakup-label">Other</span>
-                                    <span className="breakup-value">0.0</span>
-                                    <span className="breakup-icon">⏱️</span>
+                        {/* Charts Row */}
+                        <div className="analytics-charts-row">
+                            {/* Housekeeping Status Chart */}
+                            <div className="chart-card-analytics housekeeping-chart">
+                                <h3>Housekeeping Status</h3>
+                                <div className="bar-chart-container">
+                                    <svg width="100%" height="300" viewBox="0 0 600 300">
+                                        {/* Grid lines */}
+                                        <line x1="50" y1="250" x2="550" y2="250" stroke="#e5e7eb" strokeWidth="1" />
+                                        <line x1="50" y1="200" x2="550" y2="200" stroke="#e5e7eb" strokeWidth="1" />
+                                        <line x1="50" y1="150" x2="550" y2="150" stroke="#e5e7eb" strokeWidth="1" />
+                                        <line x1="50" y1="100" x2="550" y2="100" stroke="#e5e7eb" strokeWidth="1" />
+                                        <line x1="50" y1="50" x2="550" y2="50" stroke="#e5e7eb" strokeWidth="1" />
+
+                                        {/* Y-axis labels */}
+                                        <text x="30" y="255" fontSize="12" fill="#6b7280">0</text>
+                                        <text x="30" y="205" fontSize="12" fill="#6b7280">4</text>
+                                        <text x="30" y="155" fontSize="12" fill="#6b7280">6</text>
+                                        <text x="30" y="105" fontSize="12" fill="#6b7280">12</text>
+                                        <text x="30" y="55" fontSize="12" fill="#6b7280">10</text>
+
+                                        {/* Bars */}
+                                        <rect x="70" y="100" width="30" height="150" fill="#ef4444" rx="4" />
+                                        <rect x="130" y="240" width="30" height="10" fill="#ef4444" rx="4" />
+                                        <rect x="190" y="240" width="30" height="10" fill="#ef4444" rx="4" />
+                                        <rect x="250" y="240" width="30" height="10" fill="#ef4444" rx="4" />
+                                        <rect x="310" y="240" width="30" height="10" fill="#ef4444" rx="4" />
+                                        <rect x="370" y="240" width="30" height="10" fill="#ef4444" rx="4" />
+                                        <rect x="430" y="240" width="30" height="10" fill="#ef4444" rx="4" />
+                                        <rect x="490" y="240" width="30" height="10" fill="#ef4444" rx="4" />
+
+                                        {/* X-axis labels */}
+                                        <text x="75" y="270" fontSize="12" fill="#6b7280">1</text>
+                                        <text x="135" y="270" fontSize="12" fill="#6b7280">2</text>
+                                        <text x="195" y="270" fontSize="12" fill="#6b7280">3</text>
+                                        <text x="255" y="270" fontSize="12" fill="#6b7280">6</text>
+                                        <text x="315" y="270" fontSize="12" fill="#6b7280">6</text>
+                                        <text x="375" y="270" fontSize="12" fill="#6b7280">17</text>
+                                        <text x="435" y="270" fontSize="12" fill="#6b7280">12</text>
+                                        <text x="495" y="270" fontSize="12" fill="#6b7280">12</text>
+
+                                        <text x="560" y="270" fontSize="12" fill="#6b7280">13</text>
+                                        <text x="600" y="270" fontSize="12" fill="#6b7280">14</text>
+                                    </svg>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Average Daily Room Rate Card */}
-                        <div className="revenue-stat-card avg-rate-card">
-                            <h3>Average Daily Room Rate</h3>
-                            <div className="revenue-main-value">1604.51</div>
-                            <div className="revenue-sub-text">Yesterday: RS 6097.56</div>
-                            <div className="revenue-percentage negative">
-                                <span className="percentage-badge">📉 -73.6%</span>
-                            </div>
-                        </div>
+                            {/* Rooms Availability Chart */}
+                            <div className="chart-card-analytics availability-chart">
+                                <div className="chart-header-row">
+                                    <h3>Rooms Availability</h3>
+                                    <div className="date-range">From: 01-02-2028 <span className="next-days">+Next 14 Days</span></div>
+                                </div>
+                                <div className="bar-chart-container">
+                                    <svg width="100%" height="300" viewBox="0 0 700 300">
+                                        {/* Grid lines */}
+                                        <line x1="50" y1="250" x2="650" y2="250" stroke="#e5e7eb" strokeWidth="1" />
+                                        <line x1="50" y1="200" x2="650" y2="200" stroke="#e5e7eb" strokeWidth="1" />
+                                        <line x1="50" y1="150" x2="650" y2="150" stroke="#e5e7eb" strokeWidth="1" />
+                                        <line x1="50" y1="100" x2="650" y2="100" stroke="#e5e7eb" strokeWidth="1" />
+                                        <line x1="50" y1="50" x2="650" y2="50" stroke="#e5e7eb" strokeWidth="1" />
 
-                        {/* Total Receipts Card */}
-                        <div className="revenue-stat-card receipts-card">
-                            <h3>Total Receipts</h3>
-                            <div className="revenue-main-value">RS 6250</div>
-                            <div className="receipts-detail">
-                                <div className="receipt-row">
-                                    <span>Cash</span>
-                                    <span className="receipt-amount">RS 6250</span>
-                                </div>
-                                <div className="receipt-row">
-                                    <span>💳 0</span>
-                                </div>
-                                <div className="receipt-row">
-                                    <span>Orline</span>
-                                    <span className="receipt-amount">0</span>
-                                </div>
-                                <div className="receipt-row">
-                                    <span>🚫 0</span>
-                                    <span>💵 0</span>
-                                </div>
-                                <div className="receipt-legend">
-                                    <span><span className="dot" style={{background: '#ef4444'}}></span> Cams</span>
-                                    <span><span className="dot" style={{background: '#fb923c'}}></span> Onae</span>
-                                    <span><span className="dot" style={{background: '#10b981'}}></span> -23.5%</span>
-                                    <span><span className="dot" style={{background: '#9ca3af'}}></span> Bank</span>
+                                        {/* Y-axis labels */}
+                                        <text x="30" y="255" fontSize="12" fill="#6b7280">0</text>
+                                        <text x="30" y="205" fontSize="12" fill="#6b7280">2</text>
+                                        <text x="30" y="155" fontSize="12" fill="#6b7280">4</text>
+                                        <text x="30" y="105" fontSize="12" fill="#6b7280">6</text>
+                                        <text x="30" y="55" fontSize="12" fill="#6b7280">10</text>
+
+                                        {/* Bars - Availability Chart */}
+                                        <rect x="70" y="210" width="35" height="40" fill="#10b981" rx="4" />
+                                        <rect x="115" y="200" width="35" height="50" fill="#10b981" rx="4" />
+                                        <rect x="160" y="190" width="35" height="60" fill="#10b981" rx="4" />
+                                        <rect x="205" y="180" width="35" height="70" fill="#10b981" rx="4" />
+                                        <rect x="250" y="170" width="35" height="80" fill="#10b981" rx="4" />
+                                        <rect x="295" y="160" width="35" height="90" fill="#10b981" rx="4" />
+                                        <rect x="340" y="150" width="35" height="100" fill="#10b981" rx="4" />
+                                        <rect x="385" y="140" width="35" height="110" fill="#10b981" rx="4" />
+                                        <rect x="430" y="130" width="35" height="120" fill="#10b981" rx="4" />
+                                        <rect x="475" y="120" width="35" height="130" fill="#10b981" rx="4" />
+                                        <rect x="520" y="110" width="35" height="140" fill="#10b981" rx="4" />
+                                        <rect x="565" y="100" width="35" height="150" fill="#10b981" rx="4" />
+
+                                        {/* X-axis labels */}
+                                        <text x="72" y="270" fontSize="11" fill="#6b7280">Day</text>
+                                        <text x="115" y="270" fontSize="11" fill="#6b7280">Tun</text>
+                                        <text x="160" y="270" fontSize="11" fill="#6b7280">Way</text>
+                                        <text x="205" y="270" fontSize="11" fill="#6b7280">Tho</text>
+                                        <text x="250" y="270" fontSize="11" fill="#6b7280">Thu</text>
+                                        <text x="297" y="270" fontSize="11" fill="#6b7280">Jat</text>
+                                        <text x="342" y="270" fontSize="11" fill="#6b7280">Day</text>
+                                        <text x="387" y="270" fontSize="11" fill="#6b7280">Thu</text>
+                                        <text x="432" y="270" fontSize="11" fill="#6b7280">Thu</text>
+                                        <text x="477" y="270" fontSize="11" fill="#6b7280">Jao</text>
+                                        <text x="522" y="270" fontSize="11" fill="#6b7280">Jaf</text>
+                                    </svg>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    {/* Charts Row */}
-                    <div className="analytics-charts-row">
-                        {/* Housekeeping Status Chart */}
-                        <div className="chart-card-analytics housekeeping-chart">
-                            <h3>Housekeeping Status</h3>
-                            <div className="bar-chart-container">
-                                <svg width="100%" height="300" viewBox="0 0 600 300">
-                                    {/* Grid lines */}
-                                    <line x1="50" y1="250" x2="550" y2="250" stroke="#e5e7eb" strokeWidth="1"/>
-                                    <line x1="50" y1="200" x2="550" y2="200" stroke="#e5e7eb" strokeWidth="1"/>
-                                    <line x1="50" y1="150" x2="550" y2="150" stroke="#e5e7eb" strokeWidth="1"/>
-                                    <line x1="50" y1="100" x2="550" y2="100" stroke="#e5e7eb" strokeWidth="1"/>
-                                    <line x1="50" y1="50" x2="550" y2="50" stroke="#e5e7eb" strokeWidth="1"/>
-                                    
-                                    {/* Y-axis labels */}
-                                    <text x="30" y="255" fontSize="12" fill="#6b7280">0</text>
-                                    <text x="30" y="205" fontSize="12" fill="#6b7280">4</text>
-                                    <text x="30" y="155" fontSize="12" fill="#6b7280">6</text>
-                                    <text x="30" y="105" fontSize="12" fill="#6b7280">12</text>
-                                    <text x="30" y="55" fontSize="12" fill="#6b7280">10</text>
-                                    
-                                    {/* Bars */}
-                                    <rect x="70" y="100" width="30" height="150" fill="#ef4444" rx="4"/>
-                                    <rect x="130" y="240" width="30" height="10" fill="#ef4444" rx="4"/>
-                                    <rect x="190" y="240" width="30" height="10" fill="#ef4444" rx="4"/>
-                                    <rect x="250" y="240" width="30" height="10" fill="#ef4444" rx="4"/>
-                                    <rect x="310" y="240" width="30" height="10" fill="#ef4444" rx="4"/>
-                                    <rect x="370" y="240" width="30" height="10" fill="#ef4444" rx="4"/>
-                                    <rect x="430" y="240" width="30" height="10" fill="#ef4444" rx="4"/>
-                                    <rect x="490" y="240" width="30" height="10" fill="#ef4444" rx="4"/>
-                                    
-                                    {/* X-axis labels */}
-                                    <text x="75" y="270" fontSize="12" fill="#6b7280">1</text>
-                                    <text x="135" y="270" fontSize="12" fill="#6b7280">2</text>
-                                    <text x="195" y="270" fontSize="12" fill="#6b7280">3</text>
-                                    <text x="255" y="270" fontSize="12" fill="#6b7280">6</text>
-                                    <text x="315" y="270" fontSize="12" fill="#6b7280">6</text>
-                                    <text x="375" y="270" fontSize="12" fill="#6b7280">17</text>
-                                    <text x="435" y="270" fontSize="12" fill="#6b7280">12</text>
-                                    <text x="495" y="270" fontSize="12" fill="#6b7280">12</text>
-                                    
-                                    <text x="560" y="270" fontSize="12" fill="#6b7280">13</text>
-                                    <text x="600" y="270" fontSize="12" fill="#6b7280">14</text>
-                                </svg>
-                            </div>
-                        </div>
-
-                        {/* Rooms Availability Chart */}
-                        <div className="chart-card-analytics availability-chart">
-                            <div className="chart-header-row">
-                                <h3>Rooms Availability</h3>
-                                <div className="date-range">From: 01-02-2028 <span className="next-days">+Next 14 Days</span></div>
-                            </div>
-                            <div className="bar-chart-container">
-                                <svg width="100%" height="300" viewBox="0 0 700 300">
-                                    {/* Grid lines */}
-                                    <line x1="50" y1="250" x2="650" y2="250" stroke="#e5e7eb" strokeWidth="1"/>
-                                    <line x1="50" y1="200" x2="650" y2="200" stroke="#e5e7eb" strokeWidth="1"/>
-                                    <line x1="50" y1="150" x2="650" y2="150" stroke="#e5e7eb" strokeWidth="1"/>
-                                    <line x1="50" y1="100" x2="650" y2="100" stroke="#e5e7eb" strokeWidth="1"/>
-                                    <line x1="50" y1="50" x2="650" y2="50" stroke="#e5e7eb" strokeWidth="1"/>
-                                    
-                                    {/* Y-axis labels */}
-                                    <text x="30" y="255" fontSize="12" fill="#6b7280">0</text>
-                                    <text x="30" y="205" fontSize="12" fill="#6b7280">2</text>
-                                    <text x="30" y="155" fontSize="12" fill="#6b7280">4</text>
-                                    <text x="30" y="105" fontSize="12" fill="#6b7280">6</text>
-                                    <text x="30" y="55" fontSize="12" fill="#6b7280">10</text>
-                                    
-                                    {/* Bars - Availability Chart */}
-                                    <rect x="70" y="210" width="35" height="40" fill="#10b981" rx="4"/>
-                                    <rect x="115" y="200" width="35" height="50" fill="#10b981" rx="4"/>
-                                    <rect x="160" y="190" width="35" height="60" fill="#10b981" rx="4"/>
-                                    <rect x="205" y="180" width="35" height="70" fill="#10b981" rx="4"/>
-                                    <rect x="250" y="170" width="35" height="80" fill="#10b981" rx="4"/>
-                                    <rect x="295" y="160" width="35" height="90" fill="#10b981" rx="4"/>
-                                    <rect x="340" y="150" width="35" height="100" fill="#10b981" rx="4"/>
-                                    <rect x="385" y="140" width="35" height="110" fill="#10b981" rx="4"/>
-                                    <rect x="430" y="130" width="35" height="120" fill="#10b981" rx="4"/>
-                                    <rect x="475" y="120" width="35" height="130" fill="#10b981" rx="4"/>
-                                    <rect x="520" y="110" width="35" height="140" fill="#10b981" rx="4"/>
-                                    <rect x="565" y="100" width="35" height="150" fill="#10b981" rx="4"/>
-                                    
-                                    {/* X-axis labels */}
-                                    <text x="72" y="270" fontSize="11" fill="#6b7280">Day</text>
-                                    <text x="115" y="270" fontSize="11" fill="#6b7280">Tun</text>
-                                    <text x="160" y="270" fontSize="11" fill="#6b7280">Way</text>
-                                    <text x="205" y="270" fontSize="11" fill="#6b7280">Tho</text>
-                                    <text x="250" y="270" fontSize="11" fill="#6b7280">Thu</text>
-                                    <text x="297" y="270" fontSize="11" fill="#6b7280">Jat</text>
-                                    <text x="342" y="270" fontSize="11" fill="#6b7280">Day</text>
-                                    <text x="387" y="270" fontSize="11" fill="#6b7280">Thu</text>
-                                    <text x="432" y="270" fontSize="11" fill="#6b7280">Thu</text>
-                                    <text x="477" y="270" fontSize="11" fill="#6b7280">Jao</text>
-                                    <text x="522" y="270" fontSize="11" fill="#6b7280">Jaf</text>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                )}
             </div>
             {/* End of Zotaki Dashboard */}
         </div>

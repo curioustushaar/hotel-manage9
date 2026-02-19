@@ -1,9 +1,9 @@
 import axios from 'axios';
 
-// Create a configured axios instance
-// Using localhost:5000 directly as requested to eliminate env var ambiguity during debug
+import API_URL from '../config/api';
+
 const API = axios.create({
-    baseURL: 'http://localhost:5000/api',
+    baseURL: API_URL ? `${API_URL}/api` : '/api',
     headers: {
         'Content-Type': 'application/json'
     }

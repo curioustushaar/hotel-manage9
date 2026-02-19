@@ -10,42 +10,42 @@ const PrintPreviewModal = ({ isOpen, onClose, onPrint, type, booking }) => {
             case 'print-summary':
                 return {
                     title: 'Print Summary',
-                    icon: '📄',
+                    icon: '',
                     desc: 'Print the detailed booking summary with guest information and payment details',
                     buttonText: 'Print Summary'
                 };
             case 'print-invoice':
                 return {
                     title: 'Print Invoice',
-                    icon: '🧾',
+                    icon: '',
                     desc: 'Print the final invoice for this reservation including all charges and payments',
                     buttonText: 'Print Invoice'
                 };
             case 'print-grc':
                 return {
                     title: 'Print GRC',
-                    icon: '📋',
+                    icon: '',
                     desc: 'Print the Guest Registration Card for the primary guest',
                     buttonText: 'Print GRC'
                 };
             case 'print-grc-all':
                 return {
                     title: 'Print GRC (All)',
-                    icon: '📋',
+                    icon: '',
                     desc: 'Print Guest Registration Cards for all guests in this booking',
                     buttonText: 'Print All GRCs'
                 };
             case 'send-invoice':
                 return {
                     title: 'Send Invoice',
-                    icon: '📧',
+                    icon: '',
                     desc: `Send the invoice to ${booking.guestEmail || booking.email}`,
                     buttonText: 'Send Email'
                 };
             default:
                 return {
                     title: 'Print Document',
-                    icon: '🖨️',
+                    icon: '',
                     desc: 'Print the selected document',
                     buttonText: 'Print'
                 };
@@ -71,15 +71,15 @@ const PrintPreviewModal = ({ isOpen, onClose, onPrint, type, booking }) => {
                     <h3 className="preview-title">Booking Preview</h3>
                     <div className="preview-details">
                         <div className="preview-item">
-                            <span className="preview-icon">🆔</span>
+                            <span className="preview-icon"></span>
                             <span>ID: {booking.referenceNumber || booking.bookingId || booking.id || 'N/A'}</span>
                         </div>
                         <div className="preview-item">
-                            <span className="preview-icon">🏠</span>
+                            <span className="preview-icon"></span>
                             <span>Guest: {booking.guestName}</span>
                         </div>
                         <div className="preview-item">
-                            <span className="preview-icon">📅</span>
+                            <span className="preview-icon"></span>
                             <span>Check-in Date: {booking.checkInDate ? new Date(booking.checkInDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}</span>
                         </div>
 
@@ -93,7 +93,7 @@ const PrintPreviewModal = ({ isOpen, onClose, onPrint, type, booking }) => {
                 <div className="print-modal-actions">
                     <button className="btn-modal-cancel" onClick={onClose}>Cancel</button>
                     <button className="btn-modal-print" onClick={() => onPrint(type, booking)}>
-                        <span>🖨️</span> {content.buttonText}
+                        <span></span> {content.buttonText}
                     </button>
                 </div>
             </div>

@@ -6,8 +6,9 @@
     width: 100%;
     max-width: 1400px;
     margin: 0 auto;
-    padding: 2rem 1.5rem;
+    padding: 0 1.5rem 2rem 1.5rem;
 }
+
 
 /* Header Section */
 .reservation-header {
@@ -2067,4 +2068,173 @@
 .edit-reservation-view .reservation-management-container {
     padding: 24px 32px;
     background: #f8fafc;
+}
+
+input:disabled,
+select:disabled {
+    cursor: not-allowed !important;
+    background-color: #f3f4f6 !important;
+}
+
+/* ============================================================
+   MULTI ROOM BOOKING CARD STYLES
+   ============================================================ */
+
+.multi-room-card {
+    border-top: 4px solid #3b82f6 !important;
+}
+
+.multi-room-badge {
+    background: #fff7ed;
+    color: #c2410c;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.5px;
+    border: 1px solid #ffedd5;
+    width: fit-content;
+}
+
+.multi-room-badge .dot {
+    color: #f97316;
+}
+
+.res-card-dates-nights {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.res-card-dates-nights .dates {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.res-card-dates-nights .nights-badge {
+    background: #f3f4f6;
+    color: #6b7280;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+}
+
+.multi-room-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8fafc;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid #f1f5f9;
+}
+
+.multi-room-summary:hover {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+}
+
+.multi-room-summary .room-count {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.multi-room-summary .expand-icon {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    transition: transform 0.3s ease;
+}
+
+.multi-room-summary .expand-icon.rotated {
+    transform: rotate(180deg);
+}
+
+.room-breakdown-container {
+    overflow: hidden;
+}
+
+.room-breakdown-list {
+    padding: 0.75rem 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-height: 115px;
+    overflow-y: auto;
+    /* scrollbar hidden */
+}
+
+/* Removed local scrollbar styles */
+
+/* removed scrollbar hover */
+
+.room-breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background: #fff;
+    border-left: 3px solid #e2e8f0;
+    font-size: 0.8rem;
+}
+
+.room-breakdown-row .room-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.room-breakdown-row .r-num {
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.room-breakdown-row .r-type {
+    font-size: 0.7rem;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.room-breakdown-row .room-pricing {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+}
+
+.room-breakdown-row .r-rate {
+    font-size: 0.7rem;
+    color: #94a3b8;
+}
+
+.room-breakdown-row .r-subtotal {
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.res-card-financials.multi {
+    margin-top: 1rem;
+    background: #fffcfc;
+    border: 1px dashed #fee2e2;
+    border-radius: 8px;
+    padding: 0.75rem;
+}
+
+.res-card-contact.compact {
+    border-top: none;
+    margin-top: 0.5rem;
+    padding-top: 0;
 }
