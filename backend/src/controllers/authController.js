@@ -70,7 +70,7 @@ const loginUser = async (req, res) => {
 
             // Fetch hotel details
             const hotel = await Hotel.findById(user.hotelId);
-            
+
             if (!hotel) {
                 console.log(`[Auth] Hotel not found for user: ${username}`);
                 return res.status(403).json({ message: 'Hotel not found. Please contact support.' });
@@ -103,6 +103,7 @@ const loginUser = async (req, res) => {
                 name: user.name,
                 hotelId: hotel._id,
                 hotelName: hotel.name,
+                permissions: user.permissions || [],
                 token: generateToken(user._id),
             });
         }

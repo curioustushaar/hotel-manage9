@@ -341,6 +341,7 @@ const GuestMealService = () => {
                 navigate('/admin/dashboard', {
                     state: {
                         activeMenu: 'food-order-pos',
+                        orderMode: 'dinein',
                         room: {
                             roomNumber: table.tableName,
                             guestName: table.reservation.name,
@@ -677,6 +678,7 @@ const GuestMealService = () => {
                 navigate('/admin/dashboard', {
                     state: {
                         activeMenu: 'food-order-pos',
+                        orderMode: 'dinein',
                         room: {
                             roomNumber: data.data.tableName,
                             guestName: 'Merged Table',
