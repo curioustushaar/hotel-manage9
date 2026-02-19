@@ -1,325 +1,581 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import {
+    FaBell,
+    FaCog,
+    FaHotel,
+    FaShieldAlt,
+    FaExclamationTriangle,
+    FaClock,
+    FaChevronRight,
+    FaBars,
+    FaBuilding,
+    FaPlus,
+    FaUser,
+    FaSearch,
+    FaFilter,
+    FaTimes,
+    FaCheck,
+    FaBan,
+    FaRedo,
+    FaEdit
+} from 'react-icons/fa';
+import { MdDashboard, MdLogout } from 'react-icons/md';
+import './SuperAdminDashboard.css';
 
 const SuperAdminDashboard = () => {
     const { logout, user } = useAuth();
     const navigate = useNavigate();
-    const [admins, setAdmins] = useState([]);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [activeView, setActiveView] = useState('dashboard');
+
+    // Data States
+    const [hotels, setHotels] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        password: '',
-        phone: '',
-        hotelName: '',
-        gstNumber: '',
-        subscriptionStart: '',
-        subscriptionEnd: ''
+    const [error, setError] = useState(null);
+    const [statistics, setStatistics] = useState({
+        totalHotels: 0,
+        activeHotels: 0,
+        suspended: 0,
+        expiringSoon: 0
     });
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    // Search & Filter States
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterStatus, setFilterStatus] = useState('all');
+    const [filterPlan, setFilterPlan] = useState('all');
+    const [showFilters, setShowFilters] = useState(false);
+
+    // Notification States
+    const [showNotifications, setShowNotifications] = useState(false);
+    const [notifications, setNotifications] = useState([]);
+
+    // Subscription Management States
+    const [actionLoading, setActionLoading] = useState(null);
+
+
+
+    // Fetch Data
+    const fetchDashboardData = async () => {
+        try {
+            const token = user?.token;
+            const config = {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            };
+
+            // Fetch dashboard statistics
+            const statsResponse = await axios.get('/api/super-admin/dashboard', config);
+            setStatistics(statsResponse.data);
+
+            // Fetch hotels list
+            const hotelsResponse = await axios.get('/api/super-admin/hotels', config);
+            setHotels(hotelsResponse.data);
+
+            setLoading(false);
+        } catch (err) {
+            console.error('Error fetching data:', err);
+            setError('Failed to load dashboard data');
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        fetchAdmins();
-    }, []);
+        fetchDashboardData();
+    }, [user]);
 
-    const fetchAdmins = async () => {
-        try {
-            const token = user?.token || localStorage.getItem('authToken');
-            const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-            const response = await axios.get(`${API_URL}/super-admin/admins`, config);
-            setAdmins(response.data);
-            setLoading(false);
-        } catch (error) {
-            console.error('Error fetching admins:', error);
-            setLoading(false);
-        }
-    };
-
-    const handleInputChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const handleCreateAdmin = async (e) => {
-        e.preventDefault();
-        try {
-            const token = user?.token || localStorage.getItem('authToken');
-            const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-            await axios.post(`${API_URL}/super-admin/create-admin`, formData, config);
-            setShowModal(false);
-            setFormData({
-                name: '',
-                email: '',
-                password: '',
-                phone: '',
-                hotelName: '',
-                gstNumber: '',
-                subscriptionStart: '',
-                subscriptionEnd: ''
+    // Generate Notifications
+    useEffect(() => {
+        if (hotels.length > 0) {
+            const notifs = [];
+            hotels.forEach(hotel => {
+                const daysLeft = getDaysLeft(hotel.subscription?.expiryDate);
+                
+                if (daysLeft < 0) {
+                    notifs.push({
+                        id: hotel._id,
+                        type: 'expired',
+                        message: `${hotel.name}'s subscription has expired`,
+                        hotel: hotel.name,
+                        priority: 'high'
+                    });
+                } else if (daysLeft <= 7) {
+                    notifs.push({
+                        id: hotel._id,
+                        type: 'expiring',
+                        message: `${hotel.name}'s subscription expires in ${daysLeft} days`,
+                        hotel: hotel.name,
+                        priority: 'medium'
+                    });
+                }
+                
+                if (!hotel.subscription?.active) {
+                    notifs.push({
+                        id: hotel._id + '_suspended',
+                        type: 'suspended',
+                        message: `${hotel.name} is currently suspended`,
+                        hotel: hotel.name,
+                        priority: 'high'
+                    });
+                }
             });
-            fetchAdmins();
-        } catch (error) {
-            console.error('Error creating admin:', error);
-            alert(error.response?.data?.message || 'Error creating admin');
+            setNotifications(notifs);
+        }
+    }, [hotels]);
+
+    // Filter Hotels based on search and filters
+    const filteredHotels = useMemo(() => {
+        return hotels.filter(hotel => {
+            // Search filter
+            const matchesSearch = searchTerm === '' || 
+                hotel.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                hotel.adminId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                hotel.adminId?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                hotel.phone?.includes(searchTerm);
+
+            // Status filter
+            const matchesStatus = filterStatus === 'all' || 
+                (filterStatus === 'active' && hotel.subscription?.active) ||
+                (filterStatus === 'suspended' && !hotel.subscription?.active) ||
+                (filterStatus === 'expiring' && getDaysLeft(hotel.subscription?.expiryDate) <= 7 && getDaysLeft(hotel.subscription?.expiryDate) >= 0);
+
+            // Plan filter
+            const matchesPlan = filterPlan === 'all' || hotel.subscription?.plan === filterPlan;
+
+            return matchesSearch && matchesStatus && matchesPlan;
+        });
+    }, [hotels, searchTerm, filterStatus, filterPlan]);
+
+    // Subscription Management Functions
+    const handleExtendSubscription = async (hotelId, days = 30) => {
+        if (!window.confirm(`Extend subscription by ${days} days?`)) return;
+        
+        setActionLoading(hotelId);
+        try {
+            const token = user?.token;
+            await axios.post(
+                `/api/super-admin/hotel/${hotelId}/extend-subscription`,
+                { days },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            
+            await fetchDashboardData();
+            alert('Subscription extended successfully!');
+        } catch (err) {
+            alert('Failed to extend subscription: ' + (err.response?.data?.message || err.message));
+        } finally {
+            setActionLoading(null);
         }
     };
 
-    const toggleStatus = async (id) => {
+    const handleToggleStatus = async (hotelId, currentStatus) => {
+        const action = currentStatus ? 'suspend' : 'activate';
+        if (!window.confirm(`Are you sure you want to ${action} this hotel?`)) return;
+        
+        setActionLoading(hotelId);
         try {
-            const token = user?.token || localStorage.getItem('authToken');
-            const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-            await axios.put(`${API_URL}/super-admin/toggle-status/${id}`, {}, config);
-            fetchAdmins();
-        } catch (error) {
-            console.error('Error toggling status:', error);
+            const token = user?.token;
+            await axios.patch(
+                `/api/super-admin/hotel/${hotelId}/toggle-status`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            
+            await fetchDashboardData();
+            alert(`Hotel ${action}d successfully!`);
+        } catch (err) {
+            alert(`Failed to ${action} hotel: ` + (err.response?.data?.message || err.message));
+        } finally {
+            setActionLoading(null);
         }
+    };
+
+    const clearFilters = () => {
+        setSearchTerm('');
+        setFilterStatus('all');
+        setFilterPlan('all');
     };
 
     const handleLogout = () => {
         logout();
-        window.location.href = '/login'; // Force full reload to clear state
+        window.location.href = '/login';
+    };
+
+    const getInitials = (name) => {
+        if (!name) return 'SA';
+        return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    };
+
+
+
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    };
+
+    const getDaysLeft = (dateString) => {
+        if (!dateString) return 0;
+        const diff = new Date(dateString) - new Date();
+        return Math.ceil(diff / (1000 * 60 * 60 * 24));
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
-            {/* Header */}
-            <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
-                <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-red-600 text-white p-2 rounded-lg shadow-sm">
-                            <span className="text-xl font-bold tracking-tight">BA</span>
-                        </div>
-                        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-                            Bireena Atithi <span className="text-red-600">Super Admin</span>
-                        </h1>
-                    </div>
-
-                    <button
-                        onClick={handleLogout}
-                        className="px-5 py-2.5 border border-red-200 text-sm font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                    >
-                        Sign Out
-                    </button>
+        <div className="sa-container">
+            {/* Sidebar */}
+            <aside className={`sa-sidebar ${sidebarOpen ? 'open' : ''}`}>
+                <div className="sa-sidebar-header">
+                    <span style={{ fontSize: '24px', color: '#e11d48' }}>⚡</span>
+                    <h2>SUPER ADMIN</h2>
                 </div>
-            </header>
+
+                <nav className="sa-nav">
+                    <button
+                        className={`sa-nav-item ${activeView === 'dashboard' ? 'active' : ''}`}
+                        onClick={() => setActiveView('dashboard')}
+                    >
+                        <MdDashboard />
+                        Dashboard
+                    </button>
+                    <button
+                        className="sa-nav-item"
+                        onClick={() => navigate('/super-admin/hotels')}
+                    >
+                        <FaHotel />
+                        Hotels
+                    </button>
+                    <button
+                        className="sa-nav-item"
+                        onClick={() => navigate('/super-admin/create-hotel')}
+                    >
+                        <FaPlus />
+                        Create Hotel
+                    </button>
+                    <button
+                        className="sa-nav-item"
+                        onClick={handleLogout}
+                    >
+                        <MdLogout />
+                        Logout
+                    </button>
+                </nav>
+            </aside>
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-                    <div>
-                        <h2 className="text-3xl font-bold text-gray-900">Hotel Management</h2>
-                        <p className="mt-1 text-sm text-gray-500">Overview of all registered hotels and administrators.</p>
-                    </div>
-                    <button
-                        onClick={() => setShowModal(true)}
-                        className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg shadow-md text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all transform hover:-translate-y-0.5"
-                    >
-                        + Onboard New Hotel
-                    </button>
-                </div>
-
-                {/* Statistics Cards (Optional placeholder for future) */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <p className="text-sm font-medium text-gray-500">Total Hotels</p>
-                        <p className="text-3xl font-bold text-gray-900 mt-2">{admins.length}</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <p className="text-sm font-medium text-gray-500">Active Subscriptions</p>
-                        <p className="text-3xl font-bold text-green-600 mt-2">{admins.filter(a => a.isActive).length}</p>
-                    </div>
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <p className="text-sm font-medium text-gray-500">Pending Actions</p>
-                        <p className="text-3xl font-bold text-orange-500 mt-2">0</p>
-                    </div>
-                </div>
-
-                {/* Table Section */}
-                <div className="bg-white shadow-lg rounded-xl border border-gray-200 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Hotel Details</th>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Administrator</th>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact</th>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Subscription</th>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {loading ? (
-                                    <tr>
-                                        <td colSpan="6" className="px-6 py-12 text-center">
-                                            <div className="flex justify-center flex-col items-center">
-                                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-600 mb-4"></div>
-                                                <p className="text-sm text-gray-500">Loading hotel data...</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : admins.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
-                                            No hotels found. Click "Onboard New Hotel" to get started.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    admins.map((admin) => (
-                                        <tr key={admin._id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center">
-                                                    <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold text-lg">
-                                                        {admin.hotelName ? admin.hotelName.charAt(0).toUpperCase() : 'H'}
-                                                    </div>
-                                                    <div className="ml-4">
-                                                        <div className="text-sm font-bold text-gray-900">{admin.hotelName || 'N/A'}</div>
-                                                        <div className="text-xs text-gray-500">GST: {admin.gstNumber || 'N/A'}</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900 font-medium">{admin.name}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-900">{admin.username}</div>
-                                                <div className="text-xs text-gray-500">{admin.phone}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-700">
-                                                    Ends: <span className="font-semibold">{admin.subscriptionEnd ? new Date(admin.subscriptionEnd).toLocaleDateString() : 'N/A'}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${admin.isActive
-                                                        ? 'bg-green-50 text-green-700 border-green-200'
-                                                        : 'bg-red-50 text-red-700 border-red-200'
-                                                    }`}>
-                                                    {admin.isActive ? 'Active' : 'Disabled'}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <button
-                                                    onClick={() => toggleStatus(admin._id)}
-                                                    className={`px-3 py-1.5 rounded-md text-xs font-semibold border transition-colors ${admin.isActive
-                                                            ? 'border-red-200 text-red-600 hover:bg-red-50'
-                                                            : 'border-green-200 text-green-600 hover:bg-green-50'
-                                                        }`}
-                                                >
-                                                    {admin.isActive ? 'Disable Access' : 'Enable Access'}
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </main>
-
-            {/* Modal Overlay */}
-            {showModal && (
-                <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-                    <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                        {/* Backdrop */}
-                        <div
-                            className="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity"
-                            aria-hidden="true"
-                            onClick={() => setShowModal(false)}
-                        ></div>
-
-                        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-                        {/* Modal Panel */}
-                        <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-gray-100">
-                            <div className="bg-red-600 px-6 py-4 flex justify-between items-center">
-                                <h3 className="text-lg leading-6 font-bold text-white flex items-center gap-2">
-                                    <span className="bg-white text-red-600 rounded-full h-6 w-6 flex items-center justify-center text-sm">+</span>
-                                    Onboard New Hotel
-                                </h3>
-                                <button onClick={() => setShowModal(false)} className="text-red-100 hover:text-white text-2xl leading-none">&times;</button>
-                            </div>
-
-                            <form onSubmit={handleCreateAdmin}>
-                                <div className="px-8 py-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Hotel Info */}
-                                        <div className="md:col-span-2">
-                                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 border-b pb-1">Hotel Details</h4>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Hotel Name</label>
-                                            <input type="text" name="hotelName" placeholder="e.g. Grand Plaza" value={formData.hotelName} onChange={handleInputChange} required
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">GST Number</label>
-                                            <input type="text" name="gstNumber" placeholder="e.g. 29ABCDE1234F1Z5" value={formData.gstNumber} onChange={handleInputChange} required
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" />
-                                        </div>
-
-                                        {/* Admin Info */}
-                                        <div className="md:col-span-2 mt-2">
-                                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 border-b pb-1">Administrator Details</h4>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Admin Name</label>
-                                            <input type="text" name="name" placeholder="Full Name" value={formData.name} onChange={handleInputChange} required
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                                            <input type="text" name="phone" placeholder="+91 98765 43210" value={formData.phone} onChange={handleInputChange} required
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-xs text-gray-400">(Login Username)</span></label>
-                                            <input type="email" name="email" placeholder="admin@hotel.com" value={formData.email} onChange={handleInputChange} required
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                                            <input type="password" name="password" placeholder="••••••••" value={formData.password} onChange={handleInputChange} required
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" />
-                                        </div>
-
-                                        {/* Subscription Info */}
-                                        <div className="md:col-span-2 mt-2">
-                                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 border-b pb-1">Subscription Plan</h4>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                                            <input type="date" name="subscriptionStart" value={formData.subscriptionStart} onChange={handleInputChange} required
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                                            <input type="date" name="subscriptionEnd" value={formData.subscriptionEnd} onChange={handleInputChange} required
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all" />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-gray-50 px-6 py-4 sm:flex sm:flex-row-reverse border-t border-gray-100">
-                                    <button type="submit" className="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-6 py-2.5 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm transition-all shadow-md">
-                                        Create Account
-                                    </button>
-                                    <button type="button" onClick={() => setShowModal(false)} className="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-6 py-2.5 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-all">
-                                        Cancel
-                                    </button>
-                                </div>
-                            </form>
+            <main className="sa-main">
+                {/* Header */}
+                <header className="sa-header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <button className="sa-icon-btn" onClick={() => setSidebarOpen(!sidebarOpen)} style={{ display: 'none' }}>
+                            <FaBars />
+                        </button>
+                        <div className="sa-header-logo">
+                            {/* Chef Hat Icon */}
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M6 13.87C4.31 13.12 3.25 11.53 3.5 9.77C3.76 7.91 5.38 6.54 7.26 6.54C7.54 6.54 7.82 6.57 8.08 6.63C8.62 3.96 11.08 2 14 2C17.31 2 20 4.69 20 8C20 8.35 19.96 8.69 19.89 9.03C21.43 9.94 22.34 11.64 22.09 13.43C21.82 15.35 20.15 16.71 18.23 16.71H17V19C17 20.66 15.66 22 14 22H9C7.34 22 6 20.66 6 19V17H5.77C5.83 15.89 5.86 14.86 6 13.87ZM8 17H15V19C15 19.55 14.55 20 14 20H9C8.45 20 8 19.55 8 19V17Z" fill="#374151" />
+                            </svg>
+                            <span>BIREENA ATITHI</span>
                         </div>
                     </div>
+
+                    <div className="sa-header-actions">
+                        <button className="sa-icon-btn">
+                            <FaCog />
+                        </button>
+                        <div style={{ position: 'relative' }}>
+                            <button 
+                                className="sa-icon-btn" 
+                                onClick={() => setShowNotifications(!showNotifications)}
+                            >
+                                <FaBell />
+                                {notifications.length > 0 && (
+                                    <span className="sa-badge">{notifications.length}</span>
+                                )}
+                            </button>
+                            
+                            {/* Notification Panel */}
+                            {showNotifications && (
+                                <div className="notification-panel">
+                                    <div className="notification-header">
+                                        <h3>Notifications</h3>
+                                        <button onClick={() => setShowNotifications(false)}>
+                                            <FaTimes />
+                                        </button>
+                                    </div>
+                                    <div className="notification-list">
+                                        {notifications.length === 0 ? (
+                                            <div className="notification-empty">
+                                                <FaCheck style={{ fontSize: '32px', opacity: 0.3 }} />
+                                                <p>No new notifications</p>
+                                            </div>
+                                        ) : (
+                                            notifications.map(notif => (
+                                                <div 
+                                                    key={notif.id} 
+                                                    className={`notification-item ${notif.priority}`}
+                                                >
+                                                    <div className="notification-icon">
+                                                        {notif.type === 'expired' && <FaExclamationTriangle />}
+                                                        {notif.type === 'expiring' && <FaClock />}
+                                                        {notif.type === 'suspended' && <FaBan />}
+                                                    </div>
+                                                    <div className="notification-content">
+                                                        <p>{notif.message}</p>
+                                                        <small>{notif.hotel}</small>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className="sa-profile">
+                            {getInitials(user?.name)}
+                        </div>
+                    </div>
+                </header>
+
+                {/* Dashboard Content */}
+                <div className="sa-content">
+                    {activeView === 'dashboard' ? (
+                        <>
+                            {/* Stats Section */}
+                            <h3 className="sa-section-title">Hotel Statistics</h3>
+                            <div className="sa-stats-grid">
+                                <div className="sa-stat-card">
+                                    <FaBuilding className="sa-stat-icon-large" />
+                                    <div className="sa-stat-content">
+                                        <div className="sa-stat-icon-wrapper">
+                                            <FaBuilding />
+                                        </div>
+                                        <div className="sa-stat-label">Total Hotels</div>
+                                        <div className="sa-stat-value">{statistics.totalHotels}</div>
+                                    </div>
+                                </div>
+                                <div className="sa-stat-card">
+                                    <FaShieldAlt className="sa-stat-icon-large" />
+                                    <div className="sa-stat-content">
+                                        <div className="sa-stat-icon-wrapper">
+                                            <FaShieldAlt />
+                                        </div>
+                                        <div className="sa-stat-label">Active Hotels</div>
+                                        <div className="sa-stat-value">{statistics.activeHotels}</div>
+                                    </div>
+                                </div>
+                                <div className="sa-stat-card">
+                                    <FaExclamationTriangle className="sa-stat-icon-large" />
+                                    <div className="sa-stat-content">
+                                        <div className="sa-stat-icon-wrapper">
+                                            <FaExclamationTriangle />
+                                        </div>
+                                        <div className="sa-stat-label">Suspended Hotels</div>
+                                        <div className="sa-stat-value">{statistics.suspended}</div>
+                                    </div>
+                                </div>
+                                <div className="sa-stat-card">
+                                    <FaClock className="sa-stat-icon-large" />
+                                    <div className="sa-stat-content">
+                                        <div className="sa-stat-icon-wrapper">
+                                            <FaClock />
+                                        </div>
+                                        <div className="sa-stat-label">Expiring Soon</div>
+                                        <div className="sa-stat-value">{statistics.expiringSoon}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Search & Filter Section */}
+                            <div className="search-filter-section">
+                                <div className="search-bar">
+                                    <FaSearch className="search-icon" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search hotels by name, admin email, or phone..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="search-input"
+                                    />
+                                    {searchTerm && (
+                                        <button 
+                                            className="clear-search"
+                                            onClick={() => setSearchTerm('')}
+                                        >
+                                            <FaTimes />
+                                        </button>
+                                    )}
+                                </div>
+                                
+                                <button 
+                                    className="filter-toggle-btn"
+                                    onClick={() => setShowFilters(!showFilters)}
+                                >
+                                    <FaFilter />
+                                    Filters
+                                    {(filterStatus !== 'all' || filterPlan !== 'all') && (
+                                        <span className="filter-active-badge"></span>
+                                    )}
+                                </button>
+                            </div>
+
+                            {/* Filter Options */}
+                            {showFilters && (
+                                <div className="filter-options">
+                                    <div className="filter-group">
+                                        <label>Status:</label>
+                                        <select 
+                                            value={filterStatus} 
+                                            onChange={(e) => setFilterStatus(e.target.value)}
+                                        >
+                                            <option value="all">All Status</option>
+                                            <option value="active">Active</option>
+                                            <option value="suspended">Suspended</option>
+                                            <option value="expiring">Expiring Soon</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div className="filter-group">
+                                        <label>Plan:</label>
+                                        <select 
+                                            value={filterPlan} 
+                                            onChange={(e) => setFilterPlan(e.target.value)}
+                                        >
+                                            <option value="all">All Plans</option>
+                                            <option value="basic">Basic</option>
+                                            <option value="premium">Premium</option>
+                                            <option value="enterprise">Enterprise</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <button 
+                                        className="clear-filters-btn"
+                                        onClick={clearFilters}
+                                    >
+                                        <FaTimes /> Clear All
+                                    </button>
+                                    
+                                    <div className="filter-results">
+                                        Showing {filteredHotels.length} of {hotels.length} hotels
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Subscription Table */}
+                            <div className="sa-card">
+                                <div className="sa-card-header">
+                                    <div className="sa-card-title">Subscription Status</div>
+                                    <button 
+                                        className="sa-view-all"
+                                        onClick={() => navigate('/super-admin/hotels')}
+                                    >
+                                        View All <FaChevronRight style={{ fontSize: '10px' }} />
+                                    </button>
+                                </div>
+                                <table className="sa-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Hotel Details</th>
+                                            <th>Admin Contact</th>
+                                            <th>Subscription</th>
+                                            <th style={{ textAlign: 'center' }}>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredHotels.length > 0 ? (
+                                            filteredHotels.slice(0, 5).map((hotel) => {
+                                                const daysLeft = getDaysLeft(hotel.subscription?.expiryDate);
+                                                const isExpiring = daysLeft < 7 && daysLeft >= 0;
+                                                const isExpired = daysLeft < 0;
+                                                const isActive = hotel.subscription?.active;
+                                                return (
+                                                    <tr 
+                                                        key={hotel._id}
+                                                    >
+                                                        <td onClick={() => navigate(`/super-admin/hotel/${hotel._id}`)} style={{ cursor: 'pointer' }}>
+                                                            <div className="font-bold text-gray-800">{hotel.name}</div>
+                                                            <div className="text-xs opacity-70 mt-1">
+                                                                {hotel.subscription?.plan.toUpperCase()}
+                                                                {!isActive && <span style={{ marginLeft: '8px', padding: '2px 6px', background: '#fee', color: '#c00', borderRadius: '4px', fontSize: '10px' }}>SUSPENDED</span>}
+                                                            </div>
+                                                        </td>
+                                                        <td onClick={() => navigate(`/super-admin/hotel/${hotel._id}`)} style={{ cursor: 'pointer' }}>
+                                                            <div style={{ fontWeight: 500 }}>
+                                                                {hotel.adminId?.name || 'No Admin'}
+                                                            </div>
+                                                            <div className="text-xs opacity-70 mt-1">
+                                                                {hotel.adminId?.email || '-'}
+                                                            </div>
+                                                        </td>
+                                                        <td onClick={() => navigate(`/super-admin/hotel/${hotel._id}`)} style={{ cursor: 'pointer' }}>
+                                                            <div className={`font-bold ${isExpired ? 'text-red' : isExpiring ? 'text-red' : 'text-green'}`}>
+                                                                {formatDate(hotel.subscription?.expiryDate)}
+                                                            </div>
+                                                            <div className={`text-xs mt-1 ${isExpired || isExpiring ? 'text-red' : 'opacity-70'}`}>
+                                                                {isExpired ? 'Expired' : `${daysLeft} days left`}
+                                                                {isExpiring && <FaExclamationTriangle style={{ marginLeft: '4px' }} />}
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                                                                <button 
+                                                                    className="action-btn extend-btn"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleExtendSubscription(hotel._id);
+                                                                    }}
+                                                                    disabled={actionLoading === hotel._id}
+                                                                    title="Extend 30 days"
+                                                                >
+                                                                    <FaRedo />
+                                                                </button>
+                                                                <button 
+                                                                    className={`action-btn ${isActive ? 'suspend-btn' : 'activate-btn'}`}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleToggleStatus(hotel._id, isActive);
+                                                                    }}
+                                                                    disabled={actionLoading === hotel._id}
+                                                                    title={isActive ? 'Suspend' : 'Activate'}
+                                                                >
+                                                                    {isActive ? <FaBan /> : <FaCheck />}
+                                                                </button>
+                                                                <button 
+                                                                    className="action-btn edit-btn"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        navigate(`/super-admin/hotel/${hotel._id}`);
+                                                                    }}
+                                                                    title="View Details"
+                                                                >
+                                                                    <FaEdit />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="4" style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
+                                                    {searchTerm || filterStatus !== 'all' || filterPlan !== 'all' 
+                                                        ? 'No hotels match your filters.' 
+                                                        : 'No hotels found.'}
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
+                    ) : null}
                 </div>
-            )}
+            </main>
         </div>
     );
 };

@@ -277,6 +277,7 @@ const ItemStockStatus = () => {
         </div>
     );
 };
+
 // Edit Item Modal Component
 const EditItemModal = ({ item, onSave, onCancel }) => {
     const [formData, setFormData] = useState({

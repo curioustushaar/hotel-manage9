@@ -1,61 +1,98 @@
-.trusted-section {
-    padding: 6px 20px;
-    background: white;
-    text-align: center;
+/* Trusted By Section - Clean, minimal, professional */
+.trusted-by-section {
+  padding: 80px 20px;
+  background: #f5f6f8;
+  text-align: center;
 }
 
-.trusted-section h2 {
-    font-size: 2rem;
-    color: #1f2937;
-    margin-bottom: 3rem;
+.trusted-by-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  /* Space between title and logos */
+  flex-wrap: wrap;
+  /* Allow title to wrap on very small screens */
 }
 
-.trusted-section h2 span {
-    color: #e11d48;
-    font-weight: 700;
+.trusted-by-title {
+  font-size: 1.125rem;
+  /* Increased slightly from 0.95rem */
+  font-weight: 600;
+  /* Increased weight */
+  color: #6b7280;
+  margin-bottom: 0;
+  /* Remove bottom margin */
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  /* Keep title on one line if possible */
 }
 
-.logo-slider {
-    overflow: hidden;
-    position: relative;
-    width: 100%;
+.trusted-by-grid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  /* Allow wrapping only if absolutely necessary on tiny screens */
+  gap: 40px;
+  /* Reduced slightly to fit well with title */
+  margin-top: 0;
+  /* Remove top margin */
 }
 
-.logo-track {
-    display: flex;
-    gap: 3rem;
-    animation: scroll 30s linear infinite;
+.trusted-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0.9;
+  /* Higher opacity for color vibrancy */
+  transition: all 0.3s ease;
+  cursor: default;
+  padding: 8px 12px;
+  border-radius: 8px;
 }
 
-.logo-track img {
-    height: 60px;
-    width: auto;
-    object-fit: contain;
-    flex-shrink: 0;
-    opacity: 0.7;
-    transition: opacity 0.3s;
+.trusted-brand:hover {
+  opacity: 1;
+  transform: scale(1.05);
+  /* Slight scale */
+  background: rgba(255, 255, 255, 0.5);
+  /* Subtle highlight */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
-.logo-track img:hover {
-    opacity: 1;
+.brand-icon {
+  display: flex;
+  align-items: center;
+  /* Color is now handled inline in JSX */
 }
 
-@keyframes scroll {
-    0% {
-        transform: translateX(0);
-    }
+/* Removed hover color change as we want original colors always */
 
-    100% {
-        transform: translateX(-50%);
-    }
+.brand-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  /* Dark gray, not muted */
+  letter-spacing: -0.01em;
+}
+
+.trusted-brand:hover .brand-name {
+  color: #111827;
+  /* Black on hover */
 }
 
 @media (max-width: 768px) {
-    .trusted-section h2 {
-        font-size: 1.5rem;
-    }
+  .trusted-by-grid {
+    gap: 30px;
+    /* Smaller gap on mobile but still horizontal row */
+    padding: 0 10px;
+  }
 
-    .logo-track img {
-        height: 40px;
-    }
+  .trusted-brand {
+    /* Ensure they don't take full width */
+    flex: 0 1 auto;
+  }
 }

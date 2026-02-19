@@ -1,16 +1,36 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
-// import { MOCK_USERS } from '../data/mockUsers'; // Removed for security
 import { ROLES } from '../config/rbac';
-
 import API_URL from '../config/api';
 
 const AuthContext = createContext(null);
 
-// Configure axios default base URL if not already set
+// Configure axios
 if (API_URL) {
     axios.defaults.baseURL = API_URL;
 }
+
+// Add a request interceptor to include the auth token
+axios.interceptors.request.use(
+    (config) => {
+        const savedUser = localStorage.getItem('authUser');
+        if (savedUser) {
+            try {
+                const parsedUser = JSON.parse(savedUser);
+                const { token } = parsedUser;
+                if (token) {
+                    config.headers.Authorization = `Bearer ${token}`;
+                }
+            } catch (error) {
+                console.error('Error parsing authUser for token:', error);
+            }
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
@@ -59,9 +79,19 @@ export const AuthProvider = ({ children }) => {
             }
         } catch (error) {
             console.error('Login error:', error);
+            let errorMessage = 'An unexpected error occurred';
+
+            if (error.response) {
+                errorMessage = error.response.data.message || 'Invalid email or password';
+            } else if (error.request) {
+                errorMessage = 'Server is unreachable. Please try again later.';
+            } else {
+                errorMessage = error.message;
+            }
+
             return {
                 success: false,
-                error: error.response?.data?.message || 'Invalid email or password'
+                error: errorMessage
             };
         }
     };
@@ -93,8 +123,6 @@ export const AuthProvider = ({ children }) => {
     const getSubscriptionTier = () => {
         return user?.subscriptionTier || null;
     };
-
-    // Quick login removed for security
 
     const value = {
         user,

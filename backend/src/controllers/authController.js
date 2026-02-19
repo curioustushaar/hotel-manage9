@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Hotel = require('../models/Hotel');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
@@ -40,8 +41,8 @@ const loginUser = async (req, res) => {
 
         console.log(`[Auth] Login attempt: ${username}`);
 
-        // Find user in database
-        const user = await User.findOne({ username });
+        // Find user in database and include hotel information
+        const user = await User.findOne({ username }).populate('hotelId');
 
         if (!user) {
             console.log(`[Auth] User not found: ${username}`);
@@ -60,6 +61,53 @@ const loginUser = async (req, res) => {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 
+        // Check subscription for admin and staff (not for super_admin)
+        if (user.role !== 'super_admin') {
+            if (!user.hotelId) {
+                console.log(`[Auth] No hotel assigned to user: ${username}`);
+                return res.status(403).json({ message: 'No hotel assigned to your account. Please contact support.' });
+            }
+
+            // Fetch hotel details
+            const hotel = await Hotel.findById(user.hotelId);
+            
+            if (!hotel) {
+                console.log(`[Auth] Hotel not found for user: ${username}`);
+                return res.status(403).json({ message: 'Hotel not found. Please contact support.' });
+            }
+
+            // Check if hotel is active
+            if (!hotel.isActive) {
+                console.log(`[Auth] Hotel suspended for user: ${username}`);
+                return res.status(403).json({ message: 'Your hotel account has been suspended. Please contact support.' });
+            }
+
+            // Check if subscription is active
+            if (!hotel.subscription.isActive) {
+                console.log(`[Auth] Subscription inactive for user: ${username}`);
+                return res.status(403).json({ message: 'Your subscription is inactive. Please contact support.' });
+            }
+
+            // Check if subscription has expired
+            if (hotel.isSubscriptionExpired()) {
+                console.log(`[Auth] Subscription expired for user: ${username}`);
+                return res.status(403).json({ message: 'Your subscription has expired. Please renew to continue.' });
+            }
+
+            console.log(`[Auth] Login successful: ${username} (${user.role})`);
+
+            return res.json({
+                _id: user._id,
+                username: user.username,
+                role: user.role,
+                name: user.name,
+                hotelId: hotel._id,
+                hotelName: hotel.name,
+                token: generateToken(user._id),
+            });
+        }
+
+        // For super_admin
         console.log(`[Auth] Login successful: ${username} (${user.role})`);
 
         res.json({
@@ -67,6 +115,9 @@ const loginUser = async (req, res) => {
             username: user.username,
             role: user.role,
             name: user.name,
+            hotelId: user.hotelId?._id,
+            hotelName: user.hotelId?.name,
+            permissions: user.permissions || [],
             token: generateToken(user._id),
         });
     } catch (error) {

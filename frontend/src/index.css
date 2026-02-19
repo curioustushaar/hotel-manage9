@@ -11,6 +11,11 @@
   font-family: 'Poppins', sans-serif;
 }
 
+html,
+body {
+  overflow-x: hidden;
+}
+
 /* =============================================
    GLOBAL SCROLLBAR HIDE — scroll still works
    via mouse wheel / touch / cursor
@@ -31,9 +36,10 @@ body {
   background: #ffffff;
 }
 
-body.no-scroll {
-  overflow: hidden;
+.landing-page {
+  background: linear-gradient(to bottom, #ffffff 0%, #f5f6f8 100%);
 }
+
 
 /* ---------- COMMON ---------- */
 .container {
@@ -61,7 +67,7 @@ body.no-scroll {
 
 .logo {
   font-weight: 700;
-  font-size: 1.5rem;
+  font-size: 2rem;
 }
 
 #sidebarNav {
@@ -405,12 +411,13 @@ body.no-scroll {
 
 /* ---------- HERO ---------- */
 .hero {
-  padding-top: 50px;
+  padding-top: 6px;
   padding-bottom: 40px;
   margin-top: 70px;
   position: relative;
   overflow: hidden;
 }
+
 
 .hero::before {
   content: '';
@@ -429,19 +436,9 @@ body.no-scroll {
   opacity: 0.18;
 }
 
+.hero::before,
 .hero::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background-image:
-    radial-gradient(circle, #e11d48 2px, transparent 2px);
-  background-size: 80px 80px;
-  animation: dotScrollReverse 18s linear infinite;
-  z-index: 0;
-  opacity: 0.12;
+  display: none;
 }
 
 .hero>* {
@@ -479,15 +476,16 @@ body.no-scroll {
 .hero-text {
   max-width: 500px;
   flex: 1;
-  padding-top: 30px;
+  padding-top: 6px;
 }
 
 .hero-image {
   flex: 1;
-  display: flex;
+  /* display: flex; */
   justify-content: flex-end;
-  align-items: flex-start;
+  /* align-items: flex-start; */
   margin-top: -20px;
+  margin-right: -10px;
 }
 
 .pricing-li {
@@ -532,6 +530,7 @@ body.no-scroll {
   max-width: 100%;
   height: auto;
   margin-top: 0;
+  margin-right: -5px;
 }
 
 /* Trusted Section */
@@ -566,6 +565,7 @@ body.no-scroll {
 
 .logo-track img {
   width: 140px;
+  height: 120px;
   margin: 0 30px;
   filter: grayscale(100%);
   opacity: 100%;
@@ -590,7 +590,7 @@ body.no-scroll {
 
 /* Features Section */
 .pos-features {
-  padding: 90px 20px 100px;
+  padding: 6px 20px 100px;
   background: #ffffff;
   text-align: center;
 }
@@ -625,7 +625,7 @@ h2 {
 
 /* Billing Section */
 .billing-section {
-  padding: 100px 20px;
+  padding: 6px 20px 100px;
   background: #ffffff;
 }
 
@@ -685,7 +685,7 @@ h2 {
 
 /* Inventory Section */
 .inventory-section {
-  padding: 100px 20px;
+  padding: 6px 20px 100px;
   background: #ffffff;
 }
 
@@ -744,7 +744,7 @@ h2 {
 
 /* Reports Section */
 .reports-section {
-  padding: 100px 20px;
+  padding: 6px 20px 100px;
   background: #ffffff;
 }
 
@@ -803,7 +803,7 @@ h2 {
 
 /* Ordering Section */
 .ordering-section {
-  padding: 100px 20px;
+  padding: 6px 20px 100px;
   background: #ffffff;
 }
 
@@ -860,9 +860,8 @@ h2 {
   transform: translateX(4px);
 }
 
-/* Marketplace Section */
 .marketplace-section {
-  padding: 80px 20px;
+  padding: 6px 20px 80px;
   background: #ffffff;
   text-align: center;
 }
@@ -947,7 +946,7 @@ h2 {
 
 /* Integrations Section */
 .integrations-section {
-  padding: 80px 20px;
+  padding: 6px 20px 80px;
   background: #ffffff;
 }
 
@@ -1052,7 +1051,7 @@ h2 {
 
 /* Outlet Types Section */
 .outlet-section {
-  padding: 80px 20px;
+  padding: 6px 20px 80px;
   background: #ffffff;
   text-align: center;
 }
@@ -1121,7 +1120,7 @@ h2 {
 
 /* Testimonials Section */
 .testimonial-section {
-  padding: 80px 20px;
+  padding: 6px 20px 80px;
   background: #ffffff;
 }
 
@@ -1286,7 +1285,7 @@ h2 {
 
 /* Demo Section */
 .demo-section {
-  padding: 80px 20px;
+  padding: 6px 20px 80px;
   background: #ffffff;
 }
 
@@ -1524,7 +1523,7 @@ h2 {
     background: #fff;
     z-index: 1002;
     transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    padding: 80px 0 32px;
+    padding: 6px 0 32px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -1699,7 +1698,7 @@ body {
 }
 
 /* Ensure the main-content area itself has no extra top spacing
-   beyond the navbar offset (padding-top: 60px already set in AdminLayout.css) */
+   beyond the navbar offset (padding-top: 6px already set in AdminLayout.css) */
 .admin-layout .main-content {
   margin-top: 0;
 }

@@ -5,8 +5,8 @@ export const MOCK_USERS = [
     // SUPER ADMIN
     {
         id: 'user_1',
-        email: 'superadmin@bireena.com',
-        password: 'super123',
+        email: import.meta.env.VITE_SUPER_ADMIN_EMAIL || 'superadmin@bireena.com',
+        password: import.meta.env.VITE_SUPER_ADMIN_PASSWORD || 'super123',
         fullName: 'Rajesh Kumar',
         role: ROLES.SUPER_ADMIN,
         phone: '+91 98765 00001',
@@ -35,8 +35,8 @@ export const MOCK_USERS = [
     // ADMIN
     {
         id: 'user_3',
-        email: 'admin@bireena.com',
-        password: 'admin123',
+        email: import.meta.env.VITE_ADMIN_EMAIL || 'admin@bireena.com',
+        password: import.meta.env.VITE_ADMIN_PASSWORD || 'admin123',
         fullName: 'Himanshu Yadav',
         role: ROLES.ADMIN,
         phone: '+91 98765 43210',
@@ -185,8 +185,8 @@ export const MOCK_USERS = [
     // STAFF
     {
         id: 'user_13',
-        email: 'staff@bireena.com',
-        password: 'staff123',
+        email: import.meta.env.VITE_STAFF_EMAIL || 'staff@bireena.com',
+        password: import.meta.env.VITE_STAFF_PASSWORD || 'staff123',
         fullName: 'Meera Nair',
         role: ROLES.STAFF,
         phone: '+91 98765 55555',

@@ -1,28 +1,28 @@
 .pos-features {
-    padding: 6px 20px;
-    text-align: center;
-    background: white;
+  padding: 60px 20px;
+  text-align: center;
+  background: white;
 }
 
 .pos-tag {
-    color: #e11d48;
-    font-weight: 600;
-    font-size: 0.9rem;
-    letter-spacing: 1px;
-    margin-bottom: 1rem;
+  color: #e11d48;
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  margin-bottom: 1rem;
 }
 
 .pos-title {
-    font-size: 2.5rem;
-    color: #1f2937;
-    margin-bottom: 1rem;
-    font-weight: 700;
+  font-size: 2.5rem;
+  color: #1f2937;
+  margin-bottom: 1rem;
+  font-weight: 700;
 }
 
 .pos-desc {
-    font-size: 1.1rem;
-    color: #6b7280;
-    line-height: 1.6;
+  font-size: 1.1rem;
+  color: #6b7280;
+  line-height: 1.6;
 }
 
 /* Billing Section */
@@ -30,146 +30,255 @@
 .inventory-section,
 .reports-section,
 .ordering-section {
-    padding: 80px 20px;
-    background: white;
+  padding: 80px 20px;
+  background: white;
 }
 
 .billing-section:nth-of-type(even),
 .reports-section {
-    background: #f9fafb;
+  background: #f9fafb;
 }
 
 .billing-container,
 .inventory-container,
 .reports-container,
 .ordering-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    align-items: center;
-    gap: 4rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4rem;
 }
 
 .inventory-container,
 .ordering-container {
-    flex-direction: row-reverse;
+  flex-direction: row-reverse;
 }
 
 .billing-image,
 .inventory-image,
 .reports-image,
 .ordering-image {
-    flex: 1;
+  flex: 1;
 }
 
 .image-bg,
 .inventory-bg,
 .reports-bg,
 .ordering-bg {
-    background: linear-gradient(135deg, #fef2f4 0%, #ffffff 100%);
-    border-radius: 20px;
-    padding: 2rem;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #fef2f4 0%, #ffffff 100%);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
 
 .image-bg img,
 .inventory-bg img,
 .reports-bg img,
 .ordering-bg img {
-    width: 100%;
-    height: auto;
-    border-radius: 12px;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
 }
 
 .billing-content,
 .inventory-content,
 .reports-content,
 .ordering-content {
-    flex: 1;
+  flex: 1;
 }
 
 .billing-content h3,
 .inventory-content h3,
 .reports-content h3,
 .ordering-content h3 {
-    font-size: 2.5rem;
-    color: #1f2937;
-    margin-bottom: 1.5rem;
-    line-height: 1.2;
+  font-size: 2.5rem;
+  color: #1f2937;
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
 }
 
 .billing-content h3 span,
 .inventory-content h3 span,
 .reports-content h3 span,
 .ordering-content h3 span {
-    color: #e11d48;
+  color: #e11d48;
 }
 
 .billing-content p,
 .inventory-content p,
 .reports-content p,
 .ordering-content p {
-    font-size: 1.1rem;
-    color: #6b7280;
-    line-height: 1.6;
-    margin-bottom: 2rem;
+  font-size: 1.1rem;
+  color: #6b7280;
+  line-height: 1.6;
+  margin-bottom: 2rem;
 }
 
 .billing-link,
 .inventory-link,
 .reports-link,
 .ordering-link {
-    color: #e11d48;
-    font-weight: 600;
-    text-decoration: none;
-    font-size: 1.1rem;
-    transition: all 0.3s;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
+  color: #e11d48;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 1.1rem;
+  transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .billing-link:hover,
 .inventory-link:hover,
 .reports-link:hover,
 .ordering-link:hover {
-    gap: 1rem;
-    color: #be123c;
+  gap: 1rem;
+  color: #be123c;
+}
+
+/* Landing Features - 3 cards, reference style */
+.features-section.landing-features {
+  padding: 80px 20px;
+  background: #f5f6f8;
+  text-align: center;
+}
+
+.features-heading {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.75rem;
+  line-height: 1.25;
+}
+
+.features-subheading {
+  font-size: 1rem;
+  color: #4b5563;
+  margin-bottom: 3rem;
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.feature-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 2.5rem 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  /* Soft shadow */
+  text-align: center;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px) scale(1.03);
+  /* Lift and subtle scale */
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.08);
+}
+
+.feature-icon-wrap {
+  width: 80px;
+  /* Larger icon container */
+  height: 80px;
+  margin: 0 auto 1.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Bg and color handled inline */
+  transition: transform 0.3s ease;
+}
+
+.feature-card:hover .feature-icon-wrap {
+  transform: scale(1.1);
+}
+
+.feature-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.feature-icon svg {
+  width: 40px;
+  /* Larger icon size */
+  height: 40px;
+}
+
+.feature-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.01em;
+}
+
+.feature-desc {
+  font-size: 1rem;
+  color: #6b7280;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 300px;
+  /* Ensure nice line wrapping */
+}
+
+@media (max-width: 900px) {
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .features-heading {
+    font-size: 1.5rem;
+  }
 }
 
 @media (max-width: 768px) {
-    .pos-title {
-        font-size: 1.8rem;
-    }
+  .pos-title {
+    font-size: 1.8rem;
+  }
 
-    .pos-desc {
-        font-size: 1rem;
-    }
+  .pos-desc {
+    font-size: 1rem;
+  }
 
-    .billing-container,
-    .inventory-container,
-    .reports-container,
-    .ordering-container {
-        flex-direction: column;
-        gap: 2rem;
-    }
+  .billing-container,
+  .inventory-container,
+  .reports-container,
+  .ordering-container {
+    flex-direction: column;
+    gap: 2rem;
+  }
 
-    .inventory-container,
-    .ordering-container {
-        flex-direction: column;
-    }
+  .inventory-container,
+  .ordering-container {
+    flex-direction: column;
+  }
 
-    .billing-content h3,
-    .inventory-content h3,
-    .reports-content h3,
-    .ordering-content h3 {
-        font-size: 1.8rem;
-    }
+  .billing-content h3,
+  .inventory-content h3,
+  .reports-content h3,
+  .ordering-content h3 {
+    font-size: 1.8rem;
+  }
 
-    .billing-content p,
-    .inventory-content p,
-    .reports-content p,
-    .ordering-content p {
-        font-size: 1rem;
-    }
+  .billing-content p,
+  .inventory-content p,
+  .reports-content p,
+  .ordering-content p {
+    font-size: 1rem;
+  }
 }

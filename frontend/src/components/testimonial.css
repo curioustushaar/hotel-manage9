@@ -1,0 +1,115 @@
+.testimonial-section {
+    padding: 100px 20px;
+    background: linear-gradient(to bottom, #fff, #ffeef2);
+    position: relative;
+}
+
+.testimonial-container {
+    max-width: 1400px;
+    width: 95%;
+    margin: auto;
+    text-align: center;
+}
+
+.testimonial-title {
+    font-size: 40px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.testimonial-title span {
+    background: linear-gradient(to right, #e11d48, #dc2626);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.testimonial-subtitle {
+    color: #6b7280;
+    margin-bottom: 50px;
+    font-size: 18px;
+}
+
+.testimonial-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 30px;
+}
+
+/* ===============================
+   CLIENT TESTIMONIAL SECTION FIX
+================================= */
+
+.testimonial-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 32px 28px;
+    box-shadow: 0 15px 35px rgba(225, 29, 72, 0.1);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: left;
+}
+
+.testimonial-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+
+.testimonial-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 5px;
+    background: transparent;
+    padding: 0;
+}
+
+.client-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.client-info img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid #e11d48;
+}
+
+.client-name {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    color: #111827;
+}
+
+.client-info p {
+    margin: 0;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.stars {
+    color: #e11d48;
+    font-size: 18px;
+    margin: 0;
+}
+
+.testimonial-card p {
+    margin: 10px 0 0 0;
+    /* Reduced top margin from 18px */
+    padding: 0;
+    line-height: 1.6;
+    color: #555;
+}
+
+.testimonial-card .review-text {
+    margin: 0;
+    padding: 0;
+    max-width: 100%;
+}

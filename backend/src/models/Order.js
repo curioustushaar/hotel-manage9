@@ -14,7 +14,7 @@ const orderSchema = new mongoose.Schema({
 
     orderType: {
         type: String,
-        enum: ['Dine-In', 'Room Service', 'Take Away', 'Post to Room', 'Delivery', 'Direct Payment'], // Merged enums
+        enum: ['Dine-In', 'Room Service', 'Take Away', 'Post to Room', 'Room Order', 'Delivery', 'Direct Payment'], // Merged enums
         default: 'Dine-In'
     },
 
@@ -53,7 +53,7 @@ const orderSchema = new mongoose.Schema({
     // Status
     status: {
         type: String,
-        enum: ['Pending', 'Active', 'Confirmed', 'Preparing', 'Ready', 'Served', 'Billed', 'Completed', 'Cancelled', 'Closed', 'Pending Payment'],
+        enum: ['Pending', 'Active', 'Confirmed', 'Preparing', 'Ready', 'Started', 'Served', 'Billed', 'Completed', 'Cancelled', 'Closed', 'Pending Payment'],
         default: 'Active',
         index: true
     },

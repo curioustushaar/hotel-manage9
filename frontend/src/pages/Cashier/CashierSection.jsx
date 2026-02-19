@@ -11,6 +11,12 @@ const CashierSection = () => {
     const [showNewOrderModal, setShowNewOrderModal] = useState(false);
     const [newOrderDetails, setNewOrderDetails] = useState({ name: '', phone: '' });
 
+    // Track Order State
+    const [showTrackModal, setShowTrackModal] = useState(false);
+    const [trackQuery, setTrackQuery] = useState('');
+    const [trackedOrders, setTrackedOrders] = useState(null); // null means not searched yet
+    const [trackLoading, setTrackLoading] = useState(false);
+
     // State for Orders
     const [orders, setOrders] = useState([]);
     const [stats, setStats] = useState({
@@ -46,7 +52,7 @@ const CashierSection = () => {
                     cash: s.collections?.Cash || 0,
                     upi: s.collections?.UPI || 0,
                     card: s.collections?.Card || 0,
-                    pending: stats.pending // Handled by fetchPendingOrders
+                    pending: stats.pending // handled by fetchPendingOrders
                 });
             }
         } catch (error) {
@@ -118,6 +124,11 @@ const CashierSection = () => {
                 setOrders(updatedOrders);
                 setSelectedOrder(null);
 
+                // Remove from tracked orders as well
+                if (trackedOrders) {
+                    setTrackedOrders(prev => prev.filter(o => o._id !== orderId));
+                }
+
                 // Update Stats
                 setStats(prev => ({
                     ...prev,
@@ -172,6 +183,49 @@ const CashierSection = () => {
         });
     };
 
+    // --- TRACK ORDER LOGIC ---
+    const handleTrackOrderSearch = async () => {
+        if (!trackQuery.trim()) return;
+
+        setTrackLoading(true);
+        try {
+            // Using getAllOrders to find by phone/name/id
+            // In a real app, this should be a specific search endpoint.
+            // Optimized: Fetch all active orders and filter client side for now.
+            const response = await fetch(`${API_URL}/api/guest-meal/orders`);
+            const data = await response.json();
+
+            if (data.success) {
+                const query = trackQuery.toLowerCase();
+                const matched = data.data.filter(o =>
+                    o.orderType === 'Take Away' && // Stick to Take Away as requested
+                    !['Closed', 'Cancelled', 'Completed', 'Settled'].includes(o.status) &&
+                    (
+                        (o.guestPhone && o.guestPhone.includes(query)) ||
+                        (o.guestName && o.guestName.toLowerCase().includes(query)) ||
+                        (o._id && o._id.toLowerCase().includes(query))
+                    )
+                );
+                setTrackedOrders(matched);
+            } else {
+                setTrackedOrders([]);
+            }
+        } catch (error) {
+            console.error("Error tracking order:", error);
+            setTrackedOrders([]);
+        }
+        setTrackLoading(false);
+    };
+
+    const getStatusStep = (status) => {
+        if (['Pending', 'Active'].includes(status)) return 1;
+        if (['Preparing', 'Started'].includes(status)) return 2;
+        if (['Ready', 'Served'].includes(status)) return 3;
+        if (['Billed', 'Pending Payment', 'Completed'].includes(status)) return 4;
+        return 0;
+    };
+
+
     // Filter Logic
     const filteredOrders = activeTab === 'All'
         ? orders
@@ -193,8 +247,11 @@ const CashierSection = () => {
                     <div className="header-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                         <h2 style={{ margin: 0 }}>Cashier Dashboard</h2>
 
-                        {/* New Order Section - Added as requested above stats */}
+                        {/* New Order & Track Order Section */}
                         <div className="new-order-section">
+                            <button className="track-order-btn" onClick={() => setShowTrackModal(true)}>
+                                🛵 Track Order
+                            </button>
                             <button className="new-order-btn" onClick={handleNewOrderClick}>
                                 🛍️ New Take Away Order
                             </button>
@@ -316,6 +373,84 @@ const CashierSection = () => {
                             <button className="food-menu-btn" onClick={handleGoToFoodMenu}>
                                 🍽️ Open Food Menu
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Track Order Modal */}
+            {showTrackModal && (
+                <div className="modal-overlay-custom">
+                    <div className="modal-content-custom" style={{ width: '500px' }}>
+                        <div className="modal-header-custom">
+                            <h3>Track Take Away Order</h3>
+                            <button className="close-btn-custom" onClick={() => { setShowTrackModal(false); setTrackedOrders(null); setTrackQuery(''); }}>×</button>
+                        </div>
+                        <div className="modal-body-custom">
+                            <div className="form-group-custom" style={{ display: 'flex', gap: '10px' }}>
+                                <input
+                                    type="text"
+                                    placeholder="Enter Phone Number or Order ID..."
+                                    value={trackQuery}
+                                    onChange={(e) => setTrackQuery(e.target.value)}
+                                    style={{ flex: 1 }}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleTrackOrderSearch()}
+                                />
+                                <button className="track-search-btn" onClick={handleTrackOrderSearch} disabled={trackLoading}>
+                                    {trackLoading ? '...' : '🔍 Check'}
+                                </button>
+                            </div>
+
+                            <div className="track-results-area" style={{ marginTop: '20px', minHeight: '150px' }}>
+                                {trackedOrders === null ? (
+                                    <div className="placeholder-text" style={{ textAlign: 'center', color: '#999', marginTop: '40px' }}>
+                                        Enter details to track status
+                                    </div>
+                                ) : trackedOrders.length === 0 ? (
+                                    <div className="placeholder-text" style={{ textAlign: 'center', color: '#ef4444', marginTop: '40px' }}>
+                                        No active Take Away orders found.
+                                    </div>
+                                ) : (
+                                    <div className="tracked-orders-list">
+                                        {trackedOrders.map(order => {
+                                            const step = getStatusStep(order.status);
+                                            return (
+                                                <div key={order._id} className="track-card">
+                                                    <div className="track-card-header">
+                                                        <span className="track-id">#{order._id.substr(-6).toUpperCase()}</span>
+                                                        <span className="track-amount">₹{order.finalAmount}</span>
+                                                    </div>
+                                                    <div className="track-guest">{order.guestName} ({order.guestPhone || 'No Phone'})</div>
+
+                                                    {/* Status Tracker */}
+                                                    <div className="track-status-stepper">
+                                                        <div className={`step-item ${step >= 1 ? 'completed' : ''} ${step === 1 ? 'active' : ''}`}>
+                                                            <div className="step-circle">{step > 1 ? '✓' : '1'}</div>
+                                                            <div className="step-label">Pending</div>
+                                                        </div>
+                                                        <div className={`step-line ${step >= 2 ? 'completed' : ''}`}></div>
+                                                        <div className={`step-item ${step >= 2 ? 'completed' : ''} ${step === 2 ? 'active' : ''}`}>
+                                                            <div className="step-circle">{step > 2 ? '✓' : '2'}</div>
+                                                            <div className="step-label">Preparing</div>
+                                                        </div>
+                                                        <div className={`step-line ${step >= 3 ? 'completed' : ''}`}></div>
+                                                        <div className={`step-item ${step >= 3 ? 'completed' : ''} ${step === 3 ? 'active' : ''}`}>
+                                                            <div className="step-circle">{step > 3 ? '✓' : '3'}</div>
+                                                            <div className="step-label">Ready</div>
+                                                        </div>
+                                                    </div>
+
+                                                    {order.status === 'Ready' && (
+                                                        <div className="ready-alert">
+                                                            🎉 Order is Ready for Pickup!
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

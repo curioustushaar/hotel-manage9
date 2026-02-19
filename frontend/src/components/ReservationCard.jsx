@@ -79,7 +79,7 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
             </div>
 
             <div className="res-card-rooms">
-                <span className="room-icon"></span>
+                <span className="room-icon">🛏</span>
                 <span>{reservation.rooms?.length || 1} Room(s)</span>
                 {reservation.roomNumber && (
                     <span className="room-number-label" style={{ marginLeft: 'auto', color: '#4f46e5', background: '#eef2ff', padding: '2px 8px', borderRadius: '4px', border: '1px solid #c7d2fe' }}>
@@ -105,11 +105,11 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
 
             <div className="res-card-contact">
                 <div className="contact-row">
-                    <span className="icon"></span>
+                    <span className="icon">📞</span>
                     <span>{reservation.guestPhone}</span>
                 </div>
                 <div className="contact-row">
-                    <span className="icon"></span>
+                    <span className="icon">📧</span>
                     <span className="email-text">{reservation.guestEmail || 'No Email'}</span>
                 </div>
             </div>

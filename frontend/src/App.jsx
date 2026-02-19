@@ -1,11 +1,15 @@
+<<<<<<< HEAD
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+=======
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
+>>>>>>> c3c0a9521069e0ffcee1bf5cc78e541e4b472e63
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
-import { MODULES } from './config/rbac'
+import { MODULES, ROLES } from './config/rbac'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import TrustedBy from './components/TrustedBy'
-import Features from './components/Features'
+import FeaturesList from './components/Features'
 import Marketplace from './components/Marketplace'
 import Integrations from './components/Integrations'
 import OutletTypes from './components/OutletTypes'
@@ -16,40 +20,121 @@ import Footer from './components/Footer'
 import Login from './pages/Login/Login'
 import AdminDashboard from './pages/Dashboard/AdminDashboard'
 import SuperAdminDashboard from './pages/SuperAdmin/SuperAdminDashboard'
+import HotelsManagement from './pages/SuperAdmin/HotelsManagement'
+import CreateHotel from './pages/SuperAdmin/CreateHotel'
+import HotelDetails from './pages/SuperAdmin/HotelDetails'
 import SuperAdminLogin from './pages/SuperAdmin/SuperAdminLogin'
 import QRScanPage from './pages/QRScan/QRScanPage'
 import FoodOrderPage from './components/FoodOrderPage'
+import About from './pages/About'
+import FeaturesPage from './pages/Features'
 import './index.css'
 
-// Home Page Component
-function HomePage() {
+function HomePageContent() {
   return (
-    <div className="App">
-      <Navbar />
+    <>
       <Hero />
       <TrustedBy />
-      <Features />
+      <FeaturesList />
       <Marketplace />
       <Integrations />
       <OutletTypes />
       <Testimonials />
       <Ratings />
       <DemoForm />
-      <Footer />
+    </>
+  )
+}
+
+const AppRoutes = () => {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/super-admin');
+
+  return (
+    <div className="App">
+      {!isAdminRoute && <Navbar />}
+      <Routes>
+        <Route path="/" element={<HomePageContent />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/features" element={<FeaturesPage />} />
+        <Route path="/pricing" element={<HomePageContent />} />
+        <Route path="/contact" element={<HomePageContent />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/superadmin/login" element={<SuperAdminLogin />} />
+
+        {/* Protected Admin Routes */}
+        <Route path="/admin/dashboard" element={
+          <ProtectedRoute module={MODULES.DASHBOARD}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/rooms" element={
+          <ProtectedRoute module={MODULES.ROOMS}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/reservations" element={
+          <ProtectedRoute module={MODULES.RESERVATIONS}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/guest-meal-service" element={
+          <ProtectedRoute module={MODULES.GUEST_MEAL_SERVICE}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/food-menu" element={
+          <ProtectedRoute module={MODULES.FOOD_MENU}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/customers" element={
+          <ProtectedRoute module={MODULES.CUSTOMERS}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/staff" element={
+          <ProtectedRoute module={MODULES.STAFF}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+
+        {/* Superadmin Routes */}
+        <Route path="/super-admin/dashboard" element={
+          <ProtectedRoute role={ROLES.SUPER_ADMIN}>
+            <SuperAdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/super-admin/hotels" element={
+          <ProtectedRoute role={ROLES.SUPER_ADMIN}>
+            <HotelsManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="/super-admin/hotels/create" element={
+          <ProtectedRoute role={ROLES.SUPER_ADMIN}>
+            <CreateHotel />
+          </ProtectedRoute>
+        } />
+        <Route path="/super-admin/hotels/:id" element={
+          <ProtectedRoute role={ROLES.SUPER_ADMIN}>
+            <HotelDetails />
+          </ProtectedRoute>
+        } />
+
+        {/* Other Routes */}
+        <Route path="/qr-scan/:hotelId/:tableId" element={<QRScanPage />} />
+        <Route path="/order" element={<FoodOrderPage />} />
+      </Routes>
+      {!isAdminRoute && <Footer />}
     </div>
   )
 }
 
-import useGlobalClickSound from './hooks/useGlobalClickSound';
-import useTypingSound from './hooks/useTypingSound';
-
 function App() {
-  useGlobalClickSound();
-  useTypingSound();
-
   return (
     <AuthProvider>
       <Router>
+<<<<<<< HEAD
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<HomePage />} />
@@ -177,6 +262,9 @@ function App() {
           <Route path="/food-order" element={<FoodOrderPage />} />
           <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
         </Routes>
+=======
+        <AppRoutes />
+>>>>>>> c3c0a9521069e0ffcee1bf5cc78e541e4b472e63
       </Router>
     </AuthProvider>
   )

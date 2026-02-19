@@ -1,15 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
+import axios from 'axios';
 import './MyProfile.css';
 
 const MyProfile = () => {
+    const { user } = useAuth();
+
     // Form state
     const [formData, setFormData] = useState({
-        fullName: 'Himanshu Yadav',
-        mobileNumber: '+91 98765 43210',
-        email: 'admin@bireena.com',
-        role: 'Administrator'
+        fullName: user?.name || '',
+        mobileNumber: user?.phone || '',
+        email: user?.username || user?.email || '',
+        role: user?.role === 'admin' ? 'Administrator' : user?.role === 'super_admin' ? 'Super Admin' : 'Staff'
     });
+
+    // Hotel information state
+    const [hotelInfo, setHotelInfo] = useState(null);
+    const [loadingHotel, setLoadingHotel] = useState(false);
 
     const [passwordData, setPasswordData] = useState({
         currentPassword: '',
@@ -22,11 +30,49 @@ const MyProfile = () => {
     const [editMode, setEditMode] = useState(false);
     const [photoPreview, setPhotoPreview] = useState(null);
 
-    // Account activity data (mock)
+    // Fetch hotel information if user is admin
+    useEffect(() => {
+        const fetchHotelInfo = async () => {
+            if (user?.hotelId && user?.role !== 'super_admin') {
+                setLoadingHotel(true);
+                try {
+                    const token = user?.token;
+                    const config = {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    };
+
+                    // Fetch hotel details
+                    const response = await axios.get(`/api/hotel/${user.hotelId}`, config);
+                    setHotelInfo(response.data);
+                } catch (error) {
+                    console.error('Error fetching hotel info:', error);
+                } finally {
+                    setLoadingHotel(false);
+                }
+            }
+        };
+
+        fetchHotelInfo();
+    }, [user]);
+
+    // Update form data when user changes
+    useEffect(() => {
+        setFormData({
+            fullName: user?.name || '',
+            mobileNumber: user?.phone || '',
+            email: user?.username || user?.email || '',
+            role: user?.role === 'admin' ? 'Administrator' : user?.role === 'super_admin' ? 'Super Admin' : 'Staff'
+        });
+    }, [user]);
+
+    // Account activity data
     const accountActivity = {
-        lastLogin: 'Feb 5, 2026 at 10:30 AM',
+        lastLogin: user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'N/A',
         lastLoginIP: '192.168.1.100',
-        accountCreated: 'Jan 15, 2026'
+        accountCreated: user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'
     };
 
     // Get user initials
@@ -114,17 +160,17 @@ const MyProfile = () => {
     const handleCancel = () => {
         setEditMode(false);
         setFormData({
-            fullName: 'Himanshu Yadav',
-            mobileNumber: '+91 98765 43210',
-            email: 'admin@bireena.com',
-            role: 'Administrator'
+            fullName: user?.name || '',
+            mobileNumber: user?.phone || '',
+            email: user?.username || user?.email || '',
+            role: user?.role === 'admin' ? 'Administrator' : user?.role === 'super_admin' ? 'Super Admin' : 'Staff'
         });
     };
 
     return (
         <div className="my-profile-container">
             {/* Page Header */}
-            <motion.div 
+            <motion.div
                 className="profile-header"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -142,7 +188,7 @@ const MyProfile = () => {
             {/* Profile Content */}
             <div className="profile-content">
                 {/* CARD 1: Profile Overview */}
-                <motion.div 
+                <motion.div
                     className="profile-card"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -156,9 +202,9 @@ const MyProfile = () => {
                         <div className="avatar-section">
                             <div className="avatar-container">
                                 {photoPreview ? (
-                                    <img 
-                                        src={photoPreview} 
-                                        alt="Profile" 
+                                    <img
+                                        src={photoPreview}
+                                        alt="Profile"
                                         className="avatar-image"
                                     />
                                 ) : (
@@ -202,7 +248,7 @@ const MyProfile = () => {
                 </motion.div>
 
                 {/* CARD 2: Personal Information */}
-                <motion.div 
+                <motion.div
                     className="profile-card"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -286,7 +332,7 @@ const MyProfile = () => {
                 </motion.div>
 
                 {/* CARD 3: Security Settings */}
-                <motion.div 
+                <motion.div
                     className="profile-card"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -368,7 +414,7 @@ const MyProfile = () => {
                 </motion.div>
 
                 {/* CARD 4: Account Activity */}
-                <motion.div 
+                <motion.div
                     className="profile-card"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -393,11 +439,113 @@ const MyProfile = () => {
                         </div>
                     </div>
                 </motion.div>
+
+                {/* CARD 5: Hotel Information - Only for Admin and Staff */}
+                {user?.role !== 'super_admin' && (
+                    <motion.div
+                        className="profile-card"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.5 }}
+                    >
+                        <div className="card-header">
+                            <h2>🏨 Hotel Information</h2>
+                        </div>
+
+                        {loadingHotel ? (
+                            <div className="loading-state">
+                                <p>Loading hotel information...</p>
+                            </div>
+                        ) : hotelInfo ? (
+                            <div className="hotel-info-content">
+                                <div className="hotel-info-grid">
+                                    <div className="info-card">
+                                        <div className="info-icon">🏨</div>
+                                        <div className="info-details">
+                                            <span className="info-label">Hotel Name</span>
+                                            <span className="info-value">{hotelInfo.name}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="info-card">
+                                        <div className="info-icon">📍</div>
+                                        <div className="info-details">
+                                            <span className="info-label">Address</span>
+                                            <span className="info-value">{hotelInfo.address}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="info-card">
+                                        <div className="info-icon">📞</div>
+                                        <div className="info-details">
+                                            <span className="info-label">Phone</span>
+                                            <span className="info-value">{hotelInfo.phone || 'N/A'}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="info-card">
+                                        <div className="info-icon">🏷️</div>
+                                        <div className="info-details">
+                                            <span className="info-label">GST Number</span>
+                                            <span className="info-value">{hotelInfo.gstNumber || 'N/A'}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="info-card">
+                                        <div className="info-icon">⭐</div>
+                                        <div className="info-details">
+                                            <span className="info-label">Subscription Plan</span>
+                                            <span className={`subscription-badge ${hotelInfo.subscription?.plan}`}>
+                                                {hotelInfo.subscription?.plan?.toUpperCase() || 'N/A'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="info-card">
+                                        <div className="info-icon">📅</div>
+                                        <div className="info-details">
+                                            <span className="info-label">Subscription Expiry</span>
+                                            <span className="info-value">
+                                                {hotelInfo.subscription?.expiryDate
+                                                    ? new Date(hotelInfo.subscription.expiryDate).toLocaleDateString()
+                                                    : 'N/A'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="info-card">
+                                        <div className="info-icon">✅</div>
+                                        <div className="info-details">
+                                            <span className="info-label">Hotel Status</span>
+                                            <span className={`status-badge ${hotelInfo.isActive ? 'active' : 'inactive'}`}>
+                                                {hotelInfo.isActive ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="info-card">
+                                        <div className="info-icon">🔒</div>
+                                        <div className="info-details">
+                                            <span className="info-label">Subscription Status</span>
+                                            <span className={`status-badge ${hotelInfo.subscription?.isActive ? 'active' : 'inactive'}`}>
+                                                {hotelInfo.subscription?.isActive ? 'Active' : 'Expired'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="no-hotel-info">
+                                <p>No hotel information available. Please contact support.</p>
+                            </div>
+                        )}
+                    </motion.div>
+                )}
             </div>
 
             {/* Action Buttons */}
             {editMode && (
-                <motion.div 
+                <motion.div
                     className="action-buttons"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
