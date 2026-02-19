@@ -1,0 +1,133 @@
+.footer-section {
+  padding: 80px 20px 40px 20px;
+  background-color: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Pink Glow Background Effect */
+.footer-section::before {
+  content: "";
+  position: absolute;
+  top: -150px;
+  right: -150px;
+  width: 400px;
+  height: 400px;
+  background: rgba(225, 29, 72, 0.15);
+  border-radius: 50%;
+  filter: blur(120px);
+  z-index: 0;
+}
+
+.footer-container {
+  max-width: 1200px;
+  /* margin: auto; */
+  position: relative;
+  z-index: 1;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 60px;
+  margin-bottom: 20px;
+  margin-left: 50px;
+  margin-right: -190px;
+}
+
+/* Targeted Column Spacing */
+.quick-links-col {
+  margin-left: 60px;
+  /* Thoda sa margin left as requested */
+}
+
+.footer-contact {
+  margin-right: -30px;
+  /* Margin right kam kar do */
+}
+
+.footer-brand {
+  margin-left: 14px;
+  /* left align thoda kam margin */
+}
+
+.footer-logo {
+  width: 220px;
+  margin-bottom: -38px;
+  margin-top: -51px;
+  margin-left: -21px;
+}
+
+.footer-description {
+  color: #6b7280;
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+.footer-links h4,
+.footer-contact h4 {
+  font-size: 18px;
+  margin-bottom: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.footer-links ul {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-links li a {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  transition: all 0.3s ease;
+}
+
+.footer-links li:hover a {
+  color: #e11d48;
+}
+
+.footer-links li:hover {
+  transform: translateX(6px);
+}
+
+.footer-contact p {
+  margin-bottom: 10px;
+  color: #6b7280;
+  margin-right: -5px;
+}
+
+.social-icons {
+  margin-top: 18px;
+  display: flex;
+  gap: 15px;
+}
+
+.social-icons a {
+  width: 38px;
+  height: 38px;
+  background: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #e11d48;
+  box-shadow: 0 8px 20px rgba(225, 29, 72, 0.15);
+  transition: all 0.3s ease;
+}
+
+.social-icons a:hover {
+  background: #e11d48;
+  color: #fff;
+  transform: translateY(-4px);
+}
+
+.footer-bottom {
+  text-align: center;
+  border-top: 1px solid #f3f4f6;
+  padding-top: 15px;
+  font-size: 14px;
+  color: #6b7280;
+}

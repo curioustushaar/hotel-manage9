@@ -1,10 +1,9 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const dotenv = require('dotenv');
-
-// Load environment variables
-dotenv.config();
+const path = require('path');
+// Load environment variables from root
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 // Import routes
 const menuRoutes = require('./routes/menuRoutes');
