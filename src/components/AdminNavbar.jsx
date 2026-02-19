@@ -39,8 +39,8 @@ const AdminNavbar = ({
     return (
         <div className={`top-bar ${sidebarOpen ? 'sidebar-open' : ''}`}>
             <div className="top-bar-left">
-                {showSidebarToggle && !sidebarOpen && (
-                    <button className="hamburger-menu" onClick={() => setSidebarOpen(!sidebarOpen)}>
+                {showSidebarToggle && user && (
+                    <button className="hamburger-menu" onClick={() => setSidebarOpen(!sidebarOpen)} title="Toggle Sidebar">
                         <span></span>
                         <span></span>
                         <span></span>

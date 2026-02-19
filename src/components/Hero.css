@@ -1,86 +1,127 @@
-/* Hero Styles - Image 2 White Theme */
-.hero {
-    padding: 100px 20px;
-    background-color: #ffffff;
-    background-image: radial-gradient(#fecaca 1.5px, transparent 1.5px);
-    background-size: 30px 30px;
-    min-height: 80vh;
-    display: flex;
-    align-items: center;
+/* ================= HERO SECTION ================= */
+
+.landing-hero {
+  padding: 80px 0 100px;
+  margin-top: 72px;
+  background: #f4f6f8;
+  position: relative;
+  /* For particles */
+  overflow: hidden;
+  /* Contain particles */
 }
 
-.hero-flex {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 4rem;
-    max-width: 1200px;
-    margin: 0 auto;
-    width: 100%;
+/* Reduce unnecessary container spacing */
+.landing-hero .hero-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 60px;
+  /* Clean spacing */
+  max-width: 1300px;
+  /* Slightly wider */
+  margin: 0 auto;
+  padding: 0 40px;
+  /* Controlled side spacing */
+  width: 100%;
 }
 
-.hero-text {
-    flex: 1;
+/* ================= TEXT SIDE ================= */
+
+.landing-hero .hero-text {
+  flex: 1.2;
+  max-width: 650px;
+  margin-left: -60px;
+  /* Wider text area */
 }
 
-.hero-text h1 {
-    font-size: 3.5rem;
-    font-weight: 800;
-    color: #1f2937;
-    margin-bottom: 1.5rem;
-    line-height: 1.1;
+.landing-hero .hero-text h1 {
+  font-size: 3.2rem;
+  line-height: 1.15;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 1.5rem;
 }
 
-.hero-text p {
-    font-size: 1.25rem;
-    color: #4b5563;
-    margin-bottom: 2.5rem;
-    line-height: 1.6;
+/* Red accent EXACT brand tone */
+.hero-accent {
+  color: #e11d48;
+  /* Proper red */
+  font-weight: 800;
 }
 
-.cta-btn {
-    background: #e11d48;
-    color: white;
-    padding: 1rem 2.5rem;
-    border: none;
-    border-radius: 8px;
-    font-size: 1.1rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s;
-    box-shadow: 0 4px 15px rgba(225, 29, 72, 0.3);
+/* Description */
+.hero-description {
+  font-size: 1.4rem;
+  /* Increased from 1.2rem */
+  line-height: 1.6;
+  color: #4b5563;
+  margin-bottom: 35px;
 }
 
-.cta-btn:hover {
-    background: #be123c;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(225, 29, 72, 0.4);
+/* CTA Button */
+.hero-cta {
+  display: inline-block;
+  padding: 16px 40px;
+  /* Increased padding */
+  font-size: 1.15rem;
+  /* Increased font-size */
+  font-weight: 600;
+  border-radius: 10px;
+  background: #e11d48;
+  color: #fff;
+  text-decoration: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: 10px;
+  /* Added top margin */
+  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.39);
 }
 
-.hero-image {
-    flex: 1;
-    display: flex;
+.hero-cta:hover {
+  background: #be123c;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(225, 29, 72, 0.45);
+}
+
+/* Removed disclaimer styles */
+
+/* ================= IMAGE SIDE ================= */
+
+.hero-img-container {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  position: relative;
+  margin-right: -140px;
+  /* Pulls the image further right */
+}
+
+/* Bigger image but controlled */
+.hero-banner-img {
+  width: 100%;
+  max-width: 700px;
+  /* Proper scale */
+  height: auto;
+  object-fit: contain;
+  transform: scale(1);
+  background: transparent;
+  /* margin-left: 39px; */
+  /* margin-right: -200px; */
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media (max-width: 992px) {
+  .landing-hero .hero-flex {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .hero-image {
     justify-content: center;
-}
+    margin-top: 40px;
+  }
 
-.hero-image img {
-    width: 100%;
-    max-width: 500px;
-    height: auto;
-    filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.1));
-}
-
-@media (max-width: 768px) {
-    .hero {
-        padding: 60px 20px;
-        text-align: center;
-    }
-
-    .hero-flex {
-        flex-direction: column;
-    }
-
-    .hero-text h1 {
-        font-size: 2.5rem;
-    }
+  .landing-hero .hero-text h1 {
+    font-size: 2.2rem;
+  }
 }
