@@ -13,12 +13,12 @@ const getRoomFacilityTypes = async (req, res) => {
 // @desc    Add new facility type
 const addRoomFacilityType = async (req, res) => {
     try {
-        const { name } = req.body;
+        const { name, description } = req.body;
         if (!name) {
             return res.status(400).json({ success: false, message: 'Please provide a facility type name' });
         }
 
-        const facilityType = await RoomFacilityType.create({ name });
+        const facilityType = await RoomFacilityType.create({ name, description });
         res.status(201).json({ success: true, data: facilityType });
     } catch (error) {
         if (error.code === 11000) {

@@ -1,15 +1,77 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './RoomSetup.css';
 import API_URL from '../../config/api';
+import RoomDetailsPanel from '../../components/rooms/RoomDetailsPanel';
 
 const RoomSetup = () => {
+    const navigate = useNavigate();
     const [rooms, setRooms] = useState([]);
     const [roomTypes, setRoomTypes] = useState([]); // State for dynamic room types
     const [bedTypes, setBedTypes] = useState([]); // State for dynamic bed types
     const [floors, setFloors] = useState([]); // State for dynamic floors
     const [taxOptions, setTaxOptions] = useState([]); // State for dynamic tax options
+    const [reservations, setReservations] = useState([]); // All bookings/reservations
+    const [maintenanceBlocks, setMaintenanceBlocks] = useState([]); // Maintenance blocks
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // Date Range State
+    const [startDate, setStartDate] = useState(new Date().toLocaleDateString('en-CA'));
+    const [endDate, setEndDate] = useState(() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        return d.toLocaleDateString('en-CA');
+    });
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [viewMonth, setViewMonth] = useState(new Date());
+
+    const getDaysInMonth = (year, month) => {
+        const date = new Date(year, month, 1);
+        const days = [];
+        const firstDay = date.getDay(); // 0 is Sunday, 1 is Monday
+        const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1;
+        for (let i = 0; i < adjustedFirstDay; i++) {
+            days.push(null);
+        }
+        while (date.getMonth() === month) {
+            days.push(new Date(date));
+            date.setDate(date.getDate() + 1);
+        }
+        return days;
+    };
+
+    const handleDateClick = (date) => {
+        if (!date) return;
+        const dateStr = date.toLocaleDateString('en-CA');
+        if (!startDate || (startDate && endDate)) {
+            setStartDate(dateStr);
+            setEndDate(null);
+        } else {
+            if (dateStr < startDate) {
+                setStartDate(dateStr);
+                setEndDate(null);
+            } else if (dateStr === startDate) {
+                return;
+            } else {
+                setEndDate(dateStr);
+            }
+        }
+    };
+
+    const isDateInRange = (date) => {
+        if (!date || !startDate || !endDate) return false;
+        const dateStr = date.toLocaleDateString('en-CA');
+        return dateStr > startDate && dateStr < endDate;
+    };
+
+    const isDateSelected = (date, type) => {
+        if (!date) return false;
+        const dateStr = date.toLocaleDateString('en-CA');
+        if (type === 'start') return dateStr === startDate;
+        if (type === 'end') return dateStr === endDate;
+        return false;
+    };
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -39,6 +101,27 @@ const RoomSetup = () => {
         taxMapping: 'All',
         status: 'All'
     });
+
+    const datePickerRef = useRef(null);
+
+    // Close date picker when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (datePickerRef.current && !datePickerRef.current.contains(event.target)) {
+                setShowDatePicker(false);
+            }
+        };
+
+        if (showDatePicker) {
+            document.addEventListener('mousedown', handleClickOutside);
+        } else {
+            document.removeEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showDatePicker]);
 
     // Fetch Room Types (Facility Types)
     const fetchRoomTypes = async () => {
@@ -114,6 +197,46 @@ const RoomSetup = () => {
         }
     };
 
+    // Fetch Reservations & Bookings
+    const fetchReservations = async () => {
+        try {
+            const [bookingsRes, reservationsRes] = await Promise.all([
+                fetch(`${API_URL}/api/bookings/list`),
+                fetch(`${API_URL}/api/reservations/list`)
+            ]);
+            const b = await bookingsRes.json();
+            const r = await reservationsRes.json();
+
+            let all = [];
+            if (b.success && b.data) all = [...all, ...b.data];
+            if (r.success && r.data) {
+                const mappedR = r.data.map(item => ({
+                    ...item,
+                    checkInDate: item.checkInDate,
+                    checkOutDate: item.checkOutDate,
+                    roomNumber: item.roomNumber
+                }));
+                all = [...all, ...mappedR];
+            }
+            setReservations(all);
+        } catch (err) {
+            console.error('Error fetching reservations:', err);
+        }
+    };
+
+    // Fetch Maintenance Blocks
+    const fetchMaintenanceBlocks = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/maintenance-blocks/list`);
+            const data = await response.json();
+            if (data.success) {
+                setMaintenanceBlocks(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching maintenance blocks:', error);
+        }
+    };
+
     // Fetch Rooms
     const fetchRooms = async () => {
         try {
@@ -121,7 +244,6 @@ const RoomSetup = () => {
             const response = await fetch(`${API_URL}/api/rooms/list`);
             const data = await response.json();
             if (data.success) {
-                // Transform data if necessary to match UI structure
                 const transformedRooms = data.data.map(room => ({
                     ...room,
                     id: room._id,
@@ -148,17 +270,68 @@ const RoomSetup = () => {
         fetchBedTypes();
         fetchFloors();
         fetchTaxOptions();
+        fetchReservations();
+        fetchMaintenanceBlocks();
     }, []);
+
+    // Availability Helper
+    const getRoomStatusForRange = (roomNumber) => {
+        // 1. Check Maintenance Blocks first (Priority)
+        const maintenanceOverlap = maintenanceBlocks.find(block => {
+            if (String(block.room) !== String(roomNumber)) return false;
+            if (block.status === 'Completed') return false;
+
+            const blockStart = new Date(block.startDate).setHours(0, 0, 0, 0);
+            const blockEnd = new Date(block.endDate).setHours(0, 0, 0, 0);
+            const selStart = new Date(startDate).setHours(0, 0, 0, 0);
+            const selEnd = new Date(endDate).setHours(0, 0, 0, 0);
+
+            // Maintenance block should show if any part of it overlaps with selected range
+            // Inclusive check for maintenance as it usually blocks the whole day
+            return (blockStart <= selEnd && blockEnd >= selStart);
+        });
+
+        if (maintenanceOverlap) return 'Under Maintenance';
+
+        const overlap = reservations.find(res => {
+            const hasRoom = res.roomNumber === roomNumber ||
+                (res.rooms && res.rooms.some(r => r.roomNumber === roomNumber));
+
+            if (!hasRoom) return false;
+
+            // Skip inactive/completed bookings
+            const inactiveStatuses = ['Checked-out', 'CHECKED_OUT', 'CheckedOut', 'Cancelled', 'NoShow', 'No-Show', 'Void'];
+            if (inactiveStatuses.includes(res.status)) return false;
+
+            // Standard overlap logic: (S1 < E2) AND (E1 > S2)
+            const resStart = new Date(res.checkInDate).setHours(0, 0, 0, 0);
+            const resEnd = new Date(res.checkOutDate).setHours(0, 0, 0, 0);
+            const selStart = new Date(startDate).setHours(0, 0, 0, 0);
+            const selEnd = new Date(endDate).setHours(0, 0, 0, 0);
+
+            return (resStart < selEnd && resEnd > selStart);
+        });
+
+        if (overlap) {
+            const occStatuses = ['Checked-in', 'IN_HOUSE', 'CheckedIn', 'Occupied'];
+            return occStatuses.includes(overlap.status) ? 'Occupied' : 'Reserved';
+        }
+        return 'Available';
+    };
 
     // Filter Logic
     const filteredRooms = rooms.filter(room => {
+        const currentStatus = getRoomStatusForRange(room.roomNumber);
         return (
             (filters.floor === 'All' || room.floor === filters.floor) &&
             (filters.roomType === 'All' || room.roomType === filters.roomType) &&
             (filters.bedType === 'All' || room.bedType === filters.bedType) &&
-            (filters.status === 'All' || room.status === filters.status)
+            (filters.status === 'All' || currentStatus === filters.status)
         );
-    });
+    }).map(room => ({
+        ...room,
+        computedStatus: getRoomStatusForRange(room.roomNumber)
+    }));
 
     // Handle Form Input Change
     const handleInputChange = (e) => {
@@ -222,6 +395,7 @@ const RoomSetup = () => {
 
         const payload = {
             roomNumber: formData.roomNumber,
+            floor: formData.floor,
             roomType: formData.roomType,
             price: Number(formData.basePrice),
             capacity: Number(formData.capacity),
@@ -282,141 +456,252 @@ const RoomSetup = () => {
         }
     };
 
+    // Room Details Panel State
+    const [selectedRoomIdForPanel, setSelectedRoomIdForPanel] = useState(null);
+    const [selectedRoomStatusForPanel, setSelectedRoomStatusForPanel] = useState(null);
+    const [isRoomPanelOpen, setIsRoomPanelOpen] = useState(false);
+
+    // Handle Room Click
+    const handleRoomClick = (room) => {
+        setSelectedRoomIdForPanel(room.id);
+        setSelectedRoomStatusForPanel(room.computedStatus);
+        setIsRoomPanelOpen(true);
+    };
+
+    // Handle Quick Book from Panel
+    const handleQuickBook = (room) => {
+        setIsRoomPanelOpen(false);
+
+        // Extract price numerical value
+        const cleanPrice = typeof room.price === 'number' ? room.price :
+            (room.basePrice ? Number(room.basePrice.replace(/[^\d.-]/g, '')) : 0);
+
+        navigate('/admin/reservation-stay-management', {
+            state: {
+                viewMode: 'form',
+                autoOpenGuestModal: true,
+                prefilledData: {
+                    roomNumber: room.roomNumber,
+                    roomType: room.roomType,
+                    price: cleanPrice,
+                    checkInDate: startDate,
+                    checkOutDate: endDate,
+                    capacity: room.capacity?.adults || room.capacity || 2
+                }
+            }
+        });
+    };
+
     return (
         <div className="room-setup-container">
+            <RoomDetailsPanel
+                roomId={selectedRoomIdForPanel}
+                computedStatus={selectedRoomStatusForPanel}
+                isOpen={isRoomPanelOpen}
+                onClose={() => setIsRoomPanelOpen(false)}
+                onUpdateStatus={(updatedRoom) => {
+                    // Update the room in the local state
+                    setRooms(prevRooms => prevRooms.map(r => r.id === updatedRoom._id ? { ...r, ...updatedRoom, id: updatedRoom._id } : r));
+                }}
+                onEdit={(room) => {
+                    setIsRoomPanelOpen(false);
+                    // RoomDetailsPanel passes the room object.
+                    // We need to re-format it if needed, or ensure openModal handles it.
+                    // openModal expects a room object similar to what's in the rooms list.
+                    // The rooms list has 'basePrice' with '₹ ', but RoomDetailsPanel might pass raw price.
+
+                    // Let's ensure consistency. The 'room' passed from RoomDetailsPanel is likely from /api/rooms/:id
+                    // which has `price` as number.
+                    // Our openModal logic handles: basePrice: room.price || room.basePrice...
+
+                    // We need to make sure we pass the full room object that openModal expects.
+                    // Ideally, we should find the room from our local state to ensure it has all the transformed UI fields
+                    const roomFromState = rooms.find(r => r.id === room._id || r.id === room.id);
+                    openModal('edit', roomFromState || room);
+                }}
+                onQuickBook={handleQuickBook}
+            />
             {/* Header Section */}
             <header className="room-setup-header">
-                <h2>Room Setup</h2>
-                <button className="add-room-btn" onClick={() => openModal('add')}>Add New Room</button>
+                <h2><span role="img" aria-label="bed">🛏️</span> Rooms Management</h2>
             </header>
 
-            {/* Controls Section */}
-            <div className="room-setup-controls">
-                <div className="filter-row">
-                    <select className="filter-select" value={filters.floor} onChange={(e) => setFilters({ ...filters, floor: e.target.value })}>
-                        <option value="All">Floor: All</option>
-                        {floors.map(floor => (
-                            <option key={floor._id} value={floor.name}>{floor.name}</option>
-                        ))}
-                    </select>
+            {/* Controls Bar */}
+            <div className="controls-bar">
+                <div className="date-range-picker-wrapper" ref={datePickerRef}>
+                    <div className="date-range-picker" onClick={() => setShowDatePicker(!showDatePicker)}>
+                        📅 {new Date(startDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} – {new Date(endDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+                        <span style={{ marginLeft: '10px' }}>▼</span>
+                    </div>
 
-                    <select className="filter-select" value={filters.roomType} onChange={(e) => setFilters({ ...filters, roomType: e.target.value })}>
-                        <option value="All">Room Type: All</option>
-                        {roomTypes.map(type => (
-                            <option key={type._id} value={type.name}>{type.name}</option>
-                        ))}
-                    </select>
+                    {showDatePicker && (
+                        <div className="date-picker-dropdown" onClick={(e) => e.stopPropagation()}>
+                            <div className="calendar-container">
+                                {[0, 1].map((offset) => {
+                                    const monthDate = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + offset, 1);
+                                    const monthDays = getDaysInMonth(monthDate.getFullYear(), monthDate.getMonth());
 
-                    <select className="filter-select" value={filters.bedType} onChange={(e) => setFilters({ ...filters, bedType: e.target.value })}>
-                        <option value="All">Bed Type: All</option>
-                        {bedTypes.map(type => (
-                            <option key={type._id} value={type.name}>{type.name}</option>
-                        ))}
-                    </select>
+                                    return (
+                                        <div key={offset} className="calendar-month">
+                                            <div className="calendar-header">
+                                                {offset === 0 ? (
+                                                    <button className="nav-btn" onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1))}>
+                                                        ‹
+                                                    </button>
+                                                ) : <div />}
+                                                <h4>{monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h4>
+                                                {offset === 1 ? (
+                                                    <button className="nav-btn" onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1))}>
+                                                        ›
+                                                    </button>
+                                                ) : <div />}
+                                            </div>
+                                            <div className="days-grid">
+                                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
+                                                    <div key={d} className="day-name">{d}</div>
+                                                ))}
+                                                {monthDays.map((date, idx) => {
+                                                    if (!date) return <div key={`empty-${idx}`} className="day-cell empty" />;
 
-                    <select className="filter-select" value={filters.taxMapping} onChange={(e) => setFilters({ ...filters, taxMapping: e.target.value })}>
-                        <option value="All">Tax Mapping: All</option>
-                        {taxOptions.map(option => (
-                            <option key={option.id} value={option.label}>{option.label}</option>
-                        ))}
-                    </select>
+                                                    const isStart = isDateSelected(date, 'start');
+                                                    const isEnd = isDateSelected(date, 'end');
+                                                    const inRange = isDateInRange(date);
+                                                    const isPast = date.toLocaleDateString('en-CA') < new Date().toLocaleDateString('en-CA');
 
-                    <select className="filter-select" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
-                        <option value="All">Status: All</option>
-                        <option value="Available">Available</option>
-                        <option value="Booked">Booked</option>
-                        <option value="Occupied">Occupied</option>
-                        <option value="Under Maintenance">Maintenance</option>
-                    </select>
+                                                    return (
+                                                        <div
+                                                            key={date.toLocaleDateString('en-CA')}
+                                                            className={`day-cell ${isStart ? 'selected-start' : ''} ${isEnd ? 'selected-end' : ''} ${inRange ? 'in-range' : ''} ${isPast ? 'disabled' : ''}`}
+                                                            onClick={() => !isPast && handleDateClick(date)}
+                                                        >
+                                                            {date.getDate()}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="calendar-footer">
+                                <div className="selected-info">
+                                    Selected: <b>{startDate ? new Date(startDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) : '...'}</b>
+                                    {endDate && <> to <b>{new Date(endDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</b></>}
+                                </div>
+                                <button className="dp-apply-btn" onClick={() => setShowDatePicker(false)}>Apply</button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                <div className="filter-progress-row">
-                    <span>Filter Progress</span>
-                    <div className="progress-bar">
-                        <div className="progress-fill" style={{ width: `${(filteredRooms.length / (rooms.length || 1)) * 100}%` }}></div>
-                    </div>
+                <select className="filter-select" value={filters.floor} onChange={(e) => setFilters({ ...filters, floor: e.target.value })}>
+                    <option value="All">Floor: All</option>
+                    {floors.map(floor => (
+                        <option key={floor._id} value={floor.name}>{floor.name}</option>
+                    ))}
+                </select>
+
+                <select className="filter-select" value={filters.roomType} onChange={(e) => setFilters({ ...filters, roomType: e.target.value })}>
+                    <option value="All">Room Type: All</option>
+                    {roomTypes.map(type => (
+                        <option key={type._id} value={type.name}>{type.name}</option>
+                    ))}
+                </select>
+
+                <select className="filter-select" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
+                    <option value="All">Status: All</option>
+                    <option value="Available">Available</option>
+                    <option value="Reserved">Reserved</option>
+                    <option value="Occupied">Occupied</option>
+                    <option value="Under Maintenance">Maintenance</option>
+                </select>
+
+                <button className="add-room-btn" onClick={() => openModal('add')}>+ Add Room</button>
+            </div>
+
+            {/* Sub-Header Section */}
+            <div className="sub-header">
+                <h3><span role="img" aria-label="bed">🛏️</span> Rooms Management</h3>
+                <div className="status-info-bar">
+                    <span className="status-dot-green"></span>
+                    Available rooms between {new Date(startDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} – {new Date(endDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                 </div>
             </div>
 
-            {/* Table Section */}
-            <div className="room-setup-table-container">
+            {/* Room Cards Grid */}
+            <div className="room-setup-grid-container">
                 {loading ? (
                     <div style={{ padding: '20px', textAlign: 'center' }}>Loading rooms...</div>
                 ) : error ? (
                     <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>{error}</div>
                 ) : (
-                    <table className="room-table">
-                        <thead>
-                            <tr>
-                                <th>Room No</th>
-                                <th>Floor</th>
-                                <th>Room Type</th>
-                                <th>Bed Type</th>
-                                <th>Capacity</th>
-                                <th>Base Price</th>
-                                <th>Status</th>
-                                <th>QR Code</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredRooms.length > 0 ? (
-                                filteredRooms.map((room) => (
-                                    <tr key={room.id}>
-                                        <td>{room.roomNumber}</td>
-                                        <td>{room.floor}</td>
-                                        <td>{room.roomType}</td>
-                                        <td>{room.bedType}</td>
-                                        <td>
-                                            <div className="capacity-icons">
-                                                <span className="capacity-item">
-                                                    {room.capacity.adults} 👤
-                                                </span>
-                                                {/* Backend doesn't store children capacity yet, so just showing placeholders or implied data */}
-                                            </div>
-                                        </td>
-                                        <td>{room.basePrice}</td>
-                                        <td>
-                                            <span className={`status-badge ${room.status?.toLowerCase().replace(' ', '-') || 'available'}`}>
-                                                {room.status}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div className="qr-codes">
-                                                <div className="qr-mini">QR</div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div className="action-buttons">
-                                                <button className="edit-btn" onClick={() => openModal('edit', room)}>✏️</button>
-                                                <button className="delete-btn" onClick={() => handleDelete(room.id)}>🗑️</button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan="9" style={{ textAlign: 'center', padding: '20px' }}>No rooms found</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                )}
+                    <div className="room-cards-grid">
+                        {filteredRooms.length > 0 ? (
+                            filteredRooms.map((room) => {
+                                const statusClass =
+                                    room.computedStatus === 'Available' ? 'status-available' :
+                                        room.computedStatus === 'Occupied' ? 'status-occupied' :
+                                            room.computedStatus === 'Reserved' ? 'status-reserved' :
+                                                'status-maintenance';
 
-                {/* Pagination - Placeholder for now */}
-                <div className="table-pagination">
-                    <span>Rows per page: </span>
-                    <select className="rows-select">
-                        <option>10</option>
-                        <option>20</option>
-                    </select>
-                    <span>1-{filteredRooms.length} of {filteredRooms.length}</span>
-                    <div className="pagination-controls">
-                        <button className="page-btn">{'<'}</button>
-                        <button className="page-btn active">1</button>
-                        <button className="page-btn">{'>'}</button>
+                                return (
+                                    <div
+                                        className={`room-card ${statusClass}`}
+                                        key={room.id}
+                                        onClick={() => handleRoomClick(room)}
+                                        style={{ cursor: 'pointer' }}
+                                    >
+                                        <div className="room-card-header">
+                                            <h4>Room {room.roomNumber}</h4>
+                                            <div className="card-actions">
+                                                <button
+                                                    className="icon-btn"
+                                                    onClick={(e) => { e.stopPropagation(); openModal('edit', room); }}
+                                                    title="Edit"
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    className="icon-btn"
+                                                    onClick={(e) => { e.stopPropagation(); handleDelete(room.id); }}
+                                                    title="Delete"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="room-card-body">
+                                            <div className="room-type">{room.roomType}</div>
+                                            <p className="room-info">Capacity: {room.capacity.adults} persons</p>
+                                            <p className="room-type" style={{ marginTop: 'auto' }}>{room.basePrice}/night</p>
+                                        </div>
+                                        <div className="room-card-footer">
+                                            <span className="status-pill">{room.computedStatus}</span>
+                                            <button
+                                                className="book-btn"
+                                                onClick={(e) => { e.stopPropagation(); handleQuickBook(room); }}
+                                                disabled={room.computedStatus !== 'Available'}
+                                                style={{ opacity: room.computedStatus !== 'Available' ? 0.5 : 1 }}
+                                            >
+                                                💼 Book
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div className="no-rooms-message">No rooms found matching filters.</div>
+                        )}
                     </div>
-                </div>
+                )}
+            </div>
+
+            {/* Legend */}
+            <div className="legend-container">
+                <div className="legend-item"><span className="legend-dot green"></span> Available</div>
+                <div className="legend-item"><span className="legend-dot yellow"></span> Reserved</div>
+                <div className="legend-item"><span className="legend-dot red"></span> Occupied</div>
+                <div className="legend-item"><span className="legend-dot blue"></span> Maintenance</div>
             </div>
 
             {/* Add/Edit Modal */}
@@ -463,15 +748,6 @@ const RoomSetup = () => {
                                     <select name="roomType" value={formData.roomType} onChange={handleInputChange} className="form-input">
                                         <option value="">Select Room Type</option>
                                         {roomTypes.map(type => (
-                                            <option key={type._id} value={type.name}>{type.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>Bed Type</label>
-                                    <select name="bedType" value={formData.bedType} onChange={handleInputChange} className="form-input">
-                                        <option value="">Select Bed Type</option>
-                                        {bedTypes.map(type => (
                                             <option key={type._id} value={type.name}>{type.name}</option>
                                         ))}
                                     </select>
@@ -552,18 +828,8 @@ const RoomSetup = () => {
                                                 <span className="input-suffix">sq ft</span>
                                             </div>
                                         </div>
-
-
                                     </div>
-
-
                                 </div>
-
-
-
-
-
-
 
                                 <div className="form-group">
                                     <label>Status</label>

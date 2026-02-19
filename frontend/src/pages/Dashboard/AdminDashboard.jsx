@@ -22,7 +22,7 @@ import CashierReport from '../CashierReport/CashierReport';
 import CashierSection from '../Cashier/CashierSection';
 import StayOverview from '../../components/StayOverview';
 import RoomSetup from '../RoomSetup/RoomSetup';
-import RoomFacilities from '../RoomFacilities/RoomFacilities';
+
 import RoomFacilityType from '../RoomFacilityType/RoomFacilityType';
 import MealType from '../MealType/MealType';
 import ReservationType from '../ReservationType/ReservationType';
@@ -183,7 +183,7 @@ const AdminDashboard = () => {
         else if (path.includes('/room-setup')) setActiveMenu('room-setup');
         else if (path.includes('/floor-setup')) setActiveMenu('floor-setup');
         else if (path.includes('/bed-type')) setActiveMenu('bed-type');
-        else if (path.includes('/room-facilities')) setActiveMenu('room-facilities');
+
         else if (path.includes('/room-facilities-type')) setActiveMenu('room-facilities-type');
         else if (path.includes('/meal-type')) setActiveMenu('meal-type');
         else if (path.includes('/reservation-type')) setActiveMenu('reservation-type');
@@ -468,7 +468,7 @@ const AdminDashboard = () => {
         else if (menuId === 'room-setup') navigate('/admin/room-setup');
         else if (menuId === 'floor-setup') navigate('/admin/floor-setup');
         else if (menuId === 'bed-type') navigate('/admin/bed-type');
-        else if (menuId === 'room-facilities') navigate('/admin/room-facilities');
+
         else if (menuId === 'room-facilities-type') navigate('/admin/room-facilities-type');
         else if (menuId === 'meal-type') navigate('/admin/meal-type');
         else if (menuId === 'reservation-type') navigate('/admin/reservation-type');
@@ -755,127 +755,7 @@ const AdminDashboard = () => {
             {/* Rooms View */}
             {
                 activeMenu === 'rooms' && (
-                    <div className="rooms-section">
-                        {/* Rooms Header */}
-                        <h2>Rooms Management</h2>
-
-
-                        {/* Search and Filters */}
-                        {/* Search and Filters */}
-                        <div className="rooms-controls">
-                            <div className="search-box">
-                                <span className="search-icon"></span>
-
-                                <input
-                                    type="text"
-                                    placeholder="Search room..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="filters-row" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-                                <select className="filter-select" value={filters.floor} onChange={(e) => setFilters({ ...filters, floor: e.target.value })}>
-                                    <option value="All">Floor: All</option>
-                                    {floors.map(floor => (
-                                        <option key={floor._id} value={floor.name}>{floor.name}</option>
-                                    ))}
-                                </select>
-
-                                <select className="filter-select" value={filters.roomType} onChange={(e) => setFilters({ ...filters, roomType: e.target.value })}>
-                                    <option value="All">Room Type: All</option>
-                                    {getAllRoomTypes().filter(t => t !== 'All Types').map(type => (
-                                        <option key={type} value={type}>{type}</option>
-                                    ))}
-                                </select>
-
-                                <select className="filter-select" value={filters.bedType} onChange={(e) => setFilters({ ...filters, bedType: e.target.value })}>
-                                    <option value="All">Bed Type: All</option>
-                                    {bedTypes.map(type => (
-                                        <option key={type._id} value={type.name}>{type.name}</option>
-                                    ))}
-                                </select>
-
-                                <select className="filter-select" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
-                                    <option value="All">Status: All</option>
-                                    <option value="Available">Available</option>
-                                    <option value="Booked">Booked</option>
-                                    <option value="Occupied">Occupied</option>
-                                    <option value="Under Maintenance">Maintenance</option>
-                                </select>
-                            </div>
-
-                            <button className="add-room-btn" onClick={handleAddRoom}>
-                                + Add Room
-                            </button>
-                        </div>
-
-                        {/* Rooms Grid */}
-                        <div className="rooms-grid">
-                            <AnimatePresence>
-                                {filteredRooms.map((room) => (
-                                    <motion.div
-                                        key={room.id}
-                                        className={`room-card ${getStatusClass(room.status)}`}
-                                        onClick={() => handleRoomClick(room)}
-                                        style={{ cursor: room.status === 'Available' ? 'pointer' : 'default' }}
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.9 }}
-                                        transition={{ duration: 0.3 }}
-                                    >
-                                        <div className="room-card-header">
-                                            <h3>Room {room.roomNumber}</h3>
-                                        </div>
-                                        <div className="room-card-body">
-                                            <p className="room-type">{getRoomTypeShort(room.roomType)}</p>
-                                            <p className="room-capacity">Capacity: {room.capacity} persons</p>
-                                            <p className="room-price">₹{room.price}/night</p>
-                                        </div>
-                                        <div className="room-card-footer">
-                                            <span className={`room-status ${getStatusClass(room.status)}`}>
-                                                {room.status}
-                                            </span>
-                                            <div className="card-actions">
-                                                {room.status === 'Available' && (
-                                                    <button className="book-btn" onClick={(e) => { e.stopPropagation(); handleRoomClick(room); }}>
-                                                        📅 Book
-                                                    </button>
-                                                )}
-                                                <button className="edit-btn" onClick={(e) => { e.stopPropagation(); handleEditRoom(room); }}>
-                                                    ✏️ Edit
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                ))}
-                            </AnimatePresence>
-                        </div>
-
-                        {!exactMatch && rooms.length > 0 && (
-                            <div className="filter-warning" style={{ color: '#d32f2f', backgroundColor: '#ffebee', padding: '10px', borderRadius: '4px', marginBottom: '15px', textAlign: 'center', fontWeight: 'bold' }}>
-                                ⚠️ No exact match found. Showing closest available rooms.
-                            </div>
-                        )}
-
-                        {filteredRooms.length === 0 && (
-                            <div className="no-rooms">
-                                <p>No rooms found</p>
-                            </div>
-                        )}
-
-                        <RoomDetailsPanel
-                            roomId={selectedRoomIdForPanel}
-                            isOpen={isRoomPanelOpen}
-                            onClose={() => setIsRoomPanelOpen(false)}
-                            onUpdateStatus={handleUpdateRoomStatusPanel}
-                            onEdit={(room) => {
-                                setIsRoomPanelOpen(false);
-                                handleEditRoom(room);
-                            }}
-                            onQuickBook={handleQuickBook}
-                        />
-                    </div>
+                    <RoomSetup />
                 )
             }
 
@@ -1106,12 +986,7 @@ const AdminDashboard = () => {
                 )
             }
 
-            {/* Room Facilities View */}
-            {
-                activeMenu === 'room-facilities' && (
-                    <RoomFacilities />
-                )
-            }
+
 
             {/* Room Facilities Type View */}
             {

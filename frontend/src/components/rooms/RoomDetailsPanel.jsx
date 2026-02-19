@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import API_URL from '../../config/api';
 import './RoomDetailsPanel.css';
 
-const RoomDetailsPanel = ({ roomId, isOpen, onClose, onUpdateStatus, onEdit, onQuickBook }) => {
+const RoomDetailsPanel = ({ roomId, isOpen, onClose, onUpdateStatus, onEdit, onQuickBook, computedStatus }) => {
     const [room, setRoom] = useState(null);
+    const [roomFacilities, setRoomFacilities] = useState([]);
+    const [roomBookings, setRoomBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -18,18 +20,61 @@ const RoomDetailsPanel = ({ roomId, isOpen, onClose, onUpdateStatus, onEdit, onQ
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch(`${API_URL}/api/rooms/${roomId}`);
-            const data = await response.json();
-            if (data.success) {
-                setRoom(data.data);
+            // Parallel fetch for room details and facility types
+            const [roomRes, facilitiesRes] = await Promise.all([
+                fetch(`${API_URL}/api/rooms/${roomId}`),
+                fetch(`${API_URL}/api/facility-types/list`)
+            ]);
+
+            const roomData = await roomRes.json();
+            const facilitiesData = await facilitiesRes.json();
+
+            if (roomData.success) {
+                const fetchedRoom = roomData.data;
+                setRoom(fetchedRoom);
+
+                // Fetch bookings for this room
+                fetchBookingsForRoom(fetchedRoom.roomNumber);
+
+                // Live Fetch logic: Match room type with facility type setup (Image 2 logic)
+                if (facilitiesData.success && facilitiesData.data) {
+                    const matchedFacilityType = facilitiesData.data.find(
+                        type => type.name.toLowerCase() === fetchedRoom.roomType.toLowerCase()
+                    );
+
+                    if (matchedFacilityType && matchedFacilityType.description) {
+                        // Split by comma as shown in Image 2
+                        const facilityList = matchedFacilityType.description.split(',').map(f => f.trim());
+                        setRoomFacilities(facilityList);
+                    } else {
+                        // Fallback to room's own facilities if any
+                        setRoomFacilities(fetchedRoom.facilities || []);
+                    }
+                }
             } else {
-                setError(data.message || 'Failed to fetch room details');
+                setError(roomData.message || 'Failed to fetch room details');
             }
         } catch (err) {
             console.error('Error fetching room details:', err);
             setError('Error connecting to server');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchBookingsForRoom = async (roomNumber) => {
+        try {
+            const response = await fetch(`${API_URL}/api/bookings/room/${roomNumber}`);
+            const data = await response.json();
+            if (data.success) {
+                // Filter out checked out and cancelled to show only active/future bookings
+                const activeBookings = data.data.filter(b =>
+                    !['Checked-out', 'CheckedOut', 'CHECKED_OUT', 'Cancelled', 'NoShow', 'No-Show'].includes(b.status)
+                );
+                setRoomBookings(activeBookings);
+            }
+        } catch (err) {
+            console.error('Error fetching room bookings:', err);
         }
     };
 
@@ -152,16 +197,16 @@ const RoomDetailsPanel = ({ roomId, isOpen, onClose, onUpdateStatus, onEdit, onQ
                                             <div className="info-item full-width">
                                                 <label>Status</label>
                                                 <span className="status-badge" style={{
-                                                    color: getStatusStyle(room.status).color,
-                                                    backgroundColor: getStatusStyle(room.status).bg,
+                                                    color: getStatusStyle(computedStatus || room.status).color,
+                                                    backgroundColor: getStatusStyle(computedStatus || room.status).bg,
                                                     padding: '4px 12px',
                                                     borderRadius: '20px',
                                                     fontSize: '0.75rem',
                                                     fontWeight: '700',
                                                     display: 'inline-block',
-                                                    border: `1px solid ${getStatusStyle(room.status).color}`
+                                                    border: `1px solid ${getStatusStyle(computedStatus || room.status).color}`
                                                 }}>
-                                                    {getStatusStyle(room.status).label}
+                                                    {getStatusStyle(computedStatus || room.status).label}
                                                 </span>
                                             </div>
                                         </div>
@@ -201,13 +246,52 @@ const RoomDetailsPanel = ({ roomId, isOpen, onClose, onUpdateStatus, onEdit, onQ
                                     {/* Facilities Section */}
                                     <div className="panel-section">
                                         <h3 className="section-title">🔹 FACILITIES</h3>
-                                        <div className="facilities-container">
-                                            {room.facilities && room.facilities.length > 0 ? (
-                                                room.facilities.map((fac, idx) => (
-                                                    <span key={idx} className="facility-chip">{fac}</span>
+                                        <div className="facilities-grid-modern">
+                                            {roomFacilities && roomFacilities.length > 0 ? (
+                                                roomFacilities.map((fac, idx) => (
+                                                    <div key={idx} className="facility-box-modern">
+                                                        <span className="check-icon">
+                                                            {fac.toLowerCase().includes('wi-fi') ? '📶' : '✔️'}
+                                                        </span>
+                                                        <span className="facility-text">{fac.trim()}</span>
+                                                    </div>
                                                 ))
                                             ) : (
-                                                <p className="no-data">No facilities listed</p>
+                                                <p className="no-data">No facilities listed for this room type</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Booking Schedule Section */}
+                                    <div className="panel-section">
+                                        <h3 className="section-title">📅 BOOKING SCHEDULE</h3>
+                                        <div className="bookings-schedule-container">
+                                            {roomBookings && roomBookings.length > 0 ? (
+                                                <div className="booking-list">
+                                                    {roomBookings.map((booking, idx) => (
+                                                        <div key={idx} className={`booking-schedule-item ${['IN_HOUSE', 'Checked-in', 'Occupied'].includes(booking.status) ? 'current' : 'upcoming'}`}>
+                                                            <div className="booking-period">
+                                                                <span className="dates">
+                                                                    {new Date(booking.checkInDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                                                    {' - '}
+                                                                    {new Date(booking.checkOutDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                                                </span>
+                                                                <span className="booking-status-tag">
+                                                                    {['IN_HOUSE', 'Checked-in', 'Occupied'].includes(booking.status) ? 'Current' : 'Confirmed'}
+                                                                </span>
+                                                            </div>
+                                                            <div className="guest-mini-info">
+                                                                <span className="guest-name">{booking.guestName}</span>
+                                                                <span className="nights">{booking.numberOfNights || 1} Night(s)</span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="no-bookings-placeholder">
+                                                    <div className="calendar-icon">📅</div>
+                                                    <p>No active or upcoming bookings for this room.</p>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -230,7 +314,7 @@ const RoomDetailsPanel = ({ roomId, isOpen, onClose, onUpdateStatus, onEdit, onQ
                             <button
                                 className="panel-action-btn quick-book"
                                 onClick={() => onQuickBook(room)}
-                                disabled={room?.status !== 'Available'}
+                                disabled={(computedStatus || room?.status) !== 'Available'}
                             >
                                 ⚡ Quick Book
                             </button>

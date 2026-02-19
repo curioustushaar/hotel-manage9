@@ -42,6 +42,36 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
     const category = roomCategories[room.categoryId];
     const baseRate = category?.baseRate || 0;
 
+    const handleRoomNumberChange = async (value) => {
+        handleChange('roomNumber', value);
+
+        // Auto-detect category from room number
+        if (value && value.length >= 1) {
+            try {
+                // Fetch room list (could be optimized with a specific search endpoint)
+                const response = await fetch(`${API_URL}/api/rooms/list`);
+                const data = await response.json();
+                if (data.success && data.data) {
+                    const roomInfo = data.data.find(r => String(r.roomNumber).trim() === String(value).trim());
+                    if (roomInfo && roomInfo.roomType) {
+                        // Find if this roomType exists in our categories
+                        if (roomCategories[roomInfo.roomType]) {
+                            // Update both room number and category
+                            onUpdate(index, {
+                                ...room,
+                                roomNumber: value,
+                                categoryId: roomInfo.roomType,
+                                ratePerNight: roomInfo.price || room.ratePerNight
+                            });
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Auto-fill error:', err);
+            }
+        }
+    };
+
     return (
         <div className="room-row">
             <div className="room-header">
@@ -77,7 +107,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                         type="text"
                         placeholder="e.g., 101, A1"
                         value={room.roomNumber || ''}
-                        onChange={(e) => handleChange('roomNumber', e.target.value)}
+                        onChange={(e) => handleRoomNumberChange(e.target.value)}
                         disabled={readOnly}
                     />
                 </div>

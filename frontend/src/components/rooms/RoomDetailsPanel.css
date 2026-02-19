@@ -147,21 +147,53 @@
     color: #b91c1c;
 }
 
-/* Facilities Chips */
-.facilities-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+/* Modern Facilities Grid (Square Boxes) */
+.facilities-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
 }
 
-.facility-chip {
-    background: #f1f5f9;
-    color: #475569;
-    padding: 6px 14px;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
+.facility-box-modern {
+    background: #f8fafc;
     border: 1px solid #e2e8f0;
+    padding: 0.85rem 1rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.facility-box-modern:hover {
+    background: #ffffff;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border-color: #cbd5e1;
+    transform: translateY(-2px);
+}
+
+.check-icon {
+    color: #10b981;
+    /* Success Green */
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.facility-text {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #334155;
+}
+
+.no-data {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    font-style: italic;
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 1rem;
 }
 
 /* Actions Footer */
@@ -282,6 +314,113 @@
     padding: 8px 20px;
     border-radius: 6px;
     cursor: pointer;
+}
+
+/* Booking Schedule Section Styles */
+.bookings-schedule-container {
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.25rem;
+    overflow: hidden;
+}
+
+.booking-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.booking-schedule-item {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 1rem;
+    border-left: 4px solid #94a3b8;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+.booking-schedule-item:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.booking-schedule-item.current {
+    border-left-color: #ef4444;
+    background: #fffafa;
+}
+
+.booking-schedule-item.upcoming {
+    border-left-color: #3b82f6;
+    background: #f0f7ff;
+}
+
+.booking-period {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.booking-period .dates {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.booking-status-tag {
+    font-size: 0.65rem;
+    font-weight: 900;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.current .booking-status-tag {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.upcoming .booking-status-tag {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.guest-mini-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.guest-mini-info .guest-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.guest-mini-info .nights {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.no-bookings-placeholder {
+    text-align: center;
+    padding: 1.5rem;
+    color: #94a3b8;
+}
+
+.no-bookings-placeholder .calendar-icon {
+    font-size: 2rem;
+    opacity: 0.2;
+    margin-bottom: 0.5rem;
+}
+
+.no-bookings-placeholder p {
+    font-size: 0.8rem;
+    margin: 0;
+    font-style: italic;
 }
 
 @media (max-width: 500px) {

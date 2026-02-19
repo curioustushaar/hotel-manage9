@@ -998,10 +998,19 @@
 }
 
 .form-main {
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 0;
     width: 100%;
+}
+
+.locked-input {
+    background-color: #f1f5f9 !important;
+    color: #475569 !important;
+    cursor: not-allowed !important;
+    border-color: #cbd5e1 !important;
+    font-weight: 700 !important;
 }
 
 .form-main h1 {
@@ -2237,4 +2246,147 @@ select:disabled {
     border-top: none;
     margin-top: 0.5rem;
     padding-top: 0;
+}
+
+/* ============================================================
+   PREMIUM BOOKING HISTORY SECTION
+   ============================================================ */
+
+.booking-history-container {
+    margin-top: 2rem;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f0f2f5;
+    overflow: hidden;
+    width: 100%;
+}
+
+.history-header-btn {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.history-header-btn:hover {
+    background-color: #f8fafc;
+}
+
+.header-title-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-icon-circle {
+    width: 36px;
+    height: 36px;
+    background-color: #f1f5f9;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.header-text {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.chevron-icon {
+    font-size: 0.8rem;
+    color: #64748b;
+    transition: transform 0.3s ease;
+}
+
+.chevron-icon.expanded {
+    transform: rotate(180deg);
+}
+
+.history-table-wrapper {
+    padding: 0 1.5rem 1.5rem 1.5rem;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.history-table th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748b;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.history-row {
+    transition: background-color 0.2s ease;
+}
+
+.history-row:hover {
+    background-color: #f8fafc;
+}
+
+.history-table td {
+    padding: 1rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #1e293b;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.history-table .res-id {
+    color: #64748b;
+    font-weight: 600;
+}
+
+.history-table .room-type {
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.history-table .dates {
+    color: #64748b;
+}
+
+.history-table .amount {
+    font-weight: 700;
+}
+
+.history-table .amount.paid {
+    color: #15803d;
+}
+
+.history-table .amount.overdue {
+    color: #dc2626;
+}
+
+.history-table .text-right {
+    text-align: right;
+}
+
+.row-action {
+    text-align: right;
+    width: 40px;
+}
+
+.arrow-right {
+    color: #cbd5e1;
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.history-row:hover .arrow-right {
+    color: #4f46e5;
 }

@@ -98,7 +98,7 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
                 { id: 'room-setup', label: 'Room Setup', iconVal: <Icons.Dot /> },
                 { id: 'floor-setup', label: 'Floor Setup', iconVal: <Icons.Dot /> },
                 { id: 'bed-type', label: 'Bed Type', iconVal: <Icons.Dot /> },
-                { id: 'room-facilities', label: 'Room Facilities', iconVal: <Icons.Dot /> },
+
                 { id: 'room-facilities-type', label: 'Room Facilities Type', iconVal: <Icons.Dot /> },
                 { id: 'meal-type', label: 'Meal Type', iconVal: <Icons.Dot /> },
                 { id: 'reservation-type', label: 'Reservation Type', iconVal: <Icons.Dot /> },

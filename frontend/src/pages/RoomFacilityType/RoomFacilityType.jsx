@@ -11,7 +11,7 @@ const RoomFacilityType = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState('add');
     const [currentFacility, setCurrentFacility] = useState(null);
-    const [formData, setFormData] = useState({ name: '' });
+    const [formData, setFormData] = useState({ name: '', description: '' });
 
     useEffect(() => {
         fetchFacilityTypes();
@@ -38,10 +38,10 @@ const RoomFacilityType = () => {
         setModalMode(mode);
         if (mode === 'edit' && facility) {
             setCurrentFacility(facility);
-            setFormData({ name: facility.name });
+            setFormData({ name: facility.name, description: facility.description || '' });
         } else {
             setCurrentFacility(null);
-            setFormData({ name: '' });
+            setFormData({ name: '', description: '' });
         }
         setIsModalOpen(true);
     };
@@ -98,8 +98,8 @@ const RoomFacilityType = () => {
     return (
         <div className="room-facility-type-container">
             <header className="room-facility-type-header">
-                <h2>Room Facilities Type</h2>
-                <button className="add-facility-btn" onClick={() => handleOpenModal('add')}>+ Add Facility Type</button>
+                <h2>Room Facilities Setup</h2>
+                <button className="add-facility-btn" onClick={() => handleOpenModal('add')}>+ Add Facility</button>
             </header>
 
             <div className="facility-type-table-container">
@@ -110,8 +110,9 @@ const RoomFacilityType = () => {
                         <thead>
                             <tr>
                                 <th style={{ width: '80px' }}>ID</th>
-                                <th>Facility Type</th>
-                                <th style={{ width: '150px', textAlign: 'right' }}>Actions</th>
+                                <th>FACILITY</th>
+                                <th>FACILITY TYPE</th>
+                                <th style={{ width: '150px', textAlign: 'right' }}>ACTION</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -120,6 +121,15 @@ const RoomFacilityType = () => {
                                     <td>{index + 1}</td>
                                     <td>
                                         <span className="facility-name">{facility.name}</span>
+                                    </td>
+                                    <td>
+                                        <span className="facility-description">
+                                            {facility.description ? (
+                                                <span className="facility-tag">{facility.description}</span>
+                                            ) : (
+                                                <span className="text-muted">-</span>
+                                            )}
+                                        </span>
                                     </td>
                                     <td style={{ textAlign: 'right' }}>
                                         <div className="action-btns" style={{ justifyContent: 'flex-end' }}>
@@ -131,7 +141,7 @@ const RoomFacilityType = () => {
                             ))}
                             {facilityTypes.length === 0 && (
                                 <tr>
-                                    <td colSpan="3" style={{ textAlign: 'center', padding: '20px' }}>No facility types found</td>
+                                    <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>No facilities found</td>
                                 </tr>
                             )}
                         </tbody>
@@ -147,21 +157,32 @@ const RoomFacilityType = () => {
                 <div className="modal-overlay">
                     <div className="modal-content">
                         <div className="modal-header">
-                            <h3>{modalMode === 'add' ? 'Add Facility Type' : 'Edit Facility Type'}</h3>
+                            <h3>{modalMode === 'add' ? 'Add Facility' : 'Edit Facility'}</h3>
                             <button className="modal-close" onClick={() => setIsModalOpen(false)}>✕</button>
                         </div>
                         <form onSubmit={handleSubmit}>
                             <div className="modal-body">
                                 <div className="form-group">
-                                    <label>Facility Type Name</label>
+                                    <label>FACILITY</label>
                                     <input
                                         type="text"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         required
-                                        placeholder="e.g. AC, TV, Premium"
+                                        placeholder="e.g. Standard Room"
                                         className="form-input"
                                         autoFocus
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>FACILITY TYPE</label>
+                                    <textarea
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        placeholder="e.g. Double/Queen Bed, AC/Fan, TV..."
+                                        className="form-input"
+                                        rows="3"
+                                        style={{ resize: 'vertical' }}
                                     />
                                 </div>
                             </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API_URL from '../config/api';
+import RoomDetailsPanel from './rooms/RoomDetailsPanel';
 import './StayOverview.css';
 import './StayOverviewModals.css';
 
@@ -31,21 +32,21 @@ const StayOverview = () => {
     // Date navigation handlers
     const handleToday = () => {
         const today = new Date();
-        const formattedDate = today.toISOString().split('T')[0];
+        const formattedDate = today.toLocaleDateString('en-CA');
         setSelectedDate(formattedDate);
     };
 
     const handlePrevious = () => {
         const currentDate = new Date(selectedDate);
         currentDate.setDate(currentDate.getDate() - 1);
-        const formattedDate = currentDate.toISOString().split('T')[0];
+        const formattedDate = currentDate.toLocaleDateString('en-CA');
         setSelectedDate(formattedDate);
     };
 
     const handleNext = () => {
         const currentDate = new Date(selectedDate);
         currentDate.setDate(currentDate.getDate() + 1);
-        const formattedDate = currentDate.toISOString().split('T')[0];
+        const formattedDate = currentDate.toLocaleDateString('en-CA');
         setSelectedDate(formattedDate);
     };
 
@@ -66,6 +67,10 @@ const StayOverview = () => {
         category: '',
         roomNumber: ''
     });
+
+    // Room Details Panel states
+    const [selectedRoomIdForPanel, setSelectedRoomIdForPanel] = useState(null);
+    const [isRoomPanelOpen, setIsRoomPanelOpen] = useState(false);
 
     // Handle clicking on an available date cell
     const handleDateCellClick = (date, room) => {
@@ -88,12 +93,12 @@ const StayOverview = () => {
     const handleQuickReservationClick = () => {
         // Pre-fill quick reservation form with selected cell data
         const dateObj = new Date(selectedCellData.date.split('-').reverse().join('-'));
-        const arrivalDate = dateObj.toISOString().split('T')[0];
+        const arrivalDate = dateObj.toLocaleDateString('en-CA');
 
         // Set departure date to next day
         const departureObj = new Date(dateObj);
         departureObj.setDate(departureObj.getDate() + 1);
-        const departureDate = departureObj.toISOString().split('T')[0];
+        const departureDate = departureObj.toLocaleDateString('en-CA');
 
         setQuickReservationData({
             arrivalDate,
@@ -143,7 +148,39 @@ const StayOverview = () => {
             departureDate: '',
             departureTime: '01:51 PM',
             category: '',
-            roomNumber: ''
+        });
+    };
+
+    const handleRoomClick = (room) => {
+        setSelectedRoomIdForPanel(room._id);
+        setIsRoomPanelOpen(true);
+    };
+
+    const handleUpdateRoomStatus = (updatedRoom) => {
+        setRooms(prevRooms => prevRooms.map(r => r._id === updatedRoom._id ? updatedRoom : r));
+    };
+
+    const handleEditRoomFromPanel = (room) => {
+        setIsRoomPanelOpen(false);
+        // Navigate to room setup or open edit modal if available here
+        navigate('/admin/room-setup', { state: { editRoomId: room._id } });
+    };
+
+    const handleQuickBookFromPanel = (room) => {
+        setIsRoomPanelOpen(false);
+        // Navigate to create reservation with prefilled room and selected dates
+        navigate('/admin/reservation-stay-management', {
+            state: {
+                viewMode: 'form',
+                autoOpenGuestModal: true,
+                prefilledData: {
+                    roomNumber: room.roomNumber,
+                    roomType: room.roomType,
+                    price: room.price,
+                    checkInDate: selectedDate, // Start date of current view
+                    checkOutDate: new Date(new Date(selectedDate).setDate(new Date(selectedDate).getDate() + 1)).toLocaleDateString('en-CA')
+                }
+            }
         });
     };
 
@@ -201,39 +238,48 @@ const StayOverview = () => {
             }
 
             let allBookings = [];
+            const uniqueIds = new Set();
+
+            // Helper to add unique records
+            const addUniqueBookings = (data, isReservation = false) => {
+                if (!data || !Array.isArray(data)) return;
+
+                data.forEach(item => {
+                    if (item._id && !uniqueIds.has(item._id)) {
+                        uniqueIds.add(item._id);
+
+                        const mappedItem = {
+                            ...item,
+                            bookingId: item.bookingId || item.referenceId || item._id,
+                            guestName: item.guestName,
+                            roomNumber: item.roomNumber || 'TBD',
+                            numberOfNights: item.numberOfNights || item.nights ||
+                                Math.ceil((new Date(item.checkOutDate) - new Date(item.checkInDate)) / (1000 * 60 * 60 * 24)) || 1,
+                            checkInDate: item.checkInDate,
+                            checkOutDate: item.checkOutDate,
+                            status: item.status
+                        };
+
+                        if (isReservation) {
+                            mappedItem.mobileNumber = item.phone;
+                        }
+
+                        allBookings.push(mappedItem);
+                    }
+                });
+            };
 
             // Add bookings
-            if (bookingsData.success && bookingsData.data) {
-                const mappedBookings = bookingsData.data.map(booking => ({
-                    ...booking,
-                    guestName: booking.guestName,
-                    roomNumber: booking.roomNumber || 'TBD',
-                    numberOfNights: booking.numberOfNights ||
-                        Math.ceil((new Date(booking.checkOutDate) - new Date(booking.checkInDate)) / (1000 * 60 * 60 * 24)),
-                    checkInDate: booking.checkInDate,
-                    checkOutDate: booking.checkOutDate,
-                    status: booking.status
-                }));
-                allBookings = [...allBookings, ...mappedBookings];
+            if (bookingsData.success) {
+                addUniqueBookings(bookingsData.data);
             }
 
-            // Add reservations
-            if (reservationsData.success && reservationsData.data) {
-                const mappedReservations = reservationsData.data.map(res => ({
-                    ...res,
-                    bookingId: res.referenceId || res._id,
-                    guestName: res.guestName,
-                    mobileNumber: res.phone,
-                    roomNumber: res.roomNumber || 'TBD',
-                    numberOfNights: res.nights || 1,
-                    checkInDate: res.checkInDate,
-                    checkOutDate: res.checkOutDate,
-                    status: res.status
-                }));
-                allBookings = [...allBookings, ...mappedReservations];
+            // Add reservations (new endpoint)
+            if (reservationsData.success) {
+                addUniqueBookings(reservationsData.data, true);
             }
 
-            console.log('📊 Total Combined Bookings:', allBookings.length);
+            console.log('📊 Total Unique Combined Bookings:', allBookings.length);
             setReservations(allBookings);
         } catch (error) {
             console.error('❌ Error fetching stay overview data:', error);
@@ -244,37 +290,65 @@ const StayOverview = () => {
 
     // Calculate Stats - LIVE from actual data
     const stats = useMemo(() => {
-        const total = rooms.length;
-        const vacant = rooms.filter(r => r.status === 'Available').length;
-        const occupied = rooms.filter(r => r.status === 'Occupied').length;
-        const booked = rooms.filter(r => r.status === 'Booked').length;
-        const dirty = rooms.filter(r => r.isDirty).length;
+        const totalRooms = rooms.length;
 
-        // Count reservations by status
-        const reserved = reservations.filter(r =>
-            r.status === 'Upcoming' || r.status === 'RESERVED'
-        ).length;
+        // 1. Count All Reserved (Future Bookings that haven't checked in)
+        const reservedList = reservations.filter(r =>
+            ['Upcoming', 'RESERVED', 'Confirmed', 'Reserved'].includes(r.status)
+        );
+        const reservedCount = reservedList.length;
 
-        const inHouse = reservations.filter(r =>
-            r.status === 'Checked-in' || r.status === 'IN_HOUSE'
-        ).length;
+        // 2. Count All In-House (Guests currently checked in)
+        const inHouseList = reservations.filter(r =>
+            ['Checked-in', 'IN_HOUSE', 'CheckedIn'].includes(r.status)
+        );
+        const inHouseCount = inHouseList.length;
 
-        const today = new Date().toISOString().split('T')[0];
-        const checkout = reservations.filter(r => {
-            const checkOutDate = new Date(r.checkOutDate).toISOString().split('T')[0];
-            return checkOutDate === today;
+        // 3. Calculate Vacant (Proper PMS logic: Total - Reserved - InHouse)
+        // If a room has multiple reservations, this might go negative, so we clamp at 0
+        const vacantCount = Math.max(0, totalRooms - reservedCount - inHouseCount);
+
+        // 4. Dirty Rooms
+        const dirtyCount = rooms.filter(r => r.isDirty || r.status === 'Dirty').length;
+
+        // 5. Checkouts Today (Based on selected calendar date)
+        const targetDate = new Date(selectedDate);
+        targetDate.setHours(0, 0, 0, 0);
+        const targetDateStr = targetDate.toLocaleDateString('en-CA');
+
+        const checkoutCount = reservations.filter(r => {
+            const checkOutDate = new Date(r.checkOutDate).toLocaleDateString('en-CA');
+            return checkOutDate === targetDateStr && ['Checked-in', 'IN_HOUSE', 'CheckedIn'].includes(r.status);
+        }).length;
+
+        // 6. Functional Overdue Calculation
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const overdueCount = reservations.filter(r => {
+            const checkIn = new Date(r.checkInDate);
+            const checkOut = new Date(r.checkOutDate);
+            checkIn.setHours(0, 0, 0, 0);
+            checkOut.setHours(0, 0, 0, 0);
+
+            // Case 1: Reserved but arrival date passed
+            const isLateArrival = ['Upcoming', 'RESERVED', 'Confirmed', 'Reserved'].includes(r.status) && checkIn < today;
+            // Case 2: In-house but departure date passed
+            const isLateDeparture = ['Checked-in', 'IN_HOUSE', 'CheckedIn'].includes(r.status) && checkOut < today;
+
+            return isLateArrival || isLateDeparture;
         }).length;
 
         return {
-            all: total,
-            vacant,
-            inHouse: occupied || inHouse,
-            reserved: booked || reserved,
-            overdue: 0, // Calculate based on late checkouts
-            checkout,
-            dirty
+            all: totalRooms,
+            vacant: vacantCount,
+            inHouse: inHouseCount,
+            reserved: reservedCount,
+            overdue: overdueCount,
+            checkout: checkoutCount,
+            dirty: dirtyCount
         };
-    }, [rooms, reservations]);
+    }, [rooms, reservations, selectedDate]);
 
     // Group rooms by category - LIVE from actual room types
     const groupedRooms = useMemo(() => {
@@ -292,7 +366,8 @@ const StayOverview = () => {
 
     const getReservationForRoomDate = (roomNumber, date) => {
         return reservations.find(res => {
-            if (!res.roomNumber || res.roomNumber === 'TBD' || res.roomNumber === '') return false;
+            const hasRoom = res.roomNumber === roomNumber ||
+                (res.rooms && res.rooms.some(r => r.roomNumber === roomNumber));
 
             const checkIn = new Date(res.checkInDate);
             const checkOut = new Date(res.checkOutDate);
@@ -302,7 +377,7 @@ const StayOverview = () => {
             checkIn.setHours(0, 0, 0, 0);
             checkOut.setHours(0, 0, 0, 0);
 
-            return res.roomNumber === roomNumber && d >= checkIn && d < checkOut;
+            return hasRoom && d >= checkIn && d < checkOut;
         });
     };
 
@@ -334,13 +409,27 @@ const StayOverview = () => {
 
             {/* Status Filters Bar */}
             <div className="status-filters-bar">
-                <div className="status-pill all">All <span className="count-mini">{stats.all}</span></div>
-                <div className="status-pill vacant">Vacant ({stats.vacant}) <span className="count-circle">{stats.vacant}</span></div>
-                <div className="status-pill in-house">In house <span className="count-circle">{stats.inHouse}</span></div>
-                <div className="status-pill reserved">Reserved <span className="count-circle">{stats.reserved}</span></div>
-                <div className="status-pill overdue">Over Due <span className="count-circle">{stats.overdue}</span></div>
-                <div className="status-pill checkout">Checkout <span className="count-circle">{stats.checkout}</span></div>
-                <div className="status-pill dirty">Dirty <span className="count-circle">{stats.dirty}</span></div>
+                <div className="status-pill all">
+                    ALL <span className="count-mini">{stats.all}</span>
+                </div>
+                <div className="status-pill vacant">
+                    VACANT ({stats.vacant}) <span className="count-circle">{stats.vacant}</span>
+                </div>
+                <div className="status-pill in-house">
+                    IN HOUSE <span className="count-circle">{stats.inHouse}</span>
+                </div>
+                <div className="status-pill reserved">
+                    RESERVED <span className="count-circle">{stats.reserved}</span>
+                </div>
+                <div className="status-pill overdue">
+                    OVER DUE <span className="count-circle">{stats.overdue}</span>
+                </div>
+                <div className="status-pill checkout">
+                    CHECKOUT <span className="count-circle">{stats.checkout}</span>
+                </div>
+                <div className="status-pill dirty">
+                    DIRTY <span className="count-circle">{stats.dirty}</span>
+                </div>
 
                 <div className="timeline-nav-group">
                     <button className="timeline-action-btn" onClick={handleToday}>Today</button>
@@ -391,7 +480,11 @@ const StayOverview = () => {
                                 </tr>
                                 {catRooms.map(room => (
                                     <tr key={room.roomNumber} className="room-data-row">
-                                        <td className="sticky-left room-name_cell">
+                                        <td
+                                            className="sticky-left room-name_cell"
+                                            onClick={() => handleRoomClick(room)}
+                                            style={{ cursor: 'pointer' }}
+                                        >
                                             <div className="room-name_wrapper">
                                                 <div className="room-id-container">
                                                     <span className="room-number_text">{room.roomNumber}</span>
@@ -414,7 +507,26 @@ const StayOverview = () => {
                                                 >
                                                     {isCheckInDay && (
                                                         <div
-                                                            className={`booking-strip ${reservation.status === 'Checked-in' || reservation.status === 'IN_HOUSE' ? 'active-stay' : 'reserved-stay'}`}
+                                                            className={`booking-strip ${
+                                                                // Overdue logic for strip color
+                                                                (() => {
+                                                                    const today = new Date();
+                                                                    today.setHours(0, 0, 0, 0);
+                                                                    const checkIn = new Date(reservation.checkInDate);
+                                                                    const checkOut = new Date(reservation.checkOutDate);
+                                                                    checkIn.setHours(0, 0, 0, 0);
+                                                                    checkOut.setHours(0, 0, 0, 0);
+
+                                                                    // Overdue Check
+                                                                    const isOverdue =
+                                                                        ((reservation.status === 'Upcoming' || reservation.status === 'RESERVED' || reservation.status === 'Confirmed' || reservation.status === 'Reserved') && checkIn < today) ||
+                                                                        ((reservation.status === 'Checked-in' || reservation.status === 'IN_HOUSE' || reservation.status === 'CheckedIn') && checkOut < today);
+
+                                                                    if (isOverdue) return 'overdue-stay';
+                                                                    if (reservation.status === 'Checked-in' || reservation.status === 'IN_HOUSE' || reservation.status === 'CheckedIn') return 'active-stay';
+                                                                    return 'reserved-stay';
+                                                                })()
+                                                                }`}
                                                             style={{
                                                                 width: `calc(${reservation.numberOfNights * 100}% - 12px)`,
                                                                 zIndex: 10
@@ -539,6 +651,15 @@ const StayOverview = () => {
                     </div>
                 </div>
             )}
+
+            <RoomDetailsPanel
+                roomId={selectedRoomIdForPanel}
+                isOpen={isRoomPanelOpen}
+                onClose={() => setIsRoomPanelOpen(false)}
+                onUpdateStatus={handleUpdateRoomStatus}
+                onEdit={handleEditRoomFromPanel}
+                onQuickBook={handleQuickBookFromPanel}
+            />
         </div>
     );
 };

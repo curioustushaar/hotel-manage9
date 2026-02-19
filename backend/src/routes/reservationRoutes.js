@@ -114,18 +114,32 @@ router.put('/checkin/:id', async (req, res) => {
         }
 
         // Update fields from sidebar form
-        reservation.status = "IN_HOUSE";
-        reservation.checkInDate = req.body.arrivalDate;
-        reservation.checkInTime = req.body.checkInTime;
+        reservation.status = "Checked-in"; // Use Checked-in for consistency
+        reservation.actualCheckIn = new Date();
         reservation.idProofType = req.body.idProofType;
         reservation.idNumber = req.body.idNumber;
-        reservation.adults = req.body.adults;
-        reservation.children = req.body.children;
+        reservation.duration.adults = Number(req.body.adults) || reservation.duration.adults;
+        reservation.duration.children = Number(req.body.children) || reservation.duration.children;
         reservation.vehicleNumber = req.body.vehicleNumber;
-        reservation.securityDeposit = req.body.securityDeposit;
+        reservation.securityDeposit = Number(req.body.securityDeposit) || 0;
         reservation.remarks = req.body.remarks;
 
         await reservation.save();
+
+        // Update room status to Occupied
+        const Room = require('../models/Room');
+        const roomNumbers = [];
+        if (reservation.isMulti && reservation.rooms && reservation.rooms.length > 0) {
+            reservation.rooms.forEach(r => {
+                if (r.roomNumber && r.roomNumber !== 'TBD') roomNumbers.push(r.roomNumber);
+            });
+        } else if (reservation.roomNumber && reservation.roomNumber !== 'TBD') {
+            roomNumbers.push(reservation.roomNumber);
+        }
+
+        for (const roomNo of roomNumbers) {
+            await Room.findOneAndUpdate({ roomNumber: roomNo }, { status: 'Occupied' });
+        }
 
         res.status(200).json({
             success: true,

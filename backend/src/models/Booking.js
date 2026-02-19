@@ -23,12 +23,38 @@ const bookingSchema = new mongoose.Schema({
         uppercase: true,
         trim: true
     },
+    referenceId: String, // Additional reference field for external IDs
     source: {
         type: String,
-        enum: ['Walk-In', 'Online', 'Phone', 'Corporate', 'Agent'],
+        enum: ['Walk-In', 'Online', 'Phone', 'Corporate', 'Agent', 'Direct'],
         default: 'Walk-In'
     },
     purpose: String,
+
+    // Legacy/Flat Fields for Frontend Support
+    roomNumber: String,
+    roomType: String,
+    guestName: String,
+    mobileNumber: String,
+    email: String,
+    reservationType: String,
+    businessSource: String,
+    idProofType: String,
+    idNumber: String,
+    vehicleNumber: String,
+    securityDeposit: Number,
+
+    // Multi-room support inside single booking record
+    rooms: [{
+        roomType: String,
+        roomNumber: String,
+        adults: Number,
+        children: Number,
+        ratePerNight: Number,
+        discount: Number,
+        total: Number,
+        mealPlan: String
+    }],
 
     // Stay Details
     checkInDate: {
@@ -53,7 +79,7 @@ const bookingSchema = new mongoose.Schema({
     // Status
     status: {
         type: String,
-        enum: ['Pending', 'Confirmed', 'CheckedIn', 'CheckedOut', 'Cancelled', 'NoShow', 'RESERVED', 'IN_HOUSE', 'CHECKED_OUT'], // Legacy support
+        enum: ['Pending', 'Confirmed', 'CheckedIn', 'CheckedOut', 'Cancelled', 'NoShow', 'RESERVED', 'IN_HOUSE', 'CHECKED_OUT', 'Upcoming', 'Checked-in', 'Checked-out'], // Added Upcoming, Checked-in, Checked-out
         default: 'Pending',
         index: true
     },
@@ -109,11 +135,7 @@ const bookingSchema = new mongoose.Schema({
 
 // Middleware to auto-calculate balance and normalize status
 bookingSchema.pre('save', function (next) {
-    // Normalize Legacy Status
-    if (this.status === 'RESERVED') this.status = 'Confirmed';
-    if (this.status === 'IN_HOUSE') this.status = 'CheckedIn';
-    if (this.status === 'CHECKED_OUT') this.status = 'CheckedOut';
-
+    // Recalculate billing based on transactions
     if (this.transactions) {
         const totalPaid = this.transactions
             .filter(t => t.type === 'Payment')
