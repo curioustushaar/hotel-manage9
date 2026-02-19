@@ -1,16 +1,9 @@
-<<<<<<< HEAD
-import StatusBadge from './StatusBadge';
-
-const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGenerateInvoice = () => { }, onSelect, isSelected, onActionSelect }) => {
-
-=======
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import StatusBadge from './StatusBadge';
 
 const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGenerateInvoice = () => { }, onSelect, isSelected, onActionSelect }) => {
     const [isExpanded, setIsExpanded] = useState(false);
->>>>>>> main
 
     const getPrimaryAction = (status) => {
         switch (status) {
@@ -44,13 +37,6 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
         return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
     };
 
-<<<<<<< HEAD
-    return (
-        <div
-            className={`reservation-card ${isSelected ? 'selected' : ''}`}
-            onClick={() => onSelect && onSelect(reservation)}
-        >
-=======
     const isMultiRoom = reservation.rooms && reservation.rooms.length > 1;
 
     // Financial calculations for Multi-Room
@@ -73,7 +59,6 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
 
     const renderSingleRoomCard = () => (
         <>
->>>>>>> main
             <div className="res-card-header">
                 <h3 className="guest-name">{reservation.guestName}</h3>
                 <span className={`status-text ${reservation.status.toLowerCase()}`}>
@@ -94,11 +79,7 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
             </div>
 
             <div className="res-card-rooms">
-<<<<<<< HEAD
                 <span className="room-icon">🛏</span>
-=======
-                <span className="room-icon"></span>
->>>>>>> main
                 <span>{reservation.rooms?.length || 1} Room(s)</span>
                 {reservation.roomNumber && (
                     <span className="room-number-label" style={{ marginLeft: 'auto', color: '#4f46e5', background: '#eef2ff', padding: '2px 8px', borderRadius: '4px', border: '1px solid #c7d2fe' }}>
@@ -124,21 +105,11 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
 
             <div className="res-card-contact">
                 <div className="contact-row">
-<<<<<<< HEAD
                     <span className="icon">📞</span>
                     <span>{reservation.guestPhone}</span>
                 </div>
                 <div className="contact-row">
                     <span className="icon">📧</span>
-                    <span className="email-text">{reservation.guestEmail || 'No Email'}</span>
-                </div>
-            </div>
-=======
-                    <span className="icon"></span>
-                    <span>{reservation.guestPhone}</span>
-                </div>
-                <div className="contact-row">
-                    <span className="icon"></span>
                     <span className="email-text">{reservation.guestEmail || 'No Email'}</span>
                 </div>
             </div>
@@ -230,7 +201,6 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
             onClick={() => onSelect && onSelect(reservation)}
         >
             {isMultiRoom ? renderMultiRoomCard() : renderSingleRoomCard()}
->>>>>>> main
 
             <div className="res-card-footer">
                 {primaryAction && (
@@ -241,10 +211,6 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
                         {primaryAction.label}
                     </button>
                 )}
-<<<<<<< HEAD
-
-=======
->>>>>>> main
             </div>
         </div>
     );

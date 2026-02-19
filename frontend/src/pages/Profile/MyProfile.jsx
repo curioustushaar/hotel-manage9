@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-import { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import '../Profile/MyProfile.css';
-
-const SuperAdminProfile = () => {
-=======
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -12,18 +5,11 @@ import axios from 'axios';
 import './MyProfile.css';
 
 const MyProfile = () => {
->>>>>>> main
     const { user } = useAuth();
 
     // Form state
     const [formData, setFormData] = useState({
         fullName: user?.name || '',
-<<<<<<< HEAD
-        email: user?.username || user?.email || '',
-        role: 'Super Administrator'
-    });
-
-=======
         mobileNumber: user?.phone || '',
         email: user?.username || user?.email || '',
         role: user?.role === 'admin' ? 'Administrator' : user?.role === 'super_admin' ? 'Super Admin' : 'Staff'
@@ -33,7 +19,6 @@ const MyProfile = () => {
     const [hotelInfo, setHotelInfo] = useState(null);
     const [loadingHotel, setLoadingHotel] = useState(false);
 
->>>>>>> main
     const [passwordData, setPasswordData] = useState({
         currentPassword: '',
         newPassword: '',
@@ -45,8 +30,6 @@ const MyProfile = () => {
     const [editMode, setEditMode] = useState(false);
     const [photoPreview, setPhotoPreview] = useState(null);
 
-<<<<<<< HEAD
-=======
     // Fetch hotel information if user is admin
     useEffect(() => {
         const fetchHotelInfo = async () => {
@@ -60,7 +43,7 @@ const MyProfile = () => {
                             'Content-Type': 'application/json'
                         }
                     };
-                    
+
                     // Fetch hotel details
                     const response = await axios.get(`/api/hotel/${user.hotelId}`, config);
                     setHotelInfo(response.data);
@@ -85,7 +68,6 @@ const MyProfile = () => {
         });
     }, [user]);
 
->>>>>>> main
     // Account activity data
     const accountActivity = {
         lastLogin: user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'N/A',
@@ -95,19 +77,11 @@ const MyProfile = () => {
 
     // Get user initials
     const getUserInitials = (name) => {
-<<<<<<< HEAD
-        const names = name?.split(' ') || [];
-        if (names.length >= 2) {
-            return (names[0][0] + names[names.length - 1][0]).toUpperCase();
-        }
-        return name ? name.substring(0, 2).toUpperCase() : 'SA';
-=======
         const names = name.split(' ');
         if (names.length >= 2) {
             return (names[0][0] + names[names.length - 1][0]).toUpperCase();
         }
         return name.substring(0, 2).toUpperCase();
->>>>>>> main
     };
 
     // Handle form input changes
@@ -187,25 +161,16 @@ const MyProfile = () => {
         setEditMode(false);
         setFormData({
             fullName: user?.name || '',
-<<<<<<< HEAD
-            email: user?.username || user?.email || '',
-            role: 'Super Administrator'
-=======
             mobileNumber: user?.phone || '',
             email: user?.username || user?.email || '',
             role: user?.role === 'admin' ? 'Administrator' : user?.role === 'super_admin' ? 'Super Admin' : 'Staff'
->>>>>>> main
         });
     };
 
     return (
-<<<<<<< HEAD
-        <div className="my-profile-container" style={{ padding: '0' }}>
-=======
         <div className="my-profile-container">
->>>>>>> main
             {/* Page Header */}
-            <motion.div 
+            <motion.div
                 className="profile-header"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -213,11 +178,7 @@ const MyProfile = () => {
             >
                 <div className="header-content">
                     <h1 className="header-title">My Profile</h1>
-<<<<<<< HEAD
-                    <p className="header-subtitle">Manage your super admin account settings</p>
-=======
                     <p className="header-subtitle">Manage your personal information and security</p>
->>>>>>> main
                 </div>
                 <div className="breadcrumb">
                     <span>Dashboard</span> / <span className="breadcrumb-active">My Profile</span>
@@ -227,7 +188,7 @@ const MyProfile = () => {
             {/* Profile Content */}
             <div className="profile-content">
                 {/* CARD 1: Profile Overview */}
-                <motion.div 
+                <motion.div
                     className="profile-card"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -241,9 +202,9 @@ const MyProfile = () => {
                         <div className="avatar-section">
                             <div className="avatar-container">
                                 {photoPreview ? (
-                                    <img 
-                                        src={photoPreview} 
-                                        alt="Profile" 
+                                    <img
+                                        src={photoPreview}
+                                        alt="Profile"
                                         className="avatar-image"
                                     />
                                 ) : (
@@ -272,31 +233,22 @@ const MyProfile = () => {
                             </div>
                             <div className="info-row">
                                 <span className="info-label">Role</span>
-<<<<<<< HEAD
-                                <span className="role-badge" style={{ background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', color: 'white' }}>
-                                    {formData.role}
-                                </span>
-=======
                                 <span className="role-badge">{formData.role}</span>
->>>>>>> main
                             </div>
                             <div className="info-row">
                                 <span className="info-label">Email</span>
                                 <span className="info-value">{formData.email}</span>
                             </div>
-<<<<<<< HEAD
-=======
                             <div className="info-row">
                                 <span className="info-label">Mobile</span>
                                 <span className="info-value">{formData.mobileNumber}</span>
                             </div>
->>>>>>> main
                         </div>
                     </div>
                 </motion.div>
 
                 {/* CARD 2: Personal Information */}
-                <motion.div 
+                <motion.div
                     className="profile-card"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -328,9 +280,6 @@ const MyProfile = () => {
                                     disabled={!editMode}
                                     placeholder="Enter your full name"
                                 />
-<<<<<<< HEAD
-                                <span className="helper-text">Your legal name as super administrator</span>
-=======
                                 <span className="helper-text">Your legal name as used in official documents</span>
                             </div>
 
@@ -349,7 +298,6 @@ const MyProfile = () => {
                                     placeholder="+91 XXXXX XXXXX"
                                 />
                                 <span className="helper-text">Contact number for important notifications</span>
->>>>>>> main
                             </div>
 
                             {/* Email Address (Disabled) */}
@@ -375,22 +323,16 @@ const MyProfile = () => {
                                     className="form-input disabled"
                                     value={formData.role}
                                     disabled
-<<<<<<< HEAD
-                                    placeholder="Super Administrator"
-                                />
-                                <span className="helper-text">Highest level of system access</span>
-=======
                                     placeholder="Administrator"
                                 />
                                 <span className="helper-text">Role is assigned by account owner</span>
->>>>>>> main
                             </div>
                         </div>
                     </div>
                 </motion.div>
 
                 {/* CARD 3: Security Settings */}
-                <motion.div 
+                <motion.div
                     className="profile-card"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -472,7 +414,7 @@ const MyProfile = () => {
                 </motion.div>
 
                 {/* CARD 4: Account Activity */}
-                <motion.div 
+                <motion.div
                     className="profile-card"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -497,12 +439,10 @@ const MyProfile = () => {
                         </div>
                     </div>
                 </motion.div>
-<<<<<<< HEAD
-=======
 
                 {/* CARD 5: Hotel Information - Only for Admin and Staff */}
                 {user?.role !== 'super_admin' && (
-                    <motion.div 
+                    <motion.div
                         className="profile-card"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -566,7 +506,7 @@ const MyProfile = () => {
                                         <div className="info-details">
                                             <span className="info-label">Subscription Expiry</span>
                                             <span className="info-value">
-                                                {hotelInfo.subscription?.expiryDate 
+                                                {hotelInfo.subscription?.expiryDate
                                                     ? new Date(hotelInfo.subscription.expiryDate).toLocaleDateString()
                                                     : 'N/A'}
                                             </span>
@@ -601,12 +541,11 @@ const MyProfile = () => {
                         )}
                     </motion.div>
                 )}
->>>>>>> main
             </div>
 
             {/* Action Buttons */}
             {editMode && (
-                <motion.div 
+                <motion.div
                     className="action-buttons"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -624,8 +563,4 @@ const MyProfile = () => {
     );
 };
 
-<<<<<<< HEAD
-export default SuperAdminProfile;
-=======
 export default MyProfile;
->>>>>>> main

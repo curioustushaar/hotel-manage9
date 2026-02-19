@@ -11,11 +11,11 @@
   font-family: 'Poppins', sans-serif;
 }
 
-<<<<<<< HEAD
 html,
 body {
   overflow-x: hidden;
-=======
+}
+
 /* =============================================
    GLOBAL SCROLLBAR HIDE — scroll still works
    via mouse wheel / touch / cursor
@@ -29,7 +29,6 @@ body {
   /* IE / Edge legacy */
   scrollbar-width: none;
   /* Firefox */
->>>>>>> main
 }
 
 body {
@@ -419,8 +418,7 @@ body {
   overflow: hidden;
 }
 
-<<<<<<< HEAD
-=======
+
 .hero::before {
   content: '';
   position: absolute;
@@ -437,26 +435,10 @@ body {
   z-index: 0;
   opacity: 0.18;
 }
->>>>>>> main
 
 .hero::before,
 .hero::after {
-<<<<<<< HEAD
   display: none;
-=======
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background-image:
-    radial-gradient(circle, #e11d48 2px, transparent 2px);
-  background-size: 80px 80px;
-  animation: dotScrollReverse 18s linear infinite;
-  z-index: 0;
-  opacity: 0.12;
->>>>>>> main
 }
 
 .hero>* {
@@ -1641,8 +1623,6 @@ h2 {
   .integrations-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-<<<<<<< HEAD
-=======
 }
 
 /* ========================================
@@ -1749,5 +1729,4 @@ body {
 .admin-layout .admin-profile-section {
   padding-top: 0 !important;
   margin-top: 0 !important;
->>>>>>> main
 }

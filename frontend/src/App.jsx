@@ -44,7 +44,7 @@ function HomePageContent() {
 
 const AppRoutes = () => {
   const location = useLocation();
-  const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/superadmin');
+  const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/super-admin');
 
   return (
     <div className="App">
@@ -96,22 +96,22 @@ const AppRoutes = () => {
         } />
 
         {/* Superadmin Routes */}
-        <Route path="/superadmin/dashboard" element={
+        <Route path="/super-admin/dashboard" element={
           <ProtectedRoute role={ROLES.SUPER_ADMIN}>
             <SuperAdminDashboard />
           </ProtectedRoute>
         } />
-        <Route path="/superadmin/hotels" element={
+        <Route path="/super-admin/hotels" element={
           <ProtectedRoute role={ROLES.SUPER_ADMIN}>
             <HotelsManagement />
           </ProtectedRoute>
         } />
-        <Route path="/superadmin/hotels/create" element={
+        <Route path="/super-admin/hotels/create" element={
           <ProtectedRoute role={ROLES.SUPER_ADMIN}>
             <CreateHotel />
           </ProtectedRoute>
         } />
-        <Route path="/superadmin/hotels/:id" element={
+        <Route path="/super-admin/hotels/:id" element={
           <ProtectedRoute role={ROLES.SUPER_ADMIN}>
             <HotelDetails />
           </ProtectedRoute>

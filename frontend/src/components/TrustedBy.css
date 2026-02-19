@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /* Trusted By Section - Clean, minimal, professional */
 .trusted-by-section {
   padding: 80px 20px;
@@ -96,66 +95,4 @@
     /* Ensure they don't take full width */
     flex: 0 1 auto;
   }
-=======
-.trusted-section {
-    padding: 6px 20px;
-    background: white;
-    text-align: center;
-}
-
-.trusted-section h2 {
-    font-size: 2rem;
-    color: #1f2937;
-    margin-bottom: 3rem;
-}
-
-.trusted-section h2 span {
-    color: #e11d48;
-    font-weight: 700;
-}
-
-.logo-slider {
-    overflow: hidden;
-    position: relative;
-    width: 100%;
-}
-
-.logo-track {
-    display: flex;
-    gap: 3rem;
-    animation: scroll 30s linear infinite;
-}
-
-.logo-track img {
-    height: 60px;
-    width: auto;
-    object-fit: contain;
-    flex-shrink: 0;
-    opacity: 0.7;
-    transition: opacity 0.3s;
-}
-
-.logo-track img:hover {
-    opacity: 1;
-}
-
-@keyframes scroll {
-    0% {
-        transform: translateX(0);
-    }
-
-    100% {
-        transform: translateX(-50%);
-    }
-}
-
-@media (max-width: 768px) {
-    .trusted-section h2 {
-        font-size: 1.5rem;
-    }
-
-    .logo-track img {
-        height: 40px;
-    }
->>>>>>> main
 }
