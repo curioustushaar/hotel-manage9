@@ -7,13 +7,12 @@
     flex-direction: column;
     position: fixed;
     height: calc(100vh - 60px);
-    /* Subtract Navbar height */
     left: 0;
     top: 60px;
-    /* Navbar height */
     z-index: 40;
     transition: transform 0.3s ease;
     padding-top: 10px;
+    overflow: hidden;
 }
 
 .sidebar.closed {
@@ -95,10 +94,10 @@
     flex: 1;
     padding: 10px 10px;
     overflow-y: auto;
+    overflow-x: hidden;
     scrollbar-width: none;
-    /* Firefox */
     -ms-overflow-style: none;
-    /* IE and Edge */
+    scroll-behavior: smooth;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
@@ -271,4 +270,22 @@
 .logout-btn .nav-label {
     flex: initial;
     /* Don't expand to fill space, center text/icon */
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-260px);
+        z-index: 45;
+    }
+    
+    .sidebar.closed {
+        transform: translateX(-260px);
+    }
+    
+    /* Show sidebar when explicitly opened on mobile */
+    .sidebar:not(.closed) {
+        transform: translateX(0);
+        box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+    }
 }

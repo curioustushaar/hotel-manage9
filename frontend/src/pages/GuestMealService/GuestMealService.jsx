@@ -707,6 +707,24 @@ const GuestMealService = () => {
         if (!closeTableData) return;
 
         try {
+            // Step 1: Close the order if it exists
+            if (closeTableData.currentOrderId) {
+                const orderId = closeTableData.currentOrderId._id || closeTableData.currentOrderId;
+                try {
+                    const closeOrderResponse = await fetch(`${API_URL}/api/guest-meal/orders/${orderId}/close`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const closeOrderData = await closeOrderResponse.json();
+                    if (!closeOrderData.success) {
+                        console.warn('Failed to close order:', closeOrderData.message);
+                    }
+                } catch (orderError) {
+                    console.error('Error closing order:', orderError);
+                    // Continue with table closure even if order close fails
+                }
+            }
+
             // Handle Split Tables: If it's a split table, we need to close the PARENT table in the DB
             // and then refresh the UI to show the parent table again instead of its splits.
             if (String(closeTableData.tableId).startsWith('SPLIT-') && closeTableData.parentTableId) {
@@ -716,15 +734,16 @@ const GuestMealService = () => {
                     body: JSON.stringify({
                         status: 'Available',
                         guests: 0,
-                        amount: 0,
-                        duration: 0,
-                        reservation: null
+                        currentOrderId: null,
+                        runningOrderAmount: 0,
+                        orderStartTime: null
                     })
                 });
 
                 if (response.ok) {
                     fetchTables();
                     setShowCloseModal(false);
+                    showToast('Success', 'Table closed successfully');
                     return;
                 }
             }
@@ -740,8 +759,9 @@ const GuestMealService = () => {
             let updatePayload = {
                 status: 'Available',
                 guests: 0,
-                amount: 0,
-                duration: 0
+                currentOrderId: null,
+                runningOrderAmount: 0,
+                orderStartTime: null
             };
 
             // Smart Reservation Handling
@@ -777,9 +797,13 @@ const GuestMealService = () => {
             if (data.success) {
                 fetchTables(); // Refresh all tables to see unmerged ones
                 setShowCloseModal(false);
+                showToast('Success', 'Table closed successfully');
+            } else {
+                alert('Failed to close table: ' + data.message);
             }
         } catch (error) {
             console.error(error);
+            alert('Error closing table: ' + error.message);
         }
     };
 
@@ -955,11 +979,13 @@ const GuestMealService = () => {
                 // Update local state immediately
                 setTables(prev => prev.map(t => t.tableId === table.tableId ? { ...t, status: 'Running' } : t));
 
-                // Navigate
+                // Navigate to food order with Dine In mode only
                 const dummyOrderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                 navigate('/admin/dashboard', {
                     state: {
-                        activeMenu: 'food-order-pos',
+                        activeMenu: 'food-order',
+                        orderMode: 'dinein', // Lock to Dine In only
+                        source: 'table-order', // Indicate it's from table management
                         room: {
                             roomNumber: table.tableName,
                             guestName: 'Walk-in',
@@ -987,7 +1013,9 @@ const GuestMealService = () => {
 
             navigate('/admin/dashboard', {
                 state: {
-                    activeMenu: 'food-order-pos',
+                    activeMenu: 'food-order',
+                    orderMode: 'dinein', // Lock to Dine In only
+                    source: 'table-order', // Indicate it's from table management
                     room: {
                         roomNumber: table.tableName,
                         guestName: guestName,

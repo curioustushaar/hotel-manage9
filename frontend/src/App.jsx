@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import { MODULES, ROLES } from './config/rbac'
@@ -80,6 +81,19 @@ const AppRoutes = () => {
   const isAdminRoute = location.pathname.startsWith('/admin') ||
     location.pathname.startsWith('/super-admin') ||
     location.pathname.startsWith('/secure-owner-login');
+
+  // Manage body class for scrolling behavior
+  useEffect(() => {
+    if (isAdminRoute) {
+      document.body.classList.remove('public-page');
+    } else {
+      document.body.classList.add('public-page');
+    }
+
+    return () => {
+      document.body.classList.remove('public-page');
+    };
+  }, [isAdminRoute]);
 
   return (
     <div className="App">
@@ -228,13 +242,26 @@ const AppRoutes = () => {
           <Route path="/admin/booking-source" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/business-source" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/maintenance-block" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/table-management" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/table-management" element={
+            <ProtectedRoute module={MODULES.PROPERTY_CONFIG}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/food-order" element={
+            <ProtectedRoute module={MODULES.FOOD_ORDER}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/food-order" element={
+            <ProtectedRoute module={MODULES.FOOD_ORDER}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
 
           {/* Other Routes */}
           <Route path="/scan-qr/:roomId" element={<QRScanPage />} />
           <Route path="/qr-scan/:hotelId/:tableId" element={<QRScanPage />} />
-          <Route path="/food-order" element={<FoodOrderPage />} />
-          <Route path="/order" element={<FoodOrderPage />} />
+
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import API_URL from '../../config/api';
 import './CashierSection.css';
 
 const CashierSection = () => {
+    const { user } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [selectedOrder, setSelectedOrder] = useState(null);
@@ -26,6 +28,27 @@ const CashierSection = () => {
         card: 0,
         pending: 0
     });
+
+    // Helper to check permissions
+    const hasCashierPermission = (type) => {
+        if (!user) return false;
+        if (user.role !== 'staff') return true; // Admins etc have full access
+
+        const permissions = user.permissions || [];
+        if (type === 'Table') return permissions.includes('Cashier Section (Table)');
+        if (type === 'Room') return permissions.includes('Cashier Section (Room Service)');
+        if (type === 'Take Away') return permissions.includes('Cashier Section (Take Away)');
+        return false;
+    };
+
+    const allowedTabs = ['All'];
+    if (hasCashierPermission('Table')) allowedTabs.push('Dine In');
+    if (hasCashierPermission('Room')) allowedTabs.push('Room');
+    if (hasCashierPermission('Take Away')) {
+        allowedTabs.push('Take Away');
+        allowedTabs.push('Delivery');
+        allowedTabs.push('Online Order');
+    }
 
     // Fetch pending orders from API
     useEffect(() => {
@@ -227,7 +250,7 @@ const CashierSection = () => {
 
 
     // Filter Logic
-    const filteredOrders = activeTab === 'All'
+    const filteredOrders = (activeTab === 'All'
         ? orders
         : orders.filter(order => {
             if (activeTab === 'Dine In') return order.type === 'Table';
@@ -235,6 +258,12 @@ const CashierSection = () => {
             if (activeTab === 'Take Away') return order.type === 'Take Away';
             if (activeTab === 'Delivery') return order.type === 'Delivery';
             if (activeTab === 'Online Order') return order.type === 'Online';
+            return true;
+        })).filter(order => {
+            // Apply permission filter
+            if (order.type === 'Table' && !hasCashierPermission('Table')) return false;
+            if (order.type === 'Room' && !hasCashierPermission('Room')) return false;
+            if (['Take Away', 'Delivery', 'Online'].includes(order.type) && !hasCashierPermission('Take Away')) return false;
             return true;
         });
 
@@ -249,12 +278,16 @@ const CashierSection = () => {
 
                         {/* New Order & Track Order Section */}
                         <div className="new-order-section">
-                            <button className="track-order-btn" onClick={() => setShowTrackModal(true)}>
-                                🛵 Track Order
-                            </button>
-                            <button className="new-order-btn" onClick={handleNewOrderClick}>
-                                🛍️ New Take Away Order
-                            </button>
+                            {hasCashierPermission('Take Away') && (
+                                <>
+                                    <button className="track-order-btn" onClick={() => setShowTrackModal(true)}>
+                                        🛵 Track Order
+                                    </button>
+                                    <button className="new-order-btn" onClick={handleNewOrderClick}>
+                                        🛍️ New Take Away Order
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
 
@@ -286,7 +319,7 @@ const CashierSection = () => {
                 <div className="dashboard-content">
                     <div className="orders-sidebar">
                         <div className="tabs-row">
-                            {['All', 'Dine In', 'Room', 'Take Away', 'Delivery', 'Online Order'].map(tab => (
+                            {allowedTabs.map(tab => (
                                 <button
                                     key={tab}
                                     className={`tab ${activeTab === tab ? 'active' : ''} `}

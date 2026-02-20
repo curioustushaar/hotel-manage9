@@ -5,10 +5,13 @@ import html2canvas from 'html2canvas';
 import API_URL_CONFIG from '../config/api';
 import './FoodOrderPage.css';
 
-const FoodOrderPage = ({ onClose }) => {
+const FoodOrderPage = ({ onClose, room: roomProp }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { room, source, orderMode } = location.state || {};
+    const { room: roomState, source, orderMode } = location.state || {};
+    
+    // Prefer prop over state (prop comes from AdminDashboard posGuestDetails)
+    const room = roomProp || roomState;
 
     const handleMenuClick = (menuId) => {
         const routeMap = {

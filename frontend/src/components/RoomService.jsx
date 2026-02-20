@@ -7,6 +7,27 @@ import './RoomService.css';
 const RoomService = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
+
+    // Permission Check
+    const hasAccess = user?.role !== 'staff' || (user?.permissions?.includes('Rooms (Room Service)'));
+
+    if (!hasAccess) {
+        return (
+            <div className="rs-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+                <div style={{ fontSize: '48px', marginBottom: '20px' }}>🚫</div>
+                <h2>Access Denied</h2>
+                <p>You do not have permission to access Room Service.</p>
+                <button
+                    className="rs-back-btn"
+                    style={{ marginTop: '20px', padding: '10px 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                    onClick={() => navigate('/admin/dashboard')}
+                >
+                    Back to Dashboard
+                </button>
+            </div>
+        );
+    }
+
     const [rooms, setRooms] = useState([]);
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
