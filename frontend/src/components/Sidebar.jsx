@@ -120,8 +120,18 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
         { id: MODULES.PAYMENT_LOGS, iconVal: <Icons.Report />, label: 'Payment Logs' },
     ];
 
-    // Filter items based on role access FIRST, then search query
-    const roleFilteredItems = menuItems.filter(item => canAccessModule(item.id));
+    // Filter items based on role access FIRST - Check parent OR any child access
+    const roleFilteredItems = menuItems.filter(item => {
+        // If it has children, show if parent works OR any child works
+        if (item.hasDropdown) {
+            const hasParentAccess = canAccessModule(item.id);
+            // Also check children accessibility
+            const hasChildAccess = item.dropdownItems.some(sub => canAccessModule(sub.id));
+            return hasParentAccess || hasChildAccess;
+        }
+        // Simple item
+        return canAccessModule(item.id);
+    });
 
     const filteredItems = searchQuery
         ? roleFilteredItems.filter(item =>

@@ -8,7 +8,7 @@ import './FoodOrderPage.css';
 const FoodOrderPage = ({ onClose }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { room, source } = location.state || {};
+    const { room, source, orderMode } = location.state || {};
 
     const handleMenuClick = (menuId) => {
         const routeMap = {
@@ -537,24 +537,32 @@ const FoodOrderPage = ({ onClose }) => {
                             <button
                                 className={`pos-mode-btn ${activeOrderType === 'dinein' ? 'active' : ''}`}
                                 onClick={() => setActiveOrderType('dinein')}
+                                disabled={(orderMode && orderMode !== 'dinein') || source === 'room-service'}
+                                style={{ opacity: ((orderMode && orderMode !== 'dinein') || source === 'room-service') ? 0.5 : 1, cursor: ((orderMode && orderMode !== 'dinein') || source === 'room-service') ? 'not-allowed' : 'pointer' }}
                             >
                                 Dine In (F1)
                             </button>
                             <button
                                 className={`pos-mode-btn ${activeOrderType === 'takeaway' ? 'active' : ''}`}
                                 onClick={() => setActiveOrderType('takeaway')}
+                                disabled={(orderMode && orderMode !== 'takeaway') || source === 'room-service'}
+                                style={{ opacity: ((orderMode && orderMode !== 'takeaway') || source === 'room-service') ? 0.5 : 1, cursor: ((orderMode && orderMode !== 'takeaway') || source === 'room-service') ? 'not-allowed' : 'pointer' }}
                             >
                                 Take Away (F3)
                             </button>
                             <button
                                 className={`pos-mode-btn ${activeOrderType === 'online' ? 'active' : ''}`}
                                 onClick={() => setActiveOrderType('online')}
+                                disabled={!!orderMode || !!source}
+                                style={{ opacity: (!!orderMode || !!source) ? 0.5 : 1, cursor: (!!orderMode || !!source) ? 'not-allowed' : 'pointer' }}
                             >
                                 Online Order (F5)
                             </button>
                             <button
                                 className={`pos-mode-btn ${activeOrderType === 'roomservice' ? 'active' : ''}`}
                                 onClick={() => setActiveOrderType('roomservice')}
+                                disabled={(orderMode && orderMode !== 'roomservice')}
+                                style={{ opacity: (orderMode && orderMode !== 'roomservice') ? 0.5 : 1, cursor: (orderMode && orderMode !== 'roomservice') ? 'not-allowed' : 'pointer' }}
                             >
                                 Room Service
                             </button>
@@ -579,7 +587,10 @@ const FoodOrderPage = ({ onClose }) => {
                         {/* C. INFO & ACTION ROW (Merged) */}
                         <div className="pos-info-action-row">
                             <div className="pos-room-details">
-                                <div className="pos-room-no">Room {room?.roomNumber || '101'}</div>
+                                <div className="pos-room-no">
+                                    {activeOrderType === 'dinein' ? 'Table ' : (activeOrderType === 'roomservice' ? 'Room ' : '')}
+                                    {room?.roomNumber || (activeOrderType === 'takeaway' ? 'Take Away' : '')}
+                                </div>
                                 <div className="pos-guest-name">{room?.guestName || 'Guest Name'}</div>
                             </div>
                             <div className="pos-action-buttons-group">

@@ -162,7 +162,7 @@ const RoomService = () => {
                 </div>
                 <button
                     className="rs-add-btn"
-                    onClick={() => navigate('/admin/dashboard', { state: { activeMenu: 'food-order-pos' } })}
+                    onClick={() => navigate('/admin/dashboard', { state: { activeMenu: 'food-order-pos', orderMode: 'roomservice', source: 'room-service' } })}
                 >
                     + Add Order
                 </button>
@@ -264,6 +264,7 @@ const RoomService = () => {
                                                         navigate('/admin/dashboard', {
                                                             state: {
                                                                 activeMenu: 'food-order-pos',
+                                                                orderMode: 'roomservice',
                                                                 room: { ...room, id: room._id, source: 'room-service' },
                                                                 source: 'room-service'
                                                             }
@@ -301,6 +302,7 @@ const RoomService = () => {
                                     onClick={() => navigate('/admin/dashboard', {
                                         state: {
                                             activeMenu: 'food-order-pos',
+                                            orderMode: 'roomservice',
                                             room: { ...room, id: room._id, source: 'room-service' },
                                             source: 'room-service'
                                         }
