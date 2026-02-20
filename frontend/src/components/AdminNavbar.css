@@ -3,7 +3,6 @@
     background: #ffffff;
     border-bottom: 1px solid #e5e7eb;
     padding: 0 30px;
-    /* Increased padding for alignment */
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -14,14 +13,12 @@
     z-index: 50;
     height: 60px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    /* Lighter shadow */
-    transition: margin-left 0.3s ease;
 }
 
-/* When sidebar is open, adjust navbar to account for sidebar width */
+/* Sidebar does not affect navbar position - always full width */
 .top-bar.sidebar-open {
-    margin-left: 260px;
-    width: calc(100% - 260px);
+    margin-left: 0;
+    width: 100%;
 }
 
 .top-bar-left {

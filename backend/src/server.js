@@ -95,9 +95,21 @@ const connectDB = async () => {
     }
 };
 
+// Sync Table indexes to allow same table names in different types
+const syncTableIndexes = async () => {
+    try {
+        const Table = require('./models/Table');
+        await Table.syncIndexes();
+        console.log('✅ Table indexes synced successfully');
+    } catch (error) {
+        console.warn('⚠️ Table index sync warning:', error.message);
+    }
+};
+
 // Connect to database and seed admin
 connectDB()
     .then(() => seedAdmin())
+    .then(() => syncTableIndexes())
     .catch(err => {
         console.error('Failed to connect to MongoDB:', err);
     });

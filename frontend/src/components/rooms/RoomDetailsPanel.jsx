@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import API_URL from '../../config/api';
 import './RoomDetailsPanel.css';
 
-const RoomDetailsPanel = ({ roomId, isOpen, onClose, onUpdateStatus, onEdit, onQuickBook, computedStatus, canManageRooms, canBook }) => {
+const RoomDetailsPanel = ({ roomId, isOpen, onClose, onUpdateStatus, onEdit, onQuickBook, computedStatus, canManageRooms, canBook, canManageStatus }) => {
     const [room, setRoom] = useState(null);
     const [roomFacilities, setRoomFacilities] = useState([]);
     const [roomBookings, setRoomBookings] = useState([]);
@@ -306,14 +306,16 @@ const RoomDetailsPanel = ({ roomId, isOpen, onClose, onUpdateStatus, onEdit, onQ
                                     <button className="panel-action-btn edit" onClick={() => onEdit(room)}>
                                         ✏️ Edit Room
                                     </button>
-                                    <button
-                                        className="panel-action-btn block"
-                                        onClick={handleBlockForMaintenance}
-                                        disabled={room?.status === 'Under Maintenance'}
-                                    >
-                                        🛠️ Block for Maintenance
-                                    </button>
                                 </>
+                            )}
+                            {canManageStatus && (
+                                <button
+                                    className="panel-action-btn block"
+                                    onClick={handleBlockForMaintenance}
+                                    disabled={room?.status === 'Under Maintenance'}
+                                >
+                                    🛠️ Block for Maintenance
+                                </button>
                             )}
                             {canBook && (
                                 <button

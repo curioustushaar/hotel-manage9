@@ -62,7 +62,8 @@ const AdminDashboard = () => {
             '/food-menu': 'food-menu',
             '/customers': 'customers',
             '/settings': 'settings',
-            '/cashier-section': 'cashier-section'
+            '/cashier-section': 'cashier-section',
+            '/food-order': 'food-order'
         };
 
         for (const [route, menu] of Object.entries(menuMap)) {
@@ -209,6 +210,7 @@ const AdminDashboard = () => {
         else if (path.includes('/business-source')) setActiveMenu('business-source');
         else if (path.includes('/maintenance-block')) setActiveMenu('maintenance-block');
         else if (path.includes('/table-management')) setActiveMenu('table-management');
+        else if (path.includes('/food-order')) setActiveMenu('food-order');
 
     }, [location]);
 
@@ -455,7 +457,7 @@ const AdminDashboard = () => {
         } else if (menuId === 'room-service') {
             navigate(`${prefix}/room-service`);
         } else if (menuId === 'food-order') {
-            navigate('/food-order');
+            navigate(`${prefix}/food-order`);
         }
         // Handle main menu items with navigation
         else if (menuId === 'dashboard') navigate(`${prefix}/dashboard`);
@@ -764,7 +766,7 @@ const AdminDashboard = () => {
             activeMenu={activeMenu}
             onMenuClick={handleMenuClick}
             onLogout={handleLogout}
-            noPadding={activeMenu === 'stay-overview' || activeMenu === 'view-order'}
+            noPadding={activeMenu === 'stay-overview' || activeMenu === 'view-order' || activeMenu === 'food-order'}
         >
 
 
@@ -793,10 +795,10 @@ const AdminDashboard = () => {
 
             {/* Food Order POS View */}
             {
-                activeMenu === 'food-order-pos' && (
-                    <div style={{ position: 'relative', height: 'calc(100vh - 64px)', width: '100%' }}>
+                activeMenu === 'food-order' && (
+                    <div style={{ position: 'relative', height: 'calc(100vh - 60px)', width: '100%' }}>
                         <FoodOrderPage
-                            room={posGuestDetails || (location.state?.orderMode === 'takeaway' ? {
+                            room={posGuestDetails || location.state?.room || (location.state?.orderMode === 'takeaway' ? {
                                 roomNumber: 'Take Away',
                                 guestName: location.state?.customerName || 'Walk-in',
                                 phoneNumber: location.state?.customerPhone,
@@ -805,6 +807,8 @@ const AdminDashboard = () => {
                             onClose={() => {
                                 if (location.state?.source === 'room-service') {
                                     navigate('/admin/room-service');
+                                } else if (location.state?.source === 'table-order') {
+                                    navigate('/admin/guest-meal-service');
                                 } else {
                                     setActiveMenu('reservations');
                                     setReservationView('roomservice');
@@ -900,114 +904,123 @@ const AdminDashboard = () => {
                             </div>
                         </div>
 
-                        <div className="qr-filters-row">
-                            <div className="qr-filter-group">
-                                <label>Select Store</label>
-                                <select
-                                    className="qr-select"
-                                    value={selectedStore}
-                                    onChange={(e) => setSelectedStore(e.target.value)}
-                                >
-                                    <option value="Testing 3.0">Testing 3.0</option>
-                                    <option value="Store 1">Store 1</option>
-                                    <option value="Store 2">Store 2</option>
-                                </select>
+                        <div className="qr-filters-card">
+                            <div className="qr-filters-row">
+                                <div className="qr-filter-group">
+                                    <label>Select Store</label>
+                                    <select
+                                        className="qr-select"
+                                        value={selectedStore}
+                                        onChange={(e) => setSelectedStore(e.target.value)}
+                                    >
+                                        <option value="Testing 3.0">Testing 3.0</option>
+                                        <option value="Store 1">Store 1</option>
+                                        <option value="Store 2">Store 2</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="qr-filters-row qr-filters-row-multi">
+                                <div className="qr-filter-group">
+                                    <label>Category</label>
+                                    <select
+                                        className="qr-select"
+                                        value={selectedQRCategory}
+                                        onChange={(e) => {
+                                            setSelectedQRCategory(e.target.value);
+                                            setSelectedQRRoom('');
+                                        }}
+                                    >
+                                        <option value="">Select Category</option>
+                                        {[...new Set(rooms.map(room => room.roomType))].map(type => (
+                                            <option key={type} value={type}>{type}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="qr-filter-group">
+                                    <label>Room</label>
+                                    <select
+                                        className="qr-select"
+                                        value={selectedQRRoom}
+                                        onChange={(e) => setSelectedQRRoom(e.target.value)}
+                                        disabled={!selectedQRCategory}
+                                    >
+                                        <option value="">Select Room</option>
+                                        {rooms
+                                            .filter(room => !selectedQRCategory || room.roomType === selectedQRCategory)
+                                            .map(room => (
+                                                <option key={room._id} value={room.roomNumber}>
+                                                    {room.roomNumber}
+                                                </option>
+                                            ))
+                                        }
+                                    </select>
+                                </div>
+
+                                <div className="qr-filter-group qr-search-group">
+                                    <label>Search</label>
+                                    <div className="qr-search-wrapper">
+                                        <input
+                                            type="text"
+                                            className="qr-search-input"
+                                            placeholder="Search Table"
+                                            value={qrSearchTable}
+                                            onChange={(e) => setQRSearchTable(e.target.value)}
+                                        />
+                                        <span className="qr-search-icon">🔍</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="qr-filters-row qr-filters-row-multi">
-                            <div className="qr-filter-group">
-                                <select
-                                    className="qr-select"
-                                    value={selectedQRCategory}
-                                    onChange={(e) => {
-                                        setSelectedQRCategory(e.target.value);
-                                        setSelectedQRRoom('');
-                                    }}
-                                >
-                                    <option value="">Select Category</option>
-                                    {[...new Set(rooms.map(room => room.roomType))].map(type => (
-                                        <option key={type} value={type}>{type}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="qr-filter-group">
-                                <select
-                                    className="qr-select"
-                                    value={selectedQRRoom}
-                                    onChange={(e) => setSelectedQRRoom(e.target.value)}
-                                    disabled={!selectedQRCategory}
-                                >
-                                    <option value="">Select Room</option>
-                                    {rooms
-                                        .filter(room => !selectedQRCategory || room.roomType === selectedQRCategory)
-                                        .map(room => (
-                                            <option key={room._id} value={room.roomNumber}>
-                                                {room.roomNumber}
-                                            </option>
-                                        ))
-                                    }
-                                </select>
-                            </div>
-
-                            <div className="qr-filter-group qr-search-group">
-                                <input
-                                    type="text"
-                                    className="qr-search-input"
-                                    placeholder="Search Table"
-                                    value={qrSearchTable}
-                                    onChange={(e) => setQRSearchTable(e.target.value)}
-                                />
-                                <span className="qr-search-icon">🔍</span>
-                            </div>
-                        </div>
-
-                        <div className="qr-table-container">
-                            <table className="qr-table">
-                                <thead>
-                                    <tr>
-                                        <th>Category</th>
-                                        <th>Room Name</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredQRRooms.length > 0 ? (
-                                        filteredQRRooms.map((room) => (
-                                            <tr key={room._id}>
-                                                <td>
-                                                    <span className={`qr-category-badge ${room.roomType.toLowerCase().replace(/\s+/g, '-')}`}>
-                                                        {room.roomType}
-                                                    </span>
-                                                </td>
-                                                <td>{room.roomNumber}</td>
-                                                <td>
-                                                    <div className="qr-action-buttons">
-                                                        <button
-                                                            className="qr-action-btn qr-view-btn"
-                                                            title="Generate/View QR"
-                                                            onClick={() => handleViewQR(room)}
-                                                            disabled={qrLoading}
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                                                <circle cx="12" cy="12" r="3"></circle>
-                                                            </svg>
-                                                        </button>
-                                                    </div>
+                        <div className="qr-table-card">
+                            <div className="qr-table-container">
+                                <table className="qr-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Category</th>
+                                            <th>Room Name</th>
+                                            <th style={{ textAlign: 'center' }}>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredQRRooms.length > 0 ? (
+                                            filteredQRRooms.map((room) => (
+                                                <tr key={room._id}>
+                                                    <td>
+                                                        <span className="qr-category-badge">
+                                                            {room.roomType}
+                                                        </span>
+                                                    </td>
+                                                    <td className="qr-room-name">{room.roomNumber}</td>
+                                                    <td>
+                                                        <div className="qr-action-buttons">
+                                                            <button
+                                                                className="qr-action-btn qr-view-btn"
+                                                                title="Generate/View QR"
+                                                                onClick={() => handleViewQR(room)}
+                                                                disabled={qrLoading}
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                                    <circle cx="12" cy="12" r="3"></circle>
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="3" className="qr-table-empty">
+                                                    {rooms.length === 0 ? 'No rooms available' : 'No rooms found matching your search'}
                                                 </td>
                                             </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan="3" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
-                                                {rooms.length === 0 ? 'No rooms available' : 'No rooms found matching your search'}
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 )
@@ -1563,10 +1576,10 @@ const AdminDashboard = () => {
                             <div className="qr-modal-header">
                                 <div>
                                     <h2>Room QR Code</h2>
-                                    <p className="qr-room-info">Room {qrModalData.room.roomNumber} - {qrModalData.room.roomType}</p>
+                                    <p className="qr-room-info">Room {qrModalData.room.roomNumber} – {qrModalData.room.roomType}</p>
                                 </div>
                                 <button
-                                    className="close-modal-btn"
+                                    className="qr-close-btn"
                                     onClick={() => setShowQRModal(false)}
                                 >
                                     ×
@@ -1574,80 +1587,77 @@ const AdminDashboard = () => {
                             </div>
 
                             <div className="qr-modal-body">
-                                <div className="qr-display-section">
-                                    <div className="qr-code-container">
-                                        <img src={qrModalData.qrCode} alt="Room QR Code" className="qr-code-image" />
+                                {/* QR Code and Scan Instructions - Top Section */}
+                                <div className="qr-top-section">
+                                    <div className="qr-code-wrapper">
+                                        <img src={qrModalData.qrCode} alt="Room QR Code" className="qr-code-img" />
                                     </div>
-
-                                    <div className="qr-info-section">
-                                        <div className="qr-info-card">
-                                            <h4>Scan Instructions</h4>
-                                            <p>To order from your Room {qrModalData.room.roomNumber}</p>
-                                            <p className="qr-instruction">Please scan this QR code on your mobile phone</p>
-                                            <p className="qr-store-name">{selectedStore}</p>
-                                        </div>
-
-                                        <div className="qr-details-card">
-                                            <div className="qr-detail-item">
-                                                <span className="detail-label">Room Number:</span>
-                                                <span className="detail-value">{qrModalData.room.roomNumber}</span>
-                                            </div>
-                                            <div className="qr-detail-item">
-                                                <span className="detail-label">Category:</span>
-                                                <span className="detail-value">{qrModalData.room.roomType}</span>
-                                            </div>
-                                            <div className="qr-detail-item">
-                                                <span className="detail-label">Status:</span>
-                                                <span className={`detail-value status-${qrModalData.room.status?.toLowerCase()}`}>
-                                                    {qrModalData.room.status}
-                                                </span>
-                                            </div>
-                                        </div>
+                                    <div className="qr-scan-instructions">
+                                        <h4>Scan Instructions</h4>
+                                        <p>To order from your Room {qrModalData.room.roomNumber}</p>
+                                        <p className="qr-scan-highlight">Please scan this QR code on your mobile phone</p>
                                     </div>
                                 </div>
 
-                                <div className="qr-action-section">
-                                    <button
-                                        className="qr-download-btn"
-                                        onClick={handleDownloadQR}
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                {/* Room Details Section */}
+                                <div className="qr-details-section">
+                                    <div className="qr-detail-item">
+                                        <span className="qr-detail-label">ROOM NUMBER:</span>
+                                        <span className="qr-detail-value">{qrModalData.room.roomNumber}</span>
+                                    </div>
+                                    <div className="qr-detail-item">
+                                        <span className="qr-detail-label">CATEGORY:</span>
+                                        <span className="qr-detail-value">{qrModalData.room.roomType}</span>
+                                    </div>
+                                    <div className="qr-detail-item">
+                                        <span className="qr-detail-label">STATUS:</span>
+                                        <span className={`qr-status-badge status-${qrModalData.room.status?.toLowerCase()}`}>
+                                            {qrModalData.room.status}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="qr-buttons-section">
+                                    <button className="qr-action-btn btn-red" onClick={handleDownloadQR}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                             <polyline points="7 10 12 15 17 10"></polyline>
                                             <line x1="12" y1="15" x2="12" y2="3"></line>
                                         </svg>
-                                        Download QR
+                                        QR
                                     </button>
-
-                                    <button
-                                        className="qr-print-btn"
-                                        onClick={() => window.print()}
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <button className="qr-action-btn btn-blue" onClick={() => window.print()}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                             <polyline points="6 9 6 2 18 2 18 9"></polyline>
                                             <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
                                             <rect x="6" y="14" width="12" height="8"></rect>
                                         </svg>
                                         Print
                                     </button>
-
-                                    <button
-                                        className="qr-regenerate-btn"
-                                        onClick={() => handleViewQR(qrModalData.room)}
-                                        disabled={qrLoading}
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <button className="qr-action-btn btn-green" onClick={() => handleViewQR(qrModalData.room)} disabled={qrLoading}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                             <polyline points="23 4 23 10 17 10"></polyline>
-                                            <polyline points="1 20 1 14 7 14"></polyline>
-                                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"></path>
                                         </svg>
-                                        Regenerate
+                                        Print
                                     </button>
                                 </div>
 
-                                <div className="qr-notes">
+                                {/* Note Section */}
+                                <div className="qr-note-section">
                                     <p><strong>Note:</strong> Please make sure to generate every room's QR separately.</p>
                                     <p>Click <a href={qrModalData.qrData.scanUrl} target="_blank" rel="noopener noreferrer">here</a> to open the app.</p>
+                                </div>
+
+                                {/* Branding Footer */}
+                                <div className="qr-branding-footer">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                        <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#94A3B8" stroke="#94A3B8" strokeWidth="2" />
+                                        <path d="M2 17L12 22L22 17" stroke="#94A3B8" strokeWidth="2" />
+                                        <path d="M2 12L12 17L22 12" stroke="#94A3B8" strokeWidth="2" />
+                                    </svg>
+                                    <span>CoaRoom</span>
                                 </div>
                             </div>
                         </motion.div>

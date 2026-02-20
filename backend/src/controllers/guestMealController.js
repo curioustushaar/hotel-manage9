@@ -166,7 +166,7 @@ exports.deleteTable = async (req, res) => {
 // Update table details (status, type, reservation, etc.)
 exports.updateTable = async (req, res) => {
     try {
-        const { status, type, capacity, tableName, guests, reservation } = req.body;
+        const { status, type, capacity, tableName, guests, reservation, currentOrderId, runningOrderAmount, orderStartTime, orderDuration } = req.body;
 
         let updateData = {};
         if (status) updateData.status = status;
@@ -174,6 +174,13 @@ exports.updateTable = async (req, res) => {
         if (capacity) updateData.capacity = capacity;
         if (tableName) updateData.tableName = tableName;
         if (guests !== undefined) updateData.guests = guests;
+        
+        // Handle order-related fields (allow clearing with null/0)
+        if (req.body.hasOwnProperty('currentOrderId')) updateData.currentOrderId = currentOrderId;
+        if (req.body.hasOwnProperty('runningOrderAmount')) updateData.runningOrderAmount = runningOrderAmount;
+        if (req.body.hasOwnProperty('orderStartTime')) updateData.orderStartTime = orderStartTime;
+        if (req.body.hasOwnProperty('orderDuration')) updateData.orderDuration = orderDuration;
+        
         // Handle reservation: if explicit null sent, it clears it. If object, updates it.
         // Handle reservation updates
         if (req.body.reservations) {
