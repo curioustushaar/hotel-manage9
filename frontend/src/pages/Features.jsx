@@ -15,16 +15,25 @@ const Features = () => {
     const [hoveredIndex, setHoveredIndex] = useState(null);
 
     const cardStyle = (index) => ({
-        padding: "10px", // Reduced to prevent oversize
+        padding: index === 0 ? "30px" : "10px",
         borderRadius: "20px",
         cursor: "pointer",
         transition: "all 0.4s ease",
         transform: hoveredIndex === index ? "translateY(-8px)" : "translateY(0px)",
+        background: index === 0 ? "rgba(255, 255, 255, 0.8)" : "transparent",
+        boxShadow: index === 0
+            ? "0 0 20px rgba(225, 29, 72, 0.3), inset 0 0 10px rgba(225, 29, 72, 0.1)"
+            : "none",
+        border: index === 0 ? "2px solid rgba(225, 29, 72, 0.5)" : "none",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center"
     });
 
     const imageStyle = (index) => ({
         width: "100%",
-        maxWidth: "340px", // Increased slightly based on the visual balance in the image
+        maxWidth: index === 0 ? "420px" : "340px",
         height: "auto",
         objectFit: "contain",
         margin: "0 auto",
