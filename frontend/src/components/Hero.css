@@ -30,7 +30,7 @@
 .landing-hero .hero-text {
   flex: 1.2;
   max-width: 650px;
-  margin-left: -60px;
+  margin-left: -35px;
   /* Wider text area */
 }
 
@@ -59,7 +59,7 @@
 }
 
 /* CTA Button */
-.hero-cta {
+.landing-hero .hero-cta {
   display: inline-block;
   padding: 16px 40px;
   /* Increased padding */
@@ -76,10 +76,11 @@
   box-shadow: 0 4px 14px rgba(225, 29, 72, 0.39);
 }
 
-.hero-cta:hover {
+.landing-hero .hero-cta:hover {
   background: #be123c;
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(225, 29, 72, 0.45);
+  color: #fff;
 }
 
 /* Removed disclaimer styles */
@@ -105,7 +106,7 @@
   transform: scale(1);
   background: transparent;
   /* margin-left: 39px; */
-  /* margin-right: -200px; */
+  margin-right: 58px;
 }
 
 /* ================= RESPONSIVE ================= */

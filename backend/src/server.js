@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
-// Load environment variables from ROOT folder
+// Load environment variables from root folder
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 // Import routes

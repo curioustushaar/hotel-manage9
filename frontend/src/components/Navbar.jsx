@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import './Navbar.css';
-import Logo from '../assets/new logo.png';
+import Logo from '../assets/final logo.png';
 
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
@@ -10,6 +10,26 @@ const NAV_LINKS = [
   { to: '/pricing', label: 'Pricing' },
   { to: '/contact', label: 'Contact Us' },
 ];
+
+const NavItem = ({ to, children, onClick }) => {
+  return (
+    <NavLink
+      to={to}
+      onClick={onClick}
+      className="nav-link"
+      style={({ isActive }) => ({
+        textDecoration: "none",
+        fontWeight: "500",
+        paddingBottom: "6px",
+        transition: "all 0.2s ease-in-out",
+        color: "#4b5563",
+        borderBottom: isActive ? "3px solid #e11d48" : "3px solid transparent",
+      })}
+    >
+      {children}
+    </NavLink>
+  );
+};
 
 function Navbar() {
   const [sidebarActive, setSidebarActive] = useState(false);
@@ -61,7 +81,7 @@ function Navbar() {
             <ul className="nav-menu">
               {NAV_LINKS.map(({ to, label }) => (
                 <li key={to} className="nav-item">
-                  <Link to={to} className="nav-link" onClick={closeSidebar}>{label}</Link>
+                  <NavItem to={to} onClick={closeSidebar}>{label}</NavItem>
                 </li>
               ))}
             </ul>
@@ -75,5 +95,4 @@ function Navbar() {
     </>
   );
 }
-
 export default Navbar;
