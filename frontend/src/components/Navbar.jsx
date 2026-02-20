@@ -12,19 +12,22 @@ const NAV_LINKS = [
 ];
 
 const NavItem = ({ to, children, onClick }) => {
+  const handleClick = (e) => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    if (onClick) onClick(e);
+  };
+
   return (
     <NavLink
       to={to}
-      onClick={onClick}
-      className="nav-link"
-      style={({ isActive }) => ({
+      end={to === '/'}
+      onClick={handleClick}
+      className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+      style={{
         textDecoration: "none",
         fontWeight: "500",
-        paddingBottom: "6px",
-        transition: "all 0.2s ease-in-out",
-        color: "#4b5563",
-        borderBottom: isActive ? "3px solid #e11d48" : "3px solid transparent",
-      })}
+        transition: "all 0.3s ease",
+      }}
     >
       {children}
     </NavLink>
@@ -86,7 +89,16 @@ function Navbar() {
               ))}
             </ul>
             <div className="nav-secondary">
-              <Link to="/login" className="demo-btn" onClick={closeSidebar}>Book a Free Demo</Link>
+              <Link
+                to="/login"
+                className="demo-btn"
+                onClick={() => {
+                  window.scrollTo({ top: 0, behavior: 'instant' });
+                  closeSidebar();
+                }}
+              >
+                Book a Free Demo
+              </Link>
             </div>
           </nav>
         </div>
