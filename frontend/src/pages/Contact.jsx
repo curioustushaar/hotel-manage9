@@ -112,14 +112,14 @@ const Contact = () => {
                 <Reveal delay={0.4} width="100%">
                     <div style={{ marginTop: "60px", borderRadius: "20px", overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,0.1)", border: "4px solid #fff" }}>
                         <iframe
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3598.715366579809!2d85.09919037539077!3d25.58280627746401!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39ed579f18074697%3A0xc3f92e42f6233486!2sMitra%20Mandal%20Colony%2C%20Anisabad%2C%20Patna%2C%20Bihar%20800002!5e0!3m2!1sen!2sin!4v1708429400000!5m2!1sen!2sin"
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3598.6793616254!2d85.09919037539077!3d25.58280627746401!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39ed579f18074697%3A0xc3f92e42f6233486!2sBireena%20Info%20Tech!5e0!3m2!1sen!2sin!4v1708433360000!5m2!1sen!2sin"
                             width="100%"
                             height="450"
                             style={{ border: 0, display: "block" }}
                             allowFullScreen=""
                             loading="lazy"
                             referrerPolicy="no-referrer-when-downgrade"
-                            title="Office Location"
+                            title="Bireena Info Tech Location"
                         ></iframe>
                     </div>
                 </Reveal>
