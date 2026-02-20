@@ -144,10 +144,22 @@ const About = () => {
                     <h2>Why We're Different</h2>
                     <p>Built by hospitality experts, for hospitality experts.</p>
                     <div className="why-cards">
-                        <div>Reservation <br /> Intelligence</div>
-                        <div>Real-time <br /> Billing</div>
-                        <div>KOT <br /> Automation</div>
-                        <div>24/7 Support</div>
+                        <div>
+                            <span className="why-icon">📅</span>
+                            Reservation <br /> Intelligence
+                        </div>
+                        <div>
+                            <span className="why-icon">💳</span>
+                            Real-time <br /> Billing
+                        </div>
+                        <div>
+                            <span className="why-icon">🍽️</span>
+                            KOT <br /> Automation
+                        </div>
+                        <div>
+                            <span className="why-icon">🎧</span>
+                            24/7 Support
+                        </div>
                     </div>
                 </section>
 
