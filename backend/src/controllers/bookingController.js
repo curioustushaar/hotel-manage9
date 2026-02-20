@@ -401,11 +401,66 @@ exports.updateBookingStatus = async (req, res) => {
             'Cancelled': 'Available'
         };
 
+        // --- STEP 7: Checkout Validation ---
+        if (status === 'Checked-out') {
+            const Folio = require('../models/Folio');
+            // Find all folios linked to this reservation
+            const folios = await Folio.find({ reservationId: booking._id });
+
+            if (folios && folios.length > 0) {
+                const pendingFolios = folios.filter(f => f.balance > 0);
+
+                if (pendingFolios.length > 0) {
+                    const totalPending = pendingFolios.reduce((sum, f) => sum + f.balance, 0);
+                    return res.status(400).json({
+                        success: false,
+                        message: `Cannot checkout. Pending payment exists on ${pendingFolios.length} folio(s).`,
+                        totalBalanceDue: totalPending,
+                        folios: pendingFolios.map(f => ({ type: f.type, balance: f.balance }))
+                    });
+                }
+
+                // Close all folios
+                for (const folio of folios) {
+                    folio.status = 'CLOSED';
+                    await folio.save();
+                }
+            }
+        }
+
         const newRoomStatus = roomStatusMap[status];
 
         if (newRoomStatus) {
+            const HousekeepingTask = require('../models/HousekeepingTask');
             for (const roomNo of roomNumbers) {
-                await Room.findOneAndUpdate({ roomNumber: roomNo }, { status: newRoomStatus });
+                // Keep existing logic for room status (Available)
+                const updateData = { status: newRoomStatus };
+
+                // Add housekeeping logic if checking out
+                if (status === 'Checked-out') {
+                    updateData.housekeepingStatus = 'dirty';
+
+                    // Create housekeeping alert record
+                    const room = await Room.findOne({ roomNumber: roomNo });
+                    if (room) {
+                        // Check if a pending task already exists to avoid duplicates
+                        const existingTask = await HousekeepingTask.findOne({
+                            roomId: room._id,
+                            status: 'pending'
+                        });
+
+                        if (!existingTask) {
+                            await HousekeepingTask.create({
+                                roomId: room._id,
+                                roomNumber: room.roomNumber,
+                                status: 'pending',
+                                createdAt: new Date()
+                            });
+                        }
+                    }
+                }
+
+                await Room.findOneAndUpdate({ roomNumber: roomNo }, updateData);
             }
         }
 
@@ -741,13 +796,138 @@ exports.checkInBooking = async (req, res) => {
         const booking = await Booking.findById(req.params.id);
         if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
 
+        const { securityDeposit, idProofType, idNumber, adults, children, vehicleNumber, remarks, idProofNumber, idNumber: altIdNumber } = req.body;
+
         booking.status = 'Checked-in';
-        booking.checkInTime = new Date(); // Actual check-in time
+        if (req.body.arrivalDate && req.body.checkInTime) {
+            booking.actualCheckIn = new Date(`${req.body.arrivalDate}T${req.body.checkInTime}`);
+        } else {
+            booking.actualCheckIn = new Date();
+        }
+
+        // Update fields if provided
+        if (idProofType) booking.idProofType = idProofType;
+        const finalIdNumber = idNumber || idProofNumber || altIdNumber;
+        if (finalIdNumber) booking.idNumber = finalIdNumber;
+
+        if (!booking.duration) booking.duration = { nights: 1, adults: 1, children: 0 };
+        if (adults) booking.duration.adults = Number(adults);
+        if (children !== undefined) booking.duration.children = Number(children);
+
+        if (vehicleNumber) booking.vehicleNumber = vehicleNumber;
+        if (remarks) booking.remarks = remarks;
+
+        const depositAmount = Number(securityDeposit) || 0;
+        booking.securityDeposit = depositAmount;
+
+        // Record security deposit as a payment transaction so it updates the paid amount and balance
+        if (depositAmount > 0) {
+            const hasDeposit = booking.transactions && booking.transactions.some(t => t.notes === 'Security Deposit at Check-in');
+
+            if (!hasDeposit) {
+                if (!booking.transactions) booking.transactions = [];
+                booking.transactions.push({
+                    type: 'Payment',
+                    amount: depositAmount,
+                    method: 'Cash',
+                    notes: 'Security Deposit at Check-in',
+                    date: new Date()
+                });
+            }
+        }
+
         await booking.save();
 
         const Room = require('../models/Room');
-        if (booking.roomNumber) {
-            await Room.findOneAndUpdate({ roomNumber: booking.roomNumber }, { status: 'Occupied' });
+        const roomNumbers = [];
+        if (booking.isMulti && booking.rooms && booking.rooms.length > 0) {
+            booking.rooms.forEach(r => {
+                if (r.roomNumber && r.roomNumber !== 'TBD') roomNumbers.push(r.roomNumber);
+            });
+        } else if (booking.roomNumber && booking.roomNumber !== 'TBD') {
+            roomNumbers.push(booking.roomNumber);
+        }
+
+        for (const roomNo of roomNumbers) {
+            await Room.findOneAndUpdate({ roomNumber: roomNo }, { status: 'Occupied' });
+        }
+
+        // --- STEP 3: Auto Create Folios on CHECKED_IN ---
+        try {
+            const Folio = require('../models/Folio');
+            const { recalculateFolio } = require('./folioController');
+
+            // Check if folios array is empty to proceed
+            if (!booking.folios || booking.folios.length === 0) {
+                const createdFolioIds = [];
+
+                // 1. Create PRIMARY folio (Mandatory)
+                const numberOfNights = booking.duration?.nights || 1;
+                const roomRate = booking.billing?.roomRate || booking.pricePerNight || 0;
+                const totalRoomCharge = roomRate * numberOfNights;
+
+                const primaryFolio = await Folio.create({
+                    type: 'PRIMARY',
+                    reservationId: booking._id,
+                    roomId: booking.room,
+                    guestId: booking.guest,
+                    entries: [{
+                        type: 'ROOM_CHARGE',
+                        description: `Room charge for ${numberOfNights} night(s)`,
+                        amount: totalRoomCharge,
+                        addedBy: 'System'
+                    }],
+                    status: 'OPEN'
+                });
+
+                // Add initial security deposit to primary if paid
+                if (depositAmount > 0) {
+                    primaryFolio.entries.push({
+                        type: 'PAYMENT',
+                        description: 'Security Deposit at Check-in',
+                        amount: depositAmount,
+                        paymentMode: 'CASH',
+                        addedBy: 'System'
+                    });
+                    await primaryFolio.save();
+                }
+
+                await recalculateFolio(primaryFolio._id);
+                createdFolioIds.push(primaryFolio._id);
+
+                // 2. If corporate, create COMPANY folio
+                const isCorporate = booking.source === 'Corporate' || booking.businessSource === 'Corporate';
+                if (isCorporate) {
+                    const companyFolio = await Folio.create({
+                        type: 'COMPANY',
+                        reservationId: booking._id,
+                        roomId: booking.room,
+                        guestId: booking.guest,
+                        status: 'OPEN'
+                    });
+                    createdFolioIds.push(companyFolio._id);
+                }
+
+                // 3. If multi-guest/room, optionally create SECONDARY folio (simplified: always create SECONDARY for multi-room)
+                if (booking.isMulti) {
+                    const secondaryFolio = await Folio.create({
+                        type: 'SECONDARY',
+                        reservationId: booking._id,
+                        roomId: booking.room,
+                        guestId: booking.guest,
+                        status: 'OPEN'
+                    });
+                    createdFolioIds.push(secondaryFolio._id);
+                }
+
+                // Update booking with folio IDs
+                booking.folios = createdFolioIds;
+                await booking.save();
+
+                console.log(`Initialized ${createdFolioIds.length} folios for booking ${booking._id}`);
+            }
+        } catch (folioErr) {
+            console.error('Error auto-creating folios:', folioErr);
         }
 
         res.status(200).json({ success: true, message: 'Checked in successfully', data: booking });
@@ -763,21 +943,16 @@ exports.addBookingPayment = async (req, res) => {
         const booking = await Booking.findById(req.params.id);
         if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
 
-        const { amount, mode, reference, notes } = req.body;
+        const { amount, mode, reference, notes, paymentMethod, referenceId, comment } = req.body;
 
-        // Add payment transaction
-        // Payments are typically stored as negative values if charges are positive
-        // But amount from frontend form is likely positive
-        // Let's store it as payment type, handling sign in calculation or keep as is
-        // Based on previous code: amount: -Math.abs(bookingData.advancePaid)
-
+        // Add payment transaction according to current Booking model schema
         booking.transactions.push({
-            type: 'payment',
-            amount: -Math.abs(Number(amount)),
-            particulars: `Payment via ${mode}`,
-            description: `Ref: ${reference || '-'} ${notes ? '- ' + notes : ''}`,
-            day: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
-            user: 'staff' // simplified
+            type: 'Payment', // Case-sensitive enum: Payment, Refund, Adjustment, Charge
+            amount: Math.abs(Number(amount)), // Positive amount for payments
+            method: paymentMethod || mode || 'Cash', // Maps to model field 'method'
+            referenceId: referenceId || reference || '',
+            notes: comment || notes || '',
+            date: new Date()
         });
 
         await booking.save();
@@ -874,19 +1049,16 @@ exports.amendBookingStay = async (req, res) => {
             if (!booking.transactions) booking.transactions = [];
 
             booking.transactions.push({
-                type: difference > 0 ? 'charge' : 'discount',
-                day: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
-                particulars: 'Stay Amendment Adjustment',
-                description: `Stay amended from ${oldData.nights} to ${nights} nights at ₹${ratePerNight}/night. ${reason || ''}`,
+                type: difference > 0 ? 'Charge' : 'Adjustment',
+                notes: `Stay amended from ${oldData.nights} to ${nights} nights at ₹${ratePerNight}/night. ${reason || ''}`,
                 amount: Math.abs(difference),
-                paymentMethod: null,
-                createdAt: new Date(),
-                user: 'System/Amend'
+                date: new Date()
             });
 
-            // Note: totalAmount will be recalculated in pre-save hook based on transactions
-            // But we can set it explicitly to be sure
-            booking.totalAmount = targetTotal;
+            // Update authoritative billing total
+            if (booking.billing) {
+                booking.billing.totalAmount = targetTotal;
+            }
         }
 
         // Add to audit trail
@@ -1004,13 +1176,16 @@ exports.moveBookingRoom = async (req, res) => {
         if (!isReservation && totalAdjustment !== 0) {
             if (!booking.transactions) booking.transactions = [];
             booking.transactions.push({
-                type: totalAdjustment > 0 ? 'charge' : 'discount',
-                day: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
-                particulars: 'Room Move Adjustment',
-                description: `Moved from ${oldRoomNumber} to ${newRoom.roomNumber}. Rate diff: ₹${rateDiff}/night for ${remainingNights} remaining nights.`,
+                type: totalAdjustment > 0 ? 'Charge' : 'Adjustment',
+                notes: `Moved from ${oldRoomNumber} to ${newRoom.roomNumber}. Rate diff: ₹${rateDiff}/night for ${remainingNights} remaining nights.`,
                 amount: Math.abs(totalAdjustment),
-                user: req.body.movedBy || 'System'
+                date: new Date()
             });
+
+            // Update authoritative billing total
+            if (booking.billing) {
+                booking.billing.totalAmount = (booking.billing.totalAmount || 0) + totalAdjustment;
+            }
         }
 
         if (!booking.auditTrail) booking.auditTrail = [];
@@ -1130,18 +1305,20 @@ exports.exchangeBookingRoom = async (req, res) => {
         if (!isReservation && totalAdjustment !== 0) {
             if (!booking.transactions) booking.transactions = [];
 
-            const type = totalAdjustment > 0 ? 'charge' : 'discount';
-            const description = `Room Exchange: ${oldRoomNumber} ⇄ ${newRoom.roomNumber}. ${remainingNights} nights difference. Reason: ${reason}`;
+            const type = totalAdjustment > 0 ? 'Charge' : 'Adjustment';
+            const notes = `Room Exchange: ${oldRoomNumber} ⇄ ${newRoom.roomNumber}. ${remainingNights} nights difference. Reason: ${reason}`;
 
             booking.transactions.push({
                 type: type,
-                day: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
-                particulars: `Room Exchange Adjustment`,
-                description: description,
+                notes: notes,
                 amount: Math.abs(totalAdjustment),
-                user: req.body.performedBy || 'Staff'
+                date: new Date()
             });
-            // Note: Booking model pre-save hook will recalculate totalAmount/balance automatically
+
+            // Update authoritative billing total
+            if (booking.billing) {
+                booking.billing.totalAmount = (booking.billing.totalAmount || 0) + totalAdjustment;
+            }
         } else if (isReservation) {
             // For simple Reservation model without transactions
             if (booking.amount !== undefined) booking.amount += totalAdjustment;
