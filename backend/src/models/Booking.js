@@ -127,7 +127,21 @@ const bookingSchema = new mongoose.Schema({
     // Audit
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     checkedInBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    checkedOutBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+    checkedOutBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+
+    // Multi-folio routing
+    folios: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Folio'
+    }],
+    routingRules: [{
+        chargeType: String, // e.g., ROOM_CHARGE, FOOD, DAMAGE
+        routeTo: {
+            type: String,
+            enum: ["PRIMARY", "SECONDARY", "COMPANY"],
+            default: "PRIMARY"
+        }
+    }]
 
 }, {
     timestamps: true

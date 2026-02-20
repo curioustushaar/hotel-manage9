@@ -115,14 +115,40 @@ router.put('/checkin/:id', async (req, res) => {
 
         // Update fields from sidebar form
         reservation.status = "Checked-in"; // Use Checked-in for consistency
-        reservation.actualCheckIn = new Date();
+        if (req.body.arrivalDate && req.body.checkInTime) {
+            reservation.actualCheckIn = new Date(`${req.body.arrivalDate}T${req.body.checkInTime}`);
+        } else {
+            reservation.actualCheckIn = new Date();
+        }
+
         reservation.idProofType = req.body.idProofType;
         reservation.idNumber = req.body.idNumber;
+
+        if (!reservation.duration) reservation.duration = { nights: 1, adults: 1, children: 0 };
         reservation.duration.adults = Number(req.body.adults) || reservation.duration.adults;
         reservation.duration.children = Number(req.body.children) || reservation.duration.children;
         reservation.vehicleNumber = req.body.vehicleNumber;
-        reservation.securityDeposit = Number(req.body.securityDeposit) || 0;
+        const depositAmount = Number(req.body.securityDeposit) || 0;
+        reservation.securityDeposit = depositAmount;
         reservation.remarks = req.body.remarks;
+
+        // Record security deposit as a payment transaction so it updates the paid amount and balance
+        if (depositAmount > 0) {
+            // Check if we already have a Security Deposit transaction for this check-in to prevent duplicates
+            // (Simple check by notes match)
+            const hasDeposit = reservation.transactions && reservation.transactions.some(t => t.notes === 'Security Deposit at Check-in');
+
+            if (!hasDeposit) {
+                if (!reservation.transactions) reservation.transactions = [];
+                reservation.transactions.push({
+                    type: 'Payment',
+                    amount: depositAmount,
+                    method: 'Cash', // Default for check-in deposit if not specified
+                    notes: 'Security Deposit at Check-in',
+                    date: new Date()
+                });
+            }
+        }
 
         await reservation.save();
 
@@ -139,6 +165,69 @@ router.put('/checkin/:id', async (req, res) => {
 
         for (const roomNo of roomNumbers) {
             await Room.findOneAndUpdate({ roomNumber: roomNo }, { status: 'Occupied' });
+        }
+
+        // --- STEP 3: Auto Create Folios on CHECKED_IN ---
+        try {
+            const Folio = require('../models/Folio');
+            const { recalculateFolio } = require('../controllers/folioController');
+
+            if (!reservation.folios || reservation.folios.length === 0) {
+                const createdFolioIds = [];
+
+                // 1. Create PRIMARY folio
+                const numberOfNights = reservation.duration?.nights || 1;
+                const roomRate = (reservation.amount / (reservation.nights || 1)) || 0;
+                const totalRoomCharge = roomRate * numberOfNights;
+
+                const primaryFolio = await Folio.create({
+                    type: 'PRIMARY',
+                    reservationId: reservation._id,
+                    roomId: reservation.room || reservation.roomId,
+                    guestId: reservation.guest || reservation.guestId,
+                    entries: [{
+                        type: 'ROOM_CHARGE',
+                        description: `Room charge for ${numberOfNights} night(s)`,
+                        amount: totalRoomCharge,
+                        addedBy: 'System'
+                    }],
+                    status: 'OPEN'
+                });
+
+                if (depositAmount > 0) {
+                    primaryFolio.entries.push({
+                        type: 'PAYMENT',
+                        description: 'Security Deposit at Check-in',
+                        amount: depositAmount,
+                        paymentMode: 'CASH',
+                        addedBy: 'System'
+                    });
+                    await primaryFolio.save();
+                }
+
+                await recalculateFolio(primaryFolio._id);
+                createdFolioIds.push(primaryFolio._id);
+
+                // 2. If corporate
+                if (reservation.source === 'Corporate' || reservation.businessSource === 'Corporate') {
+                    const companyFolio = await Folio.create({
+                        type: 'COMPANY',
+                        reservationId: reservation._id,
+                        roomId: reservation.room || reservation.roomId,
+                        guestId: reservation.guest || reservation.guestId,
+                        status: 'OPEN'
+                    });
+                    createdFolioIds.push(companyFolio._id);
+                }
+
+                // Update reservation
+                reservation.folios = createdFolioIds;
+                await reservation.save();
+
+                console.log(`Initialized ${createdFolioIds.length} folios for reservation ${reservation._id}`);
+            }
+        } catch (folioErr) {
+            console.error('Error auto-creating folios:', folioErr);
         }
 
         res.status(200).json({

@@ -653,6 +653,7 @@ const RoomSetup = () => {
                                     >
                                         <div className="room-card-header">
                                             <h4>Room {room.roomNumber}</h4>
+                                            {room.housekeepingStatus === 'dirty' && <div className="dirty-badge">DIRTY</div>}
                                             <div className="card-actions">
                                                 <button
                                                     className="icon-btn"

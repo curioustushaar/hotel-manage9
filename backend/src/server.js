@@ -154,6 +154,12 @@ app.use('/api/tables', tableRoutes);
 const visitorRoutes = require('./routes/visitorRoutes');
 app.use('/api/visitors', visitorRoutes);
 
+const housekeepingRoutes = require('./routes/housekeepingRoutes');
+app.use('/api/housekeeping', housekeepingRoutes);
+
+const folioRoutes = require('./routes/folioRoutes');
+app.use('/api/folio', folioRoutes);
+
 // Root route
 app.get('/', (req, res) => {
     res.json({

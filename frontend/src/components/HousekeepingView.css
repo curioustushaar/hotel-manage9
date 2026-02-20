@@ -534,3 +534,50 @@
         margin: 1rem;
     }
 }
+/* Added by Housekeeping Logic Upgrade */
+.btn-refresh {
+    padding: 0.75rem 1.5rem;
+    background-color: #f3f4f6;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    border-radius: 2rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-refresh:hover {
+    background-color: #e5e7eb;
+}
+
+.status-pill.dirty {
+    background-color: #fef2f2;
+    color: #ef4444;
+    border: 1px solid #fee2e2;
+}
+
+.clean-btn {
+    width: auto !important;
+    height: auto !important;
+    padding: 0.5rem 1rem !important;
+    border-radius: 6px !important;
+    background-color: #f0fdf4 !important;
+    color: #16a34a !important;
+    border: 1px solid #dcfce7 !important;
+    font-weight: 600 !important;
+    font-size: 0.8rem !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+}
+
+.clean-btn:hover {
+    background-color: #dcfce7 !important;
+    color: #15803d !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(22, 163, 74, 0.1);
+}
