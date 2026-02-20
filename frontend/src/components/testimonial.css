@@ -1,6 +1,6 @@
 .testimonial-section {
     padding: 100px 20px;
-    background: linear-gradient(to bottom, #fff, #ffeef2);
+    background: radial-gradient(circle at center, #ffffff 0%, #fff5f8 40%, #ffe6eb 100%);
     position: relative;
 }
 

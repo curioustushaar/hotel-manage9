@@ -1,8 +1,38 @@
-import React from "react";
+import React, { useState } from "react";
 import "./Features.css";
 import heroImage from "../assets/feature-hero.png";
+import f1 from "../assets/f1.png";
+import f2 from "../assets/f2.png";
+import f3 from "../assets/f3.png";
+import f4 from "../assets/f4.png";
+import f5 from "../assets/f5.png";
+import f6 from "../assets/f6.png";
+import f7 from "../assets/f7.png";
 
 const Features = () => {
+    const images = [f1, f2, f3, f4, f5, f6];
+    const lastImage = f7;
+    const [hoveredIndex, setHoveredIndex] = useState(null);
+
+    const cardStyle = (index) => ({
+        padding: "10px", // Reduced to prevent oversize
+        borderRadius: "20px",
+        cursor: "pointer",
+        transition: "all 0.4s ease",
+        transform: hoveredIndex === index ? "translateY(-8px)" : "translateY(0px)",
+    });
+
+    const imageStyle = (index) => ({
+        width: "100%",
+        maxWidth: "340px", // Increased slightly based on the visual balance in the image
+        height: "auto",
+        objectFit: "contain",
+        margin: "0 auto",
+        display: "block",
+        transition: "transform 0.4s ease",
+        transform: hoveredIndex === index ? "translateY(-6px) scale(1.05)" : "scale(1)",
+    });
+
     return (
         <div className="features-page">
 
@@ -35,88 +65,74 @@ const Features = () => {
                 </div>
             </section>
 
-            {/* FEATURES GRID */}
-            <section className="features-grid-section">
-                <h2>Our Features</h2>
-                <p className="subtitle">
-                    Comprehensive Smart Features for Complete Hotel Management
-                </p>
+            {/* OUR FEATURES SECTION - REACT IMPLEMENTATION */}
+            <section
+                style={{
+                    padding: "80px 0",
+                    background: "linear-gradient(135deg,#fff6f7,#ffe6ea)",
+                }}
+            >
+                <div
+                    style={{
+                        width: "90%",
+                        maxWidth: "1200px",
+                        margin: "auto",
+                        textAlign: "center",
+                    }}
+                >
+                    <h2 style={{ fontSize: "38px", fontWeight: "700", color: "#451a1a" }}>
+                        Our Features
+                    </h2>
+                    <p style={{ marginBottom: "60px", color: "#666" }}>
+                        Comprehensive Smart Features for Complete Hotel Management
+                    </p>
 
-                <div className="features-grid">
-
-                    <div className="feature-card">
-                        <div className="icon-circle">📅</div>
-                        <h3>Reservation Intelligence</h3>
-                        <p>
-                            Smart room allocation, booking tracking and real-time guest
-                            management.
-                        </p>
-                    </div>
-
-                    <div className="feature-card">
-                        <div className="icon-circle">🍽</div>
-                        <h3>KOT Automation</h3>
-                        <p>
-                            Instant kitchen order tokens with real-time updates and error-free
-                            processing.
-                        </p>
-                    </div>
-
-                    <div className="feature-card">
-                        <div className="icon-circle">💳</div>
-                        <h3>Real-time Billing</h3>
-                        <p>
-                            Automated billing system with instant invoice generation.
-                        </p>
-                    </div>
-
-                    <div className="feature-card">
-                        <div className="icon-circle">📦</div>
-                        <h3>Inventory & Stock</h3>
-                        <p>
-                            Monitor stock levels and auto-replenish supplies with smart alerts.
-                        </p>
-                    </div>
-
-                    <div className="feature-card">
-                        <div className="icon-circle">🧹</div>
-                        <h3>Housekeeping Management</h3>
-                        <p>
-                            Track room cleaning schedules and real-time room status.
-                        </p>
-                    </div>
-
-                    <div className="feature-card">
-                        <div className="icon-circle">📊</div>
-                        <h3>Analytics & Reports</h3>
-                        <p>
-                            Advanced reports and business insights to grow hotel revenue.
-                        </p>
-                    </div>
-
-                    {/* 24/7 Support Wide Cards */}
-                    <div className="feature-card wide-card">
-                        <div className="wide-card-content">
-                            <div className="icon-circle">🎧</div>
-                            <div>
-                                <h3>24/7 Support</h3>
-                                <p>Get round-the-clock assistance from our expert support team.</p>
+                    {/* ===== 6 GRID CARDS ===== */}
+                    <div
+                        style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                            gap: "20px",
+                        }}
+                    >
+                        {images.map((img, index) => (
+                            <div
+                                key={index}
+                                style={cardStyle(index)}
+                                onMouseEnter={() => setHoveredIndex(index)}
+                                onMouseLeave={() => setHoveredIndex(null)}
+                            >
+                                <img src={img} alt="" style={imageStyle(index)} />
                             </div>
+                        ))}
+                    </div>
+
+                    {/* ===== LAST CENTER CARD (Wide) ===== */}
+                    <div
+                        style={{
+                            marginTop: "20px",
+                            display: "flex",
+                            justifyContent: "center",
+                        }}
+                    >
+                        <div
+                            style={cardStyle(6)}
+                            onMouseEnter={() => setHoveredIndex(6)}
+                            onMouseLeave={() => setHoveredIndex(null)}
+                        >
+                            <img
+                                src={lastImage}
+                                alt=""
+                                style={{
+                                    ...imageStyle(6),
+                                    maxWidth: "700px" // Making the last one wide like in the image
+                                }}
+                            />
                         </div>
                     </div>
-
-                    <div className="feature-card wide-card">
-                        <div className="wide-card-content">
-                            <div className="icon-circle">📞</div>
-                            <div>
-                                <h3>24/7 Support</h3>
-                                <p>Get round-the-clock assistance from our expert support team.</p>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </section>
+
 
             {/* CTA BANNER */}
             <section className="features-cta">
