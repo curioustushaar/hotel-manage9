@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import './RoomSetup.css';
 import API_URL from '../../config/api';
 import RoomDetailsPanel from '../../components/rooms/RoomDetailsPanel';
@@ -15,6 +16,11 @@ const RoomSetup = () => {
     const [maintenanceBlocks, setMaintenanceBlocks] = useState([]); // Maintenance blocks
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const { user } = useAuth();
+    const canManageRooms = user?.role !== 'staff' || (user?.permissions?.includes('Property Configuration'));
+    const canBook = user?.role !== 'staff' || (user?.permissions?.includes('Rooms (New Reservation)'));
+
 
     // Date Range State
     const [startDate, setStartDate] = useState(new Date().toLocaleDateString('en-CA'));
@@ -520,6 +526,8 @@ const RoomSetup = () => {
                     openModal('edit', roomFromState || room);
                 }}
                 onQuickBook={handleQuickBook}
+                canManageRooms={canManageRooms}
+                canBook={canBook}
             />
             {/* Header Section */}
             <header className="room-setup-header">
@@ -616,44 +624,48 @@ const RoomSetup = () => {
                     <option value="Under Maintenance">Maintenance</option>
                 </select>
 
+            {canManageRooms && (
                 <button className="add-room-btn" onClick={() => openModal('add')}>+ Add Room</button>
-            </div>
+            )}
+        </div>
 
-            {/* Sub-Header Section */}
-            <div className="sub-header">
-                <h3><span role="img" aria-label="bed">🛏️</span> Rooms Management</h3>
-                <div className="status-info-bar">
-                    <span className="status-dot-green"></span>
-                    Available rooms between {new Date(startDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} – {new Date(endDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
-                </div>
-            </div>
+            {/* Sub-Header Section */ }
+    <div className="sub-header">
+        <h3><span role="img" aria-label="bed">🛏️</span> Rooms Management</h3>
+        <div className="status-info-bar">
+            <span className="status-dot-green"></span>
+            Available rooms between {new Date(startDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} – {new Date(endDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+        </div>
+    </div>
 
-            {/* Room Cards Grid */}
-            <div className="room-setup-grid-container">
-                {loading ? (
-                    <div style={{ padding: '20px', textAlign: 'center' }}>Loading rooms...</div>
-                ) : error ? (
-                    <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>{error}</div>
-                ) : (
-                    <div className="room-cards-grid">
-                        {filteredRooms.length > 0 ? (
-                            filteredRooms.map((room) => {
-                                const statusClass =
-                                    room.computedStatus === 'Available' ? 'status-available' :
-                                        room.computedStatus === 'Occupied' ? 'status-occupied' :
-                                            room.computedStatus === 'Reserved' ? 'status-reserved' :
-                                                'status-maintenance';
+    {/* Room Cards Grid */ }
+    <div className="room-setup-grid-container">
+        {loading ? (
+            <div style={{ padding: '20px', textAlign: 'center' }}>Loading rooms...</div>
+        ) : error ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>{error}</div>
+        ) : (
+            <div className="room-cards-grid">
+                {filteredRooms.length > 0 ? (
+                    filteredRooms.map((room) => {
+                        const statusClass =
+                            room.computedStatus === 'Available' ? 'status-available' :
+                                room.computedStatus === 'Occupied' ? 'status-occupied' :
+                                    room.computedStatus === 'Reserved' ? 'status-reserved' :
+                                        'status-maintenance';
 
-                                return (
-                                    <div
-                                        className={`room-card ${statusClass}`}
-                                        key={room.id}
-                                        onClick={() => handleRoomClick(room)}
-                                        style={{ cursor: 'pointer' }}
-                                    >
-                                        <div className="room-card-header">
-                                            <h4>Room {room.roomNumber}</h4>
-                                            <div className="card-actions">
+                        return (
+                            <div
+                                className={`room-card ${statusClass}`}
+                                key={room.id}
+                                onClick={() => handleRoomClick(room)}
+                                style={{ cursor: 'pointer' }}
+                            >
+                                <div className="room-card-header">
+                                    <h4>Room {room.roomNumber}</h4>
+                                    <div className="card-actions">
+                                        {canManageRooms && (
+                                            <>
                                                 <button
                                                     className="icon-btn"
                                                     onClick={(e) => { e.stopPropagation(); openModal('edit', room); }}
@@ -668,187 +680,193 @@ const RoomSetup = () => {
                                                 >
                                                     🗑️
                                                 </button>
-                                            </div>
-                                        </div>
-                                        <div className="room-card-body">
-                                            <div className="room-type">{room.roomType}</div>
-                                            <p className="room-info">Capacity: {room.capacity.adults} persons</p>
-                                            <p className="room-type" style={{ marginTop: 'auto' }}>{room.basePrice}/night</p>
-                                        </div>
-                                        <div className="room-card-footer">
-                                            <span className="status-pill">{room.computedStatus}</span>
-                                            <button
-                                                className="book-btn"
-                                                onClick={(e) => { e.stopPropagation(); handleQuickBook(room); }}
-                                                disabled={room.computedStatus !== 'Available'}
-                                                style={{ opacity: room.computedStatus !== 'Available' ? 0.5 : 1 }}
-                                            >
-                                                💼 Book
-                                            </button>
-                                        </div>
+                                            </>
+                                        )}
                                     </div>
-                                );
-                            })
-                        ) : (
-                            <div className="no-rooms-message">No rooms found matching filters.</div>
-                        )}
-                    </div>
+                                </div>
+                                <div className="room-card-body">
+                                    <div className="room-type">{room.roomType}</div>
+                                    <p className="room-info">Capacity: {room.capacity.adults} persons</p>
+                                    <p className="room-type" style={{ marginTop: 'auto' }}>{room.basePrice}/night</p>
+                                </div>
+                                <div className="room-card-footer">
+                                    <span className="status-pill">{room.computedStatus}</span>
+                                    {canBook && (
+                                        <button
+                                            className="book-btn"
+                                            onClick={(e) => { e.stopPropagation(); handleQuickBook(room); }}
+                                            disabled={room.computedStatus !== 'Available'}
+                                            style={{ opacity: room.computedStatus !== 'Available' ? 0.5 : 1 }}
+                                        >
+                                            💼 Book
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })
+                ) : (
+                    <div className="no-rooms-message">No rooms found matching filters.</div>
                 )}
             </div>
+        )}
+    </div>
 
-            {/* Legend */}
-            <div className="legend-container">
-                <div className="legend-item"><span className="legend-dot green"></span> Available</div>
-                <div className="legend-item"><span className="legend-dot yellow"></span> Reserved</div>
-                <div className="legend-item"><span className="legend-dot red"></span> Occupied</div>
-                <div className="legend-item"><span className="legend-dot blue"></span> Maintenance</div>
-            </div>
+    {/* Legend */ }
+    <div className="legend-container">
+        <div className="legend-item"><span className="legend-dot green"></span> Available</div>
+        <div className="legend-item"><span className="legend-dot yellow"></span> Reserved</div>
+        <div className="legend-item"><span className="legend-dot red"></span> Occupied</div>
+        <div className="legend-item"><span className="legend-dot blue"></span> Maintenance</div>
+    </div>
 
-            {/* Add/Edit Modal */}
-            {isModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h3>{modalMode === 'add' ? 'Add New Room' : 'Edit Room'}</h3>
-                            <button className="modal-close" onClick={() => setIsModalOpen(false)}>✕</button>
+    {/* Add/Edit Modal */ }
+    {
+        isModalOpen && (
+            <div className="modal-overlay">
+                <div className="modal-content">
+                    <div className="modal-header">
+                        <h3>{modalMode === 'add' ? 'Add New Room' : 'Edit Room'}</h3>
+                        <button className="modal-close" onClick={() => setIsModalOpen(false)}>✕</button>
+                    </div>
+                    <form onSubmit={handleSubmit}>
+                        <div className="modal-body">
+                            <div className="form-group">
+                                <label>Room Number</label>
+                                <input
+                                    type="text"
+                                    name="roomNumber"
+                                    value={formData.roomNumber}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="form-input"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Floor</label>
+                                <select name="floor" value={formData.floor} onChange={handleInputChange} className="form-input">
+                                    <option value="">Select Floor</option>
+                                    {floors.map(floor => {
+                                        const currentCount = rooms.filter(r => r.floor === floor.name).length;
+                                        const isFull = currentCount >= floor.roomCount;
+                                        // Disable if full, UNLESS we are in edit mode and this is the room's current floor
+                                        const isDisabled = isFull && !(modalMode === 'edit' && currentRoom?.floor === floor.name);
+
+                                        return (
+                                            <option key={floor._id} value={floor.name} disabled={isDisabled}>
+                                                {floor.name} {isDisabled ? '(Full)' : `(${currentCount}/${floor.roomCount})`}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Room Type</label>
+                                <select name="roomType" value={formData.roomType} onChange={handleInputChange} className="form-input">
+                                    <option value="">Select Room Type</option>
+                                    {roomTypes.map(type => (
+                                        <option key={type._id} value={type.name}>{type.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Capacity</label>
+                                <input
+                                    type="number"
+                                    name="capacity"
+                                    value={formData.capacity}
+                                    onChange={handleInputChange}
+                                    required
+                                    min="1"
+                                    className="form-input"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Base Price</label>
+                                <input
+                                    type="number"
+                                    name="basePrice"
+                                    value={formData.basePrice}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="form-input"
+                                />
+                            </div>
+
+                            {/* PHASE 2 UPGRADE: Enterprise-level fields */}
+                            <div className="enterprise-fields-section">
+                                <div className="section-divider">
+                                    <span className="section-title">Room Details</span>
+                                </div>
+
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Room View Type</label>
+                                        <select
+                                            name="roomViewType"
+                                            value={formData.roomViewType}
+                                            onChange={handleInputChange}
+                                            className="form-input"
+                                        >
+                                            <option value="Sea View">Sea View</option>
+                                            <option value="City View">City View</option>
+                                            <option value="Garden View">Garden View</option>
+                                            <option value="Pool View">Pool View</option>
+                                            <option value="Mountain View">Mountain View</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label>Smoking Policy</label>
+                                        <select
+                                            name="smokingPolicy"
+                                            value={formData.smokingPolicy}
+                                            onChange={handleInputChange}
+                                            className="form-input"
+                                        >
+                                            <option value="Non-Smoking">Non-Smoking</option>
+                                            <option value="Smoking">Smoking</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Room Size</label>
+                                        <div className="input-with-suffix">
+                                            <input
+                                                type="number"
+                                                name="roomSize"
+                                                value={formData.roomSize}
+                                                onChange={handleInputChange}
+                                                min="0"
+                                                className="form-input"
+                                            />
+                                            <span className="input-suffix">sq ft</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Status</label>
+                                <select name="status" value={formData.status} onChange={handleInputChange} className="form-input">
+                                    <option value="Available">Available</option>
+                                    <option value="Booked">Booked</option>
+                                    <option value="Occupied">Occupied</option>
+                                    <option value="Under Maintenance">Under Maintenance</option>
+                                </select>
+                            </div>
                         </div>
-                        <form onSubmit={handleSubmit}>
-                            <div className="modal-body">
-                                <div className="form-group">
-                                    <label>Room Number</label>
-                                    <input
-                                        type="text"
-                                        name="roomNumber"
-                                        value={formData.roomNumber}
-                                        onChange={handleInputChange}
-                                        required
-                                        className="form-input"
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Floor</label>
-                                    <select name="floor" value={formData.floor} onChange={handleInputChange} className="form-input">
-                                        <option value="">Select Floor</option>
-                                        {floors.map(floor => {
-                                            const currentCount = rooms.filter(r => r.floor === floor.name).length;
-                                            const isFull = currentCount >= floor.roomCount;
-                                            // Disable if full, UNLESS we are in edit mode and this is the room's current floor
-                                            const isDisabled = isFull && !(modalMode === 'edit' && currentRoom?.floor === floor.name);
-
-                                            return (
-                                                <option key={floor._id} value={floor.name} disabled={isDisabled}>
-                                                    {floor.name} {isDisabled ? '(Full)' : `(${currentCount}/${floor.roomCount})`}
-                                                </option>
-                                            );
-                                        })}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>Room Type</label>
-                                    <select name="roomType" value={formData.roomType} onChange={handleInputChange} className="form-input">
-                                        <option value="">Select Room Type</option>
-                                        {roomTypes.map(type => (
-                                            <option key={type._id} value={type.name}>{type.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>Capacity</label>
-                                    <input
-                                        type="number"
-                                        name="capacity"
-                                        value={formData.capacity}
-                                        onChange={handleInputChange}
-                                        required
-                                        min="1"
-                                        className="form-input"
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Base Price</label>
-                                    <input
-                                        type="number"
-                                        name="basePrice"
-                                        value={formData.basePrice}
-                                        onChange={handleInputChange}
-                                        required
-                                        className="form-input"
-                                    />
-                                </div>
-
-                                {/* PHASE 2 UPGRADE: Enterprise-level fields */}
-                                <div className="enterprise-fields-section">
-                                    <div className="section-divider">
-                                        <span className="section-title">Room Details</span>
-                                    </div>
-
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>Room View Type</label>
-                                            <select
-                                                name="roomViewType"
-                                                value={formData.roomViewType}
-                                                onChange={handleInputChange}
-                                                className="form-input"
-                                            >
-                                                <option value="Sea View">Sea View</option>
-                                                <option value="City View">City View</option>
-                                                <option value="Garden View">Garden View</option>
-                                                <option value="Pool View">Pool View</option>
-                                                <option value="Mountain View">Mountain View</option>
-                                            </select>
-                                        </div>
-
-                                        <div className="form-group">
-                                            <label>Smoking Policy</label>
-                                            <select
-                                                name="smokingPolicy"
-                                                value={formData.smokingPolicy}
-                                                onChange={handleInputChange}
-                                                className="form-input"
-                                            >
-                                                <option value="Non-Smoking">Non-Smoking</option>
-                                                <option value="Smoking">Smoking</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>Room Size</label>
-                                            <div className="input-with-suffix">
-                                                <input
-                                                    type="number"
-                                                    name="roomSize"
-                                                    value={formData.roomSize}
-                                                    onChange={handleInputChange}
-                                                    min="0"
-                                                    className="form-input"
-                                                />
-                                                <span className="input-suffix">sq ft</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="form-group">
-                                    <label>Status</label>
-                                    <select name="status" value={formData.status} onChange={handleInputChange} className="form-input">
-                                        <option value="Available">Available</option>
-                                        <option value="Booked">Booked</option>
-                                        <option value="Occupied">Occupied</option>
-                                        <option value="Under Maintenance">Under Maintenance</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">{modalMode === 'add' ? 'Add Room' : 'Update Room'}</button>
-                            </div>
-                        </form>
-                    </div >
+                        <div className="modal-footer">
+                            <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                            <button type="submit" className="btn btn-primary">{modalMode === 'add' ? 'Add Room' : 'Update Room'}</button>
+                        </div>
+                    </form>
                 </div >
-            )}
+            </div >
+        )
+    }
         </div >
     );
 };

@@ -289,16 +289,16 @@ export const hasPermission = (user, module, permission) => {
         const userPermissions = user.permissions || [];
         const moduleLabelMap = {
             [MODULES.DASHBOARD]: 'Dashboard',
-            [MODULES.ROOMS]: 'Rooms',
-            [MODULES.RESERVATIONS]: 'Reservation',
-            [MODULES.CASHIER_SECTION]: 'Cashier Section',
+            [MODULES.ROOMS]: 'Rooms (Dashboard)',
+            [MODULES.RESERVATIONS]: 'Rooms (New Reservation)',
+            [MODULES.CASHIER_SECTION]: ['Cashier Section (Table)', 'Cashier Section (Room Service)', 'Cashier Section (Take Away)'],
             [MODULES.GUEST_MEAL_SERVICE]: 'Table View',
             [MODULES.FOOD_MENU]: 'Food Order',
             [MODULES.CUSTOMERS]: 'Customer List',
             [MODULES.CASHIER_LOGS]: 'Cashier Logs',
             [MODULES.PAYMENT_LOGS]: 'Payment Logs',
-            'housekeeping': 'HouseKeeping View',
-            'room-service': 'Room Service',
+            'housekeeping': 'Rooms (Housekeeping)',
+            'room-service': 'Rooms (Room Service)',
             'view-order': 'View order',
             'registration-card': 'Registration Card',
             [MODULES.PROPERTY_SETUP]: 'Property Setup',
@@ -307,6 +307,9 @@ export const hasPermission = (user, module, permission) => {
 
         const permissionLabel = moduleLabelMap[module];
         if (permissionLabel) {
+            if (Array.isArray(permissionLabel)) {
+                return permissionLabel.some(label => userPermissions.includes(label));
+            }
             return userPermissions.includes(permissionLabel);
         }
 
@@ -338,9 +341,9 @@ export const hasModuleAccess = (user, module) => {
         const userPermissions = user.permissions || [];
         const moduleLabelMap = {
             [MODULES.DASHBOARD]: 'Dashboard',
-            [MODULES.ROOMS]: 'Rooms',
-            [MODULES.RESERVATIONS]: 'Reservation',
-            [MODULES.CASHIER_SECTION]: 'Cashier Section',
+            [MODULES.ROOMS]: 'Rooms (Dashboard)',
+            [MODULES.RESERVATIONS]: 'Rooms (New Reservation)',
+            [MODULES.CASHIER_SECTION]: ['Cashier Section (Table)', 'Cashier Section (Room Service)', 'Cashier Section (Take Away)'],
             [MODULES.GUEST_MEAL_SERVICE]: 'Table View',
             [MODULES.FOOD_MENU]: 'Food Order',
             [MODULES.CUSTOMERS]: 'Customer List',
@@ -352,13 +355,16 @@ export const hasModuleAccess = (user, module) => {
 
         const staffPermissionLabel = moduleLabelMap[module];
         if (staffPermissionLabel) {
+            if (Array.isArray(staffPermissionLabel)) {
+                return staffPermissionLabel.some(label => userPermissions.includes(label));
+            }
             return userPermissions.includes(staffPermissionLabel);
         }
 
         // Check for specific sub-modules that might be checked individually
         const subModuleMap = {
-            'housekeeping': 'HouseKeeping View',
-            'room-service': 'Room Service',
+            'housekeeping': 'Rooms (Housekeeping)',
+            'room-service': 'Rooms (Room Service)',
             'view-order': 'View order',
             'registration-card': 'Registration Card'
         };
