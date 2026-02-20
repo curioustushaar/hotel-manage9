@@ -3,14 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
-<<<<<<< HEAD
-// Load environment variables
-dotenv.config({ path: path.join(__dirname, '../.env') });
-=======
-
 // Load environment variables from root folder
 dotenv.config({ path: path.join(__dirname, '../../.env') });
->>>>>>> c3c0a9521069e0ffcee1bf5cc78e541e4b472e63
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');

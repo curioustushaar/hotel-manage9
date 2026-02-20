@@ -477,6 +477,7 @@ body {
   max-width: 500px;
   flex: 1;
   padding-top: 6px;
+  margin-left: 20px;
 }
 
 .hero-image {

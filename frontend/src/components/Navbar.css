@@ -49,7 +49,8 @@
   max-width: none !important;
   object-fit: contain;
   display: block;
-  margin-left: 10px !important;
+  margin-left: -7px !important;
+  margin-top: 15px;
   /* Minor left adjust */
 }
 
@@ -105,13 +106,18 @@
 }
 
 .landing-navbar .nav-link:hover {
-  color: #1f2937;
+  background: transparent !important;
 }
+
+.landing-navbar .nav-item:hover {
+  background: transparent !important;
+}
+
 
 .landing-navbar .nav-secondary {
   display: flex;
   align-items: center;
-  margin-right: 20px !important;
+  margin-right: -7px !important;
   /* Keep button right */
 }
 
