@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import './Navbar.css';
-import Logo from '../assets/new logo.png';
+import Logo from '../assets/final logo.png';
 
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
@@ -10,6 +10,29 @@ const NAV_LINKS = [
   { to: '/pricing', label: 'Pricing' },
   { to: '/contact', label: 'Contact Us' },
 ];
+
+const NavItem = ({ to, children, onClick }) => {
+  const handleClick = (e) => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    if (onClick) onClick(e);
+  };
+
+  return (
+    <NavLink
+      to={to}
+      end={to === '/'}
+      onClick={handleClick}
+      className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+      style={{
+        textDecoration: "none",
+        fontWeight: "500",
+        transition: "all 0.3s ease",
+      }}
+    >
+      {children}
+    </NavLink>
+  );
+};
 
 function Navbar() {
   const [sidebarActive, setSidebarActive] = useState(false);
@@ -61,12 +84,21 @@ function Navbar() {
             <ul className="nav-menu">
               {NAV_LINKS.map(({ to, label }) => (
                 <li key={to} className="nav-item">
-                  <Link to={to} className="nav-link" onClick={closeSidebar}>{label}</Link>
+                  <NavItem to={to} onClick={closeSidebar}>{label}</NavItem>
                 </li>
               ))}
             </ul>
             <div className="nav-secondary">
-              <Link to="/login" className="demo-btn" onClick={closeSidebar}>Book a Free Demo</Link>
+              <Link
+                to="/login"
+                className="demo-btn"
+                onClick={() => {
+                  window.scrollTo({ top: 0, behavior: 'instant' });
+                  closeSidebar();
+                }}
+              >
+                Book a Free Demo
+              </Link>
             </div>
           </nav>
         </div>
@@ -75,5 +107,4 @@ function Navbar() {
     </>
   );
 }
-
 export default Navbar;
