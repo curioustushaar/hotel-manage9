@@ -50,20 +50,40 @@ function HomePageContent() {
         <Hero />
       </Reveal>
 
-      {/* <Reveal delay={0.1}>
+      <Reveal delay={0.1}>
         <FloatingDashboard />
-      </Reveal> */}
-
-      {/* <Reveal delay={0.1}>
-        <ThreeColumnFeatures />
-      </Reveal> */}
+      </Reveal>
 
       <Reveal width="100%">
         <WhyChooseUs />
       </Reveal>
 
       <Reveal width="100%">
+        <ThreeColumnFeatures />
+      </Reveal>
+
+      <Reveal width="100%">
+        <FeaturesList />
+      </Reveal>
+
+      <Reveal width="100%">
+        <OutletTypes />
+      </Reveal>
+
+      <Reveal width="100%">
+        <Integrations />
+      </Reveal>
+
+      <Reveal width="100%">
+        <Marketplace />
+      </Reveal>
+
+      <Reveal width="100%">
         <ServicesSection />
+      </Reveal>
+
+      <Reveal width="100%">
+        <Ratings />
       </Reveal>
 
       <Reveal width="100%">
