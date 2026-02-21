@@ -1213,6 +1213,21 @@ exports.settleOrder = async (req, res) => {
             // Also record in overall cashier Transaction model
             const Transaction = require('../models/Transaction');
 
+            // Normalize payment method to match Transaction model enum
+            // Valid values: 'Cash', 'Card', 'UPI', 'Bank Transfer', 'Cheque', 'Credit'
+            const normalizePaymentMethod = (method) => {
+                if (!method) return 'Cash';
+                const lower = method.toLowerCase().trim();
+                if (lower === 'cash') return 'Cash';
+                if (lower === 'card') return 'Card';
+                if (lower === 'upi') return 'UPI';
+                if (lower.includes('bank') || lower.includes('transfer')) return 'Bank Transfer';
+                if (lower === 'cheque' || lower === 'check') return 'Cheque';
+                if (lower === 'credit') return 'Credit';
+                // Default to Cash if unknown
+                return 'Cash';
+            };
+
             // Map paymentMode to transaction type enum
             // Valid types: ['Income', 'Expense', 'Refund', 'Void']
             // Valid categories: ['Room', 'Restaurant', 'Service', 'Other']
@@ -1222,10 +1237,10 @@ exports.settleOrder = async (req, res) => {
                 type: 'Income',
                 category: 'Restaurant',
                 amount: order.finalAmount,
-                // by: 'Cashier', // 'by' is not in schema, 'performedBy' expects ObjectId
-                referenceId: `ORDER-${orderId.toString().substr(-6).toUpperCase()}`, // Schema expects referenceId
-                description: `Restaurant Bill - Table ${order.tableNumber}`, // Schema expects description
-                paymentMethod: paymentMode // Schema expects Title Case e.g. 'Cash', 'Card'
+                order: orderId, // Link to the order
+                referenceId: `TXN-${Date.now()}-${orderId.toString().substr(-6).toUpperCase()}`,
+                description: `Restaurant Bill - Table ${order.tableNumber || 'N/A'} - ${order.orderType || 'Dine-In'}`,
+                paymentMethod: normalizePaymentMethod(paymentMode)
             });
         }
 
