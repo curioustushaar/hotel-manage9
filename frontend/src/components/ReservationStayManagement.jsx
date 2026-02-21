@@ -55,6 +55,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [loading, setLoading] = useState(true);
     const [fromRoomsPage, setFromRoomsPage] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [cardViewMode, setCardViewMode] = useState('grid'); // 'grid' or 'list'
 
     // Filter reservations
     const filteredReservations = useMemo(() => {
@@ -1665,9 +1666,41 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                 ))}
             </div>
 
+            {/* View Toggle */}
+            <div className="view-toggle-container">
+                <div className="view-toggle">
+                    <button 
+                        className={`view-toggle-btn ${cardViewMode === 'grid' ? 'active' : ''}`}
+                        onClick={() => setCardViewMode('grid')}
+                        title="Grid View"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                            <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                            <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                            <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                        </svg>
+                    </button>
+                    <button 
+                        className={`view-toggle-btn ${cardViewMode === 'list' ? 'active' : ''}`}
+                        onClick={() => setCardViewMode('list')}
+                        title="List View"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="8" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="8" y1="18" x2="21" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="3" y1="6" x2="4" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="3" y1="12" x2="4" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="3" y1="18" x2="4" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
             {/* Reservation Cards and Details Panel */}
             <div className="reservation-content-layout">
-                <div className={`reservation-cards-grid ${selectedReservation ? 'with-details' : ''}`}>
+                <div className={`${cardViewMode === 'grid' ? 'reservation-cards-grid' : 'reservation-cards-list'} ${selectedReservation ? 'with-details' : ''}`}>
                     <AnimatePresence mode="popLayout">
                         {displayReservations.length > 0 ? (
                             displayReservations.map(reservation => (
