@@ -10,10 +10,9 @@ const CashierSection = () => {
     const location = useLocation();
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [activeTab, setActiveTab] = useState('All');
+    const [searchQuery, setSearchQuery] = useState('');
     const [showNewOrderModal, setShowNewOrderModal] = useState(false);
     const [newOrderDetails, setNewOrderDetails] = useState({ name: '', phone: '' });
-    const [searchQuery, setSearchQuery] = useState('');
-    const [showSearch, setShowSearch] = useState(false);
 
     // Track Order State
     const [showTrackModal, setShowTrackModal] = useState(false);
@@ -269,12 +268,13 @@ const CashierSection = () => {
             if (['Take Away', 'Delivery', 'Online'].includes(order.type) && !hasCashierPermission('Take Away')) return false;
             return true;
         }).filter(order => {
+            // Apply search filter
             if (!searchQuery) return true;
             const q = searchQuery.toLowerCase();
             return (
                 order.billNo.toLowerCase().includes(q) ||
                 order.name.toLowerCase().includes(q) ||
-                order.guest.toLowerCase().includes(q)
+                order.type.toLowerCase().includes(q)
             );
         });
 
@@ -351,8 +351,10 @@ const CashierSection = () => {
                                     </button>
                                 ))}
                             </div>
+
+                            {/* Search Bar */}
                             <div className="search-bar">
-                                <span>🔍</span>
+                                <span className="search-icon">🔍</span>
                                 <input
                                     type="text"
                                     placeholder="Search orders..."
@@ -370,12 +372,12 @@ const CashierSection = () => {
                                         className={`order-card ${selectedOrder && selectedOrder.id === order.id ? 'active' : ''}`}
                                         onClick={() => handleOrderClick(order)}
                                     >
-                                        <div className="order-main">
-                                            <div className="order-primary">
-                                                <span className="order-id">Order {order.billNo}</span>
-                                                <span className="order-source">{order.name}</span>
-                                            </div>
-                                            <div className="order-amount">₹ {order.amount}</div>
+                                        <div className="order-header">
+                                            <span className="order-id">Order #{order.billNo}</span>
+                                            <span className="order-amount">₹ {order.amount}</span>
+                                        </div>
+                                        <div className="order-details">
+                                            <span className="order-source">{order.name}</span>
                                         </div>
                                     </div>
                                 ))
@@ -387,18 +389,12 @@ const CashierSection = () => {
                         </div>
                     </div>
 
-                    {/* CENTER PANEL: BILL DETAILS */}
-                    <div className="pos-card bill-details-panel">
-                        <div className="selected-order-header-modern" style={{ padding: '0 24px', margin: '20px 0' }}>
-                            <h2 style={{ fontSize: '20px', fontWeight: 700 }}>Bill Details</h2>
-                        </div>
-
-                        <CashierPayment
-                            order={selectedOrder}
-                            onPaymentComplete={handlePaymentComplete}
-                            onRoomPostingAction={handleRoomPostingAction}
-                        />
-                    </div>
+                    {/* CENTER + RIGHT PANELS: Bill & Payment */}
+                    <CashierPayment
+                        order={selectedOrder}
+                        onPaymentComplete={handlePaymentComplete}
+                        onRoomPostingAction={handleRoomPostingAction}
+                    />
 
                 </div>
             </div>
@@ -759,71 +755,74 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
     const isPlaceholder = !order;
 
     return (
-        <div className="bill-content">
-            {/* Selected Order Header */}
-            <div className="selected-order-header-modern">
-                <div className="guest-profile">
-                    <div className="avatar">👤</div>
-                    <div className="guest-meta">
-                        <h3>{displayOrder.name}</h3>
-                        <p>Today 1 - </p>
+        <>
+            {/* CENTER PANEL: Bill Details */}
+            <div className="pos-card bill-center-panel">
+                <div className="bill-center-header">
+                    <h2>Bill Details</h2>
+                </div>
+
+                {/* Selected Order Header */}
+                <div className="selected-order-header-modern">
+                    <div className="guest-profile">
+                        <div className="avatar">👤</div>
+                        <div className="guest-meta">
+                            <h3>{displayOrder.name}</h3>
+                            <p>Today 1 - </p>
+                        </div>
+                    </div>
+                    <div className="bill-badge">
+                        - | Bill <span>›</span>
                     </div>
                 </div>
-                <div className="bill-badge">
-                    - | Bill <span>›</span>
+
+                {/* Items Table */}
+                <div className="bill-items-container-modern">
+                    {isPlaceholder ? (
+                        <div className="empty-bill-state-modern">
+                            <span className="empty-icon">📋</span>
+                            <p>Select an order from the list to view items</p>
+                        </div>
+                    ) : (
+                        <table className="items-table-modern">
+                            <thead>
+                                <tr>
+                                    <th align="left">Item</th>
+                                    <th align="center">Qty</th>
+                                    <th align="right">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {!isPlaceholder && displayOrder.items.length > 0 ? (
+                                    displayOrder.items.map((item, idx) => (
+                                        <tr key={idx}>
+                                            <td align="left">{item.name}</td>
+                                            <td align="center">× {item.qty}</td>
+                                            <td align="right">₹ {item.amount}</td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    !isPlaceholder && (
+                                        <>
+                                            <tr>
+                                                <td align="left">Presto Coffee</td>
+                                                <td align="center">× 1</td>
+                                                <td align="right">₹ 320</td>
+                                            </tr>
+                                            <tr>
+                                                <td align="left">Creamy Pasta</td>
+                                                <td align="center">× 1</td>
+                                                <td align="right">₹ 500</td>
+                                            </tr>
+                                        </>
+                                    )
+                                )}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
-            </div>
 
-            {/* Items Table */}
-            <div className="bill-items-container-modern">
-                {isPlaceholder ? (
-                    <div className="empty-bill-state-modern">
-                        <span className="empty-icon">📋</span>
-                        <p>Select an order from the list to view items</p>
-                    </div>
-                ) : (
-                    <table className="items-table-modern">
-                        <thead>
-                            <tr>
-                                <th align="left">Item</th>
-                                <th align="center">Qty</th>
-                                <th align="right">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {!isPlaceholder && displayOrder.items.length > 0 ? (
-                                displayOrder.items.map((item, idx) => (
-                                    <tr key={idx}>
-                                        <td align="left">{item.name}</td>
-                                        <td align="center">× {item.qty}</td>
-                                        <td align="right">₹ {item.amount}</td>
-                                    </tr>
-                                ))
-                            ) : (
-                                !isPlaceholder && (
-                                    <>
-                                        <tr>
-                                            <td align="left">Presto Coffee</td>
-                                            <td align="center">× 1</td>
-                                            <td align="right">₹ 320</td>
-                                        </tr>
-                                        <tr>
-                                            <td align="left">Creamy Pasta</td>
-                                            <td align="center">× 1</td>
-                                            <td align="right">₹ 500</td>
-                                        </tr>
-                                    </>
-                                )
-                            )}
-                        </tbody>
-                    </table>
-                )}
-            </div>
-
-            {/* Bottom Grid: Summary & Payment */}
-            <div className="bill-footer-grid">
-
-                {/* Left: Summary */}
+                {/* Summary Totals */}
                 <div className="bill-summary-panel">
                     <div className="summary-row-modern">
                         <span>Subtotal</span>
@@ -838,72 +837,72 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
                         <span>₹ {displayOrder.amount.toFixed(1)}</span>
                     </div>
                 </div>
+            </div>
 
-                {/* Right: Payment Sidebar */}
-                <div className="payment-sidebar-panel">
-                    <h3>Payment Section</h3>
+            {/* RIGHT PANEL: Payment Section */}
+            <div className="pos-card payment-right-panel">
+                <h3 className="payment-section-title">Payment Section</h3>
 
-                    <div className="payment-modes-modern">
-                        <button className={`mode-btn-modern ${paymentMode === 'Cash' ? 'active' : ''}`} onClick={() => setPaymentMode('Cash')}>
-                            🧧 Cash
-                        </button>
-                        <button className={`mode-btn-modern ${paymentMode === 'UPI' ? 'active' : ''}`} onClick={() => setPaymentMode('UPI')}>
-                            ⌨️ UPI
-                        </button>
-                        <button className={`mode-btn-modern ${paymentMode === 'Card' ? 'active' : ''}`} onClick={() => setPaymentMode('Card')}>
-                            💳 Card
-                        </button>
-                    </div>
-
-                    <div className="total-indicator-strip">
-                        <span>Grand Total</span>
-                        <span className="big-sum">₹ {displayOrder.amount.toFixed(2)}</span>
-                    </div>
-
-                    <div className="payment-input-modern">
-                        <label>Received Amount</label>
-                        <div className="input-box-wrap">
-                            <span>₹</span>
-                            <input
-                                type="number"
-                                placeholder="0.00"
-                                value={receivedAmount}
-                                onChange={(e) => setReceivedAmount(e.target.value)}
-                                disabled={isPlaceholder}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="return-amount-box-modern">
-                        <span className="label">Return Amount</span>
-                        <span className="value">₹ {returnAmount.toFixed(2)}</span>
-                    </div>
-
-                    <div className="quick-actions-modern">
-                        <button className="q-btn" onClick={handlePrintBill} disabled={isPlaceholder}>🖨️ Print Bill</button>
-                        <button className="q-btn" onClick={handleSendSMS} disabled={isPlaceholder}>💬 SMS</button>
-                        <button className="q-btn" onClick={handleEmailBill} disabled={isPlaceholder}>📧 Email</button>
-                    </div>
-
-                    <button
-                        className="btn-tender-main"
-                        disabled={isPlaceholder}
-                        onClick={handleTender}
-                    >
-                        Tender ₹ {displayOrder.amount.toFixed(0)}
+                <div className="payment-modes-modern">
+                    <button className={`mode-btn-modern ${paymentMode === 'Cash' ? 'active' : ''}`} onClick={() => setPaymentMode('Cash')}>
+                        💵 Cash
                     </button>
+                    <button className={`mode-btn-modern ${paymentMode === 'UPI' ? 'active' : ''}`} onClick={() => setPaymentMode('UPI')}>
+                        📱 UPI
+                    </button>
+                    <button className={`mode-btn-modern ${paymentMode === 'Card' ? 'active' : ''}`} onClick={() => setPaymentMode('Card')}>
+                        💳 Card
+                    </button>
+                </div>
 
-                    <div className="room-posting-section">
-                        <h4>Room Posting Today</h4>
-                        <div className="room-actions-row">
-                            <button className="ra-btn" onClick={() => onRoomPostingAction('Print')}>💼</button>
-                            <button className="ra-btn" onClick={() => onRoomPostingAction('SMS')}>💬 SMS</button>
-                            <button className="ra-btn" onClick={() => onRoomPostingAction('Email')}>📧 Email</button>
-                        </div>
+                <div className="total-indicator-strip">
+                    <span>Grand Total</span>
+                    <span className="big-sum">₹{displayOrder.amount.toFixed(2)}</span>
+                </div>
+
+                <div className="payment-input-modern">
+                    <label>Received Amount</label>
+                    <div className="input-box-wrap">
+                        <span>₹</span>
+                        <input
+                            type="number"
+                            placeholder="0.00"
+                            value={receivedAmount}
+                            onChange={(e) => setReceivedAmount(e.target.value)}
+                            disabled={isPlaceholder}
+                        />
+                    </div>
+                </div>
+
+                <div className="return-amount-box-modern">
+                    <span className="label">Return Amount</span>
+                    <span className="value">₹{returnAmount.toFixed(2)}</span>
+                </div>
+
+                <div className="quick-actions-modern">
+                    <button className="q-btn" onClick={handlePrintBill} disabled={isPlaceholder}>🖨️ Print Bill</button>
+                    <button className="q-btn" onClick={handleSendSMS} disabled={isPlaceholder}>💬 SMS</button>
+                    <button className="q-btn" onClick={handleEmailBill} disabled={isPlaceholder}>📧 Email</button>
+                </div>
+
+                <button
+                    className="btn-tender-main"
+                    disabled={isPlaceholder}
+                    onClick={handleTender}
+                >
+                    Tender ₹ {displayOrder.amount.toFixed(0)}
+                </button>
+
+                <div className="room-posting-section">
+                    <h4>Room Posting Today</h4>
+                    <div className="room-actions-row">
+                        <button className="ra-btn" onClick={() => onRoomPostingAction('Print')}>💼</button>
+                        <button className="ra-btn" onClick={() => onRoomPostingAction('SMS')}>💬 SMS</button>
+                        <button className="ra-btn" onClick={() => onRoomPostingAction('Email')}>📧 Email</button>
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 };
 

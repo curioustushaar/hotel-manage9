@@ -287,10 +287,168 @@ const initializeSampleData = async (req, res) => {
     }
 };
 
+// Get food payment report
+const getFoodPaymentReport = async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+
+        // Parse dates
+        let start = startDate ? new Date(startDate) : new Date();
+        let end = endDate ? new Date(endDate) : new Date();
+
+        // Set time to start and end of day
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+
+        console.log(`[getFoodPaymentReport] Fetching food payments from ${start} to ${end}`);
+
+        // Get all restaurant transactions within date range
+        const transactions = await Transaction.find({
+            category: 'Restaurant',
+            date: { $gte: start, $lte: end }
+        })
+        .populate('order')
+        .populate('performedBy', 'name username')
+        .sort({ date: 1 });
+
+        console.log(`[getFoodPaymentReport] Found ${transactions.length} transactions`);
+
+        // Separate collections and refunds
+        const collections = transactions.filter(t => t.type === 'Income');
+        const refunds = transactions.filter(t => t.type === 'Refund');
+
+        // Calculate totals
+        const totalCollections = collections.reduce((sum, t) => sum + t.amount, 0);
+        const totalRefunds = refunds.reduce((sum, t) => sum + t.amount, 0);
+        const netCollection = totalCollections - totalRefunds;
+
+        // Payment method breakdowns - normalize to lowercase for comparison
+        const normalizeMethod = (method) => {
+            if (!method) return 'cash';
+            const lower = method.toLowerCase();
+            if (lower.includes('bank') || lower.includes('transfer')) return 'bank-transfer';
+            return lower;
+        };
+
+        const paymentsReceived = {
+            cash: collections.filter(t => normalizeMethod(t.paymentMethod) === 'cash').reduce((sum, t) => sum + t.amount, 0),
+            card: collections.filter(t => normalizeMethod(t.paymentMethod) === 'card').reduce((sum, t) => sum + t.amount, 0),
+            upi: collections.filter(t => normalizeMethod(t.paymentMethod) === 'upi').reduce((sum, t) => sum + t.amount, 0),
+            bankTransfer: collections.filter(t => normalizeMethod(t.paymentMethod) === 'bank-transfer').reduce((sum, t) => sum + t.amount, 0)
+        };
+
+        const refundsGiven = {
+            cash: refunds.filter(t => normalizeMethod(t.paymentMethod) === 'cash').reduce((sum, t) => sum + t.amount, 0),
+            card: refunds.filter(t => normalizeMethod(t.paymentMethod) === 'card').reduce((sum, t) => sum + t.amount, 0),
+            upi: refunds.filter(t => normalizeMethod(t.paymentMethod) === 'upi').reduce((sum, t) => sum + t.amount, 0),
+            bankTransfer: refunds.filter(t => normalizeMethod(t.paymentMethod) === 'bank-transfer').reduce((sum, t) => sum + t.amount, 0)
+        };
+
+        // Group by date for trends
+        const trendsByDate = {};
+        transactions.forEach(t => {
+            const dateKey = t.date.toISOString().split('T')[0]; // YYYY-MM-DD
+            
+            if (!trendsByDate[dateKey]) {
+                trendsByDate[dateKey] = {
+                    date: dateKey,
+                    totalPayments: 0,
+                    totalRefunds: 0,
+                    cashPayments: 0,
+                    cardPayments: 0,
+                    upiPayments: 0,
+                    bankTransfer: 0,
+                    cashRefunds: 0,
+                    cardRefunds: 0,
+                    upiRefunds: 0,
+                    bankRefunds: 0,
+                    paymentsCount: 0,
+                    refundsCount: 0
+                };
+            }
+
+            const method = normalizeMethod(t.paymentMethod);
+            
+            if (t.type === 'Income') {
+                trendsByDate[dateKey].totalPayments += t.amount;
+                trendsByDate[dateKey].paymentsCount += 1;
+                
+                if (method === 'cash') trendsByDate[dateKey].cashPayments += t.amount;
+                else if (method === 'card') trendsByDate[dateKey].cardPayments += t.amount;
+                else if (method === 'upi') trendsByDate[dateKey].upiPayments += t.amount;
+                else if (method === 'bank-transfer') trendsByDate[dateKey].bankTransfer += t.amount;
+            } else if (t.type === 'Refund') {
+                trendsByDate[dateKey].totalRefunds += t.amount;
+                trendsByDate[dateKey].refundsCount += 1;
+                
+                if (method === 'cash') trendsByDate[dateKey].cashRefunds += t.amount;
+                else if (method === 'card') trendsByDate[dateKey].cardRefunds += t.amount;
+                else if (method === 'upi') trendsByDate[dateKey].upiRefunds += t.amount;
+                else if (method === 'bank-transfer') trendsByDate[dateKey].bankRefunds += t.amount;
+            }
+        });
+
+        // Calculate net collection for each date
+        const trendsArray = Object.values(trendsByDate).map(day => ({
+            ...day,
+            netCollection: day.totalPayments - day.totalRefunds,
+            transactions: day.paymentsCount + day.refundsCount
+        }));
+
+        // Format transactions data for frontend
+        const transactionsData = transactions.map(t => ({
+            id: t._id,
+            date: t.date,
+            time: t.date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+            type: t.type,
+            orderId: t.referenceId || (t.order ? `ORDER-${t.order._id.toString().substr(-6).toUpperCase()}` : 'N/A'),
+            description: t.description || 'Food Order Payment',
+            paymentMethod: t.paymentMethod,
+            amount: t.amount,
+            status: t.status || 'Success',
+            performedBy: t.performedBy ? (t.performedBy.name || t.performedBy.username) : 'Cashier'
+        }));
+
+        // Calculate food order statistics from transactions
+        const totalOrders = collections.length;
+        const totalOrderAmount = totalCollections;
+        const totalPaid = totalCollections;
+
+        res.json({
+            success: true,
+            data: {
+                summary: {
+                    totalCollections,
+                    totalRefunds,
+                    netCollection,
+                    totalPaymentsCount: collections.length,
+                    totalRefundsCount: refunds.length,
+                    totalTransactions: transactions.length,
+                    totalOrders,
+                    totalOrderAmount,
+                    totalPaid
+                },
+                paymentsReceived,
+                refundsGiven,
+                trends: trendsArray,
+                transactions: transactionsData
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching food payment report:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error fetching food payment report',
+            error: error.message 
+        });
+    }
+};
+
 module.exports = {
     getCashierReport,
     addTransaction,
     getAllTransactions,
     deleteTransaction,
-    initializeSampleData
+    initializeSampleData,
+    getFoodPaymentReport
 };

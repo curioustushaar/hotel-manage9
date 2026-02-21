@@ -1,65 +1,176 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './FoodPaymentReport.css';
+import API_URL from '../../config/api';
 
 const FoodPaymentReport = () => {
     const [activeTab, setActiveTab] = useState('summary');
     const [startDate, setStartDate] = useState('05/02/2026');
     const [endDate, setEndDate] = useState('05/02/2026');
+    const [loading, setLoading] = useState(false);
 
-    // Trends data - Zero data until actual API implementation
-    const [trendsData, setTrendsData] = useState([
-        {
-            date: '05 Feb 2026',
-            totalPayments: 0.00,
-            totalRefunds: 0.00,
-            netCollection: 0.00,
-            cashPayments: 0.00,
-            cardPayments: 0.00,
-            upiPayments: 0.00,
-            bankTransfer: 0.00,
-            othersPayments: 0.00,
-            cashRefunds: 0.00,
-            cardRefunds: 0.00,
-            upiRefunds: 0.00,
-            bankRefunds: 0.00,
-            othersRefunds: 0.00,
-            transactions: 0,
-            paymentsCount: 0,
-            refundsCount: 0
-        }
-    ]);
+    // Trends data
+    const [trendsData, setTrendsData] = useState([]);
 
-    // Transactions data - Zero data until actual API implementation
+    // Transactions data
     const [transactionsData, setTransactionsData] = useState([]);
 
-    // Calculate summary totals from trends data
-    const calculateSummary = () => {
-        const totalPayments = trendsData.reduce((sum, row) => sum + row.totalPayments, 0);
-        const totalRefunds = trendsData.reduce((sum, row) => sum + row.totalRefunds, 0);
-        const netCollection = totalPayments - totalRefunds;
-        const totalPaymentsCount = trendsData.reduce((sum, row) => sum + row.paymentsCount, 0);
-        const totalRefundsCount = trendsData.reduce((sum, row) => sum + row.refundsCount, 0);
-        const totalTransactions = trendsData.reduce((sum, row) => sum + row.transactions, 0);
+    // Summary data
+    const [summary, setSummary] = useState({
+        totalPayments: 0,
+        totalRefunds: 0,
+        netCollection: 0,
+        totalPaymentsCount: 0,
+        totalRefundsCount: 0,
+        totalTransactions: 0,
+        totalOrders: 0,
+        totalOrderAmount: 0,
+        totalPaid: 0
+    });
 
-        // Calculate food orders from trends data
-        const totalOrders = totalPaymentsCount;
-        const totalOrderAmount = totalPayments;
-        const totalPaid = totalPayments;
+    // Payment method breakdowns
+    const [paymentsReceived, setPaymentsReceived] = useState({
+        cash: 0,
+        card: 0,
+        upi: 0,
+        bankTransfer: 0
+    });
 
-        return {
-            totalPayments,
-            totalRefunds,
-            netCollection,
-            totalPaymentsCount,
-            totalRefundsCount,
-            totalTransactions,
-            totalOrders,
-            totalOrderAmount,
-            totalPaid
-        };
+    const [refundsGiven, setRefundsGiven] = useState({
+        cash: 0,
+        card: 0,
+        upi: 0,
+        bankTransfer: 0
+    });
+
+    // Format date for API (DD/MM/YYYY to YYYY-MM-DD)
+    const formatDateForAPI = (dateStr) => {
+        const [day, month, year] = dateStr.split('/');
+        return `${year}-${month}-${day}`;
     };
 
-    const summary = calculateSummary();
+    // Format date for display (YYYY-MM-DD to DD MMM YYYY)
+    const formatDateForDisplay = (dateStr) => {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
+
+    // Fetch food payment report data
+    const fetchFoodPaymentReport = async () => {
+        try {
+            setLoading(true);
+            const apiStartDate = formatDateForAPI(startDate);
+            const apiEndDate = formatDateForAPI(endDate);
+
+            console.log(`[FoodPaymentReport] Fetching data from ${apiStartDate} to ${apiEndDate}`);
+
+            const response = await fetch(
+                `${API_URL}/api/cashier/food-payment-report?startDate=${apiStartDate}&endDate=${apiEndDate}`
+            );
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch food payment report');
+            }
+
+            const result = await response.json();
+            console.log('[FoodPaymentReport] Received data:', result);
+
+            if (result.success) {
+                const { summary: summaryData, paymentsReceived: payments, refundsGiven: refunds, trends, transactions } = result.data;
+
+                // Update summary
+                setSummary({
+                    totalPayments: summaryData.totalCollections || 0,
+                    totalRefunds: summaryData.totalRefunds || 0,
+                    netCollection: summaryData.netCollection || 0,
+                    totalPaymentsCount: summaryData.totalPaymentsCount || 0,
+                    totalRefundsCount: summaryData.totalRefundsCount || 0,
+                    totalTransactions: summaryData.totalTransactions || 0,
+                    totalOrders: summaryData.totalOrders || 0,
+                    totalOrderAmount: summaryData.totalOrderAmount || 0,
+                    totalPaid: summaryData.totalPaid || 0
+                });
+
+                // Update payment methods
+                setPaymentsReceived(payments || { cash: 0, card: 0, upi: 0, bankTransfer: 0 });
+                setRefundsGiven(refunds || { cash: 0, card: 0, upi: 0, bankTransfer: 0 });
+
+                // Format trends data for display
+                const formattedTrends = (trends || []).map(trend => ({
+                    date: formatDateForDisplay(trend.date),
+                    totalPayments: trend.totalPayments || 0,
+                    totalRefunds: trend.totalRefunds || 0,
+                    netCollection: trend.netCollection || 0,
+                    cashPayments: trend.cashPayments || 0,
+                    cardPayments: trend.cardPayments || 0,
+                    upiPayments: trend.upiPayments || 0,
+                    bankTransfer: trend.bankTransfer || 0,
+                    othersPayments: 0,
+                    cashRefunds: trend.cashRefunds || 0,
+                    cardRefunds: trend.cardRefunds || 0,
+                    upiRefunds: trend.upiRefunds || 0,
+                    bankRefunds: trend.bankRefunds || 0,
+                    othersRefunds: 0,
+                    transactions: trend.transactions || 0,
+                    paymentsCount: trend.paymentsCount || 0,
+                    refundsCount: trend.refundsCount || 0
+                }));
+
+                setTrendsData(formattedTrends.length > 0 ? formattedTrends : [
+                    {
+                        date: formatDateForDisplay(apiStartDate),
+                        totalPayments: 0,
+                        totalRefunds: 0,
+                        netCollection: 0,
+                        cashPayments: 0,
+                        cardPayments: 0,
+                        upiPayments: 0,
+                        bankTransfer: 0,
+                        othersPayments: 0,
+                        cashRefunds: 0,
+                        cardRefunds: 0,
+                        upiRefunds: 0,
+                        bankRefunds: 0,
+                        othersRefunds: 0,
+                        transactions: 0,
+                        paymentsCount: 0,
+                        refundsCount: 0
+                    }
+                ]);
+
+                // Format transactions data for display
+                const formattedTransactions = (transactions || []).map(txn => ({
+                    transactionId: txn.id,
+                    dateTime: new Date(txn.date).toLocaleString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }),
+                    foodOrderId: txn.orderId || 'N/A',
+                    bookingId: '-',
+                    transaction: txn.type,
+                    amount: `₹${txn.amount.toFixed(2)}`,
+                    mode: txn.paymentMethod,
+                    status: txn.status,
+                    notes: txn.description || ''
+                }));
+
+                setTransactionsData(formattedTransactions);
+            }
+        } catch (error) {
+            console.error('Error fetching food payment report:', error);
+            // Keep default zero state on error
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Fetch data on component mount and when dates change
+    useEffect(() => {
+        fetchFoodPaymentReport();
+    }, [startDate, endDate]);
+
 
     // Export CSV function for Trends
     const handleExportCSV = () => {
@@ -178,6 +289,7 @@ const FoodPaymentReport = () => {
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
                             className="date-input"
+                            placeholder="DD/MM/YYYY"
                         />
                     </div>
                     <span className="date-separator">-</span>
@@ -188,8 +300,17 @@ const FoodPaymentReport = () => {
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
                             className="date-input"
+                            placeholder="DD/MM/YYYY"
                         />
                     </div>
+                    <button 
+                        className="export-csv-btn" 
+                        onClick={fetchFoodPaymentReport}
+                        disabled={loading}
+                        style={{ marginLeft: '10px' }}
+                    >
+                        {loading ? '⏳ Loading...' : '🔄 Refresh'}
+                    </button>
                 </div>
                 {activeTab === 'trends' && (
                     <button className="export-csv-btn" onClick={handleExportCSV}>
@@ -202,6 +323,13 @@ const FoodPaymentReport = () => {
                     </button>
                 )}
             </div>
+
+            {/* Loading Indicator */}
+            {loading && (
+                <div style={{ textAlign: 'center', padding: '20px', fontSize: '16px', color: '#6b7280' }}>
+                    Loading payment data...
+                </div>
+            )}
 
             {/* SUMMARY TAB CONTENT */}
             {activeTab === 'summary' && (
@@ -318,19 +446,19 @@ const FoodPaymentReport = () => {
                                     <div className="no-data-box" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '20px', textAlign: 'left' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
                                             <span style={{ color: '#6b7280', fontWeight: '500' }}>Cash:</span>
-                                            <span style={{ color: '#10b981', fontWeight: '600' }}>₹{trendsData.reduce((sum, row) => sum + row.cashPayments, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <span style={{ color: '#10b981', fontWeight: '600' }}>₹{paymentsReceived.cash.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
                                             <span style={{ color: '#6b7280', fontWeight: '500' }}>Card:</span>
-                                            <span style={{ color: '#10b981', fontWeight: '600' }}>₹{trendsData.reduce((sum, row) => sum + row.cardPayments, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <span style={{ color: '#10b981', fontWeight: '600' }}>₹{paymentsReceived.card.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
                                             <span style={{ color: '#6b7280', fontWeight: '500' }}>UPI:</span>
-                                            <span style={{ color: '#10b981', fontWeight: '600' }}>₹{trendsData.reduce((sum, row) => sum + row.upiPayments, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <span style={{ color: '#10b981', fontWeight: '600' }}>₹{paymentsReceived.upi.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
                                             <span style={{ color: '#6b7280', fontWeight: '500' }}>Bank Transfer:</span>
-                                            <span style={{ color: '#10b981', fontWeight: '600' }}>₹{trendsData.reduce((sum, row) => sum + row.bankTransfer, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <span style={{ color: '#10b981', fontWeight: '600' }}>₹{paymentsReceived.bankTransfer.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -342,19 +470,19 @@ const FoodPaymentReport = () => {
                                     <div className="no-data-box" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '20px', textAlign: 'left' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
                                             <span style={{ color: '#6b7280', fontWeight: '500' }}>Cash:</span>
-                                            <span style={{ color: '#ef4444', fontWeight: '600' }}>₹{trendsData.reduce((sum, row) => sum + row.cashRefunds, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <span style={{ color: '#ef4444', fontWeight: '600' }}>₹{refundsGiven.cash.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
                                             <span style={{ color: '#6b7280', fontWeight: '500' }}>Card:</span>
-                                            <span style={{ color: '#ef4444', fontWeight: '600' }}>₹{trendsData.reduce((sum, row) => sum + row.cardRefunds, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <span style={{ color: '#ef4444', fontWeight: '600' }}>₹{refundsGiven.card.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
                                             <span style={{ color: '#6b7280', fontWeight: '500' }}>UPI:</span>
-                                            <span style={{ color: '#ef4444', fontWeight: '600' }}>₹{trendsData.reduce((sum, row) => sum + row.upiRefunds, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <span style={{ color: '#ef4444', fontWeight: '600' }}>₹{refundsGiven.upi.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
                                             <span style={{ color: '#6b7280', fontWeight: '500' }}>Bank Transfer:</span>
-                                            <span style={{ color: '#ef4444', fontWeight: '600' }}>₹{trendsData.reduce((sum, row) => sum + row.bankRefunds, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <span style={{ color: '#ef4444', fontWeight: '600' }}>₹{refundsGiven.bankTransfer.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                         </div>
                                     </div>
                                 </div>
