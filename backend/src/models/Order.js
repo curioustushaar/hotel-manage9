@@ -14,7 +14,7 @@ const orderSchema = new mongoose.Schema({
 
     orderType: {
         type: String,
-        enum: ['Dine-In', 'Room Service', 'Take Away', 'Post to Room', 'Room Order', 'Delivery', 'Direct Payment'], // Merged enums
+        enum: ['Dine-In', 'Room Service', 'Take Away', 'Post to Room', 'Room Order', 'Delivery', 'Direct Payment', 'Online'], // Merged enums
         default: 'Dine-In'
     },
 

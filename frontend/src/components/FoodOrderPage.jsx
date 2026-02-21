@@ -141,7 +141,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
     const [activeOrderType, setActiveOrderType] = useState(() => {
         if (location.state?.orderMode === 'takeaway') return 'takeaway';
         if (room?.mode === 'takeaway' || room?.roomNumber === 'Take Away') return 'takeaway';
-        if (source === 'room-service') return 'roomservice';
+        if (source === 'room-service' || orderMode === 'roomservice') return 'roomservice';
         if (room?.id) return 'dinein';
         return 'dinein';
     });
@@ -151,12 +151,12 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
             setActiveOrderType('takeaway');
         } else if (room?.mode === 'takeaway' || room?.roomNumber === 'Take Away') {
             setActiveOrderType('takeaway');
+        } else if (source === 'room-service' || orderMode === 'roomservice') {
+            setActiveOrderType('roomservice');
         } else if (room?.id) {
             setActiveOrderType('dinein');
-        } else if (source === 'room-service') {
-            setActiveOrderType('roomservice');
         }
-    }, [room, source, location.state]);
+    }, [room, source, orderMode, location.state]);
 
     useEffect(() => {
         if (printMode) {
@@ -203,6 +203,25 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
     const [orderId, setOrderId] = useState(null);
     const [taxRate, setTaxRate] = useState(5); // Default 5%
     const [isTaxApplied, setIsTaxApplied] = useState(false);
+
+    // New Features States
+    const [billComment, setBillComment] = useState('');
+    const [selectedCustomer, setSelectedCustomer] = useState(null);
+    const [showCustomerModal, setShowCustomerModal] = useState(false);
+    const [showCommentModal, setShowCommentModal] = useState(false);
+
+    // Initialize customer if room-service or if guest details passed in state
+    useEffect(() => {
+        if (room) {
+            setSelectedCustomer({
+                id: room.guestId || room._id,
+                name: room.guestName,
+                phone: room.guestPhone || room.mobileNumber || room.phoneNumber,
+                roomNumber: room.roomNumber,
+                type: (activeOrderType === 'roomservice' || activeOrderType === 'room') ? 'room' : 'direct'
+            });
+        }
+    }, [room, activeOrderType]);
 
     // Fetch existing order if available
     useEffect(() => {
@@ -263,12 +282,14 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
             const orderData = {
                 tableId: (activeOrderType === 'takeaway' || activeOrderType === 'roomservice' || activeOrderType === 'room') ? null : tId,
                 tableNumber: activeOrderType === 'takeaway' ? 0 : tNum,
-                guestName: finalGuestName,
-                guestPhone: effectiveRoom.phoneNumber || location.state?.customerPhone || null,
-                roomNumber: effectiveRoom.roomNumber || 'Take Away',
+                guestName: selectedCustomer?.name || finalGuestName,
+                guestPhone: selectedCustomer?.phone || effectiveRoom.phoneNumber || location.state?.customerPhone || null,
+                roomNumber: selectedCustomer?.roomNumber || effectiveRoom.roomNumber || 'Take Away',
                 orderType: (activeOrderType === 'roomservice' || activeOrderType === 'room') ? 'Post to Room' :
                     activeOrderType === 'takeaway' ? 'Take Away' : 'Direct Payment',
                 taxRate: isTaxApplied ? Number(taxRate) : 0,
+                notes: billComment, // Bill Wise Comment
+                guest: selectedCustomer?.id || null, // Link to Guest model
                 items: cart.map(item => ({
                     id: item.id || item._id, // Ensure id is passed
                     name: item.name,
@@ -286,7 +307,11 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         items: orderData.items,
-                        taxRate: orderData.taxRate
+                        taxRate: orderData.taxRate,
+                        notes: orderData.notes,
+                        guestName: orderData.guestName,
+                        guestPhone: orderData.guestPhone,
+                        guest: orderData.guest
                     })
                 });
             } else {
@@ -328,10 +353,14 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
             else if (activeOrderType === 'roomservice' || activeOrderType === 'room') targetFilter = 'Room Order';
             else if (activeOrderType === 'dinein') targetFilter = 'Dine In';
 
+            // If coming from room-service, go to KOT View tab
+            const targetTab = (source === 'room-service') ? 'KOT View' : 'Bill View';
+
             navigate('/admin/dashboard', {
                 state: {
                     activeMenu: 'view-order',
-                    activeFilter: targetFilter
+                    activeFilter: targetFilter,
+                    activeTab: targetTab
                 }
             });
         } else {
@@ -556,8 +585,8 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                             <button
                                 className={`pos-mode-btn ${activeOrderType === 'online' ? 'active' : ''}`}
                                 onClick={() => setActiveOrderType('online')}
-                                disabled={!!orderMode || !!source}
-                                style={{ opacity: (!!orderMode || !!source) ? 0.5 : 1, cursor: (!!orderMode || !!source) ? 'not-allowed' : 'pointer' }}
+                                disabled={!!orderMode || source === 'room-service'}
+                                style={{ opacity: (!!orderMode || source === 'room-service') ? 0.5 : 1, cursor: (!!orderMode || source === 'room-service') ? 'not-allowed' : 'pointer' }}
                             >
                                 Online Order (F5)
                             </button>
@@ -597,10 +626,20 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                                 <div className="pos-guest-name">{room?.guestName || 'Guest Name'}</div>
                             </div>
                             <div className="pos-action-buttons-group">
-                                <button className="pos-action-btn">Add Customer</button>
-                                <button className="pos-action-btn">Bill Wise Comment</button>
+                                <button
+                                    className={`pos-action-btn ${selectedCustomer ? 'active' : ''}`}
+                                    onClick={() => setShowCustomerModal(true)}
+                                >
+                                    {selectedCustomer ? '👤 ' + selectedCustomer.name.split(' ')[0] : 'Add Customer'}
+                                </button>
+                                <button
+                                    className={`pos-action-btn ${billComment ? 'active' : ''}`}
+                                    onClick={() => setShowCommentModal(true)}
+                                >
+                                    {billComment ? '📝 Note Added' : 'Bill Wise Comment'}
+                                </button>
                                 <button className="pos-action-btn">Delivery Boy</button>
-                                <button className="pos-action-btn active">Home Delivery</button>
+                                <button className="pos-action-btn">Home Delivery</button>
                             </div>
                         </div>
 
@@ -734,6 +773,103 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                     </div>
                 </div>
             </div>
+            {/* Customer Modal */}
+            {showCustomerModal && (
+                <div className="pos-modal-overlay">
+                    <div className="pos-modal-content" style={{ width: '500px' }}>
+                        <div className="pos-modal-header">
+                            <h3>Add Customer</h3>
+                            <button className="pos-modal-close" onClick={() => setShowCustomerModal(false)}>×</button>
+                        </div>
+                        <div className="pos-modal-body" style={{ background: '#fff', padding: '20px', display: 'block' }}>
+                            <div className="customer-modal-tabs" style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                                <button className="pos-footer-btn active">Search / New</button>
+                                <button className="pos-footer-btn" onClick={() => {
+                                    setShowCustomerModal(false);
+                                    // Logic for room guests can be added here
+                                }}>In-House Room</button>
+                            </div>
+
+                            <div className="customer-form">
+                                <label style={{ fontSize: '12px', fontWeight: '700', color: '#666' }}>MOBILE NUMBER</label>
+                                <input
+                                    type="text"
+                                    className="pos-search-input"
+                                    placeholder="Enter mobile number..."
+                                    style={{ width: '100%', marginBottom: '15px', background: '#fff' }}
+                                    onChange={async (e) => {
+                                        if (e.target.value.length >= 10) {
+                                            try {
+                                                const res = await fetch(`${API_URL_CONFIG}/api/guests/search?query=${e.target.value}`);
+                                                const data = await res.json();
+                                                if (data.success && data.data && data.data.length > 0) {
+                                                    const g = data.data[0];
+                                                    setSelectedCustomer({
+                                                        id: g._id,
+                                                        name: g.fullName,
+                                                        phone: g.mobile,
+                                                        type: 'regular'
+                                                    });
+                                                }
+                                            } catch (err) { }
+                                        }
+                                    }}
+                                />
+
+                                <label style={{ fontSize: '12px', fontWeight: '700', color: '#666' }}>GUEST NAME</label>
+                                <input
+                                    type="text"
+                                    className="pos-search-input"
+                                    placeholder="Enter guest name..."
+                                    value={selectedCustomer?.name || ''}
+                                    style={{ width: '100%', marginBottom: '15px', background: '#fff' }}
+                                    onChange={(e) => setSelectedCustomer({ ...selectedCustomer, name: e.target.value, type: 'walkin' })}
+                                />
+
+                                <div style={{ background: '#fef2f2', padding: '10px', borderRadius: '6px', fontSize: '13px', color: '#dc2626' }}>
+                                    {selectedCustomer ? `Linked to: ${selectedCustomer.name}` : 'No customer linked'}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="pos-modal-footer">
+                            <button className="pos-modal-btn cancel" onClick={() => {
+                                setSelectedCustomer(null);
+                                setShowCustomerModal(false);
+                            }}>Clear</button>
+                            <button className="pos-modal-btn print" onClick={() => setShowCustomerModal(false)}>Apply</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Comment Modal */}
+            {showCommentModal && (
+                <div className="pos-modal-overlay">
+                    <div className="pos-modal-content" style={{ width: '400px' }}>
+                        <div className="pos-modal-header">
+                            <h3>Bill Wise Comment</h3>
+                            <button className="pos-modal-close" onClick={() => setShowCommentModal(false)}>×</button>
+                        </div>
+                        <div className="pos-modal-body" style={{ background: '#fff', padding: '20px', display: 'block' }}>
+                            <textarea
+                                className="pos-search-input"
+                                placeholder="Add special instructions for the entire bill..."
+                                style={{ width: '100%', height: '120px', resize: 'none', background: '#fff', fontSize: '14px' }}
+                                value={billComment}
+                                onChange={(e) => setBillComment(e.target.value)}
+                            />
+                        </div>
+                        <div className="pos-modal-footer">
+                            <button className="pos-modal-btn cancel" onClick={() => {
+                                setBillComment('');
+                                setShowCommentModal(false);
+                            }}>Clear</button>
+                            <button className="pos-modal-btn print" onClick={() => setShowCommentModal(false)}>Save Note</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Toast Container */}
             <div className="pos-toast-container">
                 {toasts.map(toast => (
@@ -751,9 +887,10 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                             <p>Receipt / Bill</p>
                         </div>
                         <div className="print-details">
-                            <p>Room: {room?.roomNumber || 'N/A'}</p>
-                            <p>Guest: {room?.guestName || 'Walk-in'}</p>
+                            <p>Room: {selectedCustomer?.roomNumber || room?.roomNumber || 'N/A'}</p>
+                            <p>Guest: {selectedCustomer?.name || room?.guestName || 'Walk-in'}</p>
                             <p>Date: {new Date().toLocaleString()}</p>
+                            {billComment && <p style={{ fontWeight: 'bold', marginTop: '5px' }}>Note: {billComment}</p>}
                         </div>
                         <table className="print-table">
                             <thead>
@@ -787,9 +924,10 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                             <h2>KITCHEN ORDER TICKET</h2>
                         </div>
                         <div className="print-details">
-                            <p>Room: {room?.roomNumber || 'N/A'}</p>
-                            <p>Guest: {room?.guestName || 'Walk-in'}</p>
+                            <p>Room: {selectedCustomer?.roomNumber || room?.roomNumber || 'N/A'}</p>
+                            <p>Guest: {selectedCustomer?.name || room?.guestName || 'Walk-in'}</p>
                             <p>Time: {new Date().toLocaleTimeString()}</p>
+                            {billComment && <p style={{ fontWeight: 'bold', border: '1px solid black', padding: '5px', marginTop: '5px' }}>INSTRUCTION: {billComment}</p>}
                         </div>
                         <table className="print-table">
                             <thead>

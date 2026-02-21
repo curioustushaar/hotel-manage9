@@ -593,6 +593,18 @@
     }
 }
 
+.customer-modal-tabs .pos-footer-btn {
+    border: 1px solid var(--pos-border);
+    border-radius: 4px;
+    height: 35px;
+}
+
+.customer-modal-tabs .pos-footer-btn.active {
+    background: var(--pos-red);
+    color: white;
+    border-color: var(--pos-red);
+}
+
 /* MODAL STYLES */
 .pos-modal-overlay {
     position: fixed;

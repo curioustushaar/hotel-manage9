@@ -33,10 +33,15 @@ const ViewOrderPage = () => {
         return () => clearInterval(timer);
     }, []);
 
-    // Handle initial filter from navigation
+    // Handle initial filter and tab from navigation
     useEffect(() => {
-        if (location.state && location.state.activeFilter) {
-            setActiveFilter(location.state.activeFilter);
+        if (location.state) {
+            if (location.state.activeFilter) {
+                setActiveFilter(location.state.activeFilter);
+            }
+            if (location.state.activeTab) {
+                setActiveTab(location.state.activeTab);
+            }
         }
     }, [location.state]);
 
@@ -143,13 +148,16 @@ const ViewOrderPage = () => {
         const order = orders.find(o => o.id === orderId);
         if (!order) return;
 
-        if (order.type === 'Post to Room' || order.type === 'Room Order') {
+        if (order.type === 'Post to Room' || order.type === 'Room Order' || order.type === 'Room Service') {
             // Room Service: Mark as 'Started' → shows in Room Service 'In Service' tab
             const success = await handleStatusUpdate(orderId, 'Started');
             if (success) showToast('✅ Order sent — delivery started!');
         } else if (order.type === 'Take Away') {
             const success = await handleStatusUpdate(orderId, 'Pending Payment');
             if (success) showToast('✅ Order sent to cashier!');
+        } else if (order.type === 'Online' || order.type === 'Delivery') {
+            const success = await handleStatusUpdate(orderId, 'Started');
+            if (success) showToast('✅ Online order — delivery started!');
         } else {
             await handleStatusUpdate(orderId, 'Served');
             showToast('✅ Order served to table!');
@@ -200,9 +208,10 @@ const ViewOrderPage = () => {
 
             let matchesFilter = true;
             if (activeFilter !== 'All') {
-                if (activeFilter === 'Dine In') matchesFilter = order.type === 'Dine In';
-                else if (activeFilter === 'Room Order') matchesFilter = order.type === 'Post to Room' || order.type === 'Room Order';
+                if (activeFilter === 'Dine In') matchesFilter = order.type === 'Dine In' || order.type === 'Dine-In' || order.type === 'Direct Payment';
+                else if (activeFilter === 'Room Order') matchesFilter = order.type === 'Post to Room' || order.type === 'Room Order' || order.type === 'Room Service';
                 else if (activeFilter === 'Take Away') matchesFilter = order.type === 'Take Away';
+                else if (activeFilter === 'Online Order') matchesFilter = order.type === 'Online' || order.type === 'Delivery';
             }
             return matchesSearch && matchesFilter;
         });
@@ -261,7 +270,7 @@ const ViewOrderPage = () => {
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
-                        {['All', 'Dine In', 'Room Order', 'Take Away'].map(filter => (
+                        {['All', 'Dine In', 'Room Order', 'Take Away', 'Online Order'].map(filter => (
                             <button
                                 key={filter}
                                 className={`filter-pill ${activeFilter === filter ? 'active' : ''}`}
@@ -288,29 +297,20 @@ const ViewOrderPage = () => {
                                         onClick={() => {
                                             if (order.type === 'Take Away') {
                                                 navigate('/admin/cashier', { state: { activeTab: 'Take Away' } });
-                                            } else if (order.type === 'Post to Room' || order.type === 'Room Order') {
+                                            } else if (order.type === 'Post to Room' || order.type === 'Room Order' || order.type === 'Room Service') {
                                                 navigate('/admin/dashboard', { state: { activeMenu: 'guest-meal-service' } });
+                                            } else if (order.type === 'Online' || order.type === 'Delivery') {
+                                                navigate('/admin/dashboard', { state: { activeMenu: 'view-order', activeFilter: 'Online Order' } });
                                             } else {
                                                 navigate('/admin/dashboard', { state: { activeMenu: 'guestmealservice' } });
                                             }
                                         }}
                                     >
-                                        {/* Delete Button inside header */}
-                                        <button
-                                            className="delete-order-btn"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleDeleteOrder(order.id);
-                                            }}
-                                            title="Delete Order"
-                                        >
-                                            ✕
-                                        </button>
-
                                         <span className="header-table">
-                                            {(order.type === 'Take Away') ? `${order.guestName}` :
-                                                (order.type === 'Post to Room' || order.type === 'Room Order') ? `Room: ${order.table}` :
-                                                    `Table: ${order.table}`}
+                                            {(order.type === 'Take Away') ? `${order.guestName || 'Take Away'}` :
+                                                (order.type === 'Online' || order.type === 'Delivery') ? `Online: ${order.guestName || 'Order'}` :
+                                                    (order.type === 'Post to Room' || order.type === 'Room Order' || order.type === 'Room Service') ? `Room: ${order.table}` :
+                                                        order.table === '-' ? 'Walk-in' : `Table: ${order.table}`}
                                         </span>
                                         <span className="header-time">{order.time}</span>
                                     </div>
@@ -385,22 +385,17 @@ const ViewOrderPage = () => {
                                             onClick={() => handleSendNotification(order.id, order.status)}
                                             style={{
                                                 opacity: isReady && !isBilled ? 1 : 0.4,
-                                                cursor: isReady && !isBilled ? 'pointer' : 'not-allowed',
-                                                backgroundColor: '#fff',
-                                                color: isReady && !isBilled ? '#dc2626' : '#94a3b8'
+                                                cursor: isReady && !isBilled ? 'pointer' : 'not-allowed'
                                             }}
                                         >
-                                            {order.type === 'Take Away' ? 'Send To' : 'Send'}
+                                            {order.type === 'Take Away' ? 'To Customer' : 'Send'}
                                         </button>
                                         <button
-                                            className={`action-btn complete ${isBilled ? 'completed-done' : (isReady ? '' : 'disabled')}`}
-                                            onClick={() => handleCompleteOrder(order.id, order.status)}
-                                            style={{
-                                                opacity: (isReady || isBilled) ? 1 : 0.4,
-                                                cursor: (isReady || isBilled) ? 'pointer' : 'not-allowed'
-                                            }}
+                                            className={`action-btn done ${isBilled ? 'disabled' : ''}`}
+                                            onClick={() => handleDeleteOrder(order.id)}
+                                            disabled={isBilled}
                                         >
-                                            {isBilled ? 'Completed' : 'Complete'}
+                                            Done
                                         </button>
                                     </div>
                                 </div>

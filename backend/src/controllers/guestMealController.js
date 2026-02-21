@@ -461,7 +461,7 @@ exports.releaseTable = async (req, res) => {
 // Create new order for a table
 exports.createOrder = async (req, res) => {
     try {
-        const { tableId, tableNumber, orderType = 'Direct Payment', roomNumber, guestName, numberOfGuests = 1, taxRate = 0 } = req.body;
+        const { tableId, tableNumber, orderType = 'Direct Payment', roomNumber, guestName, numberOfGuests = 1, taxRate = 0, notes, guest, guestPhone } = req.body;
 
         let table = null;
         let room = null;
@@ -512,7 +512,9 @@ exports.createOrder = async (req, res) => {
             orderType,
             roomNumber: orderType === 'Post to Room' ? roomNumber : null,
             guestName: guestName || (orderType === 'Take Away' ? 'Walk-in Customer' : null),
-            guestPhone: req.body.guestPhone || null,
+            guestPhone: guestPhone || req.body.guestPhone || null,
+            guest: guest || null,
+            notes: notes || null,
             numberOfGuests: Number(numberOfGuests) || 1,
             items: (req.body.items || []).map(item => ({
                 ...item,
@@ -642,7 +644,7 @@ exports.getOrderByTableId = async (req, res) => {
 exports.updateOrderItems = async (req, res) => {
     try {
         const { orderId } = req.params;
-        const { items, taxRate } = req.body;
+        const { items, taxRate, notes, guestName, guestPhone, guest } = req.body;
 
         const order = await GuestMealOrder.findById(orderId);
         if (!order) {
@@ -702,6 +704,11 @@ exports.updateOrderItems = async (req, res) => {
         }
 
         if (taxRate !== undefined) order.taxRate = Number(taxRate) || 0;
+        if (notes !== undefined) order.notes = notes;
+        if (guestName !== undefined) order.guestName = guestName;
+        if (guestPhone !== undefined) order.guestPhone = guestPhone;
+        if (guest !== undefined) order.guest = guest;
+
         await order.save();
 
         // Update table running order amount if linked to a table
