@@ -42,7 +42,7 @@ const Pricing = () => {
     ];
 
     return (
-        <div style={{ paddingTop: "80px", paddingBottom: "100px", minHeight: "100vh", background: "#fff6f7" }}>
+        <div style={{ paddingTop: "20px", paddingBottom: "100px", minHeight: "100vh", background: "#fff6f7" }}>
             <div className="container" style={{ textAlign: "center" }}>
                 <Reveal width="100%">
                     <h1 style={{ fontSize: "42px", fontWeight: "700", marginBottom: "20px" }}>
