@@ -34,6 +34,7 @@ const RoomSetup = () => {
     });
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [viewMonth, setViewMonth] = useState(new Date());
+    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
     const getDaysInMonth = (year, month) => {
         const date = new Date(year, month, 1);
@@ -633,6 +634,35 @@ const RoomSetup = () => {
                     <option value="Under Maintenance">Maintenance</option>
                 </select>
 
+                <div className="view-toggle">
+                    <button 
+                        className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                        onClick={() => setViewMode('grid')}
+                        title="Grid View"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                            <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                            <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                            <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                        </svg>
+                    </button>
+                    <button 
+                        className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+                        onClick={() => setViewMode('list')}
+                        title="List View"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="8" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="8" y1="18" x2="21" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="3" y1="6" x2="4" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="3" y1="12" x2="4" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="3" y1="18" x2="4" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                    </button>
+                </div>
+
                 {canManageRooms && (
                     <button className="add-room-btn" onClick={() => openModal('add')}>+ Add Room</button>
                 )}
@@ -647,14 +677,14 @@ const RoomSetup = () => {
                 </div>
             </div>
 
-            {/* Room Cards Grid */}
+            {/* Room Cards Grid/List */}
             <div className="room-setup-grid-container">
                 {loading ? (
                     <div style={{ padding: '20px', textAlign: 'center' }}>Loading rooms...</div>
                 ) : error ? (
                     <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>{error}</div>
                 ) : (
-                    <div className="room-cards-grid">
+                    <div className={viewMode === 'grid' ? 'room-cards-grid' : 'room-cards-list'}>
                         {filteredRooms.length > 0 ? (
                             filteredRooms.map((room) => {
                                 const statusClass =
@@ -670,48 +700,106 @@ const RoomSetup = () => {
                                         onClick={() => handleRoomClick(room)}
                                         style={{ cursor: 'pointer' }}
                                     >
-                                        <div className="room-card-header">
-                                            <h4>Room {room.roomNumber}</h4>
-                                            {room.housekeepingStatus === 'dirty' && <div className="dirty-badge">DIRTY</div>}
-                                            <div className="card-actions">
-                                                {canManageRooms && (
-                                                    <>
+                                        {viewMode === 'grid' ? (
+                                            // Grid View
+                                            <>
+                                                <div className="room-card-header">
+                                                    <h4>Room {room.roomNumber}</h4>
+                                                    {room.housekeepingStatus === 'dirty' && <div className="dirty-badge">DIRTY</div>}
+                                                    <div className="card-actions">
+                                                        {canManageRooms && (
+                                                            <>
+                                                                <button
+                                                                    className="icon-btn"
+                                                                    onClick={(e) => { e.stopPropagation(); openModal('edit', room); }}
+                                                                    title="Edit"
+                                                                >
+                                                                    ✏️
+                                                                </button>
+                                                                <button
+                                                                    className="icon-btn"
+                                                                    onClick={(e) => { e.stopPropagation(); handleDelete(room.id); }}
+                                                                    title="Delete"
+                                                                >
+                                                                    🗑️
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="room-card-body">
+                                                    <div className="room-type">{room.roomType}</div>
+                                                    <p className="room-info">Capacity: {room.capacity.adults} persons</p>
+                                                    <p className="room-type" style={{ marginTop: 'auto' }}>{room.basePrice}/night</p>
+                                                </div>
+                                                <div className="room-card-footer">
+                                                    <span className="status-pill">{room.computedStatus}</span>
+                                                    {canBook && (
                                                         <button
-                                                            className="icon-btn"
-                                                            onClick={(e) => { e.stopPropagation(); openModal('edit', room); }}
-                                                            title="Edit"
+                                                            className="book-btn"
+                                                            onClick={(e) => { e.stopPropagation(); handleQuickBook(room); }}
+                                                            disabled={room.computedStatus !== 'Available'}
+                                                            style={{ opacity: room.computedStatus !== 'Available' ? 0.5 : 1 }}
                                                         >
-                                                            ✏️
+                                                            💼 Book
                                                         </button>
+                                                    )}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            // List View
+                                            <div className="room-list-layout">
+                                                <div className="room-list-number">
+                                                    <h4>Room {room.roomNumber}</h4>
+                                                    {room.housekeepingStatus === 'dirty' && <div className="dirty-badge-small">DIRTY</div>}
+                                                </div>
+                                                <div className="room-list-type">
+                                                    <span className="label">Type</span>
+                                                    <span className="value">{room.roomType}</span>
+                                                </div>
+                                                <div className="room-list-capacity">
+                                                    <span className="label">Capacity</span>
+                                                    <span className="value">{room.capacity.adults} persons</span>
+                                                </div>
+                                                <div className="room-list-price">
+                                                    <span className="label">Price</span>
+                                                    <span className="value">{room.basePrice}/night</span>
+                                                </div>
+                                                <div className="room-list-status">
+                                                    <span className="status-pill">{room.computedStatus}</span>
+                                                </div>
+                                                <div className="room-list-actions">
+                                                    {canBook && (
                                                         <button
-                                                            className="icon-btn"
-                                                            onClick={(e) => { e.stopPropagation(); handleDelete(room.id); }}
-                                                            title="Delete"
+                                                            className="book-btn"
+                                                            onClick={(e) => { e.stopPropagation(); handleQuickBook(room); }}
+                                                            disabled={room.computedStatus !== 'Available'}
+                                                            style={{ opacity: room.computedStatus !== 'Available' ? 0.5 : 1 }}
                                                         >
-                                                            🗑️
+                                                            💼 Book
                                                         </button>
-                                                    </>
-                                                )}
+                                                    )}
+                                                    {canManageRooms && (
+                                                        <>
+                                                            <button
+                                                                className="icon-btn"
+                                                                onClick={(e) => { e.stopPropagation(); openModal('edit', room); }}
+                                                                title="Edit"
+                                                            >
+                                                                ✏️
+                                                            </button>
+                                                            <button
+                                                                className="icon-btn"
+                                                                onClick={(e) => { e.stopPropagation(); handleDelete(room.id); }}
+                                                                title="Delete"
+                                                            >
+                                                                🗑️
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="room-card-body">
-                                            <div className="room-type">{room.roomType}</div>
-                                            <p className="room-info">Capacity: {room.capacity.adults} persons</p>
-                                            <p className="room-type" style={{ marginTop: 'auto' }}>{room.basePrice}/night</p>
-                                        </div>
-                                        <div className="room-card-footer">
-                                            <span className="status-pill">{room.computedStatus}</span>
-                                            {canBook && (
-                                                <button
-                                                    className="book-btn"
-                                                    onClick={(e) => { e.stopPropagation(); handleQuickBook(room); }}
-                                                    disabled={room.computedStatus !== 'Available'}
-                                                    style={{ opacity: room.computedStatus !== 'Available' ? 0.5 : 1 }}
-                                                >
-                                                    💼 Book
-                                                </button>
-                                            )}
-                                        </div>
+                                        )}
                                     </div>
                                 );
                             })
