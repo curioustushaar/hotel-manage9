@@ -340,7 +340,7 @@ const GuestMealService = () => {
                 const dummyOrderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                 navigate('/admin/dashboard', {
                     state: {
-                        activeMenu: 'food-order-pos',
+                        activeMenu: 'food-order',
                         orderMode: 'dinein',
                         room: {
                             roomNumber: table.tableName,
@@ -677,7 +677,7 @@ const GuestMealService = () => {
                 // Navigate to POS with the updated table info
                 navigate('/admin/dashboard', {
                     state: {
-                        activeMenu: 'food-order-pos',
+                        activeMenu: 'food-order',
                         orderMode: 'dinein',
                         room: {
                             roomNumber: data.data.tableName,
