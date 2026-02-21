@@ -55,27 +55,31 @@
   position: relative;
   display: flex;
   align-items: center;
+  min-width: 300px;
 }
 
 .search-icon {
   position: absolute;
-  left: 15px;
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  color: #94a3b8;
+  color: #475569;
   pointer-events: none;
-  font-size: 16px;
+  font-size: 20px;
+  z-index: 10;
 }
 
 .filter-search-input {
-  padding: 10px 16px 10px 45px;
+  padding: 12px 16px;
   border: 1.5px solid #e2e8f0;
   border-radius: 12px;
   font-size: 14px;
-  width: 240px;
+  width: 100%;
+  min-width: 300px;
   transition: all 0.2s;
   background: white;
   color: #475569;
+  font-weight: 500;
 }
 
 .filter-search-input::placeholder {

@@ -261,7 +261,6 @@ const ViewOrderPage = () => {
                     {/* Filters */}
                     <div className="view-order-filters">
                         <div className="search-wrapper">
-                            <span className="search-icon">🔍</span>
                             <input
                                 type="text"
                                 placeholder="Search Table or Item..."
