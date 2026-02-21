@@ -1,9 +1,9 @@
 /* ================= HERO SECTION ================= */
 
 .landing-hero {
-  padding: 80px 0 100px;
-  margin-top: 72px;
-  background: #f4f6f8;
+  padding: 20px 0 100px;
+  margin-top: 0;
+  background: linear-gradient(135deg, #fff 0%, #fde7ec 60%, #f8d7df 100%);
   position: relative;
   /* For particles */
   overflow: hidden;

@@ -1,4 +1,5 @@
 import React from "react";
+import { FaRegCalendarAlt, FaRegCreditCard, FaUtensils, FaHeadset } from "react-icons/fa";
 import "./about.css";
 
 const About = () => {
@@ -139,26 +140,36 @@ const About = () => {
                     </div>
                 </section>
 
-                {/* WHY */}
+                {/* WHY WE'RE DIFFERENT */}
                 <section className="about-why">
-                    <h2>Why We're Different</h2>
-                    <p>Built by hospitality experts, for hospitality experts.</p>
-                    <div className="why-cards">
-                        <div>
-                            <span className="why-icon">📅</span>
-                            Reservation <br /> Intelligence
-                        </div>
-                        <div>
-                            <span className="why-icon">💳</span>
-                            Real-time <br /> Billing
-                        </div>
-                        <div>
-                            <span className="why-icon">🍽️</span>
-                            KOT <br /> Automation
-                        </div>
-                        <div>
-                            <span className="why-icon">🎧</span>
-                            24/7 Support
+                    <div className="about-container">
+                        <h2>Why We're Different</h2>
+                        <p>Built by hospitality experts, for hospitality experts.</p>
+                        <div className="why-cards">
+                            <div className="why-card">
+                                <div className="why-card-icon-wrapper" style={{ background: "#e0f2fe" }}>
+                                    <FaRegCalendarAlt style={{ color: "#0ea5e9", fontSize: "38px" }} />
+                                </div>
+                                <h4>Reservation <br /> Intelligence</h4>
+                            </div>
+                            <div className="why-card">
+                                <div className="why-card-icon-wrapper" style={{ background: "#ecfeff" }}>
+                                    <FaRegCreditCard style={{ color: "#06b6d4", fontSize: "38px" }} />
+                                </div>
+                                <h4>Real-time <br /> Billing</h4>
+                            </div>
+                            <div className="why-card">
+                                <div className="why-card-icon-wrapper" style={{ background: "#f5f3ff" }}>
+                                    <FaUtensils style={{ color: "#8b5cf6", fontSize: "35px" }} />
+                                </div>
+                                <h4>KOT <br /> Automation</h4>
+                            </div>
+                            <div className="why-card">
+                                <div className="why-card-icon-wrapper" style={{ background: "#fdf2f8" }}>
+                                    <FaHeadset style={{ color: "#ec4899", fontSize: "38px" }} />
+                                </div>
+                                <h4>24/7 <br /> Support</h4>
+                            </div>
                         </div>
                     </div>
                 </section>

@@ -45,7 +45,7 @@
 /* ================= HERO ================= */
 
 .about-hero {
-    padding: 110px 20px 30px;
+    padding: 80px 20px 30px;
     text-align: center;
     position: relative;
     background: linear-gradient(135deg, #fff, #ffe4e6);
@@ -344,74 +344,118 @@
 /* ================= WHY DIFFERENT ================= */
 
 .about-why {
-    padding: 80px 10px;
-    /* Reduced side padding to 10px */
+    padding: 120px 0;
     text-align: center;
+    background: linear-gradient(180deg, #fff7f9 0%, #fff 100%);
     position: relative;
-    z-index: 1;
-    max-width: 1400px;
-    /* Wider container */
-    margin: 0 auto;
+    overflow: hidden;
+}
+
+/* Subtle radial glow effect behind cards */
+.about-why::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, rgba(225, 29, 72, 0.05) 0%, transparent 60%);
+    transform: translate(-50%, -50%);
+    z-index: 0;
+    pointer-events: none;
 }
 
 .about-why h2 {
-    font-size: 42px;
-    font-weight: 700;
-    margin-bottom: 12px;
-    color: #1f2937;
+    font-size: 52px;
+    font-weight: 800;
+    margin-bottom: 15px;
+    color: #1a202c;
+    /* Dark navy / charcoal */
+    position: relative;
+    z-index: 1;
 }
 
 .about-why p {
-    color: #6b7280;
-    font-size: 18px;
-    margin-bottom: 50px;
+    color: #718096;
+    /* light gray */
+    font-size: 20px;
+    margin-bottom: 80px;
+    font-weight: 500;
+    position: relative;
+    z-index: 1;
 }
 
 .why-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 30px;
-    padding: 0 10px;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
 }
 
-.why-cards div {
-    background: #ffffff;
-    padding: 45px 30px;
-    border-radius: 24px;
-    box-shadow: 0 20px 40px rgba(225, 29, 72, 0.05);
-    font-weight: 700;
-    font-size: 20px;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    line-height: 1.4;
+.why-card {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 50px 30px;
+    border-radius: 30px;
+    /* Large rounded corners */
+    border: 1px solid rgba(225, 29, 72, 0.15);
+    /* Subtle pink-purple border */
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.02);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
-    border: 1px solid rgba(225, 29, 72, 0.05);
     cursor: default;
-    color: #1f2937;
 }
 
-.why-cards div .why-icon {
-    font-size: 40px;
-    margin-bottom: 20px;
-    display: block;
-    background: #fef2f2;
-    width: 80px;
-    height: 80px;
+.why-card-icon-wrapper {
+    width: 90px;
+    height: 90px;
+    border-radius: 20px;
+    /* Rounded soft pink square */
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 20px;
-    color: #e11d48;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.03);
 }
 
-.why-cards div:hover {
-    transform: translateY(-12px);
-    background: #ffffff;
-    box-shadow: 0 30px 60px rgba(225, 29, 72, 0.12);
-    border-color: rgba(225, 29, 72, 0.2);
+.why-card h4 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #2d3748;
+    line-height: 1.3;
+}
+
+.why-card:hover {
+    transform: translateY(-10px);
+    /* Card lifts */
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 25px 60px rgba(225, 29, 72, 0.12);
+    /* Increased glow */
+    border-color: rgba(225, 29, 72, 0.4);
+}
+
+@media (max-width: 1024px) {
+    .why-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .about-why h2 {
+        font-size: 38px;
+    }
+
+    .why-cards {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* ================= CTA ================= */

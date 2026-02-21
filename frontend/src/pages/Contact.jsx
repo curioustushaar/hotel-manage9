@@ -3,7 +3,7 @@ import Reveal from "../components/Reveal";
 
 const Contact = () => {
     return (
-        <div style={{ paddingTop: "120px", paddingBottom: "100px", minHeight: "100vh", background: "#fff6f7" }}>
+        <div style={{ paddingTop: "80px", paddingBottom: "100px", minHeight: "100vh", background: "#fff6f7" }}>
             <div className="container" style={{ maxWidth: "1200px" }}>
                 <Reveal width="100%">
                     <h1 style={{ fontSize: "42px", fontWeight: "700", marginBottom: "20px", textAlign: "center" }}>
@@ -112,7 +112,7 @@ const Contact = () => {
                 <Reveal delay={0.4} width="100%">
                     <div style={{ marginTop: "60px", borderRadius: "20px", overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,0.1)", border: "4px solid #fff" }}>
                         <iframe
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3598.6793616254!2d85.09919037539077!3d25.58280627746401!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39ed579f18074697%3A0xc3f92e42f6233486!2sBireena%20Info%20Tech!5e0!3m2!1sen!2sin!4v1708433360000!5m2!1sen!2sin"
+                            src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d460653.7187557657!2d85.091635!3d25.576418!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x43d931ec9b428883%3A0xa1137df98dfedf57!2sBireena%20Info%20Tech!5e0!3m2!1sen!2sin!4v1771606201876!5m2!1sen!2sin"
                             width="100%"
                             height="450"
                             style={{ border: 0, display: "block" }}

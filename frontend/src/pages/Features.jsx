@@ -15,16 +15,14 @@ const Features = () => {
     const [hoveredIndex, setHoveredIndex] = useState(null);
 
     const cardStyle = (index) => ({
-        padding: index === 0 ? "30px" : "10px",
+        padding: "10px",
         borderRadius: "20px",
         cursor: "pointer",
-        transition: "all 0.4s ease",
-        transform: hoveredIndex === index ? "translateY(-8px)" : "translateY(0px)",
-        background: index === 0 ? "rgba(255, 255, 255, 0.8)" : "transparent",
-        boxShadow: index === 0
-            ? "0 0 20px rgba(225, 29, 72, 0.3), inset 0 0 10px rgba(225, 29, 72, 0.1)"
-            : "none",
-        border: index === 0 ? "2px solid rgba(225, 29, 72, 0.5)" : "none",
+        transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+        transform: hoveredIndex === index ? "translateY(-10px) scale(1.02)" : "translateY(0px) scale(1)",
+        background: "transparent",
+        boxShadow: hoveredIndex === index ? "0 15px 30px rgba(225, 29, 72, 0.1)" : "none",
+        border: "none",
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
@@ -33,13 +31,18 @@ const Features = () => {
 
     const imageStyle = (index) => ({
         width: "100%",
-        maxWidth: index === 0 ? "420px" : "340px",
+        maxWidth: index < 6 ? "340px" : "700px",
         height: "auto",
         objectFit: "contain",
         margin: "0 auto",
         display: "block",
         transition: "transform 0.4s ease",
         transform: hoveredIndex === index ? "translateY(-6px) scale(1.05)" : "scale(1)",
+        // Sharpen second image if it looks blurred
+        filter: index === 1
+            ? "contrast(1.1) saturate(1.1) brightness(1.02) drop-shadow(0 5px 15px rgba(0,0,0,0.05))"
+            : "none",
+        imageRendering: index === 1 ? "auto" : "auto", // Re-evaluating, browser defaults often best for PNGs
     });
 
     return (
