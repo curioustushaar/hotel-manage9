@@ -203,7 +203,12 @@ const AppRoutes = () => {
             </ProtectedRoute>
           } />
           <Route path="/admin/view-order" element={
-            <ProtectedRoute module={MODULES.GUEST_MEAL_SERVICE}>
+            <ProtectedRoute module={MODULES.VIEW_ORDER}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/reservation-card" element={
+            <ProtectedRoute module={MODULES.RESERVATION_CARD}>
               <AdminDashboard />
             </ProtectedRoute>
           } />

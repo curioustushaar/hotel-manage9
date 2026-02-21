@@ -86,11 +86,11 @@ const bookingSchema = new mongoose.Schema({
 
     // Finances (Snapshot)
     billing: {
-        roomRate: { type: Number, required: true }, // Rate at time of booking
+        roomRate: { type: Number, default: 0 }, // Rate at time of booking
         discount: { type: Number, default: 0 },
         tax: { type: Number, default: 0 },
         serviceCharge: { type: Number, default: 0 },
-        totalAmount: { type: Number, required: true }, // Net total
+        totalAmount: { type: Number, default: 0 }, // Net total
         paidAmount: { type: Number, default: 0 },
         balanceAmount: { type: Number, default: 0 },
         currency: { type: String, default: 'INR' },
@@ -149,15 +149,23 @@ const bookingSchema = new mongoose.Schema({
 
 // Middleware to auto-calculate balance and normalize status
 bookingSchema.pre('save', function (next) {
+    // Ensure billing object exists with defaults
+    if (!this.billing) {
+        this.billing = { roomRate: 0, totalAmount: 0, paidAmount: 0, balanceAmount: 0 };
+    }
+    if (this.billing.roomRate == null) this.billing.roomRate = 0;
+    if (this.billing.totalAmount == null) this.billing.totalAmount = 0;
+    if (this.billing.paidAmount == null) this.billing.paidAmount = 0;
+
     // Recalculate billing based on transactions
-    if (this.transactions) {
+    if (this.transactions && this.transactions.length > 0) {
         const totalPaid = this.transactions
             .filter(t => t.type === 'Payment')
-            .reduce((sum, t) => sum + t.amount, 0);
+            .reduce((sum, t) => sum + (t.amount || 0), 0);
 
         const totalRefunded = this.transactions
             .filter(t => t.type === 'Refund')
-            .reduce((sum, t) => sum + t.amount, 0);
+            .reduce((sum, t) => sum + (t.amount || 0), 0);
 
         this.billing.paidAmount = totalPaid - totalRefunded;
     }
@@ -165,7 +173,7 @@ bookingSchema.pre('save', function (next) {
     // Recalculate total if extras added (logic can be expanded)
     // For now assuming billing.totalAmount is authoritative or calculated elsewhere
 
-    this.billing.balanceAmount = this.billing.totalAmount - this.billing.paidAmount;
+    this.billing.balanceAmount = (this.billing.totalAmount || 0) - (this.billing.paidAmount || 0);
     next();
 });
 

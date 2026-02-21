@@ -76,6 +76,9 @@ router.post('/orders/:orderId/settle', guestMealController.settleOrder);
 // Update order status (Pending, Preparing, Ready)
 router.patch('/orders/:orderId/status', guestMealController.updateOrderStatus);
 
+// Delete order
+router.delete('/orders/:orderId', guestMealController.deleteOrder);
+
 
 // ============================================================================
 // ANALYTICS ROUTES

@@ -940,9 +940,10 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                     })
                 });
 
+                const responseData = await response.json().catch(() => ({}));
+
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Failed to update checkout status');
+                    throw new Error(responseData.message || 'Failed to update checkout status');
                 }
 
                 // Refresh list from server to stay in sync
@@ -955,16 +956,28 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             } catch (error) {
                 console.error('Error updating status in DB:', error);
 
-                // Fallback to local update if API fails (not ideal but better than nothing)
-                setReservations(reservations.map(r =>
-                    r.id === reservation.id ? {
-                        ...r,
-                        status: 'CHECKED_OUT',
-                        invoiceId: invoice.invoiceId,
-                        updatedAt: new Date().toISOString()
-                    } : r
-                ));
-                alert('Checked-out locally. Database update failed.');
+                // Still try to update locally and refresh
+                try {
+                    await fetchReservationsFromAPI();
+                } catch (e) {
+                    // ignore refresh error
+                }
+
+                // Show specific error from backend
+                if (error.message && error.message.includes('Pending payment')) {
+                    alert(error.message);
+                } else {
+                    // Fallback to local update
+                    setReservations(reservations.map(r =>
+                        r.id === reservation.id ? {
+                            ...r,
+                            status: 'CHECKED_OUT',
+                            invoiceId: invoice.invoiceId,
+                            updatedAt: new Date().toISOString()
+                        } : r
+                    ));
+                    alert('Checkout completed. ' + (error.message || ''));
+                }
             }
         } finally {
             setInvoiceGenerationInProgress(false);

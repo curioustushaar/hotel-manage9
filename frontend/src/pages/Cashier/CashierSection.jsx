@@ -198,7 +198,7 @@ const CashierSection = () => {
         // The AdminDashboard listens for location.state.activeMenu
         navigate('/admin/dashboard', {
             state: {
-                activeMenu: 'food-order-pos', // Trigger switching to food order view
+                activeMenu: 'food-order', // Trigger switching to food order view
                 customerName: newOrderDetails.name,
                 customerPhone: newOrderDetails.phone,
                 orderMode: 'takeaway'

@@ -6,11 +6,11 @@
     display: flex;
     flex-direction: column;
     position: fixed;
-    height: calc(100vh - 60px);
+    height: 100vh;
     left: 0;
-    top: 60px;
-    z-index: 40;
-    transition: transform 0.3s ease;
+    top: 0;
+    z-index: 100;
+    transition: all 0.3s ease;
     padding-top: 10px;
     overflow: hidden;
 }
@@ -278,11 +278,11 @@
         transform: translateX(-260px);
         z-index: 45;
     }
-    
+
     .sidebar.closed {
         transform: translateX(-260px);
     }
-    
+
     /* Show sidebar when explicitly opened on mobile */
     .sidebar:not(.closed) {
         transform: translateX(0);

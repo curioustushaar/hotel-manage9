@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { hasPermission, MODULES, PERMISSIONS } from '../../config/rbac';
 import './RoomSetup.css';
@@ -501,7 +502,12 @@ const RoomSetup = () => {
     };
 
     return (
-        <div className="room-setup-container">
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="room-setup-container"
+        >
             <RoomDetailsPanel
                 roomId={selectedRoomIdForPanel}
                 computedStatus={selectedRoomStatusForPanel}
@@ -871,7 +877,7 @@ const RoomSetup = () => {
                     </div >
                 )
             }
-        </div >
+        </motion.div >
     );
 };
 
