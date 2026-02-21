@@ -9,7 +9,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const { room: roomState, source, orderMode } = location.state || {};
-    
+
     // Prefer prop over state (prop comes from AdminDashboard posGuestDetails)
     const room = roomProp || roomState;
 
@@ -501,7 +501,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                                         // Find current quantity in cart
                                         const cartItem = cart.find(x => x.id === item.id);
                                         const inCartQty = cartItem ? cartItem.quantity : 0;
-                                        const isOutOfStock = (item.quantityAvailable || 0) <= 0 || item.status === 'Inactive';
+                                        const isOutOfStock = item.status === 'Inactive';
 
                                         return (
                                             <div
@@ -521,7 +521,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                                                 </div>
                                                 <div className="pos-card-footer">
                                                     <div className="pos-card-qty-available">
-                                                        {isOutOfStock ? 'Empty' : `Qty: ${item.quantityAvailable}`}
+                                                        {isOutOfStock ? 'Unavailable' : 'Available'}
                                                     </div>
                                                     <div className="pos-card-price">₹{item.price}</div>
                                                 </div>

@@ -15,10 +15,10 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-/* Sidebar does not affect navbar position - always full width */
+/* Sidebar affects navbar position - shift it and resize */
 .top-bar.sidebar-open {
-    margin-left: 0;
-    width: 100%;
+    left: 260px;
+    width: calc(100% - 260px);
 }
 
 .top-bar-left {

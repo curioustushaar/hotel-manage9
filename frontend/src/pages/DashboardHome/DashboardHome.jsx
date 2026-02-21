@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import API_URL from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
 import './DashboardHome.css';
@@ -189,7 +190,12 @@ const DashboardHome = () => {
     };
 
     return (
-        <div className="dashboard-home">
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="dashboard-home"
+        >
             {/* Room Statistics Section */}
             <div className="statistics-section">
                 <h2 className="section-title">Room Statistics</h2>
@@ -943,7 +949,7 @@ const DashboardHome = () => {
                 )}
             </div>
             {/* End of Zotaki Dashboard */}
-        </div>
+        </motion.div>
     );
 };
 

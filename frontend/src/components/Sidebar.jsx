@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { hasModuleAccess, MODULES } from '../config/rbac';
 import './Sidebar.css';
@@ -71,16 +71,17 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
                 { id: 'new-reservation', label: 'New Reservation', iconVal: <Icons.Dot /> },
                 { id: 'housekeeping', label: 'Housekeeping View', iconVal: <Icons.Dot /> },
                 { id: 'room-service', label: 'Room Service', iconVal: <Icons.Dot /> },
-                { id: 'food-order', label: 'Food Order', iconVal: <Icons.Dot /> }
+                { id: MODULES.RESERVATION_CARD, label: 'Reservation Card', iconVal: <Icons.Dot /> }
             ]
         },
+        { id: MODULES.VIEW_ORDER, iconVal: <Icons.Report />, label: 'View Order' },
+        { id: MODULES.FOOD_ORDER, iconVal: <Icons.Meal />, label: 'Food Order' },
         { id: MODULES.CASHIER_SECTION, iconVal: <Icons.Cashier />, label: 'Cashier Section' },
         { id: MODULES.GUEST_MEAL_SERVICE, iconVal: <Icons.Meal />, label: 'Table View' },
-        { id: MODULES.FOOD_MENU, iconVal: <Icons.Menu />, label: 'Food Menu' },
         {
             id: MODULES.PROPERTY_SETUP,
             iconVal: <Icons.Config />,
-            label: 'Property Setup',
+            label: 'Property Configuration',
             hasDropdown: true,
             dropdownItems: [
                 { id: 'discount', label: 'Discount', iconVal: <Icons.Dot /> },
@@ -92,7 +93,7 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
         {
             id: MODULES.PROPERTY_CONFIG,
             iconVal: <Icons.Config />,
-            label: 'Property Configuration',
+            label: 'Property Setup',
             hasDropdown: true,
             dropdownItems: [
                 { id: 'room-setup', label: 'Room Setup', iconVal: <Icons.Dot /> },
@@ -111,7 +112,8 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
                 { id: 'housekeeping-config', label: 'House Keeping', iconVal: <Icons.Dot /> },
                 { id: 'maintenance-block', label: 'Maintenance Block', iconVal: <Icons.Dot /> },
                 { id: 'screen-field-rule', label: 'Screen Field Rule', iconVal: <Icons.Dot /> },
-                { id: 'company', label: 'Company', iconVal: <Icons.Dot /> }
+                { id: 'company', label: 'Company', iconVal: <Icons.Dot /> },
+                { id: MODULES.FOOD_MENU, label: 'Food Menu', iconVal: <Icons.Dot /> }
             ]
         },
         { id: MODULES.CUSTOMERS, iconVal: <Icons.Users />, label: 'Customer List' },
@@ -122,16 +124,28 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
 
     // Filter items based on role access FIRST - Check parent OR any child access
     const roleFilteredItems = menuItems.filter(item => {
-        // If it has children, show if parent works OR any child works
+        // ... previous logic
         if (item.hasDropdown) {
             const hasParentAccess = canAccessModule(item.id);
-            // Also check children accessibility
             const hasChildAccess = item.dropdownItems.some(sub => canAccessModule(sub.id));
             return hasParentAccess || hasChildAccess;
         }
-        // Simple item
         return canAccessModule(item.id);
     });
+
+    // Auto-expand dropdown when sub-item is active
+    useEffect(() => {
+        if (!activeMenu) return;
+
+        menuItems.forEach(item => {
+            if (item.hasDropdown && item.dropdownItems.some(sub => sub.id === activeMenu)) {
+                if (item.id === 'property-configuration') setOpenPropertyConfigDropdown(true);
+                else if (item.id === 'property-setup') setOpenPropertySetupDropdown(true);
+                else if (item.id === 'reservations') setOpenReservationDropdown(true);
+                else if (item.id === 'proper-configuration') setOpenConfigDropdown(true);
+            }
+        });
+    }, [activeMenu]);
 
     const filteredItems = searchQuery
         ? roleFilteredItems.filter(item =>

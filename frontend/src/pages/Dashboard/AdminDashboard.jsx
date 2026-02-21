@@ -63,7 +63,9 @@ const AdminDashboard = () => {
             '/customers': 'customers',
             '/settings': 'settings',
             '/cashier-section': 'cashier-section',
-            '/food-order': 'food-order'
+            '/food-order': 'food-order',
+            '/view-order': 'view-order',
+            '/reservation-card': 'reservation-card'
         };
 
         for (const [route, menu] of Object.entries(menuMap)) {
@@ -75,7 +77,6 @@ const AdminDashboard = () => {
 
     const [activeMenu, setActiveMenu] = useState(getInitialMenu());
     const [reservationView, setReservationView] = useState('dashboard'); // State for Reservation Sub-views
-    const [sidebarOpen, setSidebarOpen] = useState(true);
     const [showViewProfile, setShowViewProfile] = useState(false);
     const [showChangePassword, setShowChangePassword] = useState(false);
     const [openConfigDropdown, setOpenConfigDropdown] = useState(false);
@@ -211,6 +212,7 @@ const AdminDashboard = () => {
         else if (path.includes('/maintenance-block')) setActiveMenu('maintenance-block');
         else if (path.includes('/table-management')) setActiveMenu('table-management');
         else if (path.includes('/food-order')) setActiveMenu('food-order');
+        else if (path.includes('/reservation-card')) setActiveMenu('reservation-card');
 
     }, [location]);
 
@@ -458,6 +460,9 @@ const AdminDashboard = () => {
             navigate(`${prefix}/room-service`);
         } else if (menuId === 'food-order') {
             navigate(`${prefix}/food-order`);
+        } else if (menuId === 'reservation-card') {
+            navigate(`${prefix}/reservations`, { state: { viewMode: 'dashboard' } });
+            setActiveMenu('reservation-card');
         }
         // Handle main menu items with navigation
         else if (menuId === 'dashboard') navigate(`${prefix}/dashboard`);
@@ -482,6 +487,7 @@ const AdminDashboard = () => {
         else if (menuId === 'settings') navigate(`${prefix}/settings`);
         else if (menuId === 'cashier-report') navigate(`${prefix}/cashier-report`);
         else if (menuId === 'food-payment-report') navigate(`${prefix}/food-payment-report`);
+        else if (menuId === 'view-order') navigate(`${prefix}/view-order`);
 
         // Property Setup
         else if (menuId === 'discount') navigate(`${prefix}/discount`);
@@ -766,7 +772,7 @@ const AdminDashboard = () => {
             activeMenu={activeMenu}
             onMenuClick={handleMenuClick}
             onLogout={handleLogout}
-            noPadding={activeMenu === 'stay-overview' || activeMenu === 'view-order' || activeMenu === 'food-order'}
+            noPadding={activeMenu === 'stay-overview' || activeMenu === 'view-order' || activeMenu === 'food-order' || activeMenu === 'reservation-card'}
         >
 
 
@@ -879,6 +885,13 @@ const AdminDashboard = () => {
             {
                 activeMenu === 'view-order' && (
                     <ViewOrderPage />
+                )
+            }
+
+            {/* Reservation Card Management View */}
+            {
+                activeMenu === 'reservation-card' && (
+                    <ReservationStayManagement viewMode="dashboard" />
                 )
             }
 
