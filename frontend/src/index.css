@@ -517,6 +517,7 @@ body {
   flex: 1;
   padding-top: 6px;
   margin-left: 20px;
+  /* margin-top: -22px; */
 }
 
 .hero-image {

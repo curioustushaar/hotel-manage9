@@ -31,7 +31,7 @@ const Features = () => {
 
     const imageStyle = (index) => ({
         width: "100%",
-        maxWidth: index === 0 ? "550px" : (index < 6 ? "340px" : "700px"),
+        maxWidth: index < 6 ? "340px" : "700px",
         height: "auto",
         objectFit: "contain",
         margin: "0 auto",
@@ -108,25 +108,14 @@ const Features = () => {
                         }}
                     >
                         {images.map((img, index) => (
-                            index === 0 ? (
-                                <img
-                                    key={index}
-                                    src={img}
-                                    alt=""
-                                    style={imageStyle(index)}
-                                    onMouseEnter={() => setHoveredIndex(index)}
-                                    onMouseLeave={() => setHoveredIndex(null)}
-                                />
-                            ) : (
-                                <div
-                                    key={index}
-                                    style={cardStyle(index)}
-                                    onMouseEnter={() => setHoveredIndex(index)}
-                                    onMouseLeave={() => setHoveredIndex(null)}
-                                >
-                                    <img src={img} alt="" style={imageStyle(index)} />
-                                </div>
-                            )
+                            <div
+                                key={index}
+                                style={cardStyle(index)}
+                                onMouseEnter={() => setHoveredIndex(index)}
+                                onMouseLeave={() => setHoveredIndex(null)}
+                            >
+                                <img src={img} alt="" style={imageStyle(index)} />
+                            </div>
                         ))}
                     </div>
 
