@@ -39,17 +39,35 @@
   flex-wrap: wrap;
 }
 
+.search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  pointer-events: none;
+  font-size: 16px;
+}
+
 .filter-search-input {
-  padding: 10px 16px 10px 40px;
+  padding: 10px 16px 10px 45px;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   font-size: 14px;
   width: 280px;
-  transition: border-color 0.2s;
+  transition: all 0.2s;
+  background: white;
 }
 
 .filter-search-input:focus {
   border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
   outline: none;
 }
 
@@ -72,24 +90,26 @@
 /* --- KDS Grid --- */
 .orders-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 25px;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 15px;
 }
 
 .order-card {
   background: #ffffff;
-  border-radius: 16px;
-  border: 2px solid #ef4444;
+  border-radius: 12px;
+  border: 1px solid #ef4444;
   /* Permanent Red Border */
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
   transition: transform 0.2s ease;
+  position: relative;
+  min-height: 200px;
+  /* Force a more square-like minimum height */
 }
 
 .order-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-2px);
 }
 
 .order-card.completed {
@@ -99,25 +119,58 @@
 
 /* Header */
 .card-header {
-  padding: 12px 16px;
+  padding: 5px 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   background-color: #dc2626;
+  border-radius: 11px 11px 0 0;
   /* Solid Red Header */
   color: white;
+  position: relative;
+}
+
+.delete-order-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 8px;
+  font-weight: bold;
+  z-index: 10;
+  transition: all 0.2s;
+}
+
+.delete-order-btn:hover {
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(1.1);
 }
 
 .header-table {
-  font-size: 1.1rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 65%;
 }
 
 .header-time {
-  font-size: 0.9rem;
+  font-size: 0.65rem;
   font-weight: 600;
   opacity: 0.9;
+  margin-right: 14px;
+  /* Space for delete button */
 }
 
 /* Status Strip (Delay/Timer) */
@@ -163,34 +216,37 @@
 
 /* Body (Bill List) */
 .card-body {
-  padding: 20px 16px;
+  padding: 8px 10px;
   flex-grow: 1;
 }
 
 .item-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 4px;
 }
 
 .order-item {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  font-size: 0.95rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #1e293b;
 }
 
 .item-name-qty {
   flex-shrink: 0;
-  max-width: 70%;
+  max-width: 65%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .item-separator {
   flex: 1;
-  border-bottom: 2px dotted #e2e8f0;
-  margin: 0 8px;
+  border-bottom: 1px dotted #e2e8f0;
+  margin: 0 4px;
   position: relative;
   top: -4px;
 }
@@ -204,27 +260,27 @@
 .status-actions {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
-  padding: 16px;
+  gap: 4px;
+  padding: 4px 6px;
   background-color: #f8fafc;
   border-top: 1px solid #f1f5f9;
 }
 
 .status-btn {
-  padding: 12px 6px;
-  border-radius: 12px;
-  font-size: 0.8rem;
+  padding: 4px 2px;
+  border-radius: 6px;
+  font-size: 0.65rem;
   font-weight: 800;
-  border: 2px solid transparent;
+  border: 1px solid transparent;
   background: #ffffff;
   color: #64748b;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .status-btn.disabled {
@@ -322,8 +378,8 @@
 }
 
 .action-btn {
-  padding: 14px;
-  font-size: 0.95rem;
+  padding: 6px;
+  font-size: 0.8rem;
   font-weight: 700;
   border: none;
   cursor: pointer;
@@ -362,7 +418,19 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1400px) {
+  .orders-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .orders-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
   .orders-grid {
     grid-template-columns: 1fr;
   }

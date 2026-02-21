@@ -348,6 +348,7 @@ const AddItemForm = ({ onSubmit, onCancel }) => {
         category: '',
         price: '',
         description: '',
+        quantity: 0,
         status: 'Active'
     });
 
@@ -432,6 +433,16 @@ const AddItemForm = ({ onSubmit, onCancel }) => {
                             required
                         />
                     </div>
+                    <div className="form-group">
+                        <label>DAILY STOCK (QTY)</label>
+                        <input
+                            type="number"
+                            placeholder="0"
+                            value={formData.quantity}
+                            onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
+                            required
+                        />
+                    </div>
                 </div>
                 <div className="form-row">
                     <div className="form-group full-width">
@@ -463,6 +474,7 @@ const EditItemModal = ({ item, onSave, onCancel }) => {
         foodCode: item.foodCode || '',
         category: item.category,
         price: item.price,
+        quantity: item.quantity || 0,
         description: item.description || '',
         status: item.status
     });
@@ -531,6 +543,15 @@ const EditItemModal = ({ item, onSave, onCancel }) => {
                             step="0.01"
                             value={formData.price}
                             onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>DAILY STOCK (QTY)</label>
+                        <input
+                            type="number"
+                            value={formData.quantity}
+                            onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
                             required
                         />
                     </div>

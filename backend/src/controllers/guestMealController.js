@@ -174,13 +174,13 @@ exports.updateTable = async (req, res) => {
         if (capacity) updateData.capacity = capacity;
         if (tableName) updateData.tableName = tableName;
         if (guests !== undefined) updateData.guests = guests;
-        
+
         // Handle order-related fields (allow clearing with null/0)
         if (req.body.hasOwnProperty('currentOrderId')) updateData.currentOrderId = currentOrderId;
         if (req.body.hasOwnProperty('runningOrderAmount')) updateData.runningOrderAmount = runningOrderAmount;
         if (req.body.hasOwnProperty('orderStartTime')) updateData.orderStartTime = orderStartTime;
         if (req.body.hasOwnProperty('orderDuration')) updateData.orderDuration = orderDuration;
-        
+
         // Handle reservation: if explicit null sent, it clears it. If object, updates it.
         // Handle reservation updates
         if (req.body.reservations) {
@@ -1323,6 +1323,56 @@ exports.getOutletStatus = async (req, res) => {
             success: false,
             message: 'Error fetching outlet status',
             error: error.message
+        });
+    }
+};
+
+// Delete order
+exports.deleteOrder = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        console.log(`[deleteOrder] Request to delete order: ${orderId}`);
+
+        if (!orderId || !orderId.match(/^[0-9a-fA-F]{24}$/)) {
+            return res.status(400).json({ success: false, message: 'Invalid Order ID format' });
+        }
+
+        const order = await GuestMealOrder.findById(orderId);
+        if (!order) {
+            console.log(`[deleteOrder] Order not found: ${orderId}`);
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        // If order is active and linked to a table, release the table
+        if (order.tableId && (['Active', 'Pending', 'Preparing', 'Ready'].includes(order.status))) {
+            try {
+                const table = await Table.findById(order.tableId);
+                if (table) {
+                    console.log(`[deleteOrder] Releasing table: ${table.tableName}`);
+                    table.status = 'Available';
+                    table.currentOrderId = null;
+                    table.runningOrderAmount = 0;
+                    table.orderStartTime = null;
+                    await table.save();
+                }
+            } catch (tableErr) {
+                console.error(`[deleteOrder] Error releasing table:`, tableErr);
+                // We continue deleting the order even if table release fails
+            }
+        }
+
+        await GuestMealOrder.findByIdAndDelete(orderId);
+        console.log(`[deleteOrder] Order deleted successfully: ${orderId}`);
+
+        res.status(200).json({
+            success: true,
+            message: 'Order deleted successfully'
+        });
+    } catch (error) {
+        console.error('[deleteOrder] Error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error deleting order: ' + error.message
         });
     }
 };

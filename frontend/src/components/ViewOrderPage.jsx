@@ -164,6 +164,25 @@ const ViewOrderPage = () => {
         handleStatusUpdate(orderId, 'Billed');
     };
 
+    const handleDeleteOrder = async (orderId) => {
+        try {
+            const response = await fetch(`${API_URL_CONFIG}/api/guest-meal/orders/${orderId}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            if (data.success) {
+                showToast('🗑️ Order deleted successfully', 'success');
+                fetchOrders(); // Refresh list
+            } else {
+                // Show actual error from backend if available
+                alert(data.message || data.error || 'Failed to delete order');
+            }
+        } catch (error) {
+            console.error('Error deleting order:', error);
+            alert('Error connecting to server');
+        }
+    };
+
     // Elapsed calculation helpers
     const getMinutesElapsed = (startTime) => {
         if (!startTime) return 0;
@@ -233,7 +252,7 @@ const ViewOrderPage = () => {
                     {/* Filters */}
                     <div className="view-order-filters">
                         <div className="search-wrapper">
-                            <span style={{ position: 'absolute', left: '15px', top: '12px', color: '#64748b' }}>🔍</span>
+                            <span className="search-icon">🔍</span>
                             <input
                                 type="text"
                                 placeholder="Search Table or Item..."
@@ -263,7 +282,6 @@ const ViewOrderPage = () => {
 
                             return (
                                 <div className={`order-card ${isBilled ? 'completed' : ''}`} key={order.id}>
-                                    {/* Header - Clickable for navigation */}
                                     <div
                                         className="card-header"
                                         style={{ cursor: 'pointer' }}
@@ -277,6 +295,18 @@ const ViewOrderPage = () => {
                                             }
                                         }}
                                     >
+                                        {/* Delete Button inside header */}
+                                        <button
+                                            className="delete-order-btn"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteOrder(order.id);
+                                            }}
+                                            title="Delete Order"
+                                        >
+                                            ✕
+                                        </button>
+
                                         <span className="header-table">
                                             {(order.type === 'Take Away') ? `${order.guestName}` :
                                                 (order.type === 'Post to Room' || order.type === 'Room Order') ? `Room: ${order.table}` :

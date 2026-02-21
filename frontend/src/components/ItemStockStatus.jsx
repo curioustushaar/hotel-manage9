@@ -185,6 +185,7 @@ const ItemStockStatus = () => {
                                     <th style={{ padding: '8px' }}>Category</th>
                                     <th style={{ padding: '8px' }}>Description</th>
                                     <th style={{ padding: '8px' }}>Price</th>
+                                    <th style={{ padding: '8px' }}>Stock</th>
                                     <th style={{ padding: '8px' }}>Status</th>
                                     <th style={{ padding: '8px' }}>Actions</th>
                                 </tr>
@@ -198,6 +199,11 @@ const ItemStockStatus = () => {
                                         <td>{getCategoryWithIcon(item.category)}</td>
                                         <td>{item.description || '---'}</td>
                                         <td>₹{item.price.toFixed(2)}</td>
+                                        <td>
+                                            <span className={`stock-badge ${item.quantity > 0 ? 'in-stock' : 'out-of-stock-text'}`}>
+                                                {item.quantity || 0}
+                                            </span>
+                                        </td>
                                         <td>
                                             <span className={`status-badge ${item.status.toLowerCase()}`}>
                                                 {item.status}
@@ -285,6 +291,7 @@ const EditItemModal = ({ item, onSave, onCancel }) => {
         foodCode: item.foodCode || '',
         category: item.category,
         price: item.price,
+        quantity: item.quantity || 0,
         description: item.description || '',
         status: item.status
     });
@@ -353,6 +360,15 @@ const EditItemModal = ({ item, onSave, onCancel }) => {
                             step="0.01"
                             value={formData.price}
                             onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label>DAILY STOCK (QTY)</label>
+                        <input
+                            type="number"
+                            value={formData.quantity}
+                            onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
                             required
                         />
                     </div>

@@ -48,7 +48,10 @@ export const MODULES = {
     PAYMENT_LOGS: 'food-payment-report',
     PROFILE: 'my-profile',
     ACTIVITY_LOGS: 'activity-logs',
-    SUBSCRIPTION: 'subscription'
+    SUBSCRIPTION: 'subscription',
+    VIEW_ORDER: 'view-order',
+    RESERVATION_CARD: 'reservation-card',
+    FOOD_ORDER: 'food-order'
 };
 
 // ==================== ACCESS MATRIX ====================
@@ -228,6 +231,39 @@ export const ACCESS_MATRIX = {
         [ROLES.ACCOUNTANT]: [],
         [ROLES.WAITER]: [],
         [ROLES.STAFF]: []
+    },
+
+    // VIEW ORDER
+    [MODULES.VIEW_ORDER]: {
+        [ROLES.SUPER_ADMIN]: [PERMISSIONS.FULL],
+        [ROLES.ADMIN]: [PERMISSIONS.FULL],
+        [ROLES.MANAGER]: [PERMISSIONS.FULL],
+        [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW],
+        [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
+        [ROLES.WAITER]: [PERMISSIONS.VIEW],
+        [ROLES.STAFF]: [PERMISSIONS.VIEW]
+    },
+
+    // RESERVATION CARD
+    [MODULES.RESERVATION_CARD]: {
+        [ROLES.SUPER_ADMIN]: [PERMISSIONS.FULL],
+        [ROLES.ADMIN]: [PERMISSIONS.FULL],
+        [ROLES.MANAGER]: [PERMISSIONS.FULL],
+        [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW, PERMISSIONS.EDIT],
+        [ROLES.ACCOUNTANT]: [],
+        [ROLES.WAITER]: [],
+        [ROLES.STAFF]: [PERMISSIONS.VIEW]
+    },
+
+    // FOOD ORDER (POS)
+    [MODULES.FOOD_ORDER]: {
+        [ROLES.SUPER_ADMIN]: [PERMISSIONS.FULL],
+        [ROLES.ADMIN]: [PERMISSIONS.FULL],
+        [ROLES.MANAGER]: [PERMISSIONS.FULL],
+        [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW, PERMISSIONS.CREATE],
+        [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
+        [ROLES.WAITER]: [PERMISSIONS.FULL],
+        [ROLES.STAFF]: [PERMISSIONS.VIEW]
     }
 };
 
@@ -299,8 +335,9 @@ export const hasPermission = (user, module, permission) => {
             [MODULES.PAYMENT_LOGS]: 'Payment Logs',
             'housekeeping': 'Rooms (Housekeeping)',
             'room-service': 'Rooms (Room Service)',
-            'view-order': 'View order',
-            'registration-card': 'Registration Card',
+            'view-order': 'View Order',
+            [MODULES.RESERVATION_CARD]: 'Reservation Card',
+            [MODULES.FOOD_ORDER]: 'Food Order',
             [MODULES.PROPERTY_SETUP]: 'Property Setup',
             [MODULES.PROPERTY_CONFIG]: 'Property Configuration'
         };
@@ -365,8 +402,9 @@ export const hasModuleAccess = (user, module) => {
         const subModuleMap = {
             'housekeeping': 'Rooms (Housekeeping)',
             'room-service': 'Rooms (Room Service)',
-            'view-order': 'View order',
-            'registration-card': 'Registration Card'
+            'view-order': 'View Order',
+            [MODULES.RESERVATION_CARD]: 'Reservation Card',
+            [MODULES.FOOD_ORDER]: 'Food Order'
         };
 
         const subPermissionLabel = subModuleMap[module];
