@@ -41,8 +41,15 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
     };
 
     const handleClose = () => {
+        if (onClose) {
+            onClose();
+            return;
+        }
+
         if (source === 'room-service') {
-            navigate(-1);
+            navigate('/admin/room-service');
+        } else if (source === 'table-order') {
+            navigate('/admin/guest-meal-service');
         } else {
             navigate('/admin/dashboard');
         }

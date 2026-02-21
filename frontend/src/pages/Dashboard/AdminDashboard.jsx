@@ -48,6 +48,11 @@ const AdminDashboard = () => {
 
     // Determine initial active menu based on permissions
     const getInitialMenu = () => {
+        // Priority 1: State passed via navigation (e.g. from GuestMealService 'Send')
+        if (location.state && location.state.activeMenu) {
+            return location.state.activeMenu;
+        }
+
         const path = location.pathname;
         // Strip prefix (/admin or /staff)
         const cleanPath = path.replace(/^\/(admin|staff)/, '');
@@ -151,6 +156,7 @@ const AdminDashboard = () => {
 
         // Priority to state passed via navigation (e.g. from RoomService or StayOverview or Cashier or GuestMealService)
         if (location.state && location.state.activeMenu) {
+            console.log('AdminDashboard: setting activeMenu from state:', location.state.activeMenu);
             setActiveMenu(location.state.activeMenu);
 
             // Check for passed customer details (e.g. from Cashier New Order)
@@ -536,6 +542,7 @@ const AdminDashboard = () => {
             setOpenReservationDropdown(!openReservationDropdown);
         }
     };
+
 
     // Generate/View QR Code for Room
     const handleViewQR = async (room) => {

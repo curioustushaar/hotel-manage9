@@ -58,7 +58,8 @@ const tableSchema = new mongoose.Schema({
         guests: Number,
         phone: String,
         contact: String,   // legacy support
-        note: String
+        note: String,
+        advancePayment: Number
     }],
 
     location: {
