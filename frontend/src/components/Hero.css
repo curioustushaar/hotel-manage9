@@ -1,8 +1,8 @@
 /* ================= HERO SECTION ================= */
 
 .landing-hero {
-  padding: 20px 0 100px;
-  margin-top: 0;
+  padding: 0px 0 100px;
+  margin-top: -15px;
   background: linear-gradient(135deg, #fff 0%, #fde7ec 60%, #f8d7df 100%);
   position: relative;
   /* For particles */
@@ -39,7 +39,7 @@
   line-height: 1.15;
   font-weight: 800;
   color: #111827;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.2rem;
 }
 
 /* Red accent EXACT brand tone */
@@ -55,7 +55,7 @@
   /* Increased from 1.2rem */
   line-height: 1.6;
   color: #4b5563;
-  margin-bottom: 35px;
+  margin-bottom: 25px;
 }
 
 /* CTA Button */
@@ -71,7 +71,7 @@
   color: #fff;
   text-decoration: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-top: 10px;
+  margin-top: 5px;
   /* Added top margin */
   box-shadow: 0 4px 14px rgba(225, 29, 72, 0.39);
 }
