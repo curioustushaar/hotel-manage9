@@ -840,4 +840,177 @@
 
 .modal-actions .btn-primary:hover {
     background-color: #2563eb;
+}/* ============== RIGHT SIDE DRAWER FOR ADD TABLE ============== */
+.drawer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.45);
+    display: flex;
+    justify-content: flex-end;
+    z-index: 2000;
+    backdrop-filter: blur(5px);
+    transition: opacity 0.3s ease;
+}
+
+.drawer-content {
+    background: white;
+    width: 480px;
+    height: 100%;
+    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    animation: drawerSlideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes drawerSlideInRight {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+.drawer-header {
+    padding: 30px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.drawer-header h2 {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+}
+
+.drawer-body {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+}
+
+.drawer-actions {
+    padding: 24px 30px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    background: #f8fafc;
+}
+
+/* --- Improved Form Elements within Drawer --- */
+.add-table-modal .form-group {
+    margin-bottom: 24px;
+}
+
+.add-table-modal label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 10px;
+    display: block;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.add-table-modal .form-input,
+.add-table-modal .form-select {
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 1rem;
+    color: #1e293b;
+    background-color: white;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+}
+
+.add-table-modal .form-input::placeholder {
+    color: #94a3b8;
+    opacity: 0.8;
+}
+
+.add-table-modal .form-input:focus,
+.add-table-modal .form-select:focus {
+    border-color: #3b82f6;
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    background-color: #fff;
+}
+
+.add-table-modal .btn {
+    padding: 12px 28px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.add-table-modal .btn-secondary {
+    background-color: #f1f5f9;
+    color: #475569;
+}
+
+.add-table-modal .btn-secondary:hover {
+    background-color: #e2e8f0;
+    color: #1e293b;
+}
+
+.add-table-modal .btn-primary {
+    background-color: #3b82f6;
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.add-table-modal .btn-primary:hover {
+    background-color: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(59, 130, 246, 0.35);
+}
+
+.add-table-modal .type-action-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.add-table-modal .type-action-btn.success {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.add-table-modal .type-action-btn.cancel {
+    background-color: #ef4444;
+    color: white;
+}
+
+.add-table-modal .type-select-group {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+}
+
+.add-table-modal .add-type-btn {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 0 20px;
+    font-weight: 600;
+    cursor: pointer;
 }

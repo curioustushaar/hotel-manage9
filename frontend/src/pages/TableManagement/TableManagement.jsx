@@ -105,13 +105,13 @@ const TableManagement = () => {
         return tables.filter(table => {
             // Status filter
             if (statusFilter !== 'All' && table.status !== statusFilter) return false;
-            
+
             // Type filter
             if (typeFilter !== 'All Types' && table.type !== typeFilter) return false;
-            
+
             // Search query
             if (searchQuery && !table.tableName.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-            
+
             return true;
         });
     };
@@ -120,7 +120,7 @@ const TableManagement = () => {
     const getGroupedTables = () => {
         const filtered = getFilteredTables();
         const grouped = {};
-        
+
         filtered.forEach(table => {
             const type = table.type || 'General';
             if (!grouped[type]) {
@@ -128,7 +128,7 @@ const TableManagement = () => {
             }
             grouped[type].push(table);
         });
-        
+
         // Sort tables within each group by table number
         Object.keys(grouped).forEach(type => {
             grouped[type].sort((a, b) => {
@@ -137,7 +137,7 @@ const TableManagement = () => {
                 return numA - numB;
             });
         });
-        
+
         return grouped;
     };
 
@@ -287,8 +287,8 @@ const TableManagement = () => {
             // Check if table name already exists in the same type
             const tableType = newTableData.type;
             const duplicateInSameType = tables.find(
-                t => t.tableName.toLowerCase() === newTableData.tableName.trim().toLowerCase() && 
-                     (t.type || 'General') === tableType
+                t => t.tableName.toLowerCase() === newTableData.tableName.trim().toLowerCase() &&
+                    (t.type || 'General') === tableType
             );
 
             if (duplicateInSameType) {
@@ -297,7 +297,7 @@ const TableManagement = () => {
             }
 
             const tableNumber = tables.length > 0 ? Math.max(...tables.map(t => t.tableNumber || 0)) + 1 : 1;
-            
+
             const payload = {
                 tableName: newTableData.tableName.trim(),
                 capacity: parseInt(newTableData.capacity) || 4,
@@ -320,22 +320,22 @@ const TableManagement = () => {
                 console.log('✅ Table created successfully:', data);
                 console.log('🏷️ Table type:', tableType);
                 console.log('📋 Full table data:', data.data);
-                
+
                 // Close modal first
                 closeAddTableModal();
-                
+
                 // Force a fresh fetch from server with promise completion
                 console.log('🔄 Fetching updated tables list...');
                 await fetchTables();
-                
+
                 // Wait for React to finish state updates and re-render
                 await new Promise(resolve => setTimeout(resolve, 200));
-                
+
                 // Now update filters
                 console.log('🎯 Setting type filter to:', tableType);
                 setTypeFilter(tableType);
                 setStatusFilter('All');
-                
+
                 alert(`✅ Table "${newTableData.tableName}" created successfully!\n\n🏷️ Type: "${tableType}"\n\n📍 The filter has been set to "${tableType}" type.\n\nIf you don't see it, please check:\n1. Browser console for logs\n2. Filter dropdown should now include "${tableType}"\n3. Try refreshing the page if needed`);
             } else {
                 console.error('❌ Failed to create table:', data.message);
@@ -354,7 +354,7 @@ const TableManagement = () => {
     const stats = getStats();
     const groupedTables = getGroupedTables();
     const tableTypes = availableTypes.length > 0 ? availableTypes : getTableTypes();
-    
+
     // Debug: Log available types on every render
     console.log('🎯 Available table types in dropdown:', tableTypes);
     console.log('📊 Available types state:', availableTypes);
@@ -370,8 +370,8 @@ const TableManagement = () => {
                     <p className="subtitle">Manage your restaurant tables and reservations</p>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <button 
-                        className="add-table-btn" 
+                    <button
+                        className="add-table-btn"
                         onClick={() => {
                             console.log('🔄 Manual Refresh - Current tables:', tables.length);
                             console.log('📋 Current types:', availableTypes);
@@ -496,6 +496,7 @@ const TableManagement = () => {
                 )}
             </div>
 
+            {/* Add Table Drawer (Right Side) */}
             {/* Add Table Modal */}
             {showAddTableModal && (
                 <div className="modal-overlay">
@@ -582,10 +583,10 @@ const TableManagement = () => {
                                 {newTableType === '' && newTableData.type && (
                                     <div className="selected-type-info">
                                         Selected type: <strong>{newTableData.type}</strong>
-                                        {!['General', 'AC', 'Non-AC', 'Garden'].includes(newTableData.type) && 
-                                         !tableTypes.includes(newTableData.type) && (
-                                            <span className="new-type-badge">✨ New Type - Will be added to filter</span>
-                                        )}
+                                        {!['General', 'AC', 'Non-AC', 'Garden'].includes(newTableData.type) &&
+                                            !tableTypes.includes(newTableData.type) && (
+                                                <span className="new-type-badge">✨ New Type - Will be added to filter</span>
+                                            )}
                                     </div>
                                 )}
                                 {newTableType !== '' && (
