@@ -9,6 +9,7 @@ const Rooms = () => {
     const [rooms, setRooms] = useState([]);
     const [filteredRooms, setFilteredRooms] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
     // Dynamic Filter State
     const [filters, setFilters] = useState({
@@ -333,9 +334,39 @@ const Rooms = () => {
                     </button>
                     <h1>🛏️ Rooms</h1>
                 </div>
-                <button className="add-room-btn" onClick={handleAddRoom}>
-                    + Add Room
-                </button>
+                <div className="header-right">
+                    <div className="view-toggle">
+                        <button 
+                            className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                            onClick={() => setViewMode('grid')}
+                            title="Grid View"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                                <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                                <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                                <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                            </svg>
+                        </button>
+                        <button 
+                            className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+                            onClick={() => setViewMode('list')}
+                            title="List View"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                <line x1="8" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                <line x1="8" y1="18" x2="21" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                <line x1="3" y1="6" x2="4" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                <line x1="3" y1="12" x2="4" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                <line x1="3" y1="18" x2="4" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <button className="add-room-btn" onClick={handleAddRoom}>
+                        + Add Room
+                    </button>
+                </div>
             </div>
 
             {/* Search and Filters */}
@@ -384,45 +415,82 @@ const Rooms = () => {
                 </div>
             </div>
 
-            {/* Rooms Grid */}
-            <div className="rooms-grid">
+            {/* Rooms Grid/List */}
+            <div className={viewMode === 'grid' ? 'rooms-grid' : 'rooms-list'}>
                 <AnimatePresence>
                     {filteredRooms.map((room) => (
                         <motion.div
                             key={room.id}
-                            className={`room-card ${getStatusClass(room.status)}`}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
+                            className={`${viewMode === 'grid' ? 'room-card' : 'room-list-item'} ${getStatusClass(room.status)}`}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
                             transition={{ duration: 0.3 }}
                         >
-                            <div className="room-card-header">
-                                <h3>Room {room.roomNumber}</h3>
-                            </div>
-                            <div className="room-card-body">
-                                <p className="room-type">{getRoomTypeShort(room.roomType)}</p>
-                                {/* PHASE 3 UPGRADE: Display enterprise room details */}
-                                {(room.roomViewType || room.smokingPolicy) && (
-                                    <p className="room-details-extra">
-                                        {room.roomViewType && `${room.roomViewType}`}
-                                        {room.roomViewType && room.smokingPolicy && ' | '}
-                                        {room.smokingPolicy && `${room.smokingPolicy}`}
-                                        {room.isSmartRoom && ' ⚡'}
-                                    </p>
-                                )}
-                                <p className="room-capacity">Capacity: {room.capacity} persons</p>
-                                <p className="room-price">₹{room.price}/night</p>
-                            </div>
-                            <div className="room-card-footer">
-                                <span className={`room-status ${getStatusClass(room.status)}`}>
-                                    {room.status}
-                                </span>
-                                {room.status === 'Available' && (
-                                    <button className="edit-btn" onClick={() => handleEditRoom(room)}>
-                                        ✏️ Edit
-                                    </button>
-                                )}
-                            </div>
+                            {viewMode === 'grid' ? (
+                                // Grid View
+                                <>
+                                    <div className="room-card-header">
+                                        <h3>Room {room.roomNumber}</h3>
+                                    </div>
+                                    <div className="room-card-body">
+                                        <p className="room-type">{getRoomTypeShort(room.roomType)}</p>
+                                        {(room.roomViewType || room.smokingPolicy) && (
+                                            <p className="room-details-extra">
+                                                {room.roomViewType && `${room.roomViewType}`}
+                                                {room.roomViewType && room.smokingPolicy && ' | '}
+                                                {room.smokingPolicy && `${room.smokingPolicy}`}
+                                                {room.isSmartRoom && ' ⚡'}
+                                            </p>
+                                        )}
+                                        <p className="room-capacity">Capacity: {room.capacity} persons</p>
+                                        <p className="room-price">₹{room.price}/night</p>
+                                    </div>
+                                    <div className="room-card-footer">
+                                        <span className={`room-status ${getStatusClass(room.status)}`}>
+                                            {room.status}
+                                        </span>
+                                        {room.status === 'Available' && (
+                                            <button className="edit-btn" onClick={() => handleEditRoom(room)}>
+                                                ✏️ Edit
+                                            </button>
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                // List View
+                                <>
+                                    <div className="room-list-main">
+                                        <div className="room-list-number">
+                                            <h3>Room {room.roomNumber}</h3>
+                                        </div>
+                                        <div className="room-list-type">
+                                            <span className="label">Type</span>
+                                            <span className="value">{getRoomTypeShort(room.roomType)}</span>
+                                        </div>
+                                        <div className="room-list-capacity">
+                                            <span className="label">Capacity</span>
+                                            <span className="value">{room.capacity} persons</span>
+                                        </div>
+                                        <div className="room-list-price">
+                                            <span className="label">Price</span>
+                                            <span className="value">₹{room.price}/night</span>
+                                        </div>
+                                        <div className="room-list-status">
+                                            <span className={`room-status ${getStatusClass(room.status)}`}>
+                                                {room.status}
+                                            </span>
+                                        </div>
+                                        <div className="room-list-actions">
+                                            {room.status === 'Available' && (
+                                                <button className="edit-btn" onClick={() => handleEditRoom(room)}>
+                                                    ✏️ Edit
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </motion.div>
                     ))}
                 </AnimatePresence>

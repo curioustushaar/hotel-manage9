@@ -794,4 +794,96 @@
 
 .btn-primary:hover {
     background-color: var(--color-primary-dark);
+}/* ============== RIGHT SIDE DRAWER FOR ADD TABLE ============== */
+.drawer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.45);
+    display: flex;
+    justify-content: flex-end;
+    z-index: 2000;
+    backdrop-filter: blur(5px);
+    transition: opacity 0.3s ease;
+}
+
+.drawer-content {
+    background: white !important;
+    width: 480px !important;
+    height: 100% !important;
+    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.2) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    animation: drawerSlideInRight-GMS 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    border-radius: 0 !important;
+    top: 0 !important;
+    left: auto !important;
+    right: 0 !important;
+    transform: none !important;
+    position: relative !important;
+}
+
+@keyframes drawerSlideInRight-GMS {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+.drawer-header {
+    padding: 30px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.drawer-header h2 {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0 !important;
+}
+
+.drawer-body {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+}
+
+.drawer-actions {
+    padding: 24px 30px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    background: #f8fafc;
+}
+
+/* Form refinements for GuestMealService Drawer */
+.add-table-drawer .form-group {
+    margin-bottom: 24px;
+}
+
+.add-table-drawer label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 10px;
+    display: block;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.add-table-drawer .form-input,
+.add-table-drawer .form-select {
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 14px 18px !important;
+    font-size: 1rem !important;
 }

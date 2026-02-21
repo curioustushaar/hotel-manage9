@@ -29,6 +29,49 @@
     margin: 0;
 }
 
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* View Toggle Buttons */
+.view-toggle {
+    display: flex;
+    gap: 5px;
+    background: #f0f0f0;
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.view-toggle-btn {
+    background: transparent;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+}
+
+.view-toggle-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.view-toggle-btn.active {
+    background: #ef4444;
+    color: white;
+}
+
+.view-toggle-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
 .back-btn {
     background: #f0f0f0;
     border: none;
@@ -457,12 +500,131 @@ select.form-input option {
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
+/* List View Styles */
+.rooms-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 30px;
+}
+
+.room-list-item {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s;
+}
+
+.room-list-item:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.room-list-item.status-booked {
+    background: #fff9e6;
+    border-left: 4px solid #fbbf24;
+}
+
+.room-list-item.status-occupied {
+    background: #fee;
+    border-left: 4px solid #ef4444;
+}
+
+.room-list-item.status-available {
+    background: #f0fdf4;
+    border-left: 4px solid #22c55e;
+}
+
+.room-list-item.status-maintenance {
+    background: #f5f5f5;
+    border-left: 4px solid #6b7280;
+}
+
+.room-list-main {
+    display: grid;
+    grid-template-columns: 150px 1fr 1fr 150px 120px 100px;
+    gap: 20px;
+    align-items: center;
+    padding: 20px 24px;
+}
+
+.room-list-number h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #ef4444;
+    font-weight: 700;
+}
+
+.room-list-type,
+.room-list-capacity,
+.room-list-price {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.room-list-type .label,
+.room-list-capacity .label,
+.room-list-price .label {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.room-list-type .value,
+.room-list-capacity .value,
+.room-list-price .value {
+    font-size: 15px;
+    color: #1a1a1a;
+    font-weight: 600;
+}
+
+.room-list-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.room-list-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.room-list-actions .edit-btn {
+    padding: 8px 16px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.room-list-actions .edit-btn:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .rooms-header {
         flex-direction: column;
         gap: 15px;
         align-items: stretch;
+    }
+
+    .header-right {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .view-toggle {
+        width: 100%;
+        justify-content: center;
     }
 
     .add-room-btn {
@@ -480,5 +642,22 @@ select.form-input option {
 
     .rooms-grid {
         grid-template-columns: 1fr;
+    }
+
+    .room-list-main {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .room-list-type,
+    .room-list-capacity,
+    .room-list-price {
+        display: grid;
+        grid-template-columns: 100px 1fr;
+        gap: 8px;
+    }
+
+    .room-list-actions {
+        justify-content: flex-start;
     }
 }
