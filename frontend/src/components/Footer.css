@@ -33,6 +33,7 @@
   flex: 1.5;
   /* Give more space to the first column */
   max-width: 350px;
+  margin-left: -40px;
 }
 
 .logo-wrapper {

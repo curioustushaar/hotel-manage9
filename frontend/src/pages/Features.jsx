@@ -15,22 +15,34 @@ const Features = () => {
     const [hoveredIndex, setHoveredIndex] = useState(null);
 
     const cardStyle = (index) => ({
-        padding: "10px", // Reduced to prevent oversize
+        padding: "10px",
         borderRadius: "20px",
         cursor: "pointer",
-        transition: "all 0.4s ease",
-        transform: hoveredIndex === index ? "translateY(-8px)" : "translateY(0px)",
+        transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+        transform: hoveredIndex === index ? "translateY(-10px) scale(1.02)" : "translateY(0px) scale(1)",
+        background: "transparent",
+        boxShadow: hoveredIndex === index ? "0 15px 30px rgba(225, 29, 72, 0.1)" : "none",
+        border: "none",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center"
     });
 
     const imageStyle = (index) => ({
         width: "100%",
-        maxWidth: "340px", // Increased slightly based on the visual balance in the image
+        maxWidth: index < 6 ? "340px" : "700px",
         height: "auto",
         objectFit: "contain",
         margin: "0 auto",
         display: "block",
         transition: "transform 0.4s ease",
         transform: hoveredIndex === index ? "translateY(-6px) scale(1.05)" : "scale(1)",
+        // Sharpen second image if it looks blurred
+        filter: index === 1
+            ? "contrast(1.1) saturate(1.1) brightness(1.02) drop-shadow(0 5px 15px rgba(0,0,0,0.05))"
+            : "none",
+        imageRendering: index === 1 ? "auto" : "auto", // Re-evaluating, browser defaults often best for PNGs
     });
 
     return (
@@ -68,7 +80,7 @@ const Features = () => {
             {/* OUR FEATURES SECTION - REACT IMPLEMENTATION */}
             <section
                 style={{
-                    padding: "80px 0",
+                    padding: "40px 0",
                     background: "linear-gradient(135deg,#fff6f7,#ffe6ea)",
                 }}
             >

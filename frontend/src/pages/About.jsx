@@ -1,6 +1,9 @@
 import React from "react";
 import "./about.css";
 
+
+
+
 const About = () => {
     return (
         <>
@@ -139,17 +142,8 @@ const About = () => {
                     </div>
                 </section>
 
-                {/* WHY */}
-                <section className="about-why">
-                    <h2>Why We're Different</h2>
-                    <p>Built by hospitality experts, for hospitality experts.</p>
-                    <div className="why-cards">
-                        <div>Reservation <br /> Intelligence</div>
-                        <div>Real-time <br /> Billing</div>
-                        <div>KOT <br /> Automation</div>
-                        <div>24/7 Support</div>
-                    </div>
-                </section>
+
+
 
                 {/* CTA */}
                 <section className="about-cta">
