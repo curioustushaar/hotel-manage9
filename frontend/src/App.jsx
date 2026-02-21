@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import { MODULES, ROLES } from './config/rbac'
 import Navbar from './components/Navbar'
+import TopBar from './components/TopBar'
 import Hero from './components/Hero'
 import FadeInSection from './components/FadeInSection'
 import FloatingDashboard from './components/FloatingDashboard'
@@ -98,7 +99,12 @@ const AppRoutes = () => {
   return (
     <div className="App">
       <ScrollToTop />
-      {!isAdminRoute && <Navbar />}
+      {!isAdminRoute && (
+        <>
+          <TopBar />
+          <Navbar />
+        </>
+      )}
       <div key={location.pathname} className="page-fade-in">
         <Routes location={location}>
           {/* Public Routes */}

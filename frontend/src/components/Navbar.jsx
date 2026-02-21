@@ -25,7 +25,6 @@ const NavItem = ({ to, children, onClick }) => {
       className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
       style={{
         textDecoration: "none",
-        fontWeight: "500",
         transition: "all 0.3s ease",
       }}
     >

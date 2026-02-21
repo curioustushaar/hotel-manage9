@@ -45,7 +45,7 @@
 /* ================= HERO ================= */
 
 .about-hero {
-    padding: 110px 20px 30px;
+    padding: 20px 20px 30px;
     text-align: center;
     position: relative;
     background: linear-gradient(135deg, #fff, #ffe4e6);
@@ -344,48 +344,118 @@
 /* ================= WHY DIFFERENT ================= */
 
 .about-why {
-    padding: 40px 20px 100px;
-    /* Reduced top padding from 100px */
+    padding: 120px 0;
     text-align: center;
+    background: linear-gradient(180deg, #fff7f9 0%, #fff 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Subtle radial glow effect behind cards */
+.about-why::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, rgba(225, 29, 72, 0.05) 0%, transparent 60%);
+    transform: translate(-50%, -50%);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.about-why h2 {
+    font-size: 52px;
+    font-weight: 800;
+    margin-bottom: 15px;
+    color: #1a202c;
+    /* Dark navy / charcoal */
     position: relative;
     z-index: 1;
 }
 
-.about-why h2 {
-    font-size: 36px;
-    margin-bottom: 10px;
-}
-
 .about-why p {
-    color: #6b7280;
-    margin-bottom: 40px;
+    color: #718096;
+    /* light gray */
+    font-size: 20px;
+    margin-bottom: 80px;
+    font-weight: 500;
+    position: relative;
+    z-index: 1;
 }
 
 .why-cards {
-    display: flex;
-    justify-content: center;
-    gap: 25px;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
 }
 
-.why-cards div {
-    background: #ffffff;
-    padding: 25px 35px;
-    border-radius: 18px;
-    min-width: 220px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-    font-weight: 600;
-    transition: 0.3s;
-    line-height: 1.4;
+.why-card {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 50px 30px;
+    border-radius: 30px;
+    /* Large rounded corners */
+    border: 1px solid rgba(225, 29, 72, 0.15);
+    /* Subtle pink-purple border */
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.02);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
+    cursor: default;
 }
 
-.why-cards div:hover {
-    transform: translateY(-6px);
-    background: #ffe4e6;
+.why-card-icon-wrapper {
+    width: 90px;
+    height: 90px;
+    border-radius: 20px;
+    /* Rounded soft pink square */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.03);
+}
+
+.why-card h4 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #2d3748;
+    line-height: 1.3;
+}
+
+.why-card:hover {
+    transform: translateY(-10px);
+    /* Card lifts */
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 25px 60px rgba(225, 29, 72, 0.12);
+    /* Increased glow */
+    border-color: rgba(225, 29, 72, 0.4);
+}
+
+@media (max-width: 1024px) {
+    .why-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .about-why h2 {
+        font-size: 38px;
+    }
+
+    .why-cards {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* ================= CTA ================= */

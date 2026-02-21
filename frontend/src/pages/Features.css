@@ -8,7 +8,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 100px 8% 100px 5%;
+    padding: 30px 8% 100px 5%;
     /* Reduced left padding from 8% to 5% */
     background: linear-gradient(135deg, #fff 0%, #fde7ec 60%, #f8d7df 100%);
     gap: 40px;
