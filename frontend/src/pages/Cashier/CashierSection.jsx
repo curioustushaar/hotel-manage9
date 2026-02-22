@@ -826,15 +826,15 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
                 <div className="bill-summary-panel">
                     <div className="summary-row-modern">
                         <span>Subtotal</span>
-                        <span>₹ {displayOrder.items.reduce((s, i) => s + i.amount, 0).toFixed(0)}</span>
+                        <span>₹ {(!isPlaceholder ? displayOrder.items.reduce((s, i) => s + i.amount, 0) : 0).toFixed(2)}</span>
                     </div>
                     <div className="summary-row-modern">
                         <span>Tax (5%)</span>
-                        <span>₹ {(displayOrder.amount * 0.05).toFixed(0)}</span>
+                        <span>₹ {(!isPlaceholder ? (displayOrder.amount * 0.05) : 0).toFixed(2)}</span>
                     </div>
                     <div className="summary-row-modern grand-total-highlight">
-                        <span>Grand Total</span>
-                        <span>₹ {displayOrder.amount.toFixed(1)}</span>
+                        <span>Grand Total:</span>
+                        <span>₹ {displayOrder.amount.toFixed(2)}</span>
                     </div>
                 </div>
             </div>
@@ -880,7 +880,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
                 </div>
 
                 <div className="quick-actions-modern">
-                    <button className="q-btn" onClick={handlePrintBill} disabled={isPlaceholder}>🖨️ Print Bill</button>
+                    <button className="q-btn" onClick={handlePrintBill} disabled={isPlaceholder}>🖨️ Bill</button>
                     <button className="q-btn" onClick={handleSendSMS} disabled={isPlaceholder}>💬 SMS</button>
                     <button className="q-btn" onClick={handleEmailBill} disabled={isPlaceholder}>📧 Email</button>
                 </div>
@@ -894,11 +894,11 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
                 </button>
 
                 <div className="room-posting-section">
-                    <h4>Room Posting Today</h4>
+                    <h4 style={{ fontSize: '12px', marginBottom: '10px' }}>Room Posting Today</h4>
                     <div className="room-actions-row">
-                        <button className="ra-btn" onClick={() => onRoomPostingAction('Print')}>💼</button>
-                        <button className="ra-btn" onClick={() => onRoomPostingAction('SMS')}>💬 SMS</button>
-                        <button className="ra-btn" onClick={() => onRoomPostingAction('Email')}>📧 Email</button>
+                        <button className="ra-btn" onClick={() => onRoomPostingAction('Print')}>🖨️</button>
+                        <button className="ra-btn" onClick={() => onRoomPostingAction('SMS')}>💬</button>
+                        <button className="ra-btn" onClick={() => onRoomPostingAction('Email')}>📧</button>
                     </div>
                 </div>
             </div>
