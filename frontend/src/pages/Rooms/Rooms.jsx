@@ -326,6 +326,54 @@ const Rooms = () => {
 
     return (
         <div className="rooms-page">
+            <style>{`
+                /* Force visibility for all form inputs and selects in Rooms page */
+                .rooms-page input,
+                .rooms-page input[type="text"],
+                .rooms-page input[type="number"],
+                .rooms-page select,
+                .rooms-page textarea,
+                .room-modal input,
+                .room-modal input[type="text"],
+                .room-modal input[type="number"],
+                .room-modal select,
+                .room-modal .form-input,
+                .room-modal select.form-input,
+                .room-modal input.form-input {
+                    color: #000000 !important;
+                    -webkit-text-fill-color: #000000 !important;
+                    font-weight: 600 !important;
+                    background-color: #ffffff !important;
+                    opacity: 1 !important;
+                }
+                
+                .rooms-page select option,
+                .room-modal select option {
+                    color: #000000 !important;
+                    background-color: #ffffff !important;
+                    font-weight: 600 !important;
+                }
+                
+                .rooms-page select optgroup,
+                .room-modal select optgroup {
+                    color: #000000 !important;
+                    background-color: #f3f4f6 !important;
+                    font-weight: 700 !important;
+                }
+                
+                .rooms-page input::placeholder,
+                .room-modal input::placeholder {
+                    color: #9ca3af !important;
+                    -webkit-text-fill-color: #9ca3af !important;
+                    opacity: 0.7 !important;
+                }
+                
+                .rooms-page input:-webkit-autofill,
+                .room-modal input:-webkit-autofill {
+                    -webkit-box-shadow: 0 0 0 1000px white inset !important;
+                    -webkit-text-fill-color: #000000 !important;
+                }
+            `}</style>
             {/* Header */}
             <div className="rooms-header">
                 <div className="header-left">
@@ -504,12 +552,13 @@ const Rooms = () => {
 
             {/* Add Room Modal */}
             {showAddModal && (
-                <div className="modal-overlay">
+                <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
                     <motion.div
                         className="modal-content room-modal"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.3 }}
+                        onClick={(e) => e.stopPropagation()}
                     >
                         <div className="modal-header">
                             <h2>Add New Room</h2>
@@ -533,6 +582,14 @@ const Rooms = () => {
                                     placeholder="e.g., 101, 102"
                                     value={formData.roomNumber}
                                     onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value })}
+                                    style={{ 
+                                        color: '#000000', 
+                                        fontWeight: '700', 
+                                        fontSize: '16px',
+                                        opacity: 1,
+                                        WebkitTextFillColor: '#000000',
+                                        backgroundColor: '#ffffff'
+                                    }}
                                 />
                             </div>
 
@@ -542,10 +599,18 @@ const Rooms = () => {
                                     className="form-input"
                                     value={formData.floor || ''}
                                     onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
+                                    style={{ 
+                                        color: '#000000', 
+                                        fontWeight: '700', 
+                                        fontSize: '16px',
+                                        opacity: 1,
+                                        WebkitTextFillColor: '#000000',
+                                        backgroundColor: '#ffffff'
+                                    }}
                                 >
-                                    <option value="">-- Select Floor --</option>
+                                    <option value="" style={{ color: '#000000', fontWeight: '700', backgroundColor: '#ffffff' }}>-- Select Floor --</option>
                                     {floors.map(floor => (
-                                        <option key={floor._id} value={floor.name}>{floor.name}</option>
+                                        <option key={floor._id} value={floor.name} style={{ color: '#000000', fontWeight: '700', backgroundColor: '#ffffff' }}>{floor.name}</option>
                                     ))}
                                 </select>
                             </div>
@@ -558,20 +623,28 @@ const Rooms = () => {
                                             className="form-input"
                                             value={formData.roomType}
                                             onChange={(e) => setFormData({ ...formData, roomType: e.target.value })}
-                                            style={{ flex: 1 }}
+                                            style={{ 
+                                                flex: 1, 
+                                                color: '#000000', 
+                                                fontWeight: '700', 
+                                                fontSize: '16px',
+                                                opacity: 1,
+                                                WebkitTextFillColor: '#000000',
+                                                backgroundColor: '#ffffff'
+                                            }}
                                         >
-                                            <option value="">-- Select Room Type --</option>
+                                            <option value="" style={{ color: '#000000', fontWeight: '700', backgroundColor: '#ffffff' }}>-- Select Room Type --</option>
                                             {Object.entries(roomTypeCategories).map(([category, types]) => (
-                                                <optgroup key={category} label={category}>
+                                                <optgroup key={category} label={category} style={{ color: '#000000', fontWeight: '700', backgroundColor: '#f3f4f6' }}>
                                                     {types.map(type => (
-                                                        <option key={type} value={type}>{type}</option>
+                                                        <option key={type} value={type} style={{ color: '#000000', fontWeight: '700', backgroundColor: '#ffffff' }}>{type}</option>
                                                     ))}
                                                 </optgroup>
                                             ))}
                                             {customRoomTypes.length > 0 && (
-                                                <optgroup label="Custom Types">
+                                                <optgroup label="Custom Types" style={{ color: '#000000', fontWeight: '700', backgroundColor: '#f3f4f6' }}>
                                                     {customRoomTypes.map(type => (
-                                                        <option key={type} value={type}>{type}</option>
+                                                        <option key={type} value={type} style={{ color: '#000000', fontWeight: '700', backgroundColor: '#ffffff' }}>{type}</option>
                                                     ))}
                                                 </optgroup>
                                             )}
@@ -624,6 +697,14 @@ const Rooms = () => {
                                     placeholder="0"
                                     value={formData.price}
                                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                    style={{ 
+                                        color: '#000000', 
+                                        fontWeight: '700', 
+                                        fontSize: '16px',
+                                        opacity: 1,
+                                        WebkitTextFillColor: '#000000',
+                                        backgroundColor: '#ffffff'
+                                    }}
                                 />
                             </div>
 
@@ -635,6 +716,14 @@ const Rooms = () => {
                                     placeholder="1"
                                     value={formData.capacity}
                                     onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
+                                    style={{ 
+                                        color: '#000000', 
+                                        fontWeight: '700', 
+                                        fontSize: '16px',
+                                        opacity: 1,
+                                        WebkitTextFillColor: '#000000',
+                                        backgroundColor: '#ffffff'
+                                    }}
                                 />
                             </div>
 
@@ -653,12 +742,13 @@ const Rooms = () => {
 
             {/* Edit Room Modal */}
             {showEditModal && (
-                <div className="modal-overlay">
+                <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
                     <motion.div
                         className="modal-content room-modal"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.3 }}
+                        onClick={(e) => e.stopPropagation()}
                     >
                         <div className="modal-header">
                             <h2>Edit Room</h2>

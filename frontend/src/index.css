@@ -1785,3 +1785,47 @@ body {
   padding-top: 0 !important;
   margin-top: 0 !important;
 }
+
+/* ========================================
+   GLOBAL INPUT & SELECT TEXT VISIBILITY FIX
+   Force all form inputs to have visible black text
+   ======================================== */
+input,
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+select,
+textarea {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  opacity: 1 !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af !important;
+  -webkit-text-fill-color: #9ca3af !important;
+  opacity: 0.6 !important;
+}
+
+/* Autofill override */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px white inset !important;
+  -webkit-text-fill-color: #000000 !important;
+  color: #000000 !important;
+}
+
+/* Select options visibility */
+select option,
+select optgroup {
+  color: #000000 !important;
+  background-color: #ffffff !important;
+}
