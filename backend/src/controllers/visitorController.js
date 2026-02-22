@@ -5,19 +5,17 @@ const Room = require('../models/Room');
 
 // Helper to find reservation or booking
 const findStayRecord = async (id) => {
-    let record = await Reservation.findById(id).populate('roomId'); // Assuming Reservation has roomId populated or field
-    let type = 'Reservation';
-
-    if (!record) {
-        record = await Booking.findById(id); // Booking usually has embedded room details or simple fields
-        type = 'Booking';
+    try {
+        const record = await Booking.findById(id);
+        if (!record) return { record: null, type: null };
+        return { record, type: 'Booking' };
+    } catch (err) {
+        return { record: null, type: null };
     }
-    return { record, type };
 };
 
 // POST /api/visitors
 exports.createVisitor = async (req, res) => {
-    console.log("createVisitor controller executed", req.body);
     try {
         const { reservationId, name, mobile, idType, idNumber, purpose, chargeAmount } = req.body;
 
@@ -26,15 +24,15 @@ exports.createVisitor = async (req, res) => {
         }
 
         // 1. Validate Reservation
-        const { record, type } = await findStayRecord(reservationId);
+        const { record } = await findStayRecord(reservationId);
 
         if (!record) {
             return res.status(404).json({ success: false, message: 'Reservation not found' });
         }
 
-        const status = record.status;
-        if (status !== 'IN_HOUSE' && status !== 'Checked-in') { // Booking uses 'Checked-in'
-            return res.status(400).json({ success: false, message: `Cannot add visitor. guest status is ${status}` });
+        const status = record.status?.toUpperCase();
+        if (!['IN_HOUSE', 'CHECKEDIN', 'CHECKED-IN', 'CHECKED_IN'].includes(status)) {
+            return res.status(400).json({ success: false, message: `Cannot add visitor. Guest status is ${record.status}` });
         }
 
         // 2. Check Active Visitors Count & Duplicates
@@ -43,8 +41,8 @@ exports.createVisitor = async (req, res) => {
             status: 'ACTIVE'
         });
 
-        if (activeVisitors.length >= 5) {
-            return res.status(400).json({ success: false, message: 'Maximum 5 active visitors allowed per room.' });
+        if (activeVisitors.length >= 10) {
+            return res.status(400).json({ success: false, message: 'Maximum active visitors allowed reached.' });
         }
 
         const existingVisitor = activeVisitors.find(v => v.mobile === mobile);
@@ -53,8 +51,7 @@ exports.createVisitor = async (req, res) => {
         }
 
         // 3. Resolve Room ID
-        // Booking model often stores roomNumber, we need ObjectId for Visitor model
-        let roomId = record.roomId;
+        let roomId = record.room;
         if (!roomId && record.roomNumber) {
             const room = await Room.findOne({ roomNumber: record.roomNumber });
             if (room) roomId = room._id;
@@ -67,13 +64,13 @@ exports.createVisitor = async (req, res) => {
         // 4. Create Visitor
         const newVisitor = new Visitor({
             reservationId: record._id,
-            roomId: roomId,
-            guestId: record.guestId || null, // Optional
+            room: roomId, // Storing the room ObjectId in the 'room' field
+            guest: record.guest || null,
             name,
             mobile,
             idType,
             idNumber,
-            purpose,
+            purpose: purpose || 'Visitor',
             chargeAmount: Number(chargeAmount) || 0,
             status: 'ACTIVE',
             inTime: new Date()
@@ -85,31 +82,24 @@ exports.createVisitor = async (req, res) => {
         if (!record.visitors) record.visitors = [];
         record.visitors.push(newVisitor._id);
 
-        // 6. Handle Charges & Folio
+        // 6. Handle Charges
         if (newVisitor.chargeAmount > 0) {
             const amount = newVisitor.chargeAmount;
 
-            // Add Transaction / Folio Entry
-            if (type === 'Booking') {
-                // Booking model uses 'transactions' array
-                record.transactions.push({
-                    type: 'charge',
-                    day: new Date().toLocaleDateString('en-GB', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }),
-                    particulars: `Visitor Charge - ${name}`,
-                    description: `Charge for visitor entry. ID: ${idNumber || 'N/A'}`,
-                    amount: amount,
-                    user: req.user?.name || 'Staff', // Assuming auth middleware
-                    createdAt: new Date()
-                });
+            if (!record.transactions) record.transactions = [];
+            record.transactions.push({
+                type: 'Charge',
+                amount: amount,
+                date: new Date(),
+                notes: `Visitor Charge - ${name}`,
+                recordedBy: req.user?._id
+            });
 
-                // Recalculate totals handled by pre-save hook in Booking model usually, 
-                // but let's confirm explicit update if needed or rely on hook.
-                // Based on previous bookingModel view, pre-save hook recalculates totalAmount.
-            } else {
-                // Reservation model (simpler)
-                record.amount = (record.amount || 0) + amount;
-                record.balance = (record.balance || 0) + amount;
+            if (!record.billing) {
+                record.billing = { roomRate: 0, totalAmount: 0, paidAmount: 0, balanceAmount: 0 };
             }
+            record.billing.totalAmount = (record.billing.totalAmount || 0) + amount;
+            record.billing.balanceAmount = (record.billing.balanceAmount || 0) + amount;
         }
 
         await record.save();
@@ -132,7 +122,7 @@ exports.getVisitorsByReservation = async (req, res) => {
         const { reservationId } = req.params;
         const visitors = await Visitor.find({ reservationId })
             .sort({ createdAt: -1 })
-            .populate('roomId', 'roomNumber roomType');
+            .populate('room', 'roomNumber roomType');
 
         res.status(200).json({ success: true, count: visitors.length, data: visitors });
     } catch (error) {
@@ -180,33 +170,35 @@ exports.convertVisitor = async (req, res) => {
         visitor.outTime = new Date();
         await visitor.save();
 
-        // Update Reservation
-        const { record, type } = await findStayRecord(visitor.reservationId);
+        // Update Reservation/Booking
+        const { record } = await findStayRecord(visitor.reservationId);
 
         if (record) {
             // Increase Check-in Pax
-            if (type === 'Booking') {
-                record.numberOfAdults = (record.numberOfAdults || 0) + 1;
-
-                // Add Conversion Charge if any
-                if (chargeAmount > 0) {
-                    record.transactions.push({
-                        type: 'charge',
-                        day: new Date().toLocaleDateString('en-GB'),
-                        particulars: `Guest Conversion Charge`,
-                        description: `Converted visitor ${visitor.name} to guest`,
-                        amount: Number(chargeAmount),
-                        user: 'Staff',
-                        createdAt: new Date()
-                    });
-                }
+            // Booking model uses duration.adults or sometimes numberOfAdults
+            if (record.duration) {
+                record.duration.adults = (record.duration.adults || 0) + 1;
             } else {
-                // Reservation Model
-                record.adults = (record.adults || 0) + 1;
-                if (chargeAmount > 0) {
-                    record.amount = (record.amount || 0) + Number(chargeAmount);
-                    record.balance = (record.balance || 0) + Number(chargeAmount);
+                record.numberOfAdults = (record.numberOfAdults || 0) + 1;
+            }
+
+            // Add Conversion Charge if any
+            if (chargeAmount > 0) {
+                if (!record.transactions) record.transactions = [];
+                record.transactions.push({
+                    type: 'Charge',
+                    amount: Number(chargeAmount),
+                    method: 'Cash',
+                    date: new Date(),
+                    notes: `Visitor to Guest Conversion: ${visitor.name}`,
+                    recordedBy: req.user?._id
+                });
+
+                if (!record.billing) {
+                    record.billing = { roomRate: 0, totalAmount: 0, paidAmount: 0, balanceAmount: 0 };
                 }
+                record.billing.totalAmount = (record.billing.totalAmount || 0) + Number(chargeAmount);
+                record.billing.balanceAmount = (record.billing.balanceAmount || 0) + Number(chargeAmount);
             }
             await record.save();
         }
@@ -214,6 +206,7 @@ exports.convertVisitor = async (req, res) => {
         res.status(200).json({ success: true, message: 'Visitor converted to guest successfully' });
 
     } catch (error) {
+        console.error('Convert Visitor Error:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };

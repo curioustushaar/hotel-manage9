@@ -76,7 +76,7 @@ exports.markNoShow = async (req, res) => {
             // Determine rate (pricePerNight or ratePerNight or derived)
             let rate = 0;
             if (type === 'Booking') {
-                rate = record.pricePerNight || (record.totalAmount / record.numberOfNights);
+                rate = record.billing?.roomRate || (record.billing?.totalAmount / (record.duration?.nights || 1)) || 0;
             } else {
                 rate = record.amount ? (record.amount / (record.nights || 1)) : 0;
             }
@@ -85,7 +85,7 @@ exports.markNoShow = async (req, res) => {
 
             if (rate > 0) {
                 const transaction = {
-                    type: type === 'Booking' ? 'charge' : 'NO_SHOW_CHARGE', // Booking uses 'charge' type
+                    type: type === 'Booking' ? 'Charge' : 'NO_SHOW_CHARGE', // Booking uses 'Charge' type
                     description: '1 Night No-Show Charge',
                     particulars: 'No-Show Penalty', // Booking uses particulars
                     amount: rate,
@@ -95,11 +95,13 @@ exports.markNoShow = async (req, res) => {
                 };
 
                 if (type === 'Booking') {
+                    if (!record.transactions) record.transactions = [];
                     record.transactions.push(transaction);
-                    // Recalculate totals (Booking model pre-save hook handles this usually, but let's be safe)
-                    // If no pre-save hook or manual calc needed:
-                    // record.totalAmount = (record.totalAmount || 0) + rate;
-                    // record.remainingAmount = (record.remainingAmount || 0) + rate; 
+                    
+                    if (!record.billing) record.billing = {};
+                    record.billing.totalAmount = (record.billing.totalAmount || 0) + rate;
+                    record.billing.balanceAmount = (record.billing.balanceAmount || 0) + rate;
+                    
                     record.noShowDetails = {
                         noShowAt: new Date(),
                         noShowReason: 'Auto No-Show',
@@ -247,9 +249,10 @@ exports.voidReservation = async (req, res) => {
 
         // Zero out amounts
         if (type === 'Booking') {
-            record.totalAmount = 0;
-            record.remainingAmount = 0;
-            record.advancePaid = 0; // Assuming money is returned or voided
+            if (!record.billing) record.billing = {};
+            record.billing.totalAmount = 0;
+            record.billing.balanceAmount = 0;
+            record.billing.paidAmount = 0; // Assuming money is returned or voided
         } else {
             record.totalAmount = 0;
             record.balance = 0;

@@ -68,7 +68,39 @@ const ActivityLog = () => {
     }, [filters, searchTerm, logs]);
 
     const handleExport = () => {
-        exportLogs();
+        // Headers for CSV
+        const headers = ['Timestamp', 'User Name', 'Role', 'Action', 'Module', 'Description'];
+        
+        // Map logs to CSV rows
+        const rows = filteredLogs.map(log => {
+            const date = new Date(log.timestamp).toLocaleString();
+            const desc = log.description ? `"${log.description.replace(/"/g, '""')}"` : '';
+            return [
+                date,
+                log.userName,
+                log.userRole,
+                log.action,
+                log.module,
+                desc
+            ];
+        });
+
+        // Create CSV content
+        let csvContent = headers.join(',') + '\n';
+        rows.forEach(row => {
+            csvContent += row.join(',') + '\n';
+        });
+
+        // Download CSV file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `activity_logs_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     // Get unique action types from logs

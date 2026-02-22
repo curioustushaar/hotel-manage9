@@ -284,6 +284,11 @@ const AppRoutes = () => {
               <AdminDashboard />
             </ProtectedRoute>
           } />
+          <Route path="/admin/company-settings" element={
+            <ProtectedRoute module={MODULES.PROPERTY_CONFIG}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
           <Route path="/admin/food-order" element={
             <ProtectedRoute module={MODULES.FOOD_ORDER}>
               <AdminDashboard />

@@ -931,8 +931,8 @@ exports.closeOrder = async (req, res) => {
 exports.getAllOrders = async (req, res) => {
     try {
         const orders = await GuestMealOrder.find({
-            status: { $nin: ['Closed', 'Cancelled'] }
-        }).populate('tableId').sort({ createdAt: -1 });
+            status: { $ne: 'Cancelled' }
+        }).populate('tableId').sort({ createdAt: -1 }).limit(500);
 
         res.status(200).json({
             success: true,

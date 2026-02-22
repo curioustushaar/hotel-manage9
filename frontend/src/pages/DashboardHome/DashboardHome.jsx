@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { 
+    BedDouble, 
+    CalendarCheck, 
+    CheckCircle, 
+    Users, 
+    Clock, 
+    LogIn, 
+    LogOut 
+} from 'lucide-react';
 import API_URL from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
 import './DashboardHome.css';
@@ -421,7 +430,7 @@ const DashboardHome = () => {
                     {/* Total Rooms */}
                     <div className="stat-card stat-card-total">
                         <div className="stat-icon">
-                            <span className="icon-bed"></span>
+                            <BedDouble size={28} strokeWidth={2.5} />
                         </div>
                         <div className="stat-content">
                             <div className="stat-label">Total Rooms</div>
@@ -432,7 +441,7 @@ const DashboardHome = () => {
                     {/* Occupied Rooms */}
                     <div className="stat-card stat-card-occupied">
                         <div className="stat-icon">
-                            <span className="icon-bed"></span>
+                            <Users size={28} strokeWidth={2.5} />
                         </div>
                         <div className="stat-content">
                             <div className="stat-label">Occupied Rooms</div>
@@ -443,7 +452,7 @@ const DashboardHome = () => {
                     {/* Booked Rooms */}
                     <div className="stat-card stat-card-booked">
                         <div className="stat-icon">
-                            <span className="icon-calendar"></span>
+                            <CalendarCheck size={28} strokeWidth={2.5} />
                         </div>
                         <div className="stat-content">
                             <div className="stat-label">Booked Rooms</div>
@@ -454,7 +463,7 @@ const DashboardHome = () => {
                     {/* Available Rooms */}
                     <div className="stat-card stat-card-available">
                         <div className="stat-icon">
-                            <span className="icon-check"></span>
+                            <CheckCircle size={28} strokeWidth={2.5} />
                         </div>
                         <div className="stat-content">
                             <div className="stat-label">Available Rooms</div>
@@ -471,7 +480,7 @@ const DashboardHome = () => {
                     {/* Current Guests */}
                     <div className="stat-card stat-card-current-guests">
                         <div className="stat-icon">
-                            <span className="icon-person"></span>
+                            <Users size={28} strokeWidth={2.5} />
                         </div>
                         <div className="stat-content">
                             <div className="stat-label">Current Guests</div>
@@ -482,7 +491,7 @@ const DashboardHome = () => {
                     {/* Today's Check-ins */}
                     <div className="stat-card stat-card-checkin">
                         <div className="stat-icon">
-                            <span className="icon-calendar"></span>
+                            <LogIn size={28} strokeWidth={2.5} />
                         </div>
                         <div className="stat-content">
                             <div className="stat-label">Today's Check-ins</div>
@@ -493,7 +502,7 @@ const DashboardHome = () => {
                     {/* Today's Check-outs */}
                     <div className="stat-card stat-card-checkout">
                         <div className="stat-icon">
-                            <span className="icon-exit"></span>
+                            <LogOut size={28} strokeWidth={2.5} />
                         </div>
                         <div className="stat-content">
                             <div className="stat-label">Today's Check-outs</div>
@@ -504,7 +513,7 @@ const DashboardHome = () => {
                     {/* Upcoming Bookings */}
                     <div className="stat-card stat-card-upcoming">
                         <div className="stat-icon">
-                            <span className="icon-clock"></span>
+                            <Clock size={28} strokeWidth={2.5} />
                         </div>
                         <div className="stat-content">
                             <div className="stat-label">Upcoming Bookings</div>

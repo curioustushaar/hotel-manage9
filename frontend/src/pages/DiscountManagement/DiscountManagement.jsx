@@ -9,7 +9,7 @@ const DiscountManagement = () => {
         name: '',
         type: 'PERCENTAGE',
         value: '',
-        appliesTo: [],
+        appliesTo: ['ROOM'],
         autoApply: false,
         status: 'ACTIVE',
         description: ''
@@ -221,7 +221,7 @@ const DiscountManagement = () => {
             name: '',
             type: 'PERCENTAGE',
             value: '',
-            appliesTo: [],
+            appliesTo: ['ROOM'],
             autoApply: false,
             status: 'ACTIVE',
             description: ''

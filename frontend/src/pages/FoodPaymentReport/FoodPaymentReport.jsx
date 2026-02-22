@@ -324,15 +324,58 @@ const FoodPaymentReport = () => {
                 )}
             </div>
 
-            {/* Loading Indicator */}
-            {loading && (
-                <div style={{ textAlign: 'center', padding: '20px', fontSize: '16px', color: '#6b7280' }}>
-                    Loading payment data...
+            {/* TRANSACTIONS TAB CONTENT */}
+            {activeTab === 'transactions' && (
+                <div className="transactions-tab">
+                    <div className="table-responsive">
+                        <table className="transactions-table">
+                            <thead>
+                                <tr>
+                                    <th>Transaction ID</th>
+                                    <th>Date & Time</th>
+                                    <th>Ref ID</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Mode</th>
+                                    <th>Status</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {transactionsData.length > 0 ? (
+                                    transactionsData.map((txn, index) => (
+                                        <tr key={index}>
+                                            <td className="font-mono">{txn.transactionId}</td>
+                                            <td>{txn.dateTime}</td>
+                                            <td>{txn.foodOrderId !== 'N/A' ? txn.foodOrderId : txn.bookingId}</td>
+                                            <td>
+                                                <span className={`badge ${txn.transaction === 'Credit' ? 'badge-success' : 'badge-danger'}`}>
+                                                    {txn.transaction}
+                                                </span>
+                                            </td>
+                                            <td className="font-bold">{txn.amount}</td>
+                                            <td>{txn.mode}</td>
+                                            <td>
+                                                <span className={`status-badge status-${txn.status.toLowerCase()}`}>
+                                                    {txn.status}
+                                                </span>
+                                            </td>
+                                            <td className="notes-col">{txn.notes}</td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="8" className="no-data-cell">
+                                            No transactions found for the selected period
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 
-            {/* SUMMARY TAB CONTENT */}
-            {activeTab === 'summary' && (
                 <>
                     {/* Summary Cards Section */}
                     <div className="summary-cards">

@@ -172,6 +172,9 @@ app.use('/api/housekeeping', housekeepingRoutes);
 const folioRoutes = require('./routes/folioRoutes');
 app.use('/api/folio', folioRoutes);
 
+const notificationRoutes = require('./routes/notificationRoutes');
+app.use('/api/notifications', notificationRoutes);
+
 // Root route
 app.get('/', (req, res) => {
     res.json({

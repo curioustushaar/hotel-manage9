@@ -38,6 +38,7 @@ import FloorSetup from '../FloorSetup/FloorSetup';
 import TableManagement from '../TableManagement/TableManagement';
 import RoomDetailsPanel from '../../components/rooms/RoomDetailsPanel';
 import RoomService from '../../components/RoomService';
+import CompanySettings from '../CompanySettings/CompanySettings';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -219,6 +220,7 @@ const AdminDashboard = () => {
         else if (path.includes('/table-management')) setActiveMenu('table-management');
         else if (path.includes('/food-order')) setActiveMenu('food-order');
         else if (path.includes('/reservation-card')) setActiveMenu('reservation-card');
+        else if (path.includes('/company-settings')) setActiveMenu('company');
 
     }, [location]);
 
@@ -517,8 +519,7 @@ const AdminDashboard = () => {
         else if (menuId === 'maintenance-block') navigate(`${prefix}/maintenance-block`);
         else if (menuId === 'table-management') navigate(`${prefix}/table-management`);
         else if (menuId === 'company') {
-            // Future implementation
-            alert('Coming Soon');
+            navigate(`${prefix}/company-settings`);
         }
         else if (menuId === 'hotel-customer') {
             // Future implementation
@@ -779,7 +780,7 @@ const AdminDashboard = () => {
             activeMenu={activeMenu}
             onMenuClick={handleMenuClick}
             onLogout={handleLogout}
-            noPadding={activeMenu === 'stay-overview' || activeMenu === 'view-order' || activeMenu === 'food-order' || activeMenu === 'reservation-card'}
+            noPadding={activeMenu === 'stay-overview' || activeMenu === 'view-order' || activeMenu === 'food-order' || activeMenu === 'reservation-card' || activeMenu === 'company'}
         >
 
 
@@ -1152,6 +1153,13 @@ const AdminDashboard = () => {
             {
                 activeMenu === 'my-profile' && (
                     <MyProfile />
+                )
+            }
+
+            {/* Company Settings View */}
+            {
+                activeMenu === 'company' && (
+                    <CompanySettings />
                 )
             }
 
