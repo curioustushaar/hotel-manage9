@@ -175,8 +175,8 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 40px;
-    /* Consistent spacing between pairs/items */
+    gap: 0;
+    /* Removed gap to use negative margins for overlap */
 }
 
 .timeline-item {
@@ -201,12 +201,10 @@
     justify-content: flex-start;
 }
 
-/* Adding custom gaps to create the paired look */
-.timeline-item.item-2 {
-    margin-bottom: 80px;
+/* Pull up every item after the first one to overlap the empty space of the previous item */
+.timeline-item:not(:first-child) {
+    margin-top: -50px;
 }
-
-/* Gap after first pair */
 
 .timeline-card {
     background: #f9fafb;
@@ -461,8 +459,8 @@
 /* ================= CTA ================= */
 
 .about-cta {
-    margin: 120px auto 0;
-    padding: 100px 20px;
+    margin: 0 auto;
+    padding: 60px 20px;
     text-align: center;
     background: linear-gradient(135deg, #e11d48, #fb7185);
     color: white;

@@ -113,11 +113,20 @@ const About = () => {
                             </div>
                             <div className="team-card">
                                 <div className="team-image">
-                                    <img src="https://ui-avatars.com/api/?name=Tushar+Kumar&background=e11d48&color=fff&size=200" alt="Tushar Kumar" />
+                                    <img src="/images/tushar.jpg" alt="Tushar Kumar" />
                                 </div>
                                 <div className="team-info">
                                     <h4>Tushar Kumar</h4>
                                     <span>Backend Developer</span>
+                                </div>
+                            </div>
+                            <div className="team-card">
+                                <div className="team-image">
+                                    <img src="/images/arshad.jpg" alt="Md Arsad Raza" />
+                                </div>
+                                <div className="team-info">
+                                    <h4>Md Arshad Raza</h4>
+                                    <span>Frontend Developer</span>
                                 </div>
                             </div>
                             <div className="team-card">
@@ -129,15 +138,7 @@ const About = () => {
                                     <span>Backend Developer</span>
                                 </div>
                             </div>
-                            <div className="team-card">
-                                <div className="team-image">
-                                    <img src="/images/arsad.jpg" alt="Md Arsad Raza" />
-                                </div>
-                                <div className="team-info">
-                                    <h4>Md Arsad Raza</h4>
-                                    <span>Frontend Developer</span>
-                                </div>
-                            </div>
+
                         </div>
                     </div>
                 </section>

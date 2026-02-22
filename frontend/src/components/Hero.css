@@ -130,3 +130,80 @@
     font-size: 2.2rem;
   }
 }
+
+/* HERO TITLE BASE */
+.hero-title {
+  overflow: hidden;
+}
+
+/* LINE ANIMATION */
+.line {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(40px);
+  animation: slideUpFade 0.9s ease forwards;
+}
+
+/* First line delay */
+.line-1 {
+  animation-delay: 0.2s;
+}
+
+/* Accent line delay + slight pop */
+.line-2 {
+  animation-delay: 0.6s;
+}
+
+/* Description */
+.hero-animate {
+  opacity: 0;
+  transform: translateY(30px);
+  animation: slideUpFade 1s ease forwards;
+  animation-delay: 1s;
+}
+
+/* Image animation */
+.hero-img-animate {
+  opacity: 0;
+  transform: translateX(60px);
+  animation: slideRightFade 1s ease forwards;
+  animation-delay: 0.8s;
+}
+
+/* KEYFRAMES */
+
+@keyframes slideUpFade {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideRightFade {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Accent subtle bounce */
+.hero-accent {
+  animation-name: slideUpFade, popBounce;
+  animation-duration: 0.9s, 0.6s;
+  animation-delay: 0.6s, 1.4s;
+  animation-fill-mode: forwards;
+}
+
+@keyframes popBounce {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.08);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
