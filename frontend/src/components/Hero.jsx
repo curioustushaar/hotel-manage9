@@ -11,12 +11,16 @@ const Hero = () => {
             <div className="container hero-flex">
 
                 <div className="hero-text">
-                    <h1>
-                        Smart Hotel Management Software{' '}
-                        <span className="hero-accent">with KOT</span>
+                    <h1 className="hero-title">
+                        <span className="line line-1">
+                            Smart Hotel Management Software
+                        </span>{' '}
+                        <span className="hero-accent line line-2">
+                            with KOT
+                        </span>
                     </h1>
 
-                    <p className="hero-description" style={{ fontSize: "20px", lineHeight: "1.4" }}>
+                    <p className="hero-description hero-animate" style={{ fontSize: "20px", lineHeight: "1.4" }}>
                         Simplify your hotel operations with our powerful and easy-to-use software.
                         Manage reservations, room services, billing, and KOT efficiently. <br />
                         Streamline daily tasks, track bookings in real-time, and enhance guest experience.
@@ -29,12 +33,10 @@ const Hero = () => {
                     </div>
                 </div>
 
-                <div
-                    className="hero-img-container"
-                >
+                <div className="hero-img-container hero-img-animate">
                     <img src={HeroImage} alt="Hotel Management Dashboard" className="hero-banner-img" />
-                    <AdvikaAI />
                 </div>
+                <AdvikaAI />
 
             </div>
         </section>

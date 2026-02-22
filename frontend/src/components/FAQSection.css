@@ -1,5 +1,6 @@
 .faq-section {
-    padding: 60px 0;
+    padding: 0 0 60px;
+    margin-top: -20px;
     position: relative;
     /* Soft transition for entry */
     opacity: 0;
@@ -13,8 +14,8 @@
 }
 
 .faq-container {
-    max-width: 1100px;
-    width: 95%;
+    max-width: 1300px;
+    width: 98%;
     margin: 0 auto;
     padding: 0 20px;
 }
@@ -51,18 +52,14 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(255, 255, 255, 0.5);
-    /* Slightly more visible than 0.04 for contrast */
+    background: rgba(220, 20, 60, 0.05);
+    /* Set hover color to default permanent background */
     backdrop-filter: blur(6px);
     border: 1px solid rgba(220, 20, 60, 0.1);
     /* Subtle red border */
     border-radius: 16px;
     transition: background 0.3s ease;
     color: #333;
-}
-
-.faq-question:hover {
-    background: rgba(220, 20, 60, 0.05);
 }
 
 .faq-answer {

@@ -1,11 +1,39 @@
-import React from "react";
+import React, { useState } from "react";
 import Reveal from "../components/Reveal";
+
+const PricingButton = ({ recommended }) => {
+    const [hovered, setHovered] = useState(false);
+
+    return (
+        <button
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            style={{
+                background: recommended
+                    ? "#e11d48"
+                    : hovered ? "#e11d48" : "#fef2f2",
+                color: recommended
+                    ? "#fff"
+                    : hovered ? "#fff" : "#e11d48",
+                border: "none",
+                padding: "15px",
+                borderRadius: "10px",
+                fontWeight: "600",
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+                width: "100%"
+            }}
+        >
+            Get Started
+        </button>
+    );
+};
 
 const Pricing = () => {
     const plans = [
         {
             name: "Basic",
-            price: "₹1,999/mo",
+            price: "₹19,999/mo",
             features: [
                 "Single Hotel Management",
                 "Basic Reservation System",
@@ -17,7 +45,7 @@ const Pricing = () => {
         },
         {
             name: "Professional",
-            price: "₹4,999/mo",
+            price: "₹14,999/mo",
             features: [
                 "Up to 3 Hotels",
                 "Advanced Reservation Intelligence",
@@ -101,18 +129,7 @@ const Pricing = () => {
                                         </li>
                                     ))}
                                 </ul>
-                                <button style={{
-                                    background: plan.recommended ? "#e11d48" : "#fef2f2",
-                                    color: plan.recommended ? "#fff" : "#e11d48",
-                                    border: "none",
-                                    padding: "15px",
-                                    borderRadius: "10px",
-                                    fontWeight: "600",
-                                    cursor: "pointer",
-                                    transition: "all 0.3s ease"
-                                }}>
-                                    Get Started
-                                </button>
+                                <PricingButton recommended={plan.recommended} />
                             </div>
                         </Reveal>
                     ))}
@@ -123,3 +140,4 @@ const Pricing = () => {
 };
 
 export default Pricing;
+

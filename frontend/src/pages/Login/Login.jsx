@@ -103,7 +103,6 @@ const Login = () => {
 
     return (
         <>
-            <Navbar />
             <motion.div
                 className="login-page"
                 initial={{ opacity: 0 }}
@@ -415,7 +414,6 @@ const Login = () => {
                     </motion.div>
                 </motion.div>
             </motion.div>
-            <Footer />
         </>
     );
 };
