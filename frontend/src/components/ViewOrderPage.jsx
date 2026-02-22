@@ -14,6 +14,7 @@ const ViewOrderPage = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedOrderForBill, setSelectedOrderForBill] = useState(null);
 
     const [currentTime, setCurrentTime] = useState(new Date());
     const [toast, setToast] = useState(null);
@@ -60,7 +61,9 @@ const ViewOrderPage = () => {
                     type: order.orderType || 'Dine In',
                     items: order.items || [],
                     status: order.status === 'Active' ? 'Pending' :
-                        order.status === 'Started' ? 'In Service' : order.status,
+                        order.status === 'Started' ? 'In Service' :
+                            order.status === 'Pending Payment' ? 'Billed' :
+                                order.status,
                     rawStatus: order.status, // Keep raw for API calls
                     amount: order.finalAmount || 0,
                     updatedAt: new Date(order.updatedAt),
@@ -173,6 +176,7 @@ const ViewOrderPage = () => {
     };
 
     const handleDeleteOrder = async (orderId) => {
+        if (!window.confirm('Are you sure you want to permanently delete this order?')) return;
         try {
             const response = await fetch(`${API_URL_CONFIG}/api/guest-meal/orders/${orderId}`, {
                 method: 'DELETE'
@@ -213,9 +217,39 @@ const ViewOrderPage = () => {
                 else if (activeFilter === 'Take Away') matchesFilter = order.type === 'Take Away';
                 else if (activeFilter === 'Online Order') matchesFilter = order.type === 'Online' || order.type === 'Delivery';
             }
-            return matchesSearch && matchesFilter;
+
+            // Tab specific filtering
+            let matchesTab = true;
+            if (activeTab === 'KOT View') {
+                // KOT View only shows active kitchen orders
+                matchesTab = !['Billed', 'Closed', 'Cancelled'].includes(order.rawStatus || order.status);
+            } else if (activeTab === 'Bill View') {
+                // Bill View shows everything but sorted for billing/history
+                matchesTab = true;
+            }
+
+            return matchesSearch && matchesFilter && matchesTab;
         });
-    }, [searchQuery, activeFilter, orders]);
+    }, [searchQuery, activeFilter, orders, activeTab]);
+
+    const handleEditOrder = (order) => {
+        // If it's a room order, we need room details
+        const roomData = (order.type === 'Post to Room' || order.type === 'Room Order' || order.type === 'Room Service')
+            ? { id: null, roomNumber: order.table, guestName: order.guestName }
+            : { id: order.tableId?._id || order.tableId, roomNumber: order.table, guestName: order.guestName };
+
+        navigate('/admin/food-order', {
+            state: {
+                room: roomData,
+                orderId: order.id,
+                source: (order.type === 'Post to Room' || order.type === 'Room Order' || order.type === 'Room Service') ? 'room-service' : 'table-order'
+            }
+        });
+    };
+
+    const handleViewBill = (order) => {
+        setSelectedOrderForBill(order);
+    };
 
     return (
         <div className="view-order-container">
@@ -281,30 +315,52 @@ const ViewOrderPage = () => {
                     </div>
 
                     {/* Grid */}
-                    <div className="orders-grid">
+                    <div className={activeTab === 'Bill View' ? 'bill-grid' : 'orders-grid'}>
                         {filteredOrders.map(order => {
-                            const isBilled = order.status === 'Billed';
+                            const isBilled = order.status === 'Billed' || order.status === 'Closed';
                             const isReady = order.status === 'Ready' || order.status === 'In Service';
                             const pendingElapsed = getMinutesElapsed(order.createdAt);
                             const prepElapsed = getMinutesElapsed(preparingTimes[order.id]);
 
+                            if (activeTab === 'Bill View') {
+                                return (
+                                    <div className={`bill-history-card ${order.status.toLowerCase().replace(' ', '-')}`} key={order.id}>
+                                        <div className="bill-card-header">
+                                            <span className={`type-badge ${order.type.toLowerCase().replace(' ', '-')}`}>
+                                                {order.type}
+                                            </span>
+                                            <span className="order-time">{order.time}</span>
+                                        </div>
+                                        <div className="bill-card-body">
+                                            <div className="bill-main-info">
+                                                <h3>{order.table !== '-' ? `Table/Room ${order.table}` : 'Take Away'}</h3>
+                                                <p className="guest-name">{order.guestName || 'Walk-in Guest'}</p>
+                                            </div>
+                                            <div className="bill-items-summary">
+                                                <span className="item-count">{order.items.length} Items</span>
+                                                <span className="bill-amount">₹{order.amount}</span>
+                                            </div>
+                                            <div className="bill-status-badge">
+                                                Status: <span className={order.status.toLowerCase().replace(' ', '-')}>{order.status}</span>
+                                            </div>
+                                        </div>
+                                        <div className="bill-card-actions">
+
+                                            <button className="bill-action-btn view" onClick={() => handleViewBill(order)}>
+                                                <span>📄</span> Bill
+                                            </button>
+                                            <button className="bill-action-btn delete" onClick={() => handleDeleteOrder(order.id)}>
+                                                <span>🗑️</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            }
+
+                            // KOT VIEW CARD
                             return (
                                 <div className={`order-card ${isBilled ? 'completed' : ''}`} key={order.id}>
-                                    <div
-                                        className="card-header"
-                                        style={{ cursor: 'pointer' }}
-                                        onClick={() => {
-                                            if (order.type === 'Take Away') {
-                                                navigate('/admin/cashier', { state: { activeTab: 'Take Away' } });
-                                            } else if (order.type === 'Post to Room' || order.type === 'Room Order' || order.type === 'Room Service') {
-                                                navigate('/admin/dashboard', { state: { activeMenu: 'guest-meal-service' } });
-                                            } else if (order.type === 'Online' || order.type === 'Delivery') {
-                                                navigate('/admin/dashboard', { state: { activeMenu: 'view-order', activeFilter: 'Online Order' } });
-                                            } else {
-                                                navigate('/admin/dashboard', { state: { activeMenu: 'guestmealservice' } });
-                                            }
-                                        }}
-                                    >
+                                    <div className="card-header">
                                         <span className="header-table">
                                             {(order.type === 'Take Away') ? `${order.guestName || 'Take Away'}` :
                                                 (order.type === 'Online' || order.type === 'Delivery') ? `Online: ${order.guestName || 'Order'}` :
@@ -315,24 +371,32 @@ const ViewOrderPage = () => {
                                     </div>
 
                                     {/* Status Strip */}
-                                    {!isBilled && order.status === 'Pending' && (
-                                        <div className="status-strip pending-delay">
-                                            ⚠️ DELAY {pendingElapsed}m elapsed
-                                        </div>
-                                    )}
-                                    {!isBilled && order.status === 'Preparing' && (
-                                        <div className={`status-strip ${prepElapsed > 15 ? 'preparing-delay' : 'preparing-timer'}`}>
-                                            {prepElapsed > 15 ? `⚠️ DELAY in preparation (${prepElapsed}m)` : `Preparing • ${prepElapsed}m`}
-                                        </div>
-                                    )}
-                                    {!isBilled && order.status === 'In Service' && (
-                                        <div className="status-strip" style={{ background: '#8b5cf6', color: '#fff', fontWeight: '700' }}>
-                                            🛵 In Service — Delivery on the way
-                                        </div>
-                                    )}
-                                    {(isBilled || order.status === 'Ready') && (
-                                        <div className="status-strip"></div>
-                                    )}
+                                    {
+                                        !isBilled && order.status === 'Pending' && (
+                                            <div className="status-strip pending-delay">
+                                                ⚠️ DELAY {pendingElapsed}m elapsed
+                                            </div>
+                                        )
+                                    }
+                                    {
+                                        !isBilled && order.status === 'Preparing' && (
+                                            <div className={`status-strip ${prepElapsed > 15 ? 'preparing-delay' : 'preparing-timer'}`}>
+                                                {prepElapsed > 15 ? `⚠️ DELAY in preparation (${prepElapsed}m)` : `Preparing • ${prepElapsed}m`}
+                                            </div>
+                                        )
+                                    }
+                                    {
+                                        !isBilled && order.status === 'In Service' && (
+                                            <div className="status-strip" style={{ background: '#8b5cf6', color: '#fff', fontWeight: '700' }}>
+                                                🛵 In Service — Delivery on the way
+                                            </div>
+                                        )
+                                    }
+                                    {
+                                        (isBilled || order.status === 'Ready') && (
+                                            <div className="status-strip"></div>
+                                        )
+                                    }
 
                                     {/* Body */}
                                     <div className="card-body">
@@ -402,6 +466,88 @@ const ViewOrderPage = () => {
                         })}
                     </div>
                 </>
+            )}
+
+            {/* Receipt Modal */}
+            {selectedOrderForBill && (
+                <div className="receipt-modal-overlay">
+                    <div className="receipt-modal-container">
+                        <button className="receipt-close-btn" onClick={() => setSelectedOrderForBill(null)}>×</button>
+                        <div className="receipt-content">
+                            <div className="receipt-header">
+                                <h1>BAREENA ATITHI</h1>
+                                <h2>PREMIUM HOSPITALITY</h2>
+                                <p className="receipt-address">
+                                    Near Railway Station, City Center<br />
+                                    Ph: +91-9876543210 | GSTIN: 22AAAAA0000A1Z5
+                                </p>
+                            </div>
+
+                            <div className="receipt-divider"></div>
+
+                            <div className="receipt-info-grid">
+                                <div className="info-row">
+                                    <span className="info-label">Bill No:</span>
+                                    <span className="info-value">#{selectedOrderForBill.id.slice(-6).toUpperCase()}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label">Guest:</span>
+                                    <span className="info-value">{selectedOrderForBill.guestName || 'Walk-in'}</span>
+                                </div>
+                                <div className="info-row">
+                                    <span className="info-label">Source:</span>
+                                    <span className="info-value">{selectedOrderForBill.type} - {selectedOrderForBill.table}</span>
+                                </div>
+                            </div>
+
+                            <table className="receipt-table">
+                                <thead>
+                                    <tr>
+                                        <th>ITEM DESCRIPTION</th>
+                                        <th style={{ textAlign: 'center' }}>QTY</th>
+                                        <th style={{ textAlign: 'right' }}>AMOUNT</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {selectedOrderForBill.items.map((item, idx) => (
+                                        <tr key={idx}>
+                                            <td>{item.name}</td>
+                                            <td style={{ textAlign: 'center' }}>{item.quantity}</td>
+                                            <td style={{ textAlign: 'right' }}>{item.price * item.quantity}.00</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+
+                            <div className="receipt-totals">
+                                <div className="total-row">
+                                    <span>Subtotal</span>
+                                    <span>₹ {selectedOrderForBill.amount}.00</span>
+                                </div>
+                                <div className="total-row">
+                                    <span>Taxes (Included)</span>
+                                    <span>₹ 0.00</span>
+                                </div>
+                                <div className="total-row grand-total">
+                                    <span>NET PAYABLE</span>
+                                    <span>₹ {selectedOrderForBill.amount}.00</span>
+                                </div>
+                            </div>
+
+                            <div className="receipt-footer">
+                                <h3>Thank You!</h3>
+                                <p>We hope to see you again soon.</p>
+                                <div className="footer-id-brand">{selectedOrderForBill.id.slice(-6).toUpperCase()}</div>
+                            </div>
+
+                            <div className="receipt-modal-actions">
+                                <button className="print-btn" onClick={() => window.print()}>
+                                    <span>🖨️</span> Print Bill
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

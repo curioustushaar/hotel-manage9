@@ -79,7 +79,7 @@ const bookingSchema = new mongoose.Schema({
     // Status
     status: {
         type: String,
-        enum: ['Pending', 'Confirmed', 'CheckedIn', 'CheckedOut', 'Cancelled', 'NoShow', 'RESERVED', 'IN_HOUSE', 'CHECKED_OUT', 'Upcoming', 'Checked-in', 'Checked-out'], // Added Upcoming, Checked-in, Checked-out
+        enum: ['Pending', 'Confirmed', 'CheckedIn', 'CheckedOut', 'Cancelled', 'NoShow', 'No-Show', 'No Show', 'Void', 'Voided', 'RESERVED', 'IN_HOUSE', 'CHECKED_OUT', 'Upcoming', 'Checked-in', 'Checked-out'], // Added Upcoming, Checked-in, Checked-out
         default: 'Pending',
         index: true
     },

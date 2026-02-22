@@ -3,80 +3,90 @@
     position: relative;
     display: inline-block;
     z-index: 50;
-    /* Ensure it stays above other content */
 }
 
-/* Button style */
+/* Button style - Red Theme */
 .more-options-btn {
     padding: 8px 16px;
-    background-color: #fff;
-    color: #374151;
-    border: 1px solid #d1d5db;
+    background-color: #dc2626; /* Red background */
+    color: #ffffff; /* White text */
+    border: 1px solid #b91c1c;
     border-radius: 6px;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: space-between;
     transition: all 0.2s ease;
     min-width: 140px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .more-options-btn:hover {
-    background-color: #f9fafb;
-    border-color: #9ca3af;
+    background-color: #ef4444; /* Lighter red on hover */
+    border-color: #dc2626;
 }
 
 .more-options-btn.active {
-    border-color: #ef4444;
-    /* Active state to match theme */
-    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
+    background-color: #b91c1c; /* Darker red when active */
+    border-color: #991b1b;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
 }
 
 .dropdown-arrow {
     margin-left: 8px;
     font-size: 10px;
+    transition: transform 0.3s ease;
+}
+
+.dropdown-arrow.open {
+    transform: rotate(180deg);
 }
 
 /* Dropdown menu */
 .more-options-dropdown {
     position: absolute;
-    top: 100%;
+    top: calc(100% + 8px);
     right: 0;
-    margin-top: 4px;
-    background-color: #fff;
+    background-color: #ffffff;
     border-radius: 8px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    border: 1px solid #e5e7eb;
-    min-width: 200px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f3f4f6;
+    min-width: 220px;
     overflow: hidden;
     z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.more-options-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
 }
 
 /* Dropdown item */
 .more-options-item {
     display: flex;
     align-items: center;
-    padding: 10px 16px;
+    padding: 12px 16px;
     cursor: pointer;
-    transition: background-color 0.2s ease;
-    border-bottom: 1px solid #f3f4f6;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid #f9fafb;
+    background-color: #ffffff;
 }
 
 .more-options-item:last-child {
     border-bottom: none;
 }
 
-.more-options-item:hover {
-    background-color: #f9fafb;
-}
-
 .option-icon {
-    margin-right: 10px;
+    margin-right: 12px;
     font-size: 16px;
     display: flex;
-    /* Optimize alignment */
     align-items: center;
     width: 20px;
     justify-content: center;
@@ -84,15 +94,66 @@
 
 .option-label {
     font-size: 14px;
-    color: #374151;
     font-weight: 500;
 }
 
-/* Special treatments for destructive actions */
-.more-options-item.cancel .option-label {
-    color: #ef4444;
+/* Normal Actions */
+.more-options-item.normal {
+    color: #4b5563;
+}
+.more-options-item.normal .option-icon {
+    color: #6b7280;
+}
+.more-options-item.normal:hover {
+    background-color: #fef2f2; /* Light red hover */
+    color: #dc2626;
+}
+.more-options-item.normal:hover .option-icon {
+    color: #dc2626;
 }
 
-.more-options-item.cancel:hover {
+/* Success Actions (Check-In) */
+.more-options-item.success {
+    color: #059669;
+}
+.more-options-item.success .option-icon {
+    color: #10b981;
+}
+.more-options-item.success:hover {
+    background-color: #ecfdf5;
+    color: #047857;
+}
+
+/* Danger Actions (Void, Cancel, No-Show) */
+.more-options-item.danger {
+    color: #dc2626;
+}
+.more-options-item.danger .option-icon {
+    color: #ef4444;
+}
+.more-options-item.danger:hover {
     background-color: #fef2f2;
+    color: #b91c1c;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .more-options-dropdown {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto;
+        width: 100%;
+        border-radius: 16px 16px 0 0;
+        transform: translateY(100%);
+    }
+    
+    .more-options-dropdown.show {
+        transform: translateY(0);
+    }
+    
+    .more-options-item {
+        padding: 16px 20px;
+    }
 }

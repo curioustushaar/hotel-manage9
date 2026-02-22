@@ -9,7 +9,7 @@ const TaxConfiguration = () => {
         name: '',
         type: 'PERCENTAGE',
         value: '',
-        appliesTo: 'BILL',
+        appliesTo: 'ROOM',
         isCompound: false,
         status: 'ACTIVE',
         description: ''
@@ -214,7 +214,7 @@ const TaxConfiguration = () => {
             name: '',
             type: 'PERCENTAGE',
             value: '',
-            appliesTo: 'BILL',
+            appliesTo: 'ROOM',
             isCompound: false,
             status: 'ACTIVE',
             description: ''

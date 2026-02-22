@@ -8,13 +8,13 @@ const visitorSchema = new mongoose.Schema({
         required: true,
         index: true
     },
-    roomId: {
+    room: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Room',
         required: true,
         index: true
     },
-    guestId: {
+    guest: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Guest',
         required: false
@@ -57,12 +57,12 @@ const visitorSchema = new mongoose.Schema({
         default: false
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    strictPopulate: false
 });
 
 // Virtual aliases for compatibility if needed
 visitorSchema.virtual('reservation').get(function () { return this.reservationId; });
-visitorSchema.virtual('room').get(function () { return this.roomId; });
 visitorSchema.virtual('checkIn').get(function () { return this.inTime; });
 visitorSchema.virtual('checkOut').get(function () { return this.outTime; });
 

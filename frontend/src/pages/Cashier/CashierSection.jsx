@@ -99,6 +99,8 @@ const CashierSection = () => {
                     name: (order.orderType === 'Table Order' || order.orderType === 'Direct Payment') ? `Table ${order.tableNumber}` :
                         (order.orderType === 'Room Service' || order.orderType === 'Post to Room' || order.orderType === 'Room Order') ? `Room ${order.roomNumber}` :
                             order.orderType === 'Take Away' ? `Take Away` : `Table ${order.tableNumber}`,
+                    guestName: order.guestName || 'Guest',
+                    guestPhone: order.guestPhone || '',
                     guest: `${order.guestName || 'Guest'}${order.guestPhone ? ` - ${order.guestPhone}` : ''}`,
                     amount: order.finalAmount || 0,
                     status: 'Pending',
@@ -109,7 +111,7 @@ const CashierSection = () => {
                         price: item.price,
                         amount: item.subtotal
                     })),
-                    billNo: `#${order._id.toString().substr(-6).toUpperCase()}`,
+                    billNo: order._id.toString().substr(-6).toUpperCase(),
                     kotInfo: `KOT - ${order._id.toString().substr(-4)}`
                 }));
 
@@ -521,6 +523,9 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
     const [receivedAmount, setReceivedAmount] = useState('');
     const [returnAmount, setReturnAmount] = useState(0);
     const [targetRoom, setTargetRoom] = useState('');
+    const [smsModal, setSmsModal] = useState({ show: false, name: '', phone: '' });
+    const [isSendingSms, setIsSendingSms] = useState(false);
+    const [smsError, setSmsError] = useState('');
 
     // Initial state reset when order changes
     useEffect(() => {
@@ -712,9 +717,70 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
         alert(`📧 Email successfully sent to ${order.guest} for Invoice ${order.billNo}`);
     };
 
-    const handleSendSMS = () => {
+    const openSmsModal = () => {
         if (!order) return;
-        alert(`💬 SMS successfully sent to ${order.guest} `);
+        setSmsModal({
+            show: true,
+            name: order.guestName || '',
+            phone: order.guestPhone || ''
+        });
+        setSmsError('');
+    };
+
+    const handleSendSMS = async () => {
+        if (!order || !smsModal.phone) {
+            setSmsError('Please enter a valid mobile number');
+            return;
+        }
+
+        const phoneRegex = /^[6-9]\d{9}$/;
+        if (!phoneRegex.test(smsModal.phone.replace(/\D/g, ''))) {
+            setSmsError('Invalid 10-digit mobile number');
+            return;
+        }
+
+        setIsSendingSms(true);
+        setSmsError('');
+
+        const hotelName = "BAREENA ATITHI";
+        const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+        const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+        const smsContent = `${hotelName}\nBill #${order.billNo}\nAmt ₹${order.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\n${dateStr} ${timeStr}\nThank you visit again`;
+
+        try {
+            const savedUser = localStorage.getItem('authUser');
+            let token = '';
+            if (savedUser) {
+                const parsedUser = JSON.parse(savedUser);
+                token = parsedUser.token;
+            }
+
+            const response = await fetch(`${API_URL}/api/notifications/send-sms`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    phone: smsModal.phone,
+                    message: smsContent
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                alert(`✅ SMS Receipt sent successfully to ${smsModal.phone}`);
+                setSmsModal({ ...smsModal, show: false });
+            } else {
+                setSmsError(data.message || 'Failed to send SMS');
+            }
+        } catch (error) {
+            console.error('SMS Error:', error);
+            setSmsError('Connection error while sending SMS');
+        } finally {
+            setIsSendingSms(false);
+        }
     };
 
     const handleTender = () => {
@@ -881,7 +947,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
 
                 <div className="quick-actions-modern">
                     <button className="q-btn" onClick={handlePrintBill} disabled={isPlaceholder}>🖨️ Print Bill</button>
-                    <button className="q-btn" onClick={handleSendSMS} disabled={isPlaceholder}>💬 SMS</button>
+                    <button className="q-btn" onClick={openSmsModal} disabled={isPlaceholder}>💬 SMS Receipt</button>
                     <button className="q-btn" onClick={handleEmailBill} disabled={isPlaceholder}>📧 Email</button>
                 </div>
 
@@ -897,10 +963,57 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
                     <h4>Room Posting Today</h4>
                     <div className="room-actions-row">
                         <button className="ra-btn" onClick={() => onRoomPostingAction('Print')}>💼</button>
-                        <button className="ra-btn" onClick={() => onRoomPostingAction('SMS')}>💬 SMS</button>
+                        <button className="ra-btn" onClick={openSmsModal}>💬 SMS Receipt</button>
                         <button className="ra-btn" onClick={() => onRoomPostingAction('Email')}>📧 Email</button>
                     </div>
                 </div>
+
+                {/* SMS Modal for Cashier */}
+                {smsModal.show && (
+                    <div className="modal-overlay-custom" style={{ zIndex: 1000 }}>
+                        <div className="modal-content-custom" style={{ width: '400px' }}>
+                            <div className="modal-header-custom" style={{ background: '#dc2626', color: '#fff' }}>
+                                <h3>Send SMS Receipt</h3>
+                                <button className="close-btn-custom" onClick={() => setSmsModal({ ...smsModal, show: false })} style={{ color: '#fff' }}>×</button>
+                            </div>
+                            <div className="modal-body-custom">
+                                <div className="form-group-custom">
+                                    <label>Guest Name</label>
+                                    <input type="text" value={smsModal.name} readOnly style={{ background: '#f8fafc' }} />
+                                </div>
+                                <div className="form-group-custom">
+                                    <label>Mobile Number</label>
+                                    <input
+                                        type="text"
+                                        maxLength="10"
+                                        value={smsModal.phone}
+                                        onChange={(e) => setSmsModal({ ...smsModal, phone: e.target.value.replace(/\D/g, '') })}
+                                        placeholder="Enter 10-digit mobile number"
+                                    />
+                                    {smsError && <p style={{ color: '#dc2626', fontSize: '12px', marginTop: '5px' }}>{smsError}</p>}
+                                </div>
+                                <div className="template-preview" style={{ marginTop: '15px', background: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px dashed #cbd5e1' }}>
+                                    <strong style={{ fontSize: '11px', color: '#64748b' }}>Preview:</strong>
+                                    <pre style={{ fontSize: '12px', marginTop: '5px', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                                        {`BAREENA ATITHI
+Bill #${order?.billNo}
+Amt ₹${order?.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
+Thank you visit again`}
+                                    </pre>
+                                </div>
+                                <button
+                                    className="btn-tender-main"
+                                    style={{ marginTop: '20px', width: '100%', background: '#dc2626' }}
+                                    onClick={handleSendSMS}
+                                    disabled={isSendingSms}
+                                >
+                                    {isSendingSms ? 'Sending...' : 'Send SMS Receipt'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </>
     );
