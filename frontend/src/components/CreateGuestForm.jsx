@@ -6,6 +6,50 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
     const [errors, setErrors] = useState({});
     const [successMessage, setSuccessMessage] = useState('');
 
+    // ID Validation Helper Function
+    const validateIDNumber = (idType, idNumber) => {
+        if (!idType || !idNumber.trim()) return null;
+
+        const trimmedId = idNumber.trim();
+
+        switch (idType) {
+            case 'Aadhaar':
+                // Aadhaar: Exactly 12 digits
+                if (!/^[0-9]{12}$/.test(trimmedId)) {
+                    return 'Aadhaar number must be exactly 12 digits';
+                }
+                break;
+
+            case 'Passport':
+                // Passport: Alphanumeric, typically 8-10 characters
+                if (!/^[A-Z0-9]{8,10}$/i.test(trimmedId)) {
+                    return 'Passport number must be 8-10 alphanumeric characters';
+                }
+                break;
+
+            case 'Driving License':
+                // Driving License: Format varies by state, typically alphanumeric with minimum 10 characters
+                if (!/^[A-Z0-9]{10,20}$/i.test(trimmedId)) {
+                    return 'Driving License must be 10-20 alphanumeric characters';
+                }
+                break;
+
+            case 'Voter ID':
+                // Voter ID: Alphanumeric, typically 10 characters
+                if (!/^[A-Z]{3}[0-9]{7}$/i.test(trimmedId)) {
+                    return 'Voter ID must be 10 characters (3 letters + 7 digits)';
+                }
+                break;
+
+            default:
+                if (trimmedId.length < 3) {
+                    return 'Please enter a valid ID number';
+                }
+        }
+
+        return null; // No error
+    };
+
     const [formData, setFormData] = useState({
         // Basic Information
         fullName: '',
@@ -175,8 +219,11 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                 break;
 
             case 'idNumber':
-                if (formData.idType && !value.trim()) error = 'ID Number is required when ID Type is selected';
-                else if (formData.idType && value.trim().length < 3) error = 'Please enter a valid ID number';
+                if (formData.idType && !value.trim()) {
+                    error = 'ID Number is required when ID Type is selected';
+                } else if (formData.idType && value.trim()) {
+                    error = validateIDNumber(formData.idType, value);
+                }
                 break;
 
             case 'dob':
@@ -288,8 +335,11 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
         // KYC Validation
         if (formData.idType && !formData.idNumber.trim()) {
             newErrors.idNumber = 'ID Number is required when ID Type is selected';
-        } else if (formData.idType && formData.idNumber.trim().length < 3) {
-            newErrors.idNumber = 'Please enter a valid ID number';
+        } else if (formData.idType && formData.idNumber.trim()) {
+            const idError = validateIDNumber(formData.idType, formData.idNumber);
+            if (idError) {
+                newErrors.idNumber = idError;
+            }
         }
 
         // Optional Fields Validation
@@ -508,7 +558,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                 maxLength="50"
                                 className={errors.fullName ? 'input-error' : ''}
                             />
-                            {errors.fullName && <span className="form-error-text"><span className="form-error-icon"></span> {errors.fullName}</span>}
+                            {errors.fullName && <span className="form-error-text">{errors.fullName}</span>}
                             {!errors.fullName && formData.fullName && <span className="form-success-text"><span className="form-success-icon"></span> Valid name</span>}
                         </div>
 
@@ -526,7 +576,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                 maxLength="10"
                                 className={errors.mobile ? 'input-error' : ''}
                             />
-                            {errors.mobile && <span className="form-error-text"><span className="form-error-icon"></span> {errors.mobile}</span>}
+                            {errors.mobile && <span className="form-error-text">{errors.mobile}</span>}
                             {!errors.mobile && formData.mobile && <span className="form-success-text"><span className="form-success-icon"></span> Valid mobile number</span>}
                         </div>
 
@@ -540,7 +590,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                 onChange={handleChange}
                                 className={errors.email ? 'input-error' : ''}
                             />
-                            {errors.email && <span className="form-error-text"><span className="form-error-icon"></span> {errors.email}</span>}
+                            {errors.email && <span className="form-error-text">{errors.email}</span>}
                             {!errors.email && formData.email && <span className="form-success-text"><span className="form-success-icon"></span> Valid email</span>}
                         </div>
 
@@ -584,7 +634,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                 onChange={handleChange}
                                 className={errors.address ? 'input-error' : ''}
                             />
-                            {errors.address && <span className="form-error-text"><span className="form-error-icon"></span> {errors.address}</span>}
+                            {errors.address && <span className="form-error-text">{errors.address}</span>}
                         </div>
 
                         <div className="form-row-3">
@@ -600,7 +650,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                     onChange={handleChange}
                                     className={errors.city ? 'input-error' : ''}
                                 />
-                                {errors.city && <span className="form-error-text"><span className="form-error-icon"></span> {errors.city}</span>}
+                                {errors.city && <span className="form-error-text">{errors.city}</span>}
                             </div>
 
                             <div className="form-group">
@@ -615,7 +665,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                     onChange={handleChange}
                                     className={errors.state ? 'input-error' : ''}
                                 />
-                                {errors.state && <span className="form-error-text"><span className="form-error-icon"></span> {errors.state}</span>}
+                                {errors.state && <span className="form-error-text">{errors.state}</span>}
                             </div>
 
                             <div className="form-group">
@@ -631,7 +681,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                     maxLength="6"
                                     className={errors.pinCode ? 'input-error' : ''}
                                 />
-                                {errors.pinCode && <span className="form-error-text"><span className="form-error-icon"></span> {errors.pinCode}</span>}
+                                {errors.pinCode && <span className="form-error-text">{errors.pinCode}</span>}
                                 {!errors.pinCode && formData.pinCode && <span className="form-success-text"><span className="form-success-icon"></span> Valid PIN Code</span>}
                             </div>
 
@@ -681,7 +731,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                     disabled={!formData.idType}
                                     className={`id-number-input ${errors.idNumber ? 'input-error' : ''}`}
                                 />
-                                {errors.idNumber && <span className="form-error-text"><span className="form-error-icon"></span> {errors.idNumber}</span>}
+                                {errors.idNumber && <span className="form-error-text">{errors.idNumber}</span>}
                                 {!errors.idNumber && formData.idNumber && <span className="form-success-text"><span className="form-success-icon"></span> Valid ID number</span>}
                             </div>
                         </div>
@@ -754,7 +804,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                     onChange={handleChange}
                                     className={errors.dob ? 'input-error' : ''}
                                 />
-                                {errors.dob && <span className="error-text"><span className="error-icon">⚠️</span> {errors.dob}</span>}
+                                {errors.dob && <span className="error-text">{errors.dob}</span>}
                                 {!errors.dob && formData.dob && <span className="success-text"><span className="success-icon">✓</span> Valid date</span>}
                             </div>
 
@@ -767,7 +817,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                     onChange={handleChange}
                                     className={errors.anniversary ? 'input-error' : ''}
                                 />
-                                {errors.anniversary && <span className="error-text"><span className="error-icon">⚠️</span> {errors.anniversary}</span>}
+                                {errors.anniversary && <span className="error-text">{errors.anniversary}</span>}
                                 {!errors.anniversary && formData.anniversary && <span className="success-text"><span className="success-icon">✓</span> Valid date</span>}
                             </div>
                         </div>
@@ -794,7 +844,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                     onChange={handleChange}
                                     className={errors.gstNumber ? 'input-error' : ''}
                                 />
-                                {errors.gstNumber && <span className="error-text"><span className="error-icon">⚠️</span> {errors.gstNumber}</span>}
+                                {errors.gstNumber && <span className="error-text">{errors.gstNumber}</span>}
                                 {!errors.gstNumber && formData.gstNumber && <span className="success-text"><span className="success-icon">✓</span> Valid GST Number</span>}
                             </div>
                         </div>

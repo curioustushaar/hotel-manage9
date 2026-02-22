@@ -29,6 +29,7 @@ import HotelsManagement from './pages/SuperAdmin/HotelsManagement'
 import CreateHotel from './pages/SuperAdmin/CreateHotel'
 import HotelDetails from './pages/SuperAdmin/HotelDetails'
 import SuperAdminLogin from './pages/SuperAdmin/SuperAdminLogin'
+import ActivityLogs from './pages/SuperAdmin/ActivityLogs'
 import QRScanPage from './pages/QRScan/QRScanPage'
 import FoodOrderPage from './components/FoodOrderPage'
 import About from './pages/About'
@@ -158,6 +159,11 @@ const AppRoutes = () => {
           <Route path="/super-admin/hotels/:id" element={
             <ProtectedRoute module={MODULES.SUPER_ADMIN_DASHBOARD}>
               <HotelDetails />
+            </ProtectedRoute>
+          } />
+          <Route path="/super-admin/activity-logs" element={
+            <ProtectedRoute module={MODULES.SUPER_ADMIN_DASHBOARD}>
+              <ActivityLogs />
             </ProtectedRoute>
           } />
 

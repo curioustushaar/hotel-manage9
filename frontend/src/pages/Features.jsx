@@ -1,49 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 import "./Features.css";
 import heroImage from "../assets/feature-hero.png";
-import f1 from "../assets/f1.png";
-import f2 from "../assets/f2.png";
-import f3 from "../assets/f3.png";
-import f4 from "../assets/f4.png";
-import f5 from "../assets/f5.png";
-import f6 from "../assets/f6.png";
-import f7 from "../assets/f7.png";
 
 const Features = () => {
-    const images = [f1, f2, f3, f4, f5, f6];
-    const lastImage = f7;
-    const [hoveredIndex, setHoveredIndex] = useState(null);
-
-    const cardStyle = (index) => ({
-        padding: "10px",
-        borderRadius: "20px",
-        cursor: "pointer",
-        transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-        transform: hoveredIndex === index ? "translateY(-10px) scale(1.02)" : "translateY(0px) scale(1)",
-        background: "transparent",
-        boxShadow: hoveredIndex === index ? "0 15px 30px rgba(225, 29, 72, 0.1)" : "none",
-        border: "none",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center"
-    });
-
-    const imageStyle = (index) => ({
-        width: "100%",
-        maxWidth: index < 6 ? "340px" : "700px",
-        height: "auto",
-        objectFit: "contain",
-        margin: "0 auto",
-        display: "block",
-        transition: "transform 0.4s ease",
-        transform: hoveredIndex === index ? "translateY(-6px) scale(1.05)" : "scale(1)",
-        // Sharpen second image if it looks blurred
-        filter: index === 1
-            ? "contrast(1.1) saturate(1.1) brightness(1.02) drop-shadow(0 5px 15px rgba(0,0,0,0.05))"
-            : "none",
-        imageRendering: index === 1 ? "auto" : "auto", // Re-evaluating, browser defaults often best for PNGs
-    });
 
     return (
         <div className="features-page">
@@ -74,74 +33,6 @@ const Features = () => {
                         className="features-hero-image"
                         draggable="false"
                     />
-                </div>
-            </section>
-
-            {/* OUR FEATURES SECTION - REACT IMPLEMENTATION */}
-            <section
-                style={{
-                    padding: "40px 0",
-                    background: "linear-gradient(135deg,#fff6f7,#ffe6ea)",
-                }}
-            >
-                <div
-                    style={{
-                        width: "90%",
-                        maxWidth: "1200px",
-                        margin: "auto",
-                        textAlign: "center",
-                    }}
-                >
-                    <h2 style={{ fontSize: "38px", fontWeight: "700", color: "#451a1a" }}>
-                        Our Features
-                    </h2>
-                    <p style={{ marginBottom: "60px", color: "#666" }}>
-                        Comprehensive Smart Features for Complete Hotel Management
-                    </p>
-
-                    {/* ===== 6 GRID CARDS ===== */}
-                    <div
-                        style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-                            gap: "20px",
-                        }}
-                    >
-                        {images.map((img, index) => (
-                            <div
-                                key={index}
-                                style={cardStyle(index)}
-                                onMouseEnter={() => setHoveredIndex(index)}
-                                onMouseLeave={() => setHoveredIndex(null)}
-                            >
-                                <img src={img} alt="" style={imageStyle(index)} />
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* ===== LAST CENTER CARD (Wide) ===== */}
-                    <div
-                        style={{
-                            marginTop: "20px",
-                            display: "flex",
-                            justifyContent: "center",
-                        }}
-                    >
-                        <div
-                            style={cardStyle(6)}
-                            onMouseEnter={() => setHoveredIndex(6)}
-                            onMouseLeave={() => setHoveredIndex(null)}
-                        >
-                            <img
-                                src={lastImage}
-                                alt=""
-                                style={{
-                                    ...imageStyle(6),
-                                    maxWidth: "700px" // Making the last one wide like in the image
-                                }}
-                            />
-                        </div>
-                    </div>
                 </div>
             </section>
 

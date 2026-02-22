@@ -1,122 +1,97 @@
 import { useState, useRef } from "react";
-import chatbotGirl from "../assets/chatbot-girl.png";
+import "./AdvikaAI.css";
 import botVideo from "../assets/bot-video.mp4";
+import avatar from "../assets/chatbot-girl.png";
 
 export default function AdvikaAI() {
-    const [open, setOpen] = useState(false);
     const [showVideo, setShowVideo] = useState(false);
+    const [showChat, setShowChat] = useState(false);
+
     const videoRef = useRef(null);
 
-    const handleOpen = () => {
-        setOpen(true);
-        setShowVideo(true);
+    const handleIconClick = () => {
+        setShowVideo(true);     // video show
 
         setTimeout(() => {
             if (videoRef.current) {
                 videoRef.current.play();
             }
-        }, 200);
+        }, 150);
     };
 
     const handleVideoEnd = () => {
         setShowVideo(false);
+        setShowChat(true);      // open chatbody
+    };
+
+    const handleCloseChat = () => {
+        setShowChat(false);
     };
 
     return (
-        <div className="absolute -bottom-[25px] right-[140px] z-[999] flex flex-col items-end gap-3">
+        <div className="advika-wrapper">
 
-            {/* CHAT PANEL */}
-            {open && (
-                <div className="w-[360px] h-[540px] bg-white rounded-3xl shadow-2xl border border-pink-200 overflow-hidden flex flex-col transition-all duration-500">
+            {/* VIDEO OUTSIDE CHATBODY (Floating Circle View) */}
+            {showVideo && (
+                <div className="w-[240px] h-[240px] bg-black rounded-full overflow-hidden shadow-2xl border-4 border-pink-400 z-[1000] flex items-center justify-center mb-5">
+                    <video
+                        ref={videoRef}
+                        src={botVideo}
+                        autoPlay
+                        playsInline
+                        onEnded={handleVideoEnd}
+                        className="w-full h-full object-cover"
+                    />
+                </div>
+            )}
 
-                    {/* HEADER */}
-                    <div className="bg-gradient-to-r from-pink-500 to-rose-400 text-white p-4 flex justify-between items-center">
-                        <div className="font-semibold text-lg">Advika AI</div>
-                        <button
-                            onClick={() => {
-                                setOpen(false);
-                                setShowVideo(false);
-                            }}
-                            className="text-white text-xl"
-                        >
-                            ✕
-                        </button>
+            {/* CHATBODY */}
+            {showChat && (
+                <div className="chat-container">
+
+                    <div className="chat-header">
+                        <span>✨ Advika AI</span>
+                        <button onClick={handleCloseChat}>✕</button>
                     </div>
 
-                    {/* VIDEO SECTION */}
-                    {showVideo ? (
-                        <div className="flex-1 flex items-center justify-center bg-pink-50">
-                            <video
-                                ref={videoRef}
-                                src={botVideo}
-                                autoPlay
-                                playsInline
-                                onEnded={handleVideoEnd}
-                                className="w-full h-full object-contain"
-                            />
+                    <div className="chat-body">
+
+                        <div className="bot-message">
+                            👋 Welcome to Bireena Atithi!
+                            <br />
+                            How can I assist you today?
                         </div>
-                    ) : (
-                        <>
-                            {/* MESSAGE AREA */}
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-pink-50">
 
-                                <div className="bg-white p-3 rounded-xl shadow text-sm w-fit max-w-[85%]">
-                                    👋 Welcome to Bireena Atithi!
-                                    How can I assist you today?
-                                </div>
+                        <div className="quick-options">
+                            <button>Make Reservation</button>
+                            <button>Order Food</button>
+                            <button>Pricing Information</button>
+                            <button>Table Booking</button>
+                            <button>About Bireena Atithi</button>
+                        </div>
 
-                                {/* QUICK OPTIONS */}
-                                <div className="space-y-2">
-                                    {[
-                                        "Make Reservation",
-                                        "Order Food",
-                                        "Pricing Information",
-                                        "Table Booking",
-                                        "About Bireena Atithi",
-                                    ].map((item, i) => (
-                                        <button
-                                            key={i}
-                                            className="w-full text-left px-4 py-2 rounded-lg bg-white hover:bg-pink-100 shadow-sm text-sm transition"
-                                        >
-                                            {item}
-                                        </button>
-                                    ))}
-                                </div>
+                    </div>
 
-                            </div>
+                    <div className="chat-input-wrapper">
+                        <div className="chat-input">
+                            <button className="mic">🎤</button>
+                            <input placeholder="Type a message..." />
+                            <button className="send">➤</button>
+                        </div>
+                    </div>
 
-                            {/* INPUT SECTION */}
-                            <div className="p-4 border-t border-pink-100 bg-white flex items-center gap-2">
-                                <button className="w-10 h-10 rounded-full bg-pink-500 text-white flex items-center justify-center">
-                                    🎤
-                                </button>
-
-                                <input
-                                    type="text"
-                                    placeholder="Type a message..."
-                                    className="flex-1 px-4 py-2 rounded-full border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 text-sm"
-                                />
-
-                                <button className="w-10 h-10 rounded-full bg-pink-500 text-white flex items-center justify-center">
-                                    ➤
-                                </button>
-                            </div>
-                        </>
-                    )}
                 </div>
             )}
 
             {/* BOT ICON */}
             <div
-                onClick={() => (open ? setOpen(false) : handleOpen())}
-                className="relative w-[65px] h-[65px] rounded-full bg-gradient-to-br from-pink-200 to-rose-300 shadow-xl flex items-center justify-center cursor-pointer hover:scale-105 transition duration-300"
+                className={`bot-icon transition-all duration-300 ${showChat ? "opacity-0 pointer-events-none scale-75" : "opacity-100 scale-100"
+                    }`}
+                onClick={handleIconClick}
             >
-                <img
-                    src={chatbotGirl}
-                    alt="Advika AI"
-                    className="w-[55px] h-[55px] rounded-full object-cover"
-                />
+                <img src={avatar} alt="Advika AI" />
             </div>
+
         </div>
     );
 }

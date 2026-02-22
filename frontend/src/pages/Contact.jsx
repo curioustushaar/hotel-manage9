@@ -3,7 +3,7 @@ import Reveal from "../components/Reveal";
 
 const Contact = () => {
     return (
-        <div style={{ paddingTop: "20px", paddingBottom: "100px", minHeight: "100vh", background: "#fff6f7" }}>
+        <div style={{ paddingTop: "20px", paddingBottom: "20px", minHeight: "100vh", background: "#fff6f7" }}>
             <div className="container" style={{ maxWidth: "1200px" }}>
                 <Reveal width="100%">
                     <h1 style={{ fontSize: "42px", fontWeight: "700", marginBottom: "20px", textAlign: "center" }}>

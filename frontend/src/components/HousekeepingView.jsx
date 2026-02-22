@@ -9,6 +9,7 @@ const HousekeepingView = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showToast, setShowToast] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
+    const [viewType, setViewType] = useState('list'); // 'list' or 'grid'
 
     // Fetch pending tasks on mount
     useEffect(() => {
@@ -94,58 +95,132 @@ const HousekeepingView = () => {
                     />
                     <span className="search-icon">🔍</span>
                 </div>
-                <button className="btn-refresh" onClick={fetchTasks} disabled={loading}>
-                    {loading ? '🔄 Loading...' : '🔄 Refresh List'}
-                </button>
+                <div className="view-controls">
+                    <div className="view-toggle">
+                        <button
+                            className={`view-btn ${viewType === 'grid' ? 'active' : ''}`}
+                            onClick={() => setViewType('grid')}
+                            title="Grid View"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                                <rect x="14" y="14" width="7" height="7" rx="1"/>
+                            </svg>
+                        </button>
+                        <button
+                            className={`view-btn ${viewType === 'list' ? 'active' : ''}`}
+                            onClick={() => setViewType('list')}
+                            title="List View"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="8" y1="6" x2="21" y2="6"/>
+                                <line x1="8" y1="12" x2="21" y2="12"/>
+                                <line x1="8" y1="18" x2="21" y2="18"/>
+                                <line x1="3" y1="6" x2="3.01" y2="6"/>
+                                <line x1="3" y1="12" x2="3.01" y2="12"/>
+                                <line x1="3" y1="18" x2="3.01" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <button className="btn-refresh" onClick={fetchTasks} disabled={loading}>
+                        {loading ? '🔄 Loading...' : '🔄 Refresh List'}
+                    </button>
+                </div>
             </div>
 
-            {/* Table */}
-            <div className="housekeeping-table-container">
-                <table className="housekeeping-table">
-                    <thead>
-                        <tr>
-                            <th>S.No</th>
-                            <th>Room No</th>
-                            <th>Status</th>
-                            <th>Requested At</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading ? (
+            {/* Table / Grid View */}
+            {viewType === 'list' ? (
+                <div className="housekeeping-table-container">
+                    <table className="housekeeping-table">
+                        <thead>
                             <tr>
-                                <td colSpan="5" className="no-data">Loading tasks...</td>
+                                <th>S.No</th>
+                                <th>Room No</th>
+                                <th>Status</th>
+                                <th>Requested At</th>
+                                <th>Action</th>
                             </tr>
-                        ) : filteredTasks.length > 0 ? (
-                            filteredTasks.map((task, index) => (
-                                <tr key={task._id}>
-                                    <td>{index + 1}</td>
-                                    <td className="room-no">{task.roomNumber}</td>
-                                    <td>
-                                        <span className="status-pill dirty">Needs Cleaning</span>
-                                    </td>
-                                    <td>{new Date(task.createdAt).toLocaleString()}</td>
-                                    <td>
-                                        <button
-                                            className="action-btn clean-btn"
-                                            onClick={() => handleMarkClean(task._id, task.roomNumber)}
-                                            title="Mark as Clean"
-                                        >
-                                            ✨ Mark Clean
-                                        </button>
+                        </thead>
+                        <tbody>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="5" className="no-data">Loading tasks...</td>
+                                </tr>
+                            ) : filteredTasks.length > 0 ? (
+                                filteredTasks.map((task, index) => (
+                                    <tr key={task._id}>
+                                        <td>{index + 1}</td>
+                                        <td className="room-no">{task.roomNumber}</td>
+                                        <td>
+                                            <span className="status-pill dirty">Needs Cleaning</span>
+                                        </td>
+                                        <td>{new Date(task.createdAt).toLocaleString()}</td>
+                                        <td>
+                                            <button
+                                                className="action-btn clean-btn"
+                                                onClick={() => handleMarkClean(task._id, task.roomNumber)}
+                                                title="Mark as Clean"
+                                            >
+                                                ✨ Mark Clean
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan="5" className="no-data">
+                                        {searchQuery ? 'No matching rooms found' : 'All rooms are clean! ✨'}
                                     </td>
                                 </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="5" className="no-data">
-                                    {searchQuery ? 'No matching rooms found' : 'All rooms are clean! ✨'}
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            ) : (
+                <div className="housekeeping-grid-container">
+                    {loading ? (
+                        <div className="grid-loading">Loading tasks...</div>
+                    ) : filteredTasks.length > 0 ? (
+                        filteredTasks.map((task, index) => (
+                            <div key={task._id} className="grid-card">
+                                <div className="card-header">
+                                    <div className="room-badge">Room {task.roomNumber}</div>
+                                    <span className="card-status dirty">Needs Cleaning</span>
+                                </div>
+                                <div className="card-body">
+                                    <div className="card-info">
+                                        <span className="info-label">S.No:</span>
+                                        <span className="info-value">{index + 1}</span>
+                                    </div>
+                                    <div className="card-info">
+                                        <span className="info-label">Requested:</span>
+                                        <span className="info-value">{new Date(task.createdAt).toLocaleString('en-US', { 
+                                            month: 'short', 
+                                            day: 'numeric', 
+                                            hour: '2-digit', 
+                                            minute: '2-digit' 
+                                        })}</span>
+                                    </div>
+                                </div>
+                                <div className="card-footer">
+                                    <button
+                                        className="card-action-btn"
+                                        onClick={() => handleMarkClean(task._id, task.roomNumber)}
+                                    >
+                                        ✨ Mark Clean
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="grid-empty">
+                            {searchQuery ? 'No matching rooms found' : 'All rooms are clean! ✨'}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Success Toast */}
             {showToast && (
