@@ -3,6 +3,7 @@
 // ==================== ROLE DEFINITIONS ====================
 export const ROLES = {
     SUPER_ADMIN: 'super_admin',
+    SUPERADMIN: 'superadmin',
     ADMIN: 'admin',
     MANAGER: 'manager',
     RECEPTIONIST: 'receptionist',
@@ -51,7 +52,18 @@ export const MODULES = {
     SUBSCRIPTION: 'subscription',
     VIEW_ORDER: 'view-order',
     RESERVATION_CARD: 'reservation-card',
-    FOOD_ORDER: 'food-order'
+    FOOD_ORDER: 'food-order',
+    REPORTS: 'reports',
+    REPORTS_SALES: 'reports-sales',
+    REPORTS_PAYMENTS: 'reports-payments',
+    REPORTS_ROOMS: 'reports-rooms',
+    REPORTS_KITCHEN: 'reports-kitchen',
+    REPORTS_INVENTORY: 'reports-inventory',
+    REPORTS_GST: 'reports-gst',
+    REPORTS_STAFF: 'reports-staff',
+    REPORTS_BILLING: 'reports-billing',
+    REPORTS_RESERVATIONS: 'reports-reservations',
+    REPORTS_ANALYTICS: 'reports-analytics'
 };
 
 // ==================== ACCESS MATRIX ====================
@@ -264,7 +276,29 @@ export const ACCESS_MATRIX = {
         [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
         [ROLES.WAITER]: [PERMISSIONS.FULL],
         [ROLES.STAFF]: [PERMISSIONS.VIEW]
-    }
+    },
+
+    // REPORTS (Parent)
+    [MODULES.REPORTS]: {
+        'super_admin': [PERMISSIONS.FULL],
+        'superadmin': [PERMISSIONS.FULL],
+        [ROLES.ADMIN]: [PERMISSIONS.FULL],
+        [ROLES.MANAGER]: [PERMISSIONS.VIEW],
+        [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
+        [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW],
+        [ROLES.STAFF]: [PERMISSIONS.VIEW]
+    },
+    // INDIVIDUAL REPORTS
+    [MODULES.REPORTS_SALES]: { 'super_admin': [PERMISSIONS.FULL], 'superadmin': [PERMISSIONS.FULL], [ROLES.ADMIN]: [PERMISSIONS.FULL], [ROLES.MANAGER]: [PERMISSIONS.VIEW], [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW] },
+    [MODULES.REPORTS_PAYMENTS]: { 'super_admin': [PERMISSIONS.FULL], 'superadmin': [PERMISSIONS.FULL], [ROLES.ADMIN]: [PERMISSIONS.FULL], [ROLES.MANAGER]: [PERMISSIONS.VIEW], [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW] },
+    [MODULES.REPORTS_ROOMS]: { 'super_admin': [PERMISSIONS.FULL], 'superadmin': [PERMISSIONS.FULL], [ROLES.ADMIN]: [PERMISSIONS.FULL], [ROLES.MANAGER]: [PERMISSIONS.VIEW], [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW] },
+    [MODULES.REPORTS_KITCHEN]: { 'super_admin': [PERMISSIONS.FULL], 'superadmin': [PERMISSIONS.FULL], [ROLES.ADMIN]: [PERMISSIONS.FULL], [ROLES.MANAGER]: [PERMISSIONS.VIEW] },
+    [MODULES.REPORTS_INVENTORY]: { 'super_admin': [PERMISSIONS.FULL], 'superadmin': [PERMISSIONS.FULL], [ROLES.ADMIN]: [PERMISSIONS.FULL], [ROLES.MANAGER]: [PERMISSIONS.VIEW] },
+    [MODULES.REPORTS_GST]: { 'super_admin': [PERMISSIONS.FULL], 'superadmin': [PERMISSIONS.FULL], [ROLES.ADMIN]: [PERMISSIONS.FULL], [ROLES.ACCOUNTANT]: [PERMISSIONS.FULL] },
+    [MODULES.REPORTS_STAFF]: { 'super_admin': [PERMISSIONS.FULL], 'superadmin': [PERMISSIONS.FULL], [ROLES.ADMIN]: [PERMISSIONS.FULL], [ROLES.MANAGER]: [PERMISSIONS.VIEW] },
+    [MODULES.REPORTS_BILLING]: { 'super_admin': [PERMISSIONS.FULL], 'superadmin': [PERMISSIONS.FULL], [ROLES.ADMIN]: [PERMISSIONS.FULL], [ROLES.MANAGER]: [PERMISSIONS.VIEW], [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW] },
+    [MODULES.REPORTS_RESERVATIONS]: { 'super_admin': [PERMISSIONS.FULL], 'superadmin': [PERMISSIONS.FULL], [ROLES.ADMIN]: [PERMISSIONS.FULL], [ROLES.MANAGER]: [PERMISSIONS.VIEW], [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW] },
+    [MODULES.REPORTS_ANALYTICS]: { 'super_admin': [PERMISSIONS.FULL], 'superadmin': [PERMISSIONS.FULL], [ROLES.ADMIN]: [PERMISSIONS.FULL], [ROLES.MANAGER]: [PERMISSIONS.VIEW] }
 };
 
 // ==================== SUBSCRIPTION TIERS ====================
@@ -307,7 +341,9 @@ export const SUBSCRIPTION_FEATURES = {
         analytics: true,
         qrGeneration: true,
         kotSystem: true,
-        basicReports: true
+        basicReports: true,
+        advancedReports: true,
+        analytics: true
     }
 };
 
@@ -339,7 +375,8 @@ export const hasPermission = (user, module, permission) => {
             [MODULES.RESERVATION_CARD]: 'Reservation Card',
             [MODULES.FOOD_ORDER]: 'Food Order',
             [MODULES.PROPERTY_SETUP]: 'Property Setup',
-            [MODULES.PROPERTY_CONFIG]: 'Property Configuration'
+            [MODULES.PROPERTY_CONFIG]: 'Property Configuration',
+            [MODULES.REPORTS]: 'Reports'
         };
 
         const permissionLabel = moduleLabelMap[module];
@@ -387,7 +424,8 @@ export const hasModuleAccess = (user, module) => {
             [MODULES.CASHIER_LOGS]: 'Cashier Logs',
             [MODULES.PAYMENT_LOGS]: 'Payment Logs',
             [MODULES.PROPERTY_SETUP]: 'Property Setup',
-            [MODULES.PROPERTY_CONFIG]: 'Property Configuration'
+            [MODULES.PROPERTY_CONFIG]: 'Property Configuration',
+            [MODULES.REPORTS]: 'Reports'
         };
 
         const staffPermissionLabel = moduleLabelMap[module];

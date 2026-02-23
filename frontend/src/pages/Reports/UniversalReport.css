@@ -1,0 +1,444 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+.report-container {
+    background: linear-gradient(to bottom, #fff5f5, #ffffff);
+    /* Halka Pink like payment logs */
+    min-height: 100vh;
+    padding-bottom: 30px;
+    font-family: 'Inter', sans-serif;
+}
+
+/* HEADER STYLES */
+.report-header {
+    background: #fff5f5;
+    /* Theme pink background */
+    padding: 20px 40px;
+    border-bottom: 1px solid #fee2e2;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-top h1 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+}
+
+.btn-generate-top {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+}
+
+.btn-generate-top:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
+
+/* FILTERS ROW */
+.header-filters-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.date-filter-group {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.filter-item label {
+    font-size: 10px;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.filter-item input {
+    padding: 8px 14px;
+    border: 1px solid #fee2e2;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #1e293b;
+    outline: none;
+    background: #ffffff;
+}
+
+.date-separator {
+    color: #cbd5e1;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+/* TABS */
+.report-tabs-outer {
+    margin-top: 10px;
+}
+
+.report-tabs {
+    display: flex;
+    gap: 8px;
+    background: #ffffff;
+    padding: 4px;
+    border-radius: 10px;
+    width: fit-content;
+    border: 1px solid #fee2e2;
+}
+
+.report-tab {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.report-tab.active {
+    background: #fff1f2;
+    color: #d32f2f;
+    box-shadow: 0 2px 4px rgba(211, 47, 47, 0.05);
+}
+
+/* CONTENT GRID */
+.report-content {
+    width: 100%;
+    /* Full screen width */
+    max-width: 100%;
+    margin: 20px 0;
+    padding: 0 40px;
+}
+
+/* STAT CARDS */
+.report-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    /* Reduced gap */
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background: white;
+    padding: 16px 20px;
+    /* Reduced padding */
+    border-radius: 12px;
+    border: 1px solid #fee2e2;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.stat-value {
+    font-size: 20px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 2px 0;
+}
+
+.stat-sub {
+    font-size: 10px;
+    color: #94a3b8;
+}
+
+/* SUMMARY OVERVIEW */
+.summary-overview-section {
+    background: white;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid #fee2e2;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.overview-sub-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.overview-sub-card {
+    background: #ffffff;
+    padding: 16px 20px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border: 1px solid #f1f5f9;
+    transition: all 0.2s;
+}
+
+.overview-sub-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.overview-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.overview-icon-box.green-icon {
+    background: #10b981;
+    color: white;
+}
+
+.overview-icon-box.pink-icon {
+    background: #fff1f2;
+    color: #ef4444;
+}
+
+.overview-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.overview-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.overview-huge-value {
+    font-size: 22px;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.overview-subtext {
+    font-size: 10px;
+    color: #94a3b8;
+}
+
+.overview-count {
+    font-size: 11px;
+    color: #475569;
+    font-weight: 600;
+}
+
+/* TRANSACTION BREAKDOWN */
+.transaction-breakdown-section {
+    background: white;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid #fee2e2;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.breakdown-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+.breakdown-column h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.breakdown-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.breakdown-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.breakdown-item:hover {
+    background: #ffffff;
+    border-color: #e2e8f0;
+}
+
+.item-icon {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    margin-right: 12px;
+}
+
+.breakdown-item.received .item-icon {
+    color: #10b981;
+}
+
+.breakdown-item.made .item-icon {
+    color: #ef4444;
+}
+
+.item-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #475569;
+    flex: 1;
+}
+
+.item-value {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.breakdown-item.received .item-value {
+    color: #10b981;
+}
+
+.breakdown-item.made .item-value {
+    color: #ef4444;
+}
+
+/* TABLE CARD */
+.report-data-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #fee2e2;
+    overflow: hidden;
+    margin-top: 15px;
+}
+
+.report-table th {
+    background: #fff5f5;
+    padding: 12px 20px;
+    font-size: 10px;
+    color: #991b1b;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #fee2e2;
+}
+
+.report-table td {
+    padding: 12px 20px;
+    font-size: 13px;
+    border-bottom: 1px solid #fff5f5;
+}
+
+.report-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+}
+
+.report-actions button {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+}
+
+.control-group-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.control-group-header label {
+    font-size: 9px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+}
+
+.control-group-header select {
+    padding: 6px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #1e293b;
+    outline: none;
+    background: #f8fafc;
+    min-width: 130px;
+}
+
+@media (max-width: 1024px) {
+    .report-stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+
+    .report-stats-grid,
+    .overview-cards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .header-top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+}
