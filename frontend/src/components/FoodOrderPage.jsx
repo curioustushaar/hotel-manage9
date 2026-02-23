@@ -114,7 +114,8 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
             price: item.price,
             quantityAvailable: item.quantity !== undefined ? item.quantity : 0,
             status: item.status,
-            description: item.description
+            description: item.description,
+            image: item.image || null
         }));
 
         // Priority 1: Search by Name
@@ -684,16 +685,35 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                                             className={`pos-food-card ${inCartQty > 0 ? 'has-qty' : ''} ${isOutOfStock ? 'out-of-stock' : ''}`}
                                             onClick={() => !isOutOfStock && addToCart(item)}
                                         >
-                                            <div className="pos-card-code">#{item.code || item.id.substring(0, 6)}</div>
-                                            {inCartQty > 0 && (
-                                                <div className="pos-card-badge">Qty: {inCartQty}</div>
-                                            )}
-                                            {isOutOfStock && (
-                                                <div className="out-of-stock-badge">Out of Stock</div>
-                                            )}
-                                            <div className="pos-card-content">
-                                                <div className="pos-card-name">{item.name}</div>
+                                            {/* Food Image */}
+                                            <div className="pos-card-image-wrapper">
+                                                {item.image ? (
+                                                    <img
+                                                        src={`${API_URL_CONFIG}${item.image}`}
+                                                        alt={item.name}
+                                                        className="pos-card-image"
+                                                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                                                    />
+                                                ) : null}
+                                                <div className="pos-card-image-placeholder" style={item.image ? { display: 'none' } : {}}>
+                                                    <span>🍽️</span>
+                                                </div>
+                                                {inCartQty > 0 && (
+                                                    <div className="pos-card-badge">Qty: {inCartQty}</div>
+                                                )}
+                                                {isOutOfStock && (
+                                                    <div className="out-of-stock-badge">Out of Stock</div>
+                                                )}
                                             </div>
+                                            {/* Card Body */}
+                                            <div className="pos-card-body">
+                                                <div className="pos-card-code">#{item.code || item.id.substring(0, 6)}</div>
+                                                <div className="pos-card-name">{item.name}</div>
+                                                {item.description && (
+                                                    <div className="pos-card-description">{item.description}</div>
+                                                )}
+                                            </div>
+                                            {/* Card Footer */}
                                             <div className="pos-card-footer">
                                                 <div className="pos-card-qty-available">
                                                     {isOutOfStock ? 'Unavailable' : 'Available'}
