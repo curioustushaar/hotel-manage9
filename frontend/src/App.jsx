@@ -1,3 +1,4 @@
+import React, { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -75,6 +76,19 @@ const AppRoutes = () => {
   const isAdminRoute = location.pathname.startsWith('/admin') ||
     location.pathname.startsWith('/super-admin') ||
     location.pathname.startsWith('/secure-owner-login');
+
+  // Manage body class for scrolling behavior
+  useEffect(() => {
+    if (isAdminRoute) {
+      document.body.classList.remove('public-page');
+    } else {
+      document.body.classList.add('public-page');
+    }
+
+    return () => {
+      document.body.classList.remove('public-page');
+    };
+  }, [isAdminRoute]);
 
   return (
     <div className="App">
