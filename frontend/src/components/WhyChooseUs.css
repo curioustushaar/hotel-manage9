@@ -37,14 +37,14 @@
     max-width: 95%;
     margin: auto;
     margin-bottom: -64px;
-    min-height: 580px;
+    min-height: 650px;
 }
 
 /* 4️⃣ C CENTER (BIGGER NOW) */
 .c-center {
     position: absolute;
-    width: 520px;
-    /* increased */
+    width: 650px;
+    /* increased from 580px */
     height: auto;
     left: 50%;
     transform: translateX(-50%);
@@ -95,30 +95,29 @@
 
 /* 6️⃣ RIGHT SIDE CARDS */
 .card-top-right {
-    top: 15px;
-    right: 0px;
+    top: 5px;
+    right: -40px;
     width: 290px;
     margin-top: -100px;
 }
 
 .card-bottom-right {
     bottom: 80px;
-    right: 0px;
+    right: -60px;
     height: auto;
     width: 350px;
-    margin-right: -30px;
 }
 
 /* 7️⃣ LEFT SIDE CARDS */
 .card-top-left {
-    top: 15px;
-    left: 0px;
+    top: 5px;
+    left: -40px;
     margin-top: -100px;
 }
 
 .card-bottom-left {
     bottom: 80px;
-    left: 0px;
+    left: -40px;
 }
 
 /* 8️⃣ BOTTOM CENTER CARD */
