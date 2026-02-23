@@ -1,0 +1,311 @@
+/* ─────────────────────────────────────────────
+   Contact Page – Two Cards Only
+───────────────────────────────────────────── */
+
+/* ── TWO-COLUMN GRID ── */
+.contact-cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.25fr;
+    gap: 32px;
+    max-width: 1100px;
+    margin: 0 auto 60px;
+    align-items: start;
+}
+
+/* ─────────────────────────
+   LEFT: CONTACT INFO CARD
+───────────────────────── */
+.c-info-card {
+    position: relative;
+    background: linear-gradient(135deg,
+            #c11e38 0%,
+            #e11d48 55%,
+            #f87491 85%,
+            #ffd6de 100%);
+    border-radius: 24px;
+    padding: 44px 36px;
+    overflow: hidden;
+    color: #fff;
+    box-shadow:
+        0 24px 56px rgba(225, 29, 72, 0.35),
+        0 6px 20px rgba(0, 0, 0, 0.18);
+    min-height: 480px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+
+/* Glowing blob top-right */
+.c-info-card::before {
+    content: "";
+    position: absolute;
+    top: -70px;
+    right: -70px;
+    width: 230px;
+    height: 230px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.25), transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+/* Decorative circle bottom-left */
+.c-info-card::after {
+    content: "";
+    position: absolute;
+    bottom: -50px;
+    left: -50px;
+    width: 170px;
+    height: 170px;
+    background: rgba(225, 29, 72, 0.12);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.c-info-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 6px;
+    position: relative;
+}
+
+.c-info-sub {
+    font-size: 13.5px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 36px;
+    position: relative;
+}
+
+.c-info-items {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    position: relative;
+    flex: 1;
+}
+
+.c-info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.c-info-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    transition: background 0.25s;
+}
+
+.c-info-item:hover .c-info-icon {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.c-info-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 3px;
+}
+
+.c-info-value {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.78);
+    line-height: 1.65;
+    margin: 0;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+a.c-info-value:hover {
+    color: #fda4af;
+}
+
+.c-info-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 28px 0 24px;
+    position: relative;
+}
+
+.c-social-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
+    margin-bottom: 14px;
+    position: relative;
+}
+
+.c-social-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    position: relative;
+}
+
+.c-social-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: all 0.25s ease;
+}
+
+.c-social-btn:hover {
+    background: #ffffff;
+    border-color: #ffffff;
+    color: #f87491;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(255, 255, 255, 0.35);
+}
+
+
+/* ─────────────────────────
+   RIGHT: FORM CARD
+───────────────────────── */
+.c-form-card {
+    background: #fff;
+    border-radius: 24px;
+    padding: 30px 32px;
+    box-shadow:
+        0 16px 48px rgba(0, 0, 0, 0.07),
+        0 3px 10px rgba(225, 29, 72, 0.05);
+    border: 1px solid rgba(225, 29, 72, 0.07);
+}
+
+.c-form-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #1a0a10;
+    margin-bottom: 6px;
+}
+
+.c-form-sub {
+    font-size: 13.5px;
+    color: #9ca3af;
+    margin-bottom: 20px;
+}
+
+/* Fields */
+.c-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.c-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.c-field label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    transition: color 0.2s;
+}
+
+.c-field:focus-within label {
+    color: #e11d48;
+}
+
+.c-field input,
+.c-field textarea {
+    padding: 9px 13px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 11px;
+    font-size: 14px;
+    color: #1a0a10;
+    background: #fafafa;
+    outline: none;
+    transition: all 0.22s ease;
+    font-family: inherit;
+    box-sizing: border-box;
+    resize: vertical;
+    width: 100%;
+}
+
+.c-field input::placeholder,
+.c-field textarea::placeholder {
+    color: #d1d5db;
+}
+
+.c-field input:focus,
+.c-field textarea:focus {
+    border-color: #e11d48;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.09);
+}
+
+.c-field textarea {
+    min-height: 72px;
+}
+
+/* Send button */
+.c-send-btn {
+    width: 100%;
+    padding: 11px 24px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #e11d48, #f43f6e);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: all 0.28s ease;
+    box-shadow: 0 8px 22px rgba(225, 29, 72, 0.32);
+    margin-top: 4px;
+    font-family: inherit;
+}
+
+.c-send-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 30px rgba(225, 29, 72, 0.42);
+    background: linear-gradient(135deg, #c8173f, #e11d48);
+}
+
+.c-send-btn:active {
+    transform: translateY(0);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 860px) {
+    .contact-cards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .c-info-card {
+        min-height: unset;
+    }
+}
+
+@media (max-width: 480px) {
+
+    .c-info-card,
+    .c-form-card {
+        padding: 28px 20px;
+    }
+}

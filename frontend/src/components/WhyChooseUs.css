@@ -37,7 +37,7 @@
     max-width: 95%;
     margin: auto;
     margin-bottom: -64px;
-    min-height: 650px;
+    min-height: 580px;
 }
 
 /* 4️⃣ C CENTER (BIGGER NOW) */
@@ -95,9 +95,10 @@
 
 /* 6️⃣ RIGHT SIDE CARDS */
 .card-top-right {
-    top: 0px;
+    top: 15px;
     right: 0px;
     width: 290px;
+    margin-top: -100px;
 }
 
 .card-bottom-right {
@@ -105,12 +106,14 @@
     right: 0px;
     height: auto;
     width: 350px;
+    margin-right: -30px;
 }
 
 /* 7️⃣ LEFT SIDE CARDS */
 .card-top-left {
-    top: 0px;
+    top: 15px;
     left: 0px;
+    margin-top: -100px;
 }
 
 .card-bottom-left {

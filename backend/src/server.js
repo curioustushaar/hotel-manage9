@@ -132,6 +132,10 @@ app.use('/api/bed-types', bedTypeRoutes);
 app.use('/api/floors', floorRoutes);
 app.use('/api/pricing', pricingRoutes);
 
+const chatbotRoutes = require('./routes/chatbotRoutes');
+app.use('/api/chatbot', chatbotRoutes);
+
+
 const roomFacilityTypeRoutes = require('./routes/roomFacilityTypeRoutes');
 app.use('/api/facility-types', roomFacilityTypeRoutes);
 const mealTypeRoutes = require('./routes/mealTypeRoutes');

@@ -1,5 +1,4 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { useEffect } from 'react'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import { MODULES, ROLES } from './config/rbac'
@@ -29,7 +28,6 @@ import HotelsManagement from './pages/SuperAdmin/HotelsManagement'
 import CreateHotel from './pages/SuperAdmin/CreateHotel'
 import HotelDetails from './pages/SuperAdmin/HotelDetails'
 import SuperAdminLogin from './pages/SuperAdmin/SuperAdminLogin'
-import ActivityLogs from './pages/SuperAdmin/ActivityLogs'
 import QRScanPage from './pages/QRScan/QRScanPage'
 import FoodOrderPage from './components/FoodOrderPage'
 import About from './pages/About'
@@ -51,40 +49,14 @@ function HomePageContent() {
         <Hero />
       </Reveal>
 
-      <Reveal delay={0.1}>
-        <FloatingDashboard />
-      </Reveal>
+
 
       <Reveal width="100%">
         <WhyChooseUs />
       </Reveal>
 
       <Reveal width="100%">
-        <ThreeColumnFeatures />
-      </Reveal>
-
-      <Reveal width="100%">
-        <FeaturesList />
-      </Reveal>
-
-      <Reveal width="100%">
-        <OutletTypes />
-      </Reveal>
-
-      <Reveal width="100%">
-        <Integrations />
-      </Reveal>
-
-      <Reveal width="100%">
-        <Marketplace />
-      </Reveal>
-
-      <Reveal width="100%">
         <ServicesSection />
-      </Reveal>
-
-      <Reveal width="100%">
-        <Ratings />
       </Reveal>
 
       <Reveal width="100%">
@@ -103,19 +75,6 @@ const AppRoutes = () => {
   const isAdminRoute = location.pathname.startsWith('/admin') ||
     location.pathname.startsWith('/super-admin') ||
     location.pathname.startsWith('/secure-owner-login');
-
-  // Manage body class for scrolling behavior
-  useEffect(() => {
-    if (isAdminRoute) {
-      document.body.classList.remove('public-page');
-    } else {
-      document.body.classList.add('public-page');
-    }
-
-    return () => {
-      document.body.classList.remove('public-page');
-    };
-  }, [isAdminRoute]);
 
   return (
     <div className="App">
@@ -159,11 +118,6 @@ const AppRoutes = () => {
           <Route path="/super-admin/hotels/:id" element={
             <ProtectedRoute module={MODULES.SUPER_ADMIN_DASHBOARD}>
               <HotelDetails />
-            </ProtectedRoute>
-          } />
-          <Route path="/super-admin/activity-logs" element={
-            <ProtectedRoute module={MODULES.SUPER_ADMIN_DASHBOARD}>
-              <ActivityLogs />
             </ProtectedRoute>
           } />
 
@@ -229,12 +183,7 @@ const AppRoutes = () => {
             </ProtectedRoute>
           } />
           <Route path="/admin/view-order" element={
-            <ProtectedRoute module={MODULES.VIEW_ORDER}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/reservation-card" element={
-            <ProtectedRoute module={MODULES.RESERVATION_CARD}>
+            <ProtectedRoute module={MODULES.GUEST_MEAL_SERVICE}>
               <AdminDashboard />
             </ProtectedRoute>
           } />
@@ -279,31 +228,13 @@ const AppRoutes = () => {
           <Route path="/admin/booking-source" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/business-source" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/maintenance-block" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/table-management" element={
-            <ProtectedRoute module={MODULES.PROPERTY_CONFIG}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/company-settings" element={
-            <ProtectedRoute module={MODULES.PROPERTY_CONFIG}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/food-order" element={
-            <ProtectedRoute module={MODULES.FOOD_ORDER}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/staff/food-order" element={
-            <ProtectedRoute module={MODULES.FOOD_ORDER}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
+          <Route path="/admin/table-management" element={<ProtectedRoute module={MODULES.PROPERTY_CONFIG}><AdminDashboard /></ProtectedRoute>} />
 
           {/* Other Routes */}
           <Route path="/scan-qr/:roomId" element={<QRScanPage />} />
           <Route path="/qr-scan/:hotelId/:tableId" element={<QRScanPage />} />
-
+          <Route path="/food-order" element={<FoodOrderPage />} />
+          <Route path="/order" element={<FoodOrderPage />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
