@@ -60,6 +60,10 @@ const GuestMealService = () => {
             .blink-yellow-real { background-color: #fbbf24; box-shadow: 0 0 10px #fbbf24; }
             .blink-red-real { background-color: #ef4444; box-shadow: 0 0 10px #ef4444; }
             .blink-green-real { background-color: #22c55e; box-shadow: 0 0 10px #22c55e; }
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
         `;
         document.head.appendChild(style);
         return () => document.head.removeChild(style);
@@ -105,7 +109,8 @@ const GuestMealService = () => {
         startTime: '',
         endTime: '',
         guests: '',
-        phone: ''
+        phone: '',
+        advancePayment: 0
     });
 
     // Merge Table State
@@ -142,6 +147,14 @@ const GuestMealService = () => {
         revenue: 0,
         upcomingCount: 0
     });
+
+    // Time Availability Filter State
+    const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+    const [filterTime, setFilterTime] = useState(new Date().toTimeString().slice(0, 5));
+    // Persisted "Applied" filters
+    const [appliedDate, setAppliedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [appliedTime, setAppliedTime] = useState(new Date().toTimeString().slice(0, 5));
+    const [isTimeFilterActive, setIsTimeFilterActive] = useState(false);
 
     // Fetch tables on mount
     useEffect(() => {
@@ -180,7 +193,10 @@ const GuestMealService = () => {
 
     const handleSendToCashier = async (e, table) => {
         e.stopPropagation();
-        if (!table.currentOrderId) return;
+        if (!table.currentOrderId) {
+            showToast('No Order', 'This table has no active order to send.');
+            return;
+        }
 
         // Prevent sending if already sent (pending payment/billed)
         if (table.status === 'Billed' || table.orderStatus === 'Pending Payment') {
@@ -189,11 +205,12 @@ const GuestMealService = () => {
         }
 
         try {
-            // Use table.currentOrderId._id if populated, or table.currentOrderId if string (though likely populated based on previous context)
             const orderId = table.currentOrderId._id || table.currentOrderId;
 
+            console.log(`Sending order ${orderId} to cashier...`);
             const response = await fetch(`${API_URL}/api/guest-meal/orders/${orderId}/send-to-cashier`, {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
             });
             const data = await response.json();
 
@@ -201,12 +218,13 @@ const GuestMealService = () => {
                 showToast('Send Successful', 'Bill sent to cashier');
                 fetchTables(); // Refresh UI
 
-                // Immediately navigate to Cashier Section
-                navigate('/admin/dashboard', {
+                console.log('Navigation state:', { activeMenu: 'cashier-section', refresh: true });
+                // Navigate to cashier section directly
+                navigate('/admin/cashier-section', {
                     state: { activeMenu: 'cashier-section', refresh: true }
                 });
             } else {
-                alert('Failed to send: ' + data.message);
+                showToast('Send Failed', data.message || 'Error occurred');
             }
         } catch (error) {
             console.error('Error sending to cashier:', error);
@@ -287,7 +305,31 @@ const GuestMealService = () => {
         } else if (action === 'Reservation List') {
             openReservationListModal(table);
         } else if (action === 'Walk-in') {
-            handleTableClick(table);
+            const handleWalkIn = async () => {
+                const guestCount = prompt("Number of guests?", table.capacity) || table.capacity;
+                try {
+                    const targetId = table.tableId || table._id;
+                    const response = await fetch(`${API_URL}/api/guest-meal/tables/${targetId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            status: 'Occupied',
+                            currentOrderGuestCount: guestCount,
+                            currentOrderGuestName: 'Walk-in'
+                        })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        setTables(prev => prev.map(t => (t.tableId || t._id) === targetId ? {
+                            ...data.data,
+                            tableId: data.data._id || data.data.tableId
+                        } : t));
+                    }
+                } catch (err) {
+                    console.error("Walk-in error:", err);
+                }
+            };
+            handleWalkIn();
         } else if (action === 'Release Table') {
             handleReleaseTable(table);
         } else if (action === 'Create Order' || action === 'Continue' || action === 'View Bill') {
@@ -301,62 +343,88 @@ const GuestMealService = () => {
     };
 
     // Verify User Logic
-    const openVerifyModal = (table) => {
-        setVerifyTableId(table.tableId);
+    const openVerifyModal = (table = null) => {
+        setVerifyTableId(table ? table.tableId : null);
         setVerifyPhoneInput('');
         setShowVerifyModal(true);
     };
 
     const handleVerifyUser = async () => {
-        const table = tables.find(t => t.tableId === verifyTableId);
-        if (!table || !table.reservation) {
-            alert("No reservation found for this table.");
-            setShowVerifyModal(false);
+        let tableToVerify = null;
+        let matchedReservation = null;
+
+        if (verifyTableId) {
+            tableToVerify = tables.find(t => t.tableId === verifyTableId);
+            matchedReservation = tableToVerify?.reservation;
+        } else {
+            // Global Search across all tables
+            for (const t of tables) {
+                const match = (t.reservations || []).find(r => r.phone === verifyPhoneInput);
+                if (match) {
+                    tableToVerify = t;
+                    matchedReservation = match;
+                    break;
+                }
+            }
+        }
+
+        if (!tableToVerify || !matchedReservation) {
+            alert("No matching reservation found for this phone number.");
             return;
         }
 
-        if (table.reservation.phone === verifyPhoneInput) {
-            // Verified! Open table for this guest
+        if (matchedReservation.phone === verifyPhoneInput) {
+            // Verified! Just seat the guest as 'Occupied'
             setShowVerifyModal(false);
 
-            // Proceed to open table (same logic as handleTableClick but explicit)
             try {
-                const response = await fetch(`${API_URL}/api/guest-meal/tables/${table.tableId}`, {
+                const targetId = tableToVerify.tableId || tableToVerify._id;
+                const response = await fetch(`${API_URL}/api/guest-meal/tables/${targetId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'Running' })
+                    body: JSON.stringify({
+                        status: 'Occupied',
+                        currentOrderGuestName: matchedReservation.name,
+                        currentOrderGuestPhone: matchedReservation.phone,
+                        currentOrderGuestCount: matchedReservation.guests
+                    })
                 });
 
                 const data = await response.json();
-                if (!data.success) {
-                    alert("Failed to update status. Please try again.");
-                    return;
-                }
+                if (data.success) {
+                    setTables(prev => prev.map(t => (t.tableId || t._id) === targetId ? {
+                        ...data.data,
+                        tableId: data.data._id || data.data.tableId
+                    } : t));
 
-                // Update local state
-                setTables(prev => prev.map(t => t.tableId === table.tableId ? { ...t, status: 'Running' } : t));
+                    setToast({
+                        show: true,
+                        message: "Guest Verified",
+                        subtext: `${matchedReservation.name} seated at Table ${tableToVerify.tableName}`
+                    });
+                    setTimeout(() => setToast({ show: false, message: '', subtext: '' }), 3000);
+                    // Update local state to Occupied (Guest is seated/verified but hasn't ordered yet)
+                    setTables(prev => prev.map(t => (t.tableId === tableToVerify.tableId || t._id === tableToVerify._id) ? { ...t, status: 'Occupied' } : t));
 
-                // Navigate with guest details
-                const dummyOrderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                navigate('/admin/dashboard', {
-                    state: {
-                        activeMenu: 'food-order-pos',
-                        orderMode: 'dinein',
-                        room: {
-                            roomNumber: table.tableName,
-                            guestName: table.reservation.name,
-                            guestPhone: table.reservation.phone,
-                            id: table.tableId
+                    // Navigate with guest details
+                    navigate('/admin/dashboard', {
+                        state: {
+                            activeMenu: 'food-order',
+                            orderMode: 'dinein',
+                            source: 'table-order',
+                            room: {
+                                roomNumber: tableToVerify.tableName,
+                                guestName: matchedReservation.name,
+                                guestPhone: matchedReservation.phone,
+                                id: tableToVerify.tableId || tableToVerify._id
+                            }
                         }
-                    }
-                });
-
+                    });
+                }
             } catch (error) {
                 console.error("Error verifying user:", error);
                 alert("Network error during verification.");
             }
-        } else {
-            alert("Phone number does not match reservation.");
         }
     };
 
@@ -491,20 +559,37 @@ const GuestMealService = () => {
                 endTime: reservation.endTime,
                 guests: reservation.guests,
                 phone: reservation.phone,
-                note: reservation.note || ''
+                note: reservation.note || '',
+                advancePayment: reservation.advancePayment || 0
             });
         } else {
             const now = new Date();
             const currentHour = now.getHours();
-            const nextHour = currentHour + 1;
+            const currentMin = now.getMinutes();
+            const startTimeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMin).padStart(2, '0')}`;
+
+            // Calculate automatic duration
+            // Morning: 04:00 - 10:59 (60 mins), Lunch: 11:00 - 16:59 (90 mins), Dinner: 17:00 onwards (120 mins)
+            let durationMins = 60; // Default Morning
+            if (currentHour >= 17 || currentHour < 4) {
+                durationMins = 120; // Dinner
+            } else if (currentHour >= 11) {
+                durationMins = 90; // Lunch
+            } else {
+                durationMins = 60; // Morning
+            }
+
+            const endDate = new Date(now.getTime() + durationMins * 60000);
+            const endTimeStr = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
 
             setReserveFormData({
                 name: '',
                 date: new Date().toISOString().split('T')[0],
-                startTime: `${String(currentHour).padStart(2, '0')}:00`,
-                endTime: `${String(nextHour).padStart(2, '0')}:00`,
+                startTime: startTimeStr,
+                endTime: endTimeStr,
                 guests: table.capacity, // Default to capacity
-                phone: ''
+                phone: '',
+                advancePayment: 0
             });
         }
         setShowReserveModal(true);
@@ -587,7 +672,8 @@ const GuestMealService = () => {
                 payload = { newReservation };
             }
 
-            const response = await fetch(`${API_URL}/api/guest-meal/tables/${reserveTargetTable.tableId}`, {
+            const targetId = reserveTargetTable.tableId || reserveTargetTable._id;
+            const response = await fetch(`${API_URL}/api/guest-meal/tables/${targetId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -595,9 +681,15 @@ const GuestMealService = () => {
 
             const data = await response.json();
             if (data.success) {
-                setTables(prev => prev.map(t => t.tableId === reserveTargetTable.tableId ? data.data : t));
-                if (reservationListTable && reservationListTable.tableId === reserveTargetTable.tableId) {
-                    setReservationListTable(data.data);
+                // Ensure data from server is augmented for frontend state consistency
+                const updatedTable = {
+                    ...data.data,
+                    tableId: data.data._id || data.data.tableId
+                };
+
+                setTables(prev => prev.map(t => (t.tableId || t._id) === targetId ? updatedTable : t));
+                if (reservationListTable && (reservationListTable.tableId || reservationListTable._id) === targetId) {
+                    setReservationListTable(updatedTable);
                 }
                 setShowReserveModal(false);
             } else {
@@ -610,10 +702,9 @@ const GuestMealService = () => {
     };
 
     const handleCancelReservation = async (table, reservationId) => {
-        // removed prompt
-
+        const targetId = table.tableId || table._id;
         try {
-            const response = await fetch(`${API_URL}/api/guest-meal/tables/${table.tableId}`, {
+            const response = await fetch(`${API_URL}/api/guest-meal/tables/${targetId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ removeReservationId: reservationId })
@@ -622,7 +713,7 @@ const GuestMealService = () => {
             const data = await response.json();
             if (data.success) {
                 setTables(prev => prev.map(t => {
-                    if (t.tableId === table.tableId) {
+                    if ((t.tableId || t._id) === targetId) {
                         return {
                             ...t,
                             reservations: (t.reservations || []).filter(r => r.id !== reservationId)
@@ -631,7 +722,7 @@ const GuestMealService = () => {
                     return t;
                 }));
                 // Also update the local reservationListTable if it's the same table
-                if (reservationListTable && reservationListTable.tableId === table.tableId) {
+                if (reservationListTable && (reservationListTable.tableId || reservationListTable._id) === targetId) {
                     setReservationListTable(prev => ({
                         ...prev,
                         reservations: (prev.reservations || []).filter(r => r.id !== reservationId)
@@ -677,7 +768,7 @@ const GuestMealService = () => {
                 // Navigate to POS with the updated table info
                 navigate('/admin/dashboard', {
                     state: {
-                        activeMenu: 'food-order-pos',
+                        activeMenu: 'food-order',
                         orderMode: 'dinein',
                         room: {
                             roomNumber: data.data.tableName,
@@ -707,6 +798,24 @@ const GuestMealService = () => {
         if (!closeTableData) return;
 
         try {
+            // Step 1: Close the order if it exists
+            if (closeTableData.currentOrderId) {
+                const orderId = closeTableData.currentOrderId._id || closeTableData.currentOrderId;
+                try {
+                    const closeOrderResponse = await fetch(`${API_URL}/api/guest-meal/orders/${orderId}/close`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const closeOrderData = await closeOrderResponse.json();
+                    if (!closeOrderData.success) {
+                        console.warn('Failed to close order:', closeOrderData.message);
+                    }
+                } catch (orderError) {
+                    console.error('Error closing order:', orderError);
+                    // Continue with table closure even if order close fails
+                }
+            }
+
             // Handle Split Tables: If it's a split table, we need to close the PARENT table in the DB
             // and then refresh the UI to show the parent table again instead of its splits.
             if (String(closeTableData.tableId).startsWith('SPLIT-') && closeTableData.parentTableId) {
@@ -716,15 +825,16 @@ const GuestMealService = () => {
                     body: JSON.stringify({
                         status: 'Available',
                         guests: 0,
-                        amount: 0,
-                        duration: 0,
-                        reservation: null
+                        currentOrderId: null,
+                        runningOrderAmount: 0,
+                        orderStartTime: null
                     })
                 });
 
                 if (response.ok) {
                     fetchTables();
                     setShowCloseModal(false);
+                    showToast('Success', 'Table closed successfully');
                     return;
                 }
             }
@@ -740,8 +850,9 @@ const GuestMealService = () => {
             let updatePayload = {
                 status: 'Available',
                 guests: 0,
-                amount: 0,
-                duration: 0
+                currentOrderId: null,
+                runningOrderAmount: 0,
+                orderStartTime: null
             };
 
             // Smart Reservation Handling
@@ -777,9 +888,13 @@ const GuestMealService = () => {
             if (data.success) {
                 fetchTables(); // Refresh all tables to see unmerged ones
                 setShowCloseModal(false);
+                showToast('Success', 'Table closed successfully');
+            } else {
+                alert('Failed to close table: ' + data.message);
             }
         } catch (error) {
             console.error(error);
+            alert('Error closing table: ' + error.message);
         }
     };
 
@@ -873,11 +988,43 @@ const GuestMealService = () => {
             filtered = filtered.filter(table => table.type === typeFilter);
         }
 
-        // Search
+        // --- Time Availability Filter Logic ---
+        if (isTimeFilterActive) {
+            const selectedTimeStamp = new Date(`${appliedDate}T${appliedTime}`).getTime();
+            const now = new Date();
+            const isSelectedTimeNearNow = Math.abs(selectedTimeStamp - now.getTime()) < 30 * 60 * 1000;
+
+            filtered = filtered.filter(table => {
+                const hasConflict = (table.reservations || []).some(res => {
+                    if (res.date !== appliedDate) return false;
+                    const [startH, startM] = res.startTime.split(':').map(Number);
+                    const [endH, endM] = res.endTime.split(':').map(Number);
+                    const [filterH, filterM] = appliedTime.split(':').map(Number);
+                    const startTotal = startH * 60 + startM;
+                    const endTotal = endH * 60 + endM;
+                    const filterTotal = filterH * 60 + filterM;
+                    return filterTotal >= startTotal && filterTotal < endTotal;
+                });
+
+                if (hasConflict) return false;
+                if (isSelectedTimeNearNow && (table.status === 'Running' || table.status === 'Billed')) return false;
+                return true;
+            });
+        }
+
+        // Search Table or User
         if (searchQuery) {
-            filtered = filtered.filter(table =>
-                table.tableName.toLowerCase().includes(searchQuery.toLowerCase())
-            );
+            filtered = filtered.filter(table => {
+                const query = searchQuery.toLowerCase();
+                const tableMatch = table.tableName.toLowerCase().includes(query);
+                const guestMatch = table.reservation?.name?.toLowerCase().includes(query);
+                const phoneMatch = table.reservation?.phone?.includes(searchQuery);
+                const allReservationsMatch = table.reservations?.some(r =>
+                    r.name?.toLowerCase().includes(query) ||
+                    r.phone?.includes(searchQuery)
+                );
+                return tableMatch || guestMatch || phoneMatch || allReservationsMatch;
+            });
         }
         setFilteredTables(filtered);
 
@@ -897,17 +1044,42 @@ const GuestMealService = () => {
         // Combined Revenue: Backend (Closed) + Current Active Table Total
         const activeRevenue = tables.reduce((acc, t) => acc + (t.amount || 0), 0);
 
+        // Calculate availability for the stats based on the APPLIED time
+        let availableCount = tables.filter(t => t.status === 'Available').length;
+
+        if (isTimeFilterActive) {
+            const selectedTimeStamp = new Date(`${appliedDate}T${appliedTime}`).getTime();
+            const now = new Date();
+            const isSelectedTimeNearNow = Math.abs(selectedTimeStamp - now.getTime()) < 30 * 60 * 1000;
+
+            availableCount = tables.filter(table => {
+                const hasConflict = (table.reservations || []).some(res => {
+                    if (res.date !== appliedDate) return false;
+                    const [startH, startM] = res.startTime.split(':').map(Number);
+                    const [endH, endM] = res.endTime.split(':').map(Number);
+                    const [filterH, filterM] = appliedTime.split(':').map(Number);
+                    const startTotal = startH * 60 + startM;
+                    const endTotal = endH * 60 + endM;
+                    const filterTotal = filterH * 60 + filterM;
+                    return filterTotal >= startTotal && filterTotal < endTotal;
+                });
+                if (hasConflict) return false;
+                if (isSelectedTimeNearNow && (table.status === 'Running' || table.status === 'Billed')) return false;
+                return true;
+            }).length;
+        }
+
         setStats(prev => ({
             ...prev,
             total: tables.length,
-            available: tables.filter(t => t.status === 'Available').length,
+            available: availableCount,
             running: tables.filter(t => t.status === 'Running').length,
             billed: tables.filter(t => t.status === 'Billed').length,
             reserved: tables.filter(t => t.status === 'Reserved').length,
             upcomingCount: upcomingCount,
-            revenue: prev.revenue // This will be updated by fetchStats, but we can combine if needed
+            revenue: prev.revenue
         }));
-    }, [statusFilter, typeFilter, searchQuery, tables]);
+    }, [statusFilter, typeFilter, searchQuery, tables, appliedDate, appliedTime, isTimeFilterActive]);
 
     const formatDuration = (minutes) => {
         if (minutes === 0) return '--';
@@ -936,67 +1108,49 @@ const GuestMealService = () => {
             }
         }
 
-        if (table.status === 'Available' || table.status === 'Reserved') {
+        // Determine guest details if they exist
+        let guestName = 'Walk-in';
+        let guestPhone = '';
+
+        if (table.reservation) {
+            guestName = table.reservation.name || 'Walk-in';
+            guestPhone = table.reservation.phone || '';
+        } else if (table.guestName) {
+            guestName = table.guestName;
+            guestPhone = table.guestPhone || '';
+        }
+
+        if (table.status === 'Occupied') {
             try {
-                // Determine if we need to call API to update status
-                const response = await fetch(`${API_URL}/api/guest-meal/tables/${table.tableId}`, {
+                // Update status to Running via API immediately
+                await fetch(`${API_URL}/api/guest-meal/tables/${table.tableId || table._id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: 'Running' })
                 });
 
-                const data = await response.json();
-                if (!data.success) {
-                    console.error('Failed to update table status: ' + data.message);
-                    alert("Failed to update status: " + (data.message || "Unknown error"));
-                    return;
-                }
-
-                // Update local state immediately
-                setTables(prev => prev.map(t => t.tableId === table.tableId ? { ...t, status: 'Running' } : t));
-
-                // Navigate
-                const dummyOrderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-                navigate('/admin/dashboard', {
-                    state: {
-                        activeMenu: 'food-order-pos',
-                        room: {
-                            roomNumber: table.tableName,
-                            guestName: 'Walk-in',
-                            guestPhone: '',
-                            id: table.tableId
-                        }
-                    }
-                });
+                // Update local state for immediate feedback
+                setTables(prev => prev.map(t => (t.tableId === table.tableId || t._id === table._id) ? { ...t, status: 'Running' } : t));
             } catch (error) {
                 console.error("Error updating table status:", error);
-                alert("Network error: Could not connect to server.");
             }
-        } else {
-            // Already Running or Billed -> Just navigate
-            // Already Running or Billed -> Just navigate
-            const dummyOrderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-            // Try to find if guest details exist
-            let guestName = 'Walk-in';
-            let guestPhone = '';
-            if (table.reservation) {
-                guestName = table.reservation.name || 'Walk-in';
-                guestPhone = table.reservation.phone || '';
-            }
-
-            navigate('/admin/dashboard', {
-                state: {
-                    activeMenu: 'food-order-pos',
-                    room: {
-                        roomNumber: table.tableName,
-                        guestName: guestName,
-                        guestPhone: guestPhone,
-                        id: table.tableId
-                    }
-                }
-            });
         }
+
+        // Navigate to food order
+        navigate('/admin/dashboard', {
+            state: {
+                activeMenu: 'food-order',
+                orderMode: 'dinein', // Lock to Dine In only
+                source: 'table-order', // Indicate it's from table management
+                room: {
+                    roomNumber: table.tableName,
+                    guestName: guestName,
+                    guestPhone: guestPhone,
+                    id: table.tableId || table._id,
+                    orderId: table.currentOrderId
+                }
+            }
+        });
     };
 
     const handleAddTableType = () => {
@@ -1051,15 +1205,27 @@ const GuestMealService = () => {
     return (
         <div className="gms-wrapper">
             {/* Header / Stats */}
-            <div className="gms-header" style={{ marginBottom: '24px', background: '#fff', padding: '0 24px 24px 24px', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div className="gms-header" style={{ marginBottom: '24px', background: '#fff', padding: '24px', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                     <div>
                         <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: '800', color: '#111827' }}>Dining Dashboard</h1>
                         <p style={{ color: '#6b7280', margin: '4px 0 0' }}>Manage your restaurant tables and reservations</p>
                     </div>
-                    <button className="btn btn-primary" onClick={() => setShowAddTableModal(true)} style={{ background: '#dc2626', borderRadius: '10px', padding: '12px 24px', fontWeight: '700', border: 'none', cursor: 'pointer', boxShadow: '0 4px 10px rgba(220, 38, 38, 0.2)' }}>
-                        + Add Table
+                    <button
+                        className="btn btn-primary"
+                        onClick={() => setShowAddTableModal(true)}
+                        style={{
+                            background: '#dc2626',
+                            borderRadius: '10px',
+                            padding: '12px 24px',
+                            fontWeight: '700',
+                            border: 'none',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 10px rgba(220, 38, 38, 0.2)',
+                            whiteSpace: 'nowrap'
+                        }}
+                    >
+                        + ADD TABLE
                     </button>
                 </div>
 
@@ -1085,15 +1251,139 @@ const GuestMealService = () => {
 
             {/* Controls */}
             <div className="gms-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '20px' }}>
-                <div className="gms-search-wrapper" style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
-                    <input
-                        type="text"
-                        placeholder="Search table number..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        style={{ width: '100%', padding: '12px 16px 12px 40px', borderRadius: '12px', border: '1px solid #e5e7eb', outline: 'none', background: '#fff' }}
-                    />
-                    <span className="gms-search-icon" style={{ position: 'absolute', left: '14px', top: '12px', color: '#9ca3af' }}>🔍</span>
+                <div className="gms-time-calendar-wrapper" style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1, maxWidth: '600px' }}>
+                    <div style={{ position: 'relative', flex: '1' }}>
+                        <input
+                            type="date"
+                            value={filterDate}
+                            min={new Date().toISOString().split('T')[0]}
+                            onChange={(e) => {
+                                const selected = e.target.value;
+                                setFilterDate(selected);
+                                // If today is selected, ensure time isn't in the past
+                                const todayStr = new Date().toISOString().split('T')[0];
+                                if (selected === todayStr) {
+                                    const nowStr = new Date().toTimeString().slice(0, 5);
+                                    if (filterTime < nowStr) {
+                                        setFilterTime(nowStr);
+                                    }
+                                }
+                            }}
+                            style={{
+                                width: '100%',
+                                padding: '12px 16px 12px 40px',
+                                borderRadius: '12px',
+                                border: '2px solid #e5e7eb',
+                                outline: 'none',
+                                background: '#fff',
+                                fontWeight: '700',
+                                color: '#111827'
+                            }}
+                        />
+                        <span style={{ position: 'absolute', left: '14px', top: '12px', color: '#dc2626' }}>📅</span>
+                    </div>
+
+                    <div style={{ position: 'relative', flex: '0.6' }}>
+                        <input
+                            type="time"
+                            value={filterTime}
+                            onChange={(e) => {
+                                const selectedTime = e.target.value;
+                                const todayStr = new Date().toISOString().split('T')[0];
+                                if (filterDate === todayStr) {
+                                    const nowStr = new Date().toTimeString().slice(0, 5);
+                                    if (selectedTime < nowStr) {
+                                        alert("You cannot select a past time for today.");
+                                        setFilterTime(nowStr);
+                                        return;
+                                    }
+                                }
+                                setFilterTime(selectedTime);
+                            }}
+                            style={{
+                                width: '100%',
+                                padding: '12px 12px 12px 40px',
+                                borderRadius: '12px',
+                                border: '2px solid #e5e7eb',
+                                outline: 'none',
+                                background: '#fff',
+                                fontWeight: '700',
+                                color: '#111827'
+                            }}
+                        />
+                        <span style={{ position: 'absolute', left: '14px', top: '12px', color: '#dc2626' }}>⏰</span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                            onClick={() => {
+                                setAppliedDate(filterDate);
+                                setAppliedTime(filterTime);
+                                setIsTimeFilterActive(true);
+                            }}
+                            style={{
+                                padding: '12px 24px',
+                                background: '#dc2626',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '12px',
+                                cursor: 'pointer',
+                                fontWeight: '800',
+                                boxShadow: '0 4px 10px rgba(220, 38, 38, 0.2)'
+                            }}
+                        >Apply Filter</button>
+
+                        <button
+                            onClick={() => {
+                                const d = new Date().toISOString().split('T')[0];
+                                const t = new Date().toTimeString().slice(0, 5);
+                                setFilterDate(d);
+                                setFilterTime(t);
+                                setAppliedDate(d);
+                                setAppliedTime(t);
+                                setStatusFilter('All');
+                                setTypeFilter('All');
+                                setSearchQuery('');
+                                setIsTimeFilterActive(false);
+                            }}
+                            style={{
+                                padding: '12px',
+                                background: '#fef2f2',
+                                color: '#dc2626',
+                                border: '1px solid #fee2e2',
+                                borderRadius: '12px',
+                                cursor: 'pointer',
+                                fontWeight: '800'
+                            }}
+                            title="Reset to Now"
+                        >⚡</button>
+                    </div>
+
+                </div>
+
+                <div className="gms-verify-quick" style={{ flex: '0 0 auto' }}>
+                    <button
+                        onClick={() => openVerifyModal()}
+                        style={{
+                            padding: '12px 24px',
+                            background: '#fef2f2',
+                            color: '#dc2626',
+                            border: '2px solid #fee2e2',
+                            borderRadius: '12px',
+                            fontWeight: '800',
+                            fontSize: '0.9rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 4px 6px -1px rgba(220, 38, 38, 0.1)'
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                    >
+                        <span style={{ fontSize: '1.1rem' }}>🔍</span> Verify User
+                    </button>
                 </div>
 
                 <div className="gms-filters" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -1404,11 +1694,20 @@ const GuestMealService = () => {
                 )
             }
 
-            {/* Reserve Table Modal */}
+            {/* Reserve Table Modal (Right Side Drawer) */}
             {
                 showReserveModal && reserveTargetTable && (
-                    <div className="modal-overlay">
-                        <div className="modal-content" style={{ width: '450px', padding: '0', overflow: 'hidden' }}>
+                    <div className="modal-overlay" style={{ justifyContent: 'flex-end', alignItems: 'stretch' }} onClick={() => setShowReserveModal(false)}>
+                        <div className="modal-content" style={{
+                            width: '450px',
+                            height: '100%',
+                            borderRadius: '0',
+                            padding: '0',
+                            overflowY: 'auto',
+                            animation: 'slideInRight 0.3s ease-out',
+                            display: 'flex',
+                            flexDirection: 'column'
+                        }} onClick={e => e.stopPropagation()}>
                             <div className="modal-header" style={{ padding: '20px 24px', background: '#fff', borderBottom: '1px solid #f3f4f6' }}>
                                 <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#111827' }}>{reserveFormData.id ? 'Modify' : 'Reserve'} Table – {reserveTargetTable.tableName}</h2>
                                 <button className="close-btn" onClick={() => setShowReserveModal(false)} style={{ fontSize: '1.5rem', color: '#9ca3af' }}>×</button>
@@ -1465,20 +1764,46 @@ const GuestMealService = () => {
                                     </div>
                                     <div className="form-group">
                                         <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#4b5563' }}>Time (Session)</label>
-                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                        <div style={{ position: 'relative' }}>
                                             <input
                                                 type="time" className="form-input"
-                                                style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.9rem' }}
+                                                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '1rem' }}
                                                 value={reserveFormData.startTime}
-                                                onChange={e => setReserveFormData({ ...reserveFormData, startTime: e.target.value })}
+                                                onChange={e => {
+                                                    const newStart = e.target.value;
+                                                    const todayStr = new Date().toISOString().split('T')[0];
+                                                    const nowStr = new Date().toTimeString().slice(0, 5);
+
+                                                    if (reserveFormData.date === todayStr && newStart < nowStr) {
+                                                        alert("You cannot book a reservation for a past time.");
+                                                        return;
+                                                    }
+
+                                                    const [h, m] = newStart.split(':').map(Number);
+
+                                                    // Morning: 04:00 - 10:59 (60 mins), Lunch: 11:00 - 16:59 (90 mins), Dinner: 17:00 onwards (120 mins)
+                                                    let durationMins = 60;
+                                                    if (h >= 17 || h < 4) durationMins = 120; // Dinner
+                                                    else if (h >= 11) durationMins = 90; // Lunch
+                                                    else durationMins = 60; // Morning
+
+                                                    const date = new Date();
+                                                    date.setHours(h, m, 0, 0);
+                                                    const end = new Date(date.getTime() + durationMins * 60000);
+                                                    const endTimeStr = `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`;
+
+                                                    setReserveFormData({
+                                                        ...reserveFormData,
+                                                        startTime: newStart,
+                                                        endTime: endTimeStr
+                                                    });
+                                                }}
                                             />
-                                            <span style={{ alignSelf: 'center', color: '#9ca3af' }}>-</span>
-                                            <input
-                                                type="time" className="form-input"
-                                                style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.9rem' }}
-                                                value={reserveFormData.endTime}
-                                                onChange={e => setReserveFormData({ ...reserveFormData, endTime: e.target.value })}
-                                            />
+                                            {reserveFormData.endTime && (
+                                                <div style={{ marginTop: '4px', fontSize: '0.75rem', color: '#10b981', fontWeight: '700' }}>
+                                                    Session End: {reserveFormData.endTime}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -1502,6 +1827,34 @@ const GuestMealService = () => {
                                             onChange={e => setReserveFormData({ ...reserveFormData, note: e.target.value })}
                                         />
                                     </div>
+                                </div>
+
+                                <div className="form-group" style={{ marginBottom: '24px' }}>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '700', color: '#111827', display: 'flex', justifyContent: 'space-between' }}>
+                                        Advance Payment
+                                        {reserveFormData.advancePayment > 0 && <span style={{ color: '#10b981', fontSize: '0.8rem' }}>Amount Added ✅</span>}
+                                    </label>
+                                    <div style={{ position: 'relative' }}>
+                                        <span style={{ position: 'absolute', left: '12px', top: '10px', color: '#6b7280', fontSize: '1.1rem', fontWeight: '700' }}>₹</span>
+                                        <input
+                                            type="number"
+                                            className="form-input"
+                                            placeholder="0.00"
+                                            style={{
+                                                width: '100%',
+                                                padding: '12px 12px 12px 32px',
+                                                borderRadius: '12px',
+                                                border: '2px solid #dc2626',
+                                                fontSize: '1.2rem',
+                                                fontWeight: '800',
+                                                color: '#111827',
+                                                background: '#fef2f2'
+                                            }}
+                                            value={reserveFormData.advancePayment || ''}
+                                            onChange={e => setReserveFormData({ ...reserveFormData, advancePayment: parseFloat(e.target.value) || 0 })}
+                                        />
+                                    </div>
+                                    <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: '#6b7280' }}>* Enter the advance amount collected from the guest.</p>
                                 </div>
 
                                 {(() => {
@@ -1693,6 +2046,7 @@ const GuestMealService = () => {
                                                         <div style={{ fontWeight: '700', color: '#111827', fontSize: '1rem' }}>{res.startTime || 'N/A'} - {res.name || 'Guest'}</div>
                                                         <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
                                                             {res.guests || 0} Guests • {res.phone || 'No Phone'} {res.date && `• ${res.date}`}
+                                                            {res.advancePayment > 0 && <span style={{ color: '#10b981', fontWeight: '800', marginLeft: '8px' }}>• Advance: ₹{res.advancePayment}</span>}
                                                         </div>
                                                         {res.note && <div style={{ fontSize: '0.8rem', color: '#dc2626', marginTop: '4px' }}>Note: {res.note}</div>}
                                                     </div>
@@ -1723,18 +2077,30 @@ const GuestMealService = () => {
                 )
             }
 
-            {/* Verify User Modal */}
+            {/* Verify User Modal (Right Side Drawer) */}
             {
                 showVerifyModal && (
-                    <div className="modal-overlay">
-                        <div className="modal-content" style={{ width: '400px', padding: '0', borderRadius: '16px', border: 'none' }}>
-                            <div className="modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: '800' }}>Verify Reservation</h2>
-                                <button className="close-btn" onClick={() => setShowVerifyModal(false)}>×</button>
+                    <div className="modal-overlay" style={{ justifyContent: 'flex-end', alignItems: 'stretch' }} onClick={() => setShowVerifyModal(false)}>
+                        <div className="modal-content" style={{
+                            width: '450px',
+                            height: '100%',
+                            borderRadius: '0',
+                            padding: '0',
+                            overflowY: 'auto',
+                            animation: 'slideInRight 0.3s ease-out',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            border: 'none',
+                            boxShadow: '-10px 0 30px rgba(0,0,0,0.1)'
+                        }} onClick={e => e.stopPropagation()}>
+                            <div className="modal-header" style={{ padding: '24px', background: '#fff', borderBottom: '1px solid #f3f4f6' }}>
+                                <h2 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#111827', margin: 0 }}>Verify Reservation</h2>
+                                <button className="close-btn" onClick={() => setShowVerifyModal(false)} style={{ fontSize: '1.8rem', color: '#9ca3af', fontWeight: '300' }}>×</button>
                             </div>
-                            <div style={{ padding: '24px' }}>
-                                <div className="form-group">
-                                    <label style={{ display: 'block', marginBottom: '12px', fontWeight: '700', color: '#111827', fontSize: '0.95rem' }}>Enter Linked Phone Number</label>
+
+                            <div style={{ padding: '32px 24px', flex: 1 }}>
+                                <div className="form-group" style={{ marginBottom: '24px' }}>
+                                    <label style={{ display: 'block', marginBottom: '12px', fontWeight: '800', color: '#111827', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Enter Linked Phone Number</label>
                                     <div style={{ position: 'relative' }}>
                                         <input
                                             type="tel"
@@ -1744,64 +2110,128 @@ const GuestMealService = () => {
                                             onChange={(e) => setVerifyPhoneInput(e.target.value)}
                                             style={{
                                                 width: '100%',
-                                                padding: '14px 16px',
-                                                border: '2px solid #e5e7eb',
+                                                padding: '16px 20px',
+                                                border: '2px solid #f3f4f6',
+                                                background: '#f9fafb',
                                                 borderRadius: '12px',
-                                                fontSize: '1rem',
-                                                transition: 'border-color 0.2s',
-                                                outline: 'none'
+                                                fontSize: '1.1rem',
+                                                fontWeight: '600',
+                                                transition: 'all 0.2s',
+                                                outline: 'none',
+                                                color: '#111827'
                                             }}
                                             autoFocus
                                         />
-                                        <span style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', opacity: '0.5' }}>🔍</span>
+                                        <span style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '1.2rem', opacity: '0.4' }}>🔍</span>
                                     </div>
                                 </div>
 
-                                {/* Live Reservation Search Result */}
                                 {(() => {
-                                    const table = tables.find(t => t.tableId === verifyTableId);
-                                    if (!table || !verifyPhoneInput || verifyPhoneInput.length < 3) return null;
+                                    if (!verifyPhoneInput || verifyPhoneInput.length < 3) return (
+                                        <div style={{ textAlign: 'center', marginTop: '40px', color: '#9ca3af' }}>
+                                            <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📱</div>
+                                            <div style={{ fontSize: '0.95rem', fontWeight: '600' }}>Waiting for guest phone number...</div>
+                                        </div>
+                                    );
 
-                                    const match = table.reservations?.find(r => r.phone?.includes(verifyPhoneInput) || verifyPhoneInput.includes(r.phone));
+                                    let match = null;
+                                    let matchedTableName = '';
+
+                                    if (verifyTableId) {
+                                        const table = tables.find(t => t.tableId === verifyTableId);
+                                        match = (table?.reservations || []).find(r => r.phone?.includes(verifyPhoneInput) || verifyPhoneInput.includes(r.phone));
+                                        matchedTableName = table?.tableName;
+                                    } else {
+                                        for (const t of tables) {
+                                            const m = (t.reservations || []).find(r => r.phone?.includes(verifyPhoneInput) || verifyPhoneInput.includes(r.phone));
+                                            if (m) {
+                                                match = m;
+                                                matchedTableName = t.tableName;
+                                                break;
+                                            }
+                                        }
+                                    }
 
                                     if (match) {
                                         return (
-                                            <div style={{ marginTop: '20px', padding: '16px', background: '#f0fdf4', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
-                                                <div style={{ color: '#166534', fontWeight: '800', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.025em', marginBottom: '8px' }}>Matched Reservation Found</div>
-                                                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#111827' }}>{match.name}</div>
-                                                <div style={{ display: 'flex', gap: '12px', marginTop: '8px', fontSize: '0.9rem', color: '#4b5563' }}>
-                                                    <span>📅 {match.date}</span>
-                                                    <span>⏰ {match.startTime} - {match.endTime}</span>
+                                            <div style={{
+                                                marginTop: '10px',
+                                                padding: '24px',
+                                                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                                                borderRadius: '16px',
+                                                border: '1px solid #bbf7d0',
+                                                boxShadow: '0 4px 12px rgba(22, 101, 52, 0.05)'
+                                            }}>
+                                                <div style={{ color: '#166534', fontWeight: '900', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>Reservation Found</div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                                    <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#111827' }}>{match.name}</div>
+                                                    <div style={{ padding: '6px 12px', background: '#166534', color: '#fff', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '800' }}>Table {matchedTableName}</div>
                                                 </div>
-                                                <div style={{ marginTop: '4px', fontSize: '0.85rem', color: '#6b7280' }}>
-                                                    Guests: <strong>{match.guests} Persons</strong>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px' }}>
+                                                    <div style={{ background: 'rgba(255,255,255,0.5)', padding: '12px', borderRadius: '10px' }}>
+                                                        <div style={{ fontSize: '0.7rem', color: '#166534', fontWeight: '800', textTransform: 'uppercase' }}>Date</div>
+                                                        <div style={{ fontWeight: '700', color: '#111827' }}>{match.date}</div>
+                                                    </div>
+                                                    <div style={{ background: 'rgba(255,255,255,0.5)', padding: '12px', borderRadius: '10px' }}>
+                                                        <div style={{ fontSize: '0.7rem', color: '#166534', fontWeight: '800', textTransform: 'uppercase' }}>Session</div>
+                                                        <div style={{ fontWeight: '700', color: '#111827' }}>{match.startTime}</div>
+                                                    </div>
+                                                </div>
+                                                <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div style={{ fontSize: '0.9rem', color: '#4b5563', fontWeight: '600' }}>
+                                                        Guests: <span style={{ color: '#111827', fontWeight: '800' }}>{match.guests} Persons</span>
+                                                    </div>
+                                                    {match.advancePayment > 0 && (
+                                                        <div style={{ color: '#166534', fontWeight: '900', fontSize: '1rem' }}>
+                                                            ₹{match.advancePayment} <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>Paid</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
                                     } else if (verifyPhoneInput.length >= 10) {
                                         return (
-                                            <div style={{ marginTop: '20px', padding: '12px', background: '#fef2f2', borderRadius: '12px', border: '1px solid #fecaca', color: '#991b1b', fontSize: '0.9rem', textAlign: 'center' }}>
-                                                No reservation found for this number.
+                                            <div style={{ marginTop: '20px', padding: '20px', background: '#fff', borderRadius: '16px', border: '2px dashed #fee2e2', color: '#991b1b', fontSize: '0.95rem', textAlign: 'center' }}>
+                                                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>❌</div>
+                                                <div style={{ fontWeight: '700' }}>No active reservation found</div>
+                                                <div style={{ fontSize: '0.85rem', opacity: 0.8, marginTop: '4px' }}>Please double check the phone number</div>
                                             </div>
                                         );
                                     }
                                     return null;
                                 })()}
                             </div>
-                            <div className="modal-footer" style={{ padding: '16px 24px', background: '#f9fafb', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                                <button className="btn btn-secondary" style={{ borderRadius: '10px', fontWeight: '600' }} onClick={() => setShowVerifyModal(false)}>Cancel</button>
+
+                            <div className="modal-footer" style={{ padding: '24px', background: '#fff', borderTop: '1px solid #f3f4f6', display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
+                                <button className="btn btn-secondary" style={{ borderRadius: '12px', fontWeight: '800', height: '56px', border: '2px solid #f3f4f6', background: '#fff', color: '#4b5563' }} onClick={() => setShowVerifyModal(false)}>CANCEL</button>
                                 <button
                                     className="btn btn-primary"
                                     style={{
                                         background: '#dc2626',
-                                        borderRadius: '10px',
-                                        fontWeight: '700',
-                                        opacity: tables.find(t => t.tableId === verifyTableId)?.reservations?.some(r => r.phone === verifyPhoneInput) ? 1 : 0.5
+                                        borderRadius: '12px',
+                                        fontWeight: '800',
+                                        height: '56px',
+                                        fontSize: '1rem',
+                                        letterSpacing: '0.025em',
+                                        boxShadow: '0 4px 12px rgba(220, 38, 38, 0.2)',
+                                        opacity: (() => {
+                                            if (verifyTableId) {
+                                                return tables.find(t => t.tableId === verifyTableId)?.reservations?.some(r => r.phone === verifyPhoneInput) ? 1 : 0.5;
+                                            } else {
+                                                return tables.some(t => (t.reservations || []).some(r => r.phone === verifyPhoneInput)) ? 1 : 0.5;
+                                            }
+                                        })()
                                     }}
                                     onClick={handleVerifyUser}
-                                    disabled={!tables.find(t => t.tableId === verifyTableId)?.reservations?.some(r => r.phone === verifyPhoneInput)}
+                                    disabled={(() => {
+                                        if (verifyTableId) {
+                                            return !tables.find(t => t.tableId === verifyTableId)?.reservations?.some(r => r.phone === verifyPhoneInput);
+                                        } else {
+                                            return !tables.some(t => (t.reservations || []).some(r => r.phone === verifyPhoneInput));
+                                        }
+                                    })()}
                                 >
-                                    Verify & Open Table
+                                    VERIFY & OPEN TABLE
                                 </button>
                             </div>
                         </div>
@@ -1810,21 +2240,23 @@ const GuestMealService = () => {
             }
 
             {/* Toast Notification */}
-            {toast.show && (
-                <div style={{
-                    position: 'fixed', top: '40px', left: '50%', transform: 'translateX(-50%)',
-                    background: '#10b981', color: 'white', padding: '12px 24px', borderRadius: '50px',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                    zIndex: 9999, display: 'flex', alignItems: 'center', gap: '8px',
-                    animation: 'fadeInScale 0.3s ease-out'
-                }}>
-                    <span style={{ fontSize: '1.2rem' }}>✅</span>
-                    <div>
-                        <div style={{ fontWeight: '700', fontSize: '0.95rem' }}>{toast.message}</div>
-                        {toast.subtext && <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>{toast.subtext}</div>}
+            {
+                toast.show && (
+                    <div style={{
+                        position: 'fixed', top: '40px', left: '50%', transform: 'translateX(-50%)',
+                        background: '#10b981', color: 'white', padding: '12px 24px', borderRadius: '50px',
+                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                        zIndex: 9999, display: 'flex', alignItems: 'center', gap: '8px',
+                        animation: 'fadeInScale 0.3s ease-out'
+                    }}>
+                        <span style={{ fontSize: '1.2rem' }}>✅</span>
+                        <div>
+                            <div style={{ fontWeight: '700', fontSize: '0.95rem' }}>{toast.message}</div>
+                            {toast.subtext && <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>{toast.subtext}</div>}
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Close Table Modal */}
             {
@@ -1940,6 +2372,7 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
             case 'Available': return { badge: '#10b981', bg: '#fff', border: '#e5e7eb' };
             case 'Reserved': return { badge: '#f97316', bg: '#fff7ed', border: '#fdba74' };
             case 'Running': return { badge: '#10b981', bg: '#f0fdf4', border: '#bcfced' }; // Light green as requested
+            case 'Occupied': return { badge: '#fbbf24', bg: '#fffbeb', border: '#fde68a' }; // Amber/Yellow
             case 'Billed': return { badge: '#ef4444', bg: '#fef2f2', border: '#fecaca' };
             default: return { badge: '#6b7280', bg: '#fff', border: '#e5e7eb' };
         }
@@ -1990,7 +2423,7 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
             className={`table-item ${table.status.toLowerCase()}`}
             onClick={onCardClick}
             style={{
-                background: '#f0fdf4', // Light green background as requested
+                background: styles.bg,
                 border: `1px solid ${styles.border}`,
                 borderRadius: '16px',
                 boxShadow: showMenu ? '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' : '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
@@ -2059,6 +2492,9 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                                     <>
                                         <MenuItem icon="↔" label="Move Guests" onClick={(e) => handleAction('Move Guests', e)} />
                                         <MenuItem icon="🔗" label="Merge Table" onClick={(e) => handleAction('Merge Table', e)} />
+                                        {(table.amount === 0 || !table.currentOrderId) && (
+                                            <MenuItem icon="↺" label="Release Table" color="#dc2626" onClick={(e) => handleAction('Release Table', e)} />
+                                        )}
                                         <MenuItem icon="✓" label="Close Table" color="#dc2626" onClick={(e) => handleAction('Close Table', e)} />
                                     </>
                                 )}
@@ -2124,7 +2560,7 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                 {/* Manage Order (Always visible or conditional?) - User wants it side by side */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} onClick={onCardClick}>
                     <span style={{ color: '#dc2626', fontWeight: '700', fontSize: '0.9rem' }}>
-                        {table.status === 'Available' ? 'Tap to Order' : 'Manage Order'}
+                        {(table.status === 'Available' || table.status === 'Occupied') ? 'Tap to Order' : 'Manage Order'}
                     </span>
                     <span style={{ fontSize: '1.2rem', color: '#dc2626', fontWeight: '800' }}>→</span>
                 </div>

@@ -43,6 +43,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(true);
 
     // Load user from localStorage on mount
     useEffect(() => {
@@ -132,7 +133,9 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated,
         getUserRole,
         getSubscriptionTier,
-        loading
+        loading,
+        sidebarOpen,
+        setSidebarOpen
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

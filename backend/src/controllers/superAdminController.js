@@ -1,5 +1,6 @@
 const Hotel = require('../models/Hotel');
 const User = require('../models/User');
+const AuditLog = require('../models/AuditLog');
 const bcrypt = require('bcryptjs');
 
 // @desc    Get dashboard statistics
@@ -336,6 +337,399 @@ const upgradePlan = async (req, res) => {
     }
 };
 
+// @desc    Get super admin profile
+// @route   GET /api/super-admin/profile
+// @access  Private (Super Admin only)
+const getProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).select('-password');
+        
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json(user);
+    } catch (error) {
+        console.error('Error fetching profile:', error);
+        res.status(500).json({ 
+            message: 'Error fetching profile', 
+            error: error.message 
+        });
+    }
+};
+
+// @desc    Update super admin profile
+// @route   PATCH /api/super-admin/profile
+// @access  Private (Super Admin only)
+const updateProfile = async (req, res) => {
+    try {
+        const { name, username, phone } = req.body;
+        
+        const user = await User.findById(req.user._id);
+        
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Check if username is being changed and if it already exists
+        if (username && username !== user.username) {
+            const existingUser = await User.findOne({ username });
+            if (existingUser) {
+                return res.status(400).json({ 
+                    message: 'Username/Email already exists' 
+                });
+            }
+        }
+
+        // Update fields
+        if (name) user.name = name;
+        if (username) user.username = username;
+        if (phone !== undefined) user.phone = phone;
+
+        await user.save();
+
+        res.status(200).json({
+            message: 'Profile updated successfully',
+            user: {
+                id: user._id,
+                name: user.name,
+                username: user.username,
+                phone: user.phone,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        res.status(500).json({ 
+            message: 'Error updating profile', 
+            error: error.message 
+        });
+    }
+};
+
+// @desc    Change super admin password
+// @route   PATCH /api/super-admin/change-password
+// @access  Private (Super Admin only)
+const changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ 
+                message: 'Please provide both current and new password' 
+            });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ 
+                message: 'New password must be at least 6 characters long' 
+            });
+        }
+
+        const user = await User.findById(req.user._id);
+        
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Verify current password
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ 
+                message: 'Current password is incorrect' 
+            });
+        }
+
+        // Update password (will be hashed by pre-save hook)
+        user.password = newPassword;
+        await user.save();
+
+        res.status(200).json({
+            message: 'Password changed successfully'
+        });
+    } catch (error) {
+        console.error('Error changing password:', error);
+        res.status(500).json({ 
+            message: 'Error changing password', 
+            error: error.message 
+        });
+    }
+};
+
+// @desc    Get analytics data
+// @route   GET /api/super-admin/analytics
+// @access  Private (Super Admin only)
+const getAnalytics = async (req, res) => {
+    try {
+        const { period = 'month' } = req.query;
+        
+        // Calculate date range
+        const now = new Date();
+        let startDate;
+        
+        switch(period) {
+            case 'week':
+                startDate = new Date(now.setDate(now.getDate() - 7));
+                break;
+            case 'month':
+                startDate = new Date(now.setMonth(now.getMonth() - 1));
+                break;
+            case 'year':
+                startDate = new Date(now.setFullYear(now.getFullYear() - 1));
+                break;
+            default:
+                startDate = new Date(now.setMonth(now.getMonth() - 1));
+        }
+
+        // Get all hotels
+        const allHotels = await Hotel.find();
+        
+        // Get new hotels in period
+        const newHotels = await Hotel.countDocuments({
+            createdAt: { $gte: startDate }
+        });
+
+        // Calculate revenue (hypothetical - based on subscription plans)
+        const revenue = allHotels.reduce((total, hotel) => {
+            const planPrice = hotel.subscription?.plan === 'premium' ? 5000 : 2000;
+            return total + (hotel.subscription?.isActive ? planPrice : 0);
+        }, 0);
+
+        // Calculate subscription renewals in period
+        const renewals = await Hotel.countDocuments({
+            'subscription.startDate': { $gte: startDate }
+        });
+
+        // Plan distribution
+        const planDistribution = {
+            basic: await Hotel.countDocuments({ 'subscription.plan': 'basic' }),
+            premium: await Hotel.countDocuments({ 'subscription.plan': 'premium' })
+        };
+
+        // Growth trend (hotels created per month for last 6 months)
+        const growthTrend = [];
+        for (let i = 5; i >= 0; i--) {
+            const monthStart = new Date(new Date().setMonth(new Date().getMonth() - i, 1));
+            const monthEnd = new Date(new Date().setMonth(new Date().getMonth() - i + 1, 0));
+            
+            const count = await Hotel.countDocuments({
+                createdAt: {
+                    $gte: monthStart,
+                    $lte: monthEnd
+                }
+            });
+            
+            growthTrend.push({
+                month: monthStart.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+                count
+            });
+        }
+
+        // Expiry distribution (for next 90 days)
+        const expiryDistribution = [];
+        for (let i = 0; i < 90; i += 30) {
+            const rangeStart = new Date(new Date().setDate(new Date().getDate() + i));
+            const rangeEnd = new Date(new Date().setDate(new Date().getDate() + i + 30));
+            
+            const count = await Hotel.countDocuments({
+                'subscription.expiryDate': {
+                    $gte: rangeStart,
+                    $lt: rangeEnd
+                },
+                'subscription.isActive': true
+            });
+            
+            expiryDistribution.push({
+                range: `${Math.floor(i / 30)} - ${Math.floor((i + 30) / 30)} months`,
+                count
+            });
+        }
+
+        res.status(200).json({
+            period,
+            newHotels,
+            revenue,
+            renewals,
+            planDistribution,
+            growthTrend,
+            expiryDistribution
+        });
+    } catch (error) {
+        console.error('Error fetching analytics:', error);
+        res.status(500).json({ 
+            message: 'Error fetching analytics', 
+            error: error.message 
+        });
+    }
+};
+
+// @desc    Get audit logs with filters
+// @route   GET /api/super-admin/audit-logs
+// @access  Private (Super Admin only)
+const getAuditLogs = async (req, res) => {
+    try {
+        const {
+            action,
+            targetType,
+            userId,
+            startDate,
+            endDate,
+            status,
+            page = 1,
+            limit = 50
+        } = req.query;
+
+        // Build query
+        let query = {};
+
+        if (action) query.action = action;
+        if (targetType) query.targetType = targetType;
+        if (userId) query.userId = userId;
+        if (status) query.status = status;
+
+        // Date range filter
+        if (startDate || endDate) {
+            query.createdAt = {};
+            if (startDate) query.createdAt.$gte = new Date(startDate);
+            if (endDate) query.createdAt.$lte = new Date(endDate);
+        }
+
+        // Pagination
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const total = await AuditLog.countDocuments(query);
+
+        // Fetch logs
+        const logs = await AuditLog.find(query)
+            .populate('userId', 'name username email role')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        res.status(200).json({
+            logs,
+            pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                pages: Math.ceil(total / parseInt(limit))
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching audit logs:', error);
+        res.status(500).json({
+            message: 'Error fetching audit logs',
+            error: error.message
+        });
+    }
+};
+
+// @desc    Get audit log statistics
+// @route   GET /api/super-admin/audit-stats
+// @access  Private (Super Admin only)
+const getAuditStats = async (req, res) => {
+    try {
+        const { period = '7d' } = req.query;
+        
+        // Calculate date range
+        const now = new Date();
+        let startDate;
+        
+        switch(period) {
+            case '24h':
+                startDate = new Date(now.setHours(now.getHours() - 24));
+                break;
+            case '7d':
+                startDate = new Date(now.setDate(now.getDate() - 7));
+                break;
+            case '30d':
+                startDate = new Date(now.setDate(now.getDate() - 30));
+                break;
+            default:
+                startDate = new Date(now.setDate(now.getDate() - 7));
+        }
+
+        // Total actions
+        const totalActions = await AuditLog.countDocuments({
+            createdAt: { $gte: startDate }
+        });
+
+        // Actions by type
+        const actionsByType = await AuditLog.aggregate([
+            { $match: { createdAt: { $gte: startDate } } },
+            { $group: { _id: '$action', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 10 }
+        ]);
+
+        // Actions by user
+        const actionsByUser = await AuditLog.aggregate([
+            { $match: { createdAt: { $gte: startDate } } },
+            { $group: { _id: '$userId', count: { $sum: 1 }, email: { $first: '$userEmail' } } },
+            { $sort: { count: -1 } },
+            { $limit: 5 }
+        ]);
+
+        // Failed actions
+        const failedActions = await AuditLog.countDocuments({
+            createdAt: { $gte: startDate },
+            status: 'failed'
+        });
+
+        // Recent critical actions
+        const criticalActions = await AuditLog.find({
+            createdAt: { $gte: startDate },
+            action: {
+                $in: ['hotel_deleted', 'admin_deleted', 'bulk_hotels_suspended', 'subscription_cancelled']
+            }
+        })
+            .populate('userId', 'name email')
+            .sort({ createdAt: -1 })
+            .limit(10);
+
+        res.status(200).json({
+            period,
+            totalActions,
+            actionsByType,
+            actionsByUser,
+            failedActions,
+            criticalActions
+        });
+    } catch (error) {
+        console.error('Error fetching audit stats:', error);
+        res.status(500).json({
+            message: 'Error fetching audit statistics',
+            error: error.message
+        });
+    }
+};
+
+// @desc    Delete old audit logs
+// @route   DELETE /api/super-admin/audit-logs/cleanup
+// @access  Private (Super Admin only)
+const cleanupAuditLogs = async (req, res) => {
+    try {
+        const { olderThan = 365 } = req.body; // Days
+        
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - parseInt(olderThan));
+
+        const result = await AuditLog.deleteMany({
+            createdAt: { $lt: cutoffDate }
+        });
+
+        res.status(200).json({
+            message: `Deleted ${result.deletedCount} audit logs older than ${olderThan} days`,
+            deletedCount: result.deletedCount
+        });
+    } catch (error) {
+        console.error('Error cleaning up audit logs:', error);
+        res.status(500).json({
+            message: 'Error cleaning up audit logs',
+            error: error.message
+        });
+    }
+};
+
 // Legacy endpoints for backward compatibility
 const getAllAdmins = getAllHotels;
 const createAdmin = createHotel;
@@ -351,6 +745,16 @@ module.exports = {
     activateHotel,
     renewSubscription,
     upgradePlan,
+    // Profile Management
+    getProfile,
+    updateProfile,
+    changePassword,
+    // Analytics
+    getAnalytics,
+    // Audit Logs
+    getAuditLogs,
+    getAuditStats,
+    cleanupAuditLogs,
     // Legacy exports
     getAllAdmins,
     createAdmin,

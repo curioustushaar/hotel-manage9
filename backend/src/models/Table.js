@@ -3,12 +3,12 @@ const mongoose = require('mongoose');
 const tableSchema = new mongoose.Schema({
     tableName: {
         type: String,
-        trim: true
+        trim: true,
+        required: true
     },
     tableNumber: {
         type: Number,
-        required: true,
-        unique: true
+        required: true
     },
     capacity: {
         type: Number,
@@ -58,7 +58,8 @@ const tableSchema = new mongoose.Schema({
         guests: Number,
         phone: String,
         contact: String,   // legacy support
-        note: String
+        note: String,
+        advancePayment: Number
     }],
 
     location: {
@@ -85,5 +86,8 @@ tableSchema.methods.getFormattedDuration = function () {
     const m = minutes % 60;
     return `${h}h ${m}m`;
 };
+
+// Compound unique index: same tableName allowed in different types, but not in same type
+tableSchema.index({ tableName: 1, type: 1 }, { unique: true });
 
 module.exports = mongoose.model('Table', tableSchema);

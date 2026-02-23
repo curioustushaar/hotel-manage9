@@ -7,7 +7,7 @@ const TaxMapping = () => {
     const [selectedMapping, setSelectedMapping] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
     const [formData, setFormData] = useState({
-        serviceType: '',
+        serviceType: 'ROOM',
         taxIds: [],
         isDefault: false,
         status: 'ACTIVE',
@@ -231,7 +231,7 @@ const TaxMapping = () => {
 
     const handleResetForm = () => {
         setFormData({
-            serviceType: '',
+            serviceType: 'ROOM',
             taxIds: [],
             isDefault: false,
             status: 'ACTIVE',
@@ -420,7 +420,6 @@ const TaxMapping = () => {
                                                 onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
                                                 style={{ flex: 1 }}
                                             >
-                                                <option value="">Select Service Type</option>
                                                 {serviceOptions.map(option => (
                                                     <option key={option.value} value={option.value}>
                                                         {option.label}

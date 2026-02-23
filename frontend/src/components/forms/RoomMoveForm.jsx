@@ -21,6 +21,9 @@ const RoomMoveForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
     // 2. Fetch Detailed Reservation & Available Rooms
     useEffect(() => {
         const loadInitialData = async () => {
+            console.log('[RoomMoveForm] API_URL:', API_URL);
+            console.log('[RoomMoveForm] Loading data for booking:', initialBooking._id || initialBooking.id);
+            
             setLoading(true);
             try {
                 // Fetch full reservation details to get correct dates/status
@@ -30,32 +33,37 @@ const RoomMoveForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
                 if (resResult.success) {
                     setBooking(resResult.data);
 
-                    // Fetch available rooms for the remaining stay dates
-                    const today = new Date().toISOString().split('T')[0];
+                    // Fetch available rooms - just get all Available status rooms
                     const roomsResponse = await fetch(
-                        `${API_URL}/api/rooms/list?status=Available&from=${today}&to=${resResult.data.checkOutDate}`
+                        `${API_URL}/api/rooms/list?status=Available`
                     );
                     const roomsResult = await roomsResponse.json();
 
-                    if (roomsResult.success) {
-                        // Filter out current room
-                        const filtered = (roomsResult.data || []).filter(r => r.roomNumber !== resResult.data.roomNumber);
+                    console.log('[RoomMoveForm] Rooms API response:', roomsResult);
+
+                    if (roomsResult.success && roomsResult.data && roomsResult.data.length > 0) {
+                        // Filter out current room and validate room structure
+                        const filtered = roomsResult.data
+                            .filter(r => r.roomNumber !== resResult.data.roomNumber)
+                            .filter(r => r._id && r.roomNumber && r.price) // Ensure valid room data
+                            .map(r => ({
+                                ...r,
+                                _id: r._id.toString() // Ensure _id is string
+                            }));
+                        
+                        console.log('[RoomMoveForm] Available rooms after filtering:', filtered.length);
                         setAvailableRooms(filtered);
+                    } else {
+                        console.warn('[RoomMoveForm] No available rooms found');
+                        setAvailableRooms([]);
                     }
                 } else {
                     throw new Error(resResult.message || 'Failed to fetch reservation details');
                 }
             } catch (err) {
                 console.error('Error loading room move data:', err);
-                setError(err.message);
-
-                // Fallback for demo if API fails
-                setAvailableRooms([
-                    { _id: '101', roomNumber: '101', roomType: 'Deluxe King', price: 4200, status: 'Available' },
-                    { _id: '102', roomNumber: '108', roomType: 'Deluxe King', price: 4200, status: 'Available' },
-                    { _id: '103', roomNumber: '205', roomType: 'Executive Suite', price: 5500, status: 'Available' },
-                    { _id: '104', roomNumber: '302', roomType: 'Standard Single', price: 2500, status: 'Available' }
-                ].filter(r => r.roomNumber !== initialBooking.roomNumber));
+                setError(err.message || 'Failed to load room data. Please check your connection.');
+                setAvailableRooms([]);
             } finally {
                 setLoading(false);
             }
@@ -92,6 +100,7 @@ const RoomMoveForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
         const { name, value } = e.target;
         if (name === 'newRoomId') {
             const selectedRoom = availableRooms.find(r => r._id === value);
+            console.log('[RoomMoveForm] Room selected:', { value, selectedRoom });
             setFormData(prev => ({
                 ...prev,
                 newRoomId: value,
@@ -110,6 +119,14 @@ const RoomMoveForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
         if (!formData.newRoomId) return alert('Please select a new room');
         if (!formData.reason.trim()) return alert('Reason for move is required');
 
+        // Verify the selected room exists in available rooms
+        const selectedRoom = availableRooms.find(r => r._id === formData.newRoomId);
+        if (!selectedRoom) {
+            console.error('[RoomMoveForm] Selected room not found in availableRooms:', formData.newRoomId);
+            console.error('[RoomMoveForm] Available rooms:', availableRooms);
+            return alert('Selected room is invalid. Please refresh and try again.');
+        }
+
         const inHouseStatuses = ['Checked-in', 'IN_HOUSE'];
         if (!inHouseStatuses.includes(booking.status)) {
             return alert(`Cannot move room for guest with status: ${booking.status}. Only In-House guests can be moved.`);
@@ -126,7 +143,16 @@ const RoomMoveForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
 
         setIsSubmitting(true);
         try {
-            const response = await fetch(`${API_URL}/api/reservations/${booking._id || booking.id}/room-move`, {
+            const apiUrl = `${API_URL}/api/reservations/${booking._id || booking.id}/room-move`;
+            console.log('[RoomMoveForm] Submitting to:', apiUrl);
+            console.log('[RoomMoveForm] Request body:', {
+                newRoomId: formData.newRoomId,
+                newRoomNumber: formData.newRoomNumber,
+                reason: formData.reason,
+                effectiveDate: formData.moveEffectiveDate
+            });
+
+            const response = await fetch(apiUrl, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -138,7 +164,11 @@ const RoomMoveForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
                 })
             });
 
+            console.log('[RoomMoveForm] Response status:', response.status);
+            
             const result = await response.json();
+            console.log('[RoomMoveForm] Response data:', result);
+
             if (result.success) {
                 // onSubmit will handle success (toast, close, refresh)
                 await onSubmit(result.data);
@@ -147,7 +177,12 @@ const RoomMoveForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
             }
         } catch (err) {
             console.error('Error submitting room move:', err);
-            alert('Failed to process room move. Please check connection.');
+            console.error('Error details:', {
+                message: err.message,
+                stack: err.stack,
+                apiUrl: API_URL
+            });
+            alert(`Failed to process room move: ${err.message || 'Network error'}. API URL: ${API_URL || 'NOT SET'}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -248,32 +283,46 @@ const RoomMoveForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
                 {/* Move Guest To Section */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <label style={{ fontSize: '14px', fontWeight: '700', color: '#374151' }}>Move Guest To:</label>
-                    <div style={{ position: 'relative' }}>
-                        <select
-                            name="newRoomId"
-                            value={formData.newRoomId}
-                            onChange={handleChange}
-                            style={{
-                                width: '100%',
-                                padding: '14px 18px',
-                                borderRadius: '12px',
-                                border: '1px solid #E5E7EB',
-                                backgroundColor: '#FFFFFF',
-                                appearance: 'none',
-                                fontSize: '15px',
-                                outline: 'none',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            <option value="">Select New Room</option>
-                            {availableRooms.map(room => (
-                                <option key={room._id} value={room._id}>
-                                    Room {room.roomNumber} - {room.roomType} (₹{room.price})
-                                </option>
-                            ))}
-                        </select>
-                        <span style={{ position: 'absolute', right: '18px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF', pointerEvents: 'none' }}>❯</span>
-                    </div>
+                    {availableRooms.length === 0 ? (
+                        <div style={{
+                            padding: '16px',
+                            borderRadius: '12px',
+                            backgroundColor: '#FEF2F2',
+                            border: '1px solid #FEE2E2',
+                            color: '#991B1B',
+                            fontSize: '14px',
+                            fontWeight: '500'
+                        }}>
+                            ⚠️ No available rooms found for the remaining stay period. Please check room availability or try again later.
+                        </div>
+                    ) : (
+                        <div style={{ position: 'relative' }}>
+                            <select
+                                name="newRoomId"
+                                value={formData.newRoomId}
+                                onChange={handleChange}
+                                style={{
+                                    width: '100%',
+                                    padding: '14px 18px',
+                                    borderRadius: '12px',
+                                    border: '1px solid #E5E7EB',
+                                    backgroundColor: '#FFFFFF',
+                                    appearance: 'none',
+                                    fontSize: '15px',
+                                    outline: 'none',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <option value="">Select New Room</option>
+                                {availableRooms.map(room => (
+                                    <option key={room._id} value={room._id}>
+                                        Room {room.roomNumber} - {room.roomType} (₹{room.price})
+                                    </option>
+                                ))}
+                            </select>
+                            <span style={{ position: 'absolute', right: '18px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF', pointerEvents: 'none' }}>❯</span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Rate Difference Info (Real-time) */}

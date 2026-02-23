@@ -5,11 +5,15 @@ const {
     addTransaction,
     getAllTransactions,
     deleteTransaction,
-    initializeSampleData
+    initializeSampleData,
+    getFoodPaymentReport
 } = require('../controllers/cashierController');
 
 // Get cashier report with date filter
 router.get('/report', getCashierReport);
+
+// Get food payment report with date filter
+router.get('/food-payment-report', getFoodPaymentReport);
 
 // Get all transactions
 router.get('/transactions', getAllTransactions);

@@ -243,6 +243,43 @@
     background-color: #b91c1c;
 }
 
+/* View Toggle Buttons */
+.view-toggle {
+    display: flex;
+    gap: 5px;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 6px;
+}
+
+.view-toggle-btn {
+    background: transparent;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+}
+
+.view-toggle-btn:hover {
+    background: rgba(220, 38, 38, 0.1);
+    color: #dc2626;
+}
+
+.view-toggle-btn.active {
+    background: #dc2626;
+    color: white;
+}
+
+.view-toggle-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
 /* Sub-Header & Status Bar */
 .sub-header {
     display: flex;
@@ -456,6 +493,83 @@
     background-color: #155e75;
 }
 
+/* List View Styles */
+.room-cards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 40px;
+}
+
+.room-list-layout {
+    display: grid;
+    grid-template-columns: 120px 1fr 1fr 150px 120px 200px;
+    gap: 20px;
+    align-items: center;
+    padding: 20px 24px;
+}
+
+.room-list-number {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.room-list-number h4 {
+    margin: 0;
+    color: #b91c1c;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.dirty-badge-small {
+    display: inline-block;
+    background: #dc2626;
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.room-list-type,
+.room-list-capacity,
+.room-list-price {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.room-list-type .label,
+.room-list-capacity .label,
+.room-list-price .label {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.room-list-type .value,
+.room-list-capacity .value,
+.room-list-price .value {
+    font-size: 14px;
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.room-list-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.room-list-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
 /* Legend System */
 .legend-container {
     display: flex;
@@ -595,8 +709,53 @@
         align-items: stretch;
     }
 
+    .view-toggle {
+        width: 100%;
+        justify-content: center;
+    }
+
     .add-room-btn {
         margin-left: 0;
         width: 100%;
     }
+
+    .room-list-layout {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .room-list-type,
+    .room-list-capacity,
+    .room-list-price {
+        display: grid;
+        grid-template-columns: 100px 1fr;
+        gap: 8px;
+    }
+
+    .room-list-actions {
+        justify-content: flex-start;
+    }
+}
+.dirty-badge {
+    position: absolute;
+    top: 50%;
+    right: 50px;
+    background: #ef4444;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    z-index: 5;
+    pointer-events: none;
+    transform: translateY(-50%);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
 }

@@ -95,9 +95,21 @@ const connectDB = async () => {
     }
 };
 
+// Sync Table indexes to allow same table names in different types
+const syncTableIndexes = async () => {
+    try {
+        const Table = require('./models/Table');
+        await Table.syncIndexes();
+        console.log('✅ Table indexes synced successfully');
+    } catch (error) {
+        console.warn('⚠️ Table index sync warning:', error.message);
+    }
+};
+
 // Connect to database and seed admin
 connectDB()
     .then(() => seedAdmin())
+    .then(() => syncTableIndexes())
     .catch(err => {
         console.error('Failed to connect to MongoDB:', err);
     });
@@ -157,6 +169,15 @@ app.use('/api/tables', tableRoutes);
 
 const visitorRoutes = require('./routes/visitorRoutes');
 app.use('/api/visitors', visitorRoutes);
+
+const housekeepingRoutes = require('./routes/housekeepingRoutes');
+app.use('/api/housekeeping', housekeepingRoutes);
+
+const folioRoutes = require('./routes/folioRoutes');
+app.use('/api/folio', folioRoutes);
+
+const notificationRoutes = require('./routes/notificationRoutes');
+app.use('/api/notifications', notificationRoutes);
 
 // Root route
 app.get('/', (req, res) => {

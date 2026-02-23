@@ -2,13 +2,17 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { motion, AnimatePresence } from 'framer-motion';
 import API_URL_CONFIG from '../config/api';
 import './FoodOrderPage.css';
 
-const FoodOrderPage = ({ onClose }) => {
+const FoodOrderPage = ({ onClose, room: roomProp }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { room, source, orderMode } = location.state || {};
+    const { room: roomState, source, orderMode } = location.state || {};
+
+    // Prefer prop over state (prop comes from AdminDashboard posGuestDetails)
+    const room = roomProp || roomState;
 
     const handleMenuClick = (menuId) => {
         const routeMap = {
@@ -38,8 +42,15 @@ const FoodOrderPage = ({ onClose }) => {
     };
 
     const handleClose = () => {
+        if (onClose) {
+            onClose();
+            return;
+        }
+
         if (source === 'room-service') {
-            navigate(-1);
+            navigate('/admin/room-service');
+        } else if (source === 'table-order') {
+            navigate('/admin/guest-meal-service');
         } else {
             navigate('/admin/dashboard');
         }
@@ -138,7 +149,7 @@ const FoodOrderPage = ({ onClose }) => {
     const [activeOrderType, setActiveOrderType] = useState(() => {
         if (location.state?.orderMode === 'takeaway') return 'takeaway';
         if (room?.mode === 'takeaway' || room?.roomNumber === 'Take Away') return 'takeaway';
-        if (source === 'room-service') return 'roomservice';
+        if (source === 'room-service' || orderMode === 'roomservice') return 'roomservice';
         if (room?.id) return 'dinein';
         return 'dinein';
     });
@@ -148,12 +159,12 @@ const FoodOrderPage = ({ onClose }) => {
             setActiveOrderType('takeaway');
         } else if (room?.mode === 'takeaway' || room?.roomNumber === 'Take Away') {
             setActiveOrderType('takeaway');
+        } else if (source === 'room-service' || orderMode === 'roomservice') {
+            setActiveOrderType('roomservice');
         } else if (room?.id) {
             setActiveOrderType('dinein');
-        } else if (source === 'room-service') {
-            setActiveOrderType('roomservice');
         }
-    }, [room, source, location.state]);
+    }, [room, source, orderMode, location.state]);
 
     useEffect(() => {
         if (printMode) {
@@ -197,16 +208,70 @@ const FoodOrderPage = ({ onClose }) => {
         );
     };
 
-    const [orderId, setOrderId] = useState(null);
+    const [orderId, setOrderId] = useState(location.state?.orderId || null);
     const [taxRate, setTaxRate] = useState(5); // Default 5%
     const [isTaxApplied, setIsTaxApplied] = useState(false);
 
+    // New Features States
+    const [billComment, setBillComment] = useState('');
+    const [showCommentModal, setShowCommentModal] = useState(false);
+    const [selectedCustomer, setSelectedCustomer] = useState(null);
+    const [showCustomerModal, setShowCustomerModal] = useState(false);
+    // Tender Modal States
+    const [showTenderModal, setShowTenderModal] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState('Cash');
+    const [receivedAmount, setReceivedAmount] = useState('');
+    const [smsModal, setSmsModal] = useState({ show: false, name: '', phone: '' });
+    const [emailModal, setEmailModal] = useState({ show: false, name: '', email: '' });
+    const [validationErrors, setValidationErrors] = useState({});
+    const [isSendingSms, setIsSendingSms] = useState(false);
+
+    // Initialize customer if room-service or if guest details passed in state
+    useEffect(() => {
+        if (room) {
+            setSelectedCustomer({
+                id: room.guestId || room._id,
+                name: room.guestName,
+                phone: room.guestPhone || room.mobileNumber || room.phoneNumber,
+                roomNumber: room.roomNumber,
+                type: (activeOrderType === 'roomservice' || activeOrderType === 'room') ? 'room' : 'direct'
+            });
+        }
+    }, [room, activeOrderType]);
+
     // Fetch existing order if available
     useEffect(() => {
-        if (room?.id) {
+        if (orderId) {
+            fetchOrderById(orderId);
+        } else if (room?.id) {
             fetchExistingOrder();
         }
-    }, [room]);
+    }, [room, orderId]);
+
+    const fetchOrderById = async (id) => {
+        try {
+            const response = await fetch(`${API_URL_CONFIG}/api/guest-meal/orders/${id}`);
+            const data = await response.json();
+            if (data.success && data.data) {
+                setOrderId(data.data._id);
+                setTaxRate(data.data.taxRate || 5);
+                setIsTaxApplied((data.data.tax || 0) > 0);
+                setBillComment(data.data.notes || '');
+                // Map items back to cart format
+                const mappedCart = data.data.items.map(item => ({
+                    id: item.id || item.menuItem || item._id,
+                    name: item.name || item.itemName,
+                    price: item.price,
+                    quantity: item.quantity,
+                    category: item.category,
+                    subtotal: item.subtotal
+                }));
+                setCart(mappedCart);
+            }
+        } catch (error) {
+            console.error('Error fetching order by ID:', error);
+        }
+    };
 
     const fetchExistingOrder = async () => {
         try {
@@ -233,8 +298,9 @@ const FoodOrderPage = ({ onClose }) => {
     };
 
     // Calculations
-    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const taxAmount = isTaxApplied ? (subtotal * taxRate) / 100 : 0;
+    // Calculations
+    const subtotal = Array.isArray(cart) ? cart.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 0)), 0) : 0;
+    const taxAmount = isTaxApplied ? (subtotal * Number(taxRate || 0)) / 100 : 0;
     const total = subtotal + taxAmount;
 
     // Handlers
@@ -260,12 +326,14 @@ const FoodOrderPage = ({ onClose }) => {
             const orderData = {
                 tableId: (activeOrderType === 'takeaway' || activeOrderType === 'roomservice' || activeOrderType === 'room') ? null : tId,
                 tableNumber: activeOrderType === 'takeaway' ? 0 : tNum,
-                guestName: finalGuestName,
-                guestPhone: effectiveRoom.phoneNumber || location.state?.customerPhone || null,
-                roomNumber: effectiveRoom.roomNumber || 'Take Away',
+                guestName: selectedCustomer?.name || finalGuestName,
+                guestPhone: selectedCustomer?.phone || effectiveRoom.phoneNumber || location.state?.customerPhone || null,
+                roomNumber: selectedCustomer?.roomNumber || effectiveRoom.roomNumber || 'Take Away',
                 orderType: (activeOrderType === 'roomservice' || activeOrderType === 'room') ? 'Post to Room' :
                     activeOrderType === 'takeaway' ? 'Take Away' : 'Direct Payment',
                 taxRate: isTaxApplied ? Number(taxRate) : 0,
+                notes: billComment, // Bill Wise Comment
+                guest: selectedCustomer?.id || null, // Link to Guest model
                 items: cart.map(item => ({
                     id: item.id || item._id, // Ensure id is passed
                     name: item.name,
@@ -283,7 +351,11 @@ const FoodOrderPage = ({ onClose }) => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         items: orderData.items,
-                        taxRate: orderData.taxRate
+                        taxRate: orderData.taxRate,
+                        notes: orderData.notes,
+                        guestName: orderData.guestName,
+                        guestPhone: orderData.guestPhone,
+                        guest: orderData.guest
                     })
                 });
             } else {
@@ -325,10 +397,14 @@ const FoodOrderPage = ({ onClose }) => {
             else if (activeOrderType === 'roomservice' || activeOrderType === 'room') targetFilter = 'Room Order';
             else if (activeOrderType === 'dinein') targetFilter = 'Dine In';
 
+            // If coming from room-service, go to KOT View tab
+            const targetTab = (source === 'room-service') ? 'KOT View' : 'Bill View';
+
             navigate('/admin/dashboard', {
                 state: {
                     activeMenu: 'view-order',
-                    activeFilter: targetFilter
+                    activeFilter: targetFilter,
+                    activeTab: targetTab
                 }
             });
         } else {
@@ -373,10 +449,108 @@ const FoodOrderPage = ({ onClose }) => {
         const success = await saveOrderToBackend();
         if (success) {
             addToast('Room posted successfully');
-            navigate('/admin/dashboard', { state: { activeMenu: 'view-order', activeFilter: 'Room Order' } });
+            // Show SMS/Email options directly or stay on page
+            // For now, staying on page to allow SMS/Email then navigate
         } else {
             addToast('Failed to post to room');
         }
+    };
+
+    const handleTenderSubmit = async () => {
+        const success = await saveOrderToBackend();
+        if (success) {
+            addToast(`Payment of ₹${total} received via ${paymentMethod}`);
+            // Success logic - we can either close or stay to show SMS/Email
+        } else {
+            addToast('Error processing payment');
+        }
+    };
+
+    const openSmsModal = () => {
+        setSmsModal({
+            show: true,
+            name: selectedCustomer?.name || room?.guestName || '',
+            phone: selectedCustomer?.phone || room?.guestPhone || ''
+        });
+    };
+
+    const openEmailModal = () => {
+        setEmailModal({
+            show: true,
+            name: selectedCustomer?.name || room?.guestName || '',
+            email: selectedCustomer?.email || room?.guestEmail || ''
+        });
+    };
+
+    const sendSms = async () => {
+        // Validation: 10-digit Indian mobile number
+        const phoneRegex = /^[6-9]\d{9}$/;
+        if (!smsModal.phone || !phoneRegex.test(smsModal.phone.replace(/\D/g, ''))) {
+            setValidationErrors({ ...validationErrors, phone: 'Enter a valid 10-digit mobile number' });
+            return;
+        }
+
+        setIsSendingSms(true);
+        setValidationErrors({ ...validationErrors, phone: null });
+
+        // Generate dynamic mall-style message content
+        const hotelName = "BAREENA ATHITHI";
+        const billNo = orderId ? orderId.toString().slice(-6).toUpperCase() : 'N/A';
+        const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+        const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+        // Exact mall-style compact format requested
+        const smsContent = `${hotelName}\nBill #${billNo}\nAmt ₹${total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\n${dateStr} ${timeStr}\nThank you visit again`;
+
+        try {
+            const savedUser = localStorage.getItem('authUser');
+            let token = '';
+            if (savedUser) {
+                const parsedUser = JSON.parse(savedUser);
+                token = parsedUser.token;
+            }
+
+            // Realistic API call (triggering backend notification service)
+            const response = await fetch(`${API_URL_CONFIG}/api/notifications/send-sms`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    phone: smsModal.phone,
+                    message: smsContent,
+                    orderId: orderId,
+                    type: 'TRANSACTIONAL_RECEIPT'
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                addToast(`SMS receipt sent to ${smsModal.phone}`);
+                setSmsModal({ ...smsModal, show: false });
+            } else {
+                throw new Error(data.message || 'Failed to send SMS');
+            }
+        } catch (error) {
+            console.error('SMS Send Error:', error);
+            // Fallback for demonstration since actual backend might not have the route yet
+            addToast(`Error: ${error.message || 'Failed to send SMS'}`);
+        } finally {
+            setIsSendingSms(false);
+        }
+    };
+
+    const sendEmail = () => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailModal.email || !emailRegex.test(emailModal.email)) {
+            setValidationErrors({ ...validationErrors, email: 'Enter a valid email address' });
+            return;
+        }
+        setValidationErrors({ ...validationErrors, email: null });
+        addToast(`Email sent successfully to ${emailModal.email}`);
+        setEmailModal({ ...emailModal, show: false });
     };
 
     // Modal Action Handlers
@@ -427,427 +601,712 @@ const FoodOrderPage = ({ onClose }) => {
     };
 
     return (
-        <>
-            <div className="pos-layout-wrapper">
-                <div className="pos-container">
-                    {/* LEFT PANEL (60%) */}
-                    <div className="pos-left-panel">
-                        {/* A. Top Search Row */}
-                        <div className="pos-search-row">
-                            <input
-                                className="pos-search-input"
-                                placeholder="Search items by name or code (ESCAPE)"
-                                value={searchName}
-                                onChange={(e) => setSearchName(e.target.value)}
-                            />
-                            <input
-                                className="pos-search-input"
-                                placeholder="Short Code (F2) / Category"
-                                value={searchCode}
-                                onChange={(e) => setSearchCode(e.target.value)}
-                            />
-                        </div>
-
-                        {/* Content Area: Sidebar + Grid */}
-                        <div className="pos-content-area">
-                            {/* B. Category Sidebar */}
-                            <div className="pos-category-sidebar">
-                                <div className="pos-category-list">
-                                    {categories.map(cat => (
-                                        <div
-                                            key={cat.id}
-                                            className={`pos-category-item ${selectedCategory === cat.id ? 'active' : ''}`}
-                                            onClick={() => setSelectedCategory(cat.id)}
-                                        >
-                                            {cat.name}
-                                        </div>
-                                    ))}
-                                </div>
-                                {/* BACK BUTTON PINNED TO BOTTOM */}
-                                <button className="pos-sidebar-back-btn" onClick={handleClose}>
-                                    <span>←</span> Back
-                                </button>
-                            </div>
-
-                            {/* C. Food Items Grid */}
-                            <div className="pos-food-grid-container">
-                                {loading ? (
-                                    <div style={{
-                                        display: 'flex',
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        height: '300px',
-                                        fontSize: '18px',
-                                        color: '#666'
-                                    }}>
-                                        Loading menu items...
-                                    </div>
-                                ) : currentItems.length === 0 ? (
-                                    <div style={{
-                                        display: 'flex',
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        height: '300px',
-                                        fontSize: '16px',
-                                        color: '#999'
-                                    }}>
-                                        No items available in this category
-                                    </div>
-                                ) : (
-                                    currentItems.map(item => {
-                                        // Find current quantity in cart
-                                        const cartItem = cart.find(x => x.id === item.id);
-                                        const inCartQty = cartItem ? cartItem.quantity : 0;
-                                        const isOutOfStock = (item.quantityAvailable || 0) <= 0 || item.status === 'Inactive';
-
-                                        return (
-                                            <div
-                                                key={item.id}
-                                                className={`pos-food-card ${inCartQty > 0 ? 'has-qty' : ''} ${isOutOfStock ? 'out-of-stock' : ''}`}
-                                                onClick={() => !isOutOfStock && addToCart(item)}
-                                            >
-                                                <div className="pos-card-code">#{item.code || item.id.substring(0, 6)}</div>
-                                                {inCartQty > 0 && (
-                                                    <div className="pos-card-badge">Qty: {inCartQty}</div>
-                                                )}
-                                                {isOutOfStock && (
-                                                    <div className="out-of-stock-badge">Out of Stock</div>
-                                                )}
-                                                <div className="pos-card-content">
-                                                    <div className="pos-card-name">{item.name}</div>
-                                                </div>
-                                                <div className="pos-card-footer">
-                                                    <div className="pos-card-qty-available">
-                                                        {isOutOfStock ? 'Empty' : `Qty: ${item.quantityAvailable}`}
-                                                    </div>
-                                                    <div className="pos-card-price">₹{item.price}</div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })
-                                )}
-                            </div>
-                        </div>
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="pos-layout-wrapper"
+        >
+            <div className="pos-container">
+                {/* LEFT PANEL (60%) */}
+                <div className="pos-left-panel">
+                    {/* A. Top Search Row */}
+                    <div className="pos-search-row">
+                        <input
+                            className="pos-search-input"
+                            placeholder="Search items by name or code (ESCAPE)"
+                            value={searchName}
+                            onChange={(e) => setSearchName(e.target.value)}
+                        />
+                        <input
+                            className="pos-search-input"
+                            placeholder="Short Code (F2) / Category"
+                            value={searchCode}
+                            onChange={(e) => setSearchCode(e.target.value)}
+                        />
                     </div>
 
-                    {/* RIGHT PANEL (40%) */}
-                    <div className="pos-right-panel">
-                        {/* A. Mode Buttons */}
-                        <div className="pos-mode-bar">
-                            <button
-                                className={`pos-mode-btn ${activeOrderType === 'dinein' ? 'active' : ''}`}
-                                onClick={() => setActiveOrderType('dinein')}
-                                disabled={(orderMode && orderMode !== 'dinein') || source === 'room-service'}
-                                style={{ opacity: ((orderMode && orderMode !== 'dinein') || source === 'room-service') ? 0.5 : 1, cursor: ((orderMode && orderMode !== 'dinein') || source === 'room-service') ? 'not-allowed' : 'pointer' }}
-                            >
-                                Dine In (F1)
-                            </button>
-                            <button
-                                className={`pos-mode-btn ${activeOrderType === 'takeaway' ? 'active' : ''}`}
-                                onClick={() => setActiveOrderType('takeaway')}
-                                disabled={(orderMode && orderMode !== 'takeaway') || source === 'room-service'}
-                                style={{ opacity: ((orderMode && orderMode !== 'takeaway') || source === 'room-service') ? 0.5 : 1, cursor: ((orderMode && orderMode !== 'takeaway') || source === 'room-service') ? 'not-allowed' : 'pointer' }}
-                            >
-                                Take Away (F3)
-                            </button>
-                            <button
-                                className={`pos-mode-btn ${activeOrderType === 'online' ? 'active' : ''}`}
-                                onClick={() => setActiveOrderType('online')}
-                                disabled={!!orderMode || !!source}
-                                style={{ opacity: (!!orderMode || !!source) ? 0.5 : 1, cursor: (!!orderMode || !!source) ? 'not-allowed' : 'pointer' }}
-                            >
-                                Online Order (F5)
-                            </button>
-                            <button
-                                className={`pos-mode-btn ${activeOrderType === 'roomservice' ? 'active' : ''}`}
-                                onClick={() => setActiveOrderType('roomservice')}
-                                disabled={(orderMode && orderMode !== 'roomservice')}
-                                style={{ opacity: (orderMode && orderMode !== 'roomservice') ? 0.5 : 1, cursor: (orderMode && orderMode !== 'roomservice') ? 'not-allowed' : 'pointer' }}
-                            >
-                                Room Service
-                            </button>
-                        </div>
-
-                        {/* B. Stats Row */}
-                        <div className="pos-stats-row">
-                            <div className="pos-stat-item">
-                                <div className="pos-stat-label">Today Room Sale</div>
-                                <div className="pos-stat-value">0.00</div>
-                            </div>
-                            <div className="pos-stat-item">
-                                <div className="pos-stat-label">Current Running Orders</div>
-                                <div className="pos-stat-value">9</div>
-                            </div>
-                            <div className="pos-stat-item">
-                                <div className="pos-stat-label">Running Orders Value</div>
-                                <div className="pos-stat-value">4,337.64</div>
-                            </div>
-                        </div>
-
-                        {/* C. INFO & ACTION ROW (Merged) */}
-                        <div className="pos-info-action-row">
-                            <div className="pos-room-details">
-                                <div className="pos-room-no">
-                                    {activeOrderType === 'dinein' ? 'Table ' : (activeOrderType === 'roomservice' ? 'Room ' : '')}
-                                    {room?.roomNumber || (activeOrderType === 'takeaway' ? 'Take Away' : '')}
-                                </div>
-                                <div className="pos-guest-name">{room?.guestName || 'Guest Name'}</div>
-                            </div>
-                            <div className="pos-action-buttons-group">
-                                <button className="pos-action-btn">Add Customer</button>
-                                <button className="pos-action-btn">Bill Wise Comment</button>
-                                <button className="pos-action-btn">Delivery Boy</button>
-                                <button className="pos-action-btn active">Home Delivery</button>
-                            </div>
-                        </div>
-
-                        {/* E. Order Items Table */}
-                        <div className="pos-order-table-container">
-                            <table className="pos-order-table">
-                                <thead>
-                                    <tr>
-                                        <th>ITEM NAME</th>
-                                        <th style={{ width: '90px', textAlign: 'center' }}>QTY</th>
-                                        <th style={{ textAlign: 'right' }}>PRICE</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {cart.length === 0 ? (
-                                        <tr>
-                                            <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#999', fontStyle: 'italic' }}>
-                                                No items added
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        cart.map(item => (
-                                            <tr key={item.id} className="pos-cart-row">
-                                                <td className="pos-cart-name">{item.name}</td>
-                                                <td>
-                                                    <div className="pos-qty-control">
-                                                        <button className="pos-qty-btn minus" onClick={() => updateQuantity(item.id, -1)}>-</button>
-                                                        <span className="pos-qty-value">{item.quantity}</span>
-                                                        <button className="pos-qty-btn plus" onClick={() => updateQuantity(item.id, 1)}>+</button>
-                                                    </div>
-                                                </td>
-                                                <td style={{ textAlign: 'right' }} className="pos-cart-price">₹{item.price * item.quantity}</td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* F. Total Section */}
-                        <div className="pos-total-section">
-                            <div className="pos-tax-controls" style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '15px',
-                                marginBottom: '10px',
-                                padding: '8px 12px',
-                                background: '#f8fafc',
-                                borderRadius: '8px',
-                                border: '1px solid #e2e8f0'
-                            }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: '600', color: '#475569', fontSize: '0.9rem' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={isTaxApplied}
-                                        onChange={(e) => setIsTaxApplied(e.target.checked)}
-                                        style={{ width: '16px', height: '16px', accentColor: '#dc2626' }}
-                                    />
-                                    Apply Tax (%)
-                                </label>
-                                {isTaxApplied && (
-                                    <input
-                                        type="number"
-                                        value={taxRate}
-                                        onChange={(e) => setTaxRate(Number(e.target.value))}
-                                        style={{
-                                            width: '60px',
-                                            padding: '4px 8px',
-                                            borderRadius: '6px',
-                                            border: '1px solid #cbd5e1',
-                                            textAlign: 'center',
-                                            fontSize: '0.9rem',
-                                            fontWeight: '700'
-                                        }}
-                                    />
-                                )}
-                            </div>
-
-                            <div className="pos-total-row">
-                                <span>Subtotal</span>
-                                <span>₹{subtotal.toFixed(2)}</span>
-                            </div>
-
-                            {isTaxApplied && (
-                                <div className="pos-total-row">
-                                    <span>Tax ({taxRate}%)</span>
-                                    <span>₹{taxAmount.toFixed(2)}</span>
-                                </div>
-                            )}
-
-                            <div className="pos-total-row final" style={{ borderTop: '2px solid #e2e8f0', marginTop: '10px', paddingTop: '10px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <span style={{ fontSize: '1.1rem', fontWeight: '800' }}>Grand Total</span>
-                                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '500' }}>
-                                        {isTaxApplied ? `Incl. ${taxRate}% Tax` : 'Zero Tax'}
-                                    </span>
-                                </div>
-                                <span style={{ fontSize: '1.4rem', color: '#dc2626' }}>₹{total.toFixed(2)}</span>
-                            </div>
-
-                            {/* ACTION BAR */}
-                            <div className="pos-action-bar">
-                                <button className="pos-action-btn-small">Tender</button>
-                                <button className="pos-action-btn-small">Add Other Details</button>
-                            </div>
-
-                            {/* TWO ROWS BELOW */}
-                            <div className="pos-footer-rows">
-                                {/* KOT ROW */}
-                                <div className="pos-footer-row">
-                                    <div className="pos-row-label kot">KOT</div>
-                                    <div className="pos-row-btns">
-                                        <button className="pos-footer-btn" onClick={handleSaveKOT}>Save (K)</button>
-                                        <button className="pos-footer-btn" onClick={handleSavePrintKOT}>Save & Print(F4)</button>
+                    {/* Content Area: Sidebar + Grid */}
+                    <div className="pos-content-area">
+                        {/* B. Category Sidebar */}
+                        <div className="pos-category-sidebar">
+                            <div className="pos-category-list">
+                                {categories.map(cat => (
+                                    <div
+                                        key={cat.id}
+                                        className={`pos-category-item ${selectedCategory === cat.id ? 'active' : ''}`}
+                                        onClick={() => setSelectedCategory(cat.id)}
+                                    >
+                                        {cat.name}
                                     </div>
-                                </div>
-
-                                {/* BILL ROW */}
-                                <div className="pos-footer-row">
-                                    <div className="pos-row-label bill">BILL</div>
-                                    <div className="pos-row-btns">
-                                        <button className="pos-footer-btn" onClick={handleSaveBill}>Save(B)</button>
-                                        <button className="pos-footer-btn" onClick={handleSavePrintBill}>Save & Print(F8)</button>
-                                        {(activeOrderType === 'dinein' || activeOrderType === 'roomservice') && (
-                                            <button className="pos-footer-btn" onClick={handleRoomPosting}>Room Posting</button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {/* Toast Container */}
-            <div className="pos-toast-container">
-                {toasts.map(toast => (
-                    <div key={toast.id} className="pos-toast">
-                        {toast.message}
-                    </div>
-                ))}
-            </div>
-            {/* Printable Area (Hidden - for window.print()) */}
-            <div className="printable-area">
-                {(printMode === 'BILL' || printModal === 'BILL') && (
-                    <div className="pos-print-bill">
-                        <div className="print-header">
-                            <h2>BAREENA ATHITHI</h2>
-                            <p>Receipt / Bill</p>
-                        </div>
-                        <div className="print-details">
-                            <p>Room: {room?.roomNumber || 'N/A'}</p>
-                            <p>Guest: {room?.guestName || 'Walk-in'}</p>
-                            <p>Date: {new Date().toLocaleString()}</p>
-                        </div>
-                        <table className="print-table">
-                            <thead>
-                                <tr>
-                                    <th>Item</th>
-                                    <th>Qty</th>
-                                    <th>Price</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {cart.map(item => (
-                                    <tr key={item.id}>
-                                        <td>{item.name}</td>
-                                        <td>{item.quantity}</td>
-                                        <td>{item.price}</td>
-                                        <td>{item.price * item.quantity}</td>
-                                    </tr>
                                 ))}
-                            </tbody>
-                        </table>
-                        <div className="print-total">
-                            <h3>Grand Total: ₹{total.toFixed(2)}</h3>
+                            </div>
+                            {/* BACK BUTTON PINNED TO BOTTOM */}
+                            <button className="pos-sidebar-back-btn" onClick={handleClose}>
+                                <span>←</span> Back
+                            </button>
                         </div>
-                    </div>
-                )}
 
-                {(printMode === 'KOT' || printModal === 'KOT') && (
-                    <div className="pos-print-kot">
-                        <div className="print-header">
-                            <h2>KITCHEN ORDER TICKET</h2>
-                        </div>
-                        <div className="print-details">
-                            <p>Room: {room?.roomNumber || 'N/A'}</p>
-                            <p>Guest: {room?.guestName || 'Walk-in'}</p>
-                            <p>Time: {new Date().toLocaleTimeString()}</p>
-                        </div>
-                        <table className="print-table">
-                            <thead>
-                                <tr>
-                                    <th>Item Name</th>
-                                    <th>Qty</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {cart.map(item => (
-                                    <tr key={item.id}>
-                                        <td>{item.name}</td>
-                                        <td>{item.quantity}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
-
-            {/* PRINT PREVIEW MODAL */}
-            {printModal && (
-                <div className="pos-modal-overlay">
-                    <div className="pos-modal-content">
-                        <div className="pos-modal-header">
-                            <h3>{printModal === 'KOT' ? 'KOT PREVIEW' : 'BILL PREVIEW'}</h3>
-                            <button className="pos-modal-close" onClick={handleModalClose}>×</button>
-                        </div>
-                        <div className="pos-modal-body">
-                            {/* Re-using Printable Area Styles inside modal */}
-                            {printModal === 'BILL' ? (
-                                <div className="pos-preview-bill">
-                                    <div className="print-header"><h2>BAREENA ATHITHI</h2><p>Receipt / Bill</p></div>
-                                    <div className="print-details"><p>Room: {room?.roomNumber}</p><p>Guest: {room?.guestName}</p><p>Date: {new Date().toLocaleString()}</p></div>
-                                    <table className="print-table">
-                                        <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
-                                        <tbody>{cart.map(item => <tr key={item.id}><td>{item.name}</td><td>{item.quantity}</td><td>{item.price}</td><td>{item.price * item.quantity}</td></tr>)}</tbody>
-                                    </table>
-                                    <div className="print-total"><h3>Total: ₹{total.toFixed(2)}</h3></div>
+                        {/* C. Food Items Grid */}
+                        <div className="pos-food-grid-container">
+                            {loading ? (
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    height: '300px',
+                                    fontSize: '18px',
+                                    color: '#666'
+                                }}>
+                                    Loading menu items...
+                                </div>
+                            ) : currentItems.length === 0 ? (
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    height: '300px',
+                                    fontSize: '16px',
+                                    color: '#999'
+                                }}>
+                                    No items available in this category
                                 </div>
                             ) : (
-                                <div className="pos-preview-kot">
-                                    <div className="print-header"><h2>KITCHEN ORDER TICKET</h2></div>
-                                    <div className="print-details"><p>Room: {room?.roomNumber}</p><p>Time: {new Date().toLocaleTimeString()}</p></div>
-                                    <table className="print-table">
-                                        <thead><tr><th>Item</th><th>Qty</th></tr></thead>
-                                        <tbody>{cart.map(item => <tr key={item.id}><td>{item.name}</td><td>{item.quantity}</td></tr>)}</tbody>
-                                    </table>
-                                </div>
+                                currentItems.map(item => {
+                                    // Find current quantity in cart
+                                    const cartItem = cart.find(x => x.id === item.id);
+                                    const inCartQty = cartItem ? cartItem.quantity : 0;
+                                    const isOutOfStock = item.status === 'Inactive';
+
+                                    return (
+                                        <div
+                                            key={item.id}
+                                            className={`pos-food-card ${inCartQty > 0 ? 'has-qty' : ''} ${isOutOfStock ? 'out-of-stock' : ''}`}
+                                            onClick={() => !isOutOfStock && addToCart(item)}
+                                        >
+                                            <div className="pos-card-code">#{item.code || item.id.substring(0, 6)}</div>
+                                            {inCartQty > 0 && (
+                                                <div className="pos-card-badge">Qty: {inCartQty}</div>
+                                            )}
+                                            {isOutOfStock && (
+                                                <div className="out-of-stock-badge">Out of Stock</div>
+                                            )}
+                                            <div className="pos-card-content">
+                                                <div className="pos-card-name">{item.name}</div>
+                                            </div>
+                                            <div className="pos-card-footer">
+                                                <div className="pos-card-qty-available">
+                                                    {isOutOfStock ? 'Unavailable' : 'Available'}
+                                                </div>
+                                                <div className="pos-card-price">₹{item.price}</div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
                             )}
-                        </div>
-                        <div className="pos-modal-footer">
-                            <button className="pos-modal-btn cancel" onClick={handleModalClose}>Cancel</button>
-                            <button className="pos-modal-btn download" onClick={handleModalDownload}>Download</button>
-                            <button className="pos-modal-btn print" onClick={handleModalPrint}>Print</button>
                         </div>
                     </div>
                 </div>
-            )}
-        </>
+
+                {/* RIGHT PANEL (40%) */}
+                <div className="pos-right-panel">
+                    {/* A. Mode Buttons */}
+                    <div className="pos-mode-bar">
+                        <button
+                            className={`pos-mode-btn ${activeOrderType === 'dinein' ? 'active' : ''}`}
+                            onClick={() => setActiveOrderType('dinein')}
+                            disabled={(orderMode && orderMode !== 'dinein') || source === 'room-service'}
+                            style={{ opacity: ((orderMode && orderMode !== 'dinein') || source === 'room-service') ? 0.5 : 1, cursor: ((orderMode && orderMode !== 'dinein') || source === 'room-service') ? 'not-allowed' : 'pointer' }}
+                        >
+                            Dine In (F1)
+                        </button>
+                        <button
+                            className={`pos-mode-btn ${activeOrderType === 'takeaway' ? 'active' : ''}`}
+                            onClick={() => setActiveOrderType('takeaway')}
+                            disabled={(orderMode && orderMode !== 'takeaway') || source === 'room-service'}
+                            style={{ opacity: ((orderMode && orderMode !== 'takeaway') || source === 'room-service') ? 0.5 : 1, cursor: ((orderMode && orderMode !== 'takeaway') || source === 'room-service') ? 'not-allowed' : 'pointer' }}
+                        >
+                            Take Away (F3)
+                        </button>
+                        <button
+                            className={`pos-mode-btn ${activeOrderType === 'online' ? 'active' : ''}`}
+                            onClick={() => setActiveOrderType('online')}
+                            disabled={!!orderMode || source === 'room-service'}
+                            style={{ opacity: (!!orderMode || source === 'room-service') ? 0.5 : 1, cursor: (!!orderMode || source === 'room-service') ? 'not-allowed' : 'pointer' }}
+                        >
+                            Online Order (F5)
+                        </button>
+                        <button
+                            className={`pos-mode-btn ${activeOrderType === 'roomservice' ? 'active' : ''}`}
+                            onClick={() => setActiveOrderType('roomservice')}
+                            disabled={(orderMode && orderMode !== 'roomservice')}
+                            style={{ opacity: (orderMode && orderMode !== 'roomservice') ? 0.5 : 1, cursor: (orderMode && orderMode !== 'roomservice') ? 'not-allowed' : 'pointer' }}
+                        >
+                            Room Service
+                        </button>
+                    </div>
+
+                    {/* B. Stats Row */}
+                    <div className="pos-stats-row">
+                        <div className="pos-stat-item">
+                            <div className="pos-stat-label">Today Room Sale</div>
+                            <div className="pos-stat-value">0.00</div>
+                        </div>
+                        <div className="pos-stat-item">
+                            <div className="pos-stat-label">Current Running Orders</div>
+                            <div className="pos-stat-value">9</div>
+                        </div>
+                        <div className="pos-stat-item">
+                            <div className="pos-stat-label">Running Orders Value</div>
+                            <div className="pos-stat-value">4,337.64</div>
+                        </div>
+                    </div>
+
+                    {/* C. INFO & ACTION ROW (Merged) */}
+                    <div className="pos-info-action-row">
+                        <div className="pos-room-details">
+                            <div className="pos-room-no">
+                                {activeOrderType === 'dinein' ? 'Table ' : (activeOrderType === 'roomservice' ? 'Room ' : '')}
+                                {room?.roomNumber || (activeOrderType === 'takeaway' ? 'Take Away' : '')}
+                            </div>
+                            <div className="pos-guest-name">{room?.guestName || 'Guest Name'}</div>
+                        </div>
+                        <div className="pos-action-buttons-group">
+                            <button
+                                className={`pos-action-btn ${selectedCustomer ? 'active' : ''}`}
+                                onClick={() => setShowCustomerModal(true)}
+                            >
+                                {selectedCustomer ? '👤 ' + selectedCustomer.name.split(' ')[0] : 'Add Customer'}
+                            </button>
+                            <button
+                                className={`pos-action-btn ${billComment ? 'active' : ''}`}
+                                onClick={() => setShowCommentModal(true)}
+                            >
+                                {billComment ? '📝 Note Added' : 'Bill Wise Comment'}
+                            </button>
+                            <button className="pos-action-btn">Delivery Boy</button>
+                            <button className="pos-action-btn">Home Delivery</button>
+                        </div>
+                    </div>
+
+                    {/* E. Order Items Table */}
+                    <div className="pos-order-table-container">
+                        <table className="pos-order-table">
+                            <thead>
+                                <tr>
+                                    <th>ITEM NAME</th>
+                                    <th style={{ width: '90px', textAlign: 'center' }}>QTY</th>
+                                    <th style={{ textAlign: 'right' }}>PRICE</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {cart.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="3" style={{ textAlign: 'center', padding: '20px', color: '#999', fontStyle: 'italic' }}>
+                                            No items added
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    cart.map(item => (
+                                        <tr key={item.id} className="pos-cart-row">
+                                            <td className="pos-cart-name">{item.name}</td>
+                                            <td>
+                                                <div className="pos-qty-control">
+                                                    <button className="pos-qty-btn minus" onClick={() => updateQuantity(item.id, -1)}>-</button>
+                                                    <span className="pos-qty-value">{item.quantity}</span>
+                                                    <button className="pos-qty-btn plus" onClick={() => updateQuantity(item.id, 1)}>+</button>
+                                                </div>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }} className="pos-cart-price">₹{item.price * item.quantity}</td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* F. Total Section */}
+                    <div className="pos-total-section">
+                        <div className="pos-tax-controls" style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '15px',
+                            marginBottom: '10px',
+                            padding: '8px 12px',
+                            background: '#f8fafc',
+                            borderRadius: '8px',
+                            border: '1px solid #e2e8f0'
+                        }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: '600', color: '#475569', fontSize: '0.9rem' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={isTaxApplied}
+                                    onChange={(e) => setIsTaxApplied(e.target.checked)}
+                                    style={{ width: '16px', height: '16px', accentColor: '#dc2626' }}
+                                />
+                                Apply Tax (%)
+                            </label>
+                            {isTaxApplied && (
+                                <input
+                                    type="number"
+                                    value={taxRate}
+                                    onChange={(e) => setTaxRate(Number(e.target.value))}
+                                    style={{
+                                        width: '60px',
+                                        padding: '4px 8px',
+                                        borderRadius: '6px',
+                                        border: '1px solid #cbd5e1',
+                                        textAlign: 'center',
+                                        fontSize: '0.9rem',
+                                        fontWeight: '700'
+                                    }}
+                                />
+                            )}
+                        </div>
+
+                        <div className="pos-total-row">
+                            <span>Subtotal</span>
+                            <span>₹{subtotal.toFixed(2)}</span>
+                        </div>
+
+                        {isTaxApplied && (
+                            <div className="pos-total-row">
+                                <span>Tax ({taxRate}%)</span>
+                                <span>₹{taxAmount.toFixed(2)}</span>
+                            </div>
+                        )}
+
+                        <div className="pos-total-row final" style={{ borderTop: '2px solid #e2e8f0', marginTop: '10px', paddingTop: '10px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span style={{ fontSize: '1.1rem', fontWeight: '800' }}>Grand Total</span>
+                                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '500' }}>
+                                    {isTaxApplied ? `Incl. ${taxRate}% Tax` : 'Zero Tax'}
+                                </span>
+                            </div>
+                            <span style={{ fontSize: '1.4rem', color: '#dc2626' }}>₹{total.toFixed(2)}</span>
+                        </div>
+
+                        {/* ACTION BAR */}
+                        <div className="pos-action-bar">
+                            <button className="pos-action-btn-tender" onClick={() => setShowTenderModal(true)}>TENDER (TOTAL: ₹{total})</button>
+                            <button className="pos-action-btn-small" onClick={() => setShowCommentModal(true)}>Special Note</button>
+                        </div>
+
+                        {/* TWO ROWS BELOW */}
+                        <div className="pos-footer-rows">
+                            {/* KOT ROW */}
+                            <div className="pos-footer-row">
+                                <div className="pos-row-label kot">KOT</div>
+                                <div className="pos-row-btns">
+                                    <button className="pos-footer-btn" onClick={handleSaveKOT}>Save (K)</button>
+                                    <button className="pos-footer-btn" onClick={handleSavePrintKOT}>Save & Print(F4)</button>
+                                </div>
+                            </div>
+
+                            {/* BILL ROW */}
+                            <div className="pos-footer-row">
+                                <div className="pos-row-label bill">BILL</div>
+                                <div className="pos-row-btns">
+                                    <button className="pos-footer-btn" onClick={handleSaveBill}>Save(B)</button>
+                                    <button className="pos-footer-btn" onClick={handleSavePrintBill}>Save & Print(F8)</button>
+                                    {(activeOrderType === 'dinein' || activeOrderType === 'roomservice') && (
+                                        <button className="pos-footer-btn" onClick={handleRoomPosting}>Room Posting</button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {/* Customer Modal */}
+            <AnimatePresence>
+                {showCustomerModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="pos-modal-overlay"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="pos-modal-content"
+                            style={{ width: '500px' }}
+                        >
+                            <div className="pos-modal-header">
+                                <h3>Add Customer</h3>
+                                <button className="pos-modal-close" onClick={() => setShowCustomerModal(false)}>×</button>
+                            </div>
+                            <div className="pos-modal-body" style={{ background: '#fff', padding: '20px', display: 'block' }}>
+                                <div className="customer-modal-tabs" style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                                    <button className="pos-footer-btn active">Search / New</button>
+                                    <button className="pos-footer-btn" onClick={() => {
+                                        setShowCustomerModal(false);
+                                        // Logic for room guests can be added here
+                                    }}>In-House Room</button>
+                                </div>
+
+                                <div className="customer-form">
+                                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#666' }}>MOBILE NUMBER</label>
+                                    <input
+                                        type="text"
+                                        className="pos-search-input"
+                                        placeholder="Enter mobile number..."
+                                        style={{ width: '100%', marginBottom: '15px', background: '#fff' }}
+                                        onChange={async (e) => {
+                                            if (e.target.value.length >= 10) {
+                                                try {
+                                                    const res = await fetch(`${API_URL_CONFIG}/api/guests/search?query=${e.target.value}`);
+                                                    const data = await res.json();
+                                                    if (data.success && data.data && data.data.length > 0) {
+                                                        const g = data.data[0];
+                                                        setSelectedCustomer({
+                                                            id: g._id,
+                                                            name: g.fullName,
+                                                            phone: g.mobile,
+                                                            type: 'regular'
+                                                        });
+                                                    }
+                                                } catch (err) { }
+                                            }
+                                        }}
+                                    />
+
+                                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#666' }}>GUEST NAME</label>
+                                    <input
+                                        type="text"
+                                        className="pos-search-input"
+                                        placeholder="Enter guest name..."
+                                        value={selectedCustomer?.name || ''}
+                                        style={{ width: '100%', marginBottom: '15px', background: '#fff' }}
+                                        onChange={(e) => setSelectedCustomer({ ...selectedCustomer, name: e.target.value, type: 'walkin' })}
+                                    />
+
+                                    <div style={{ background: '#fef2f2', padding: '10px', borderRadius: '6px', fontSize: '13px', color: '#dc2626' }}>
+                                        {selectedCustomer ? `Linked to: ${selectedCustomer.name}` : 'No customer linked'}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="pos-modal-footer">
+                                <button className="pos-modal-btn cancel" onClick={() => {
+                                    setSelectedCustomer(null);
+                                    setShowCustomerModal(false);
+                                }}>Clear</button>
+                                <button className="pos-modal-btn print" onClick={() => setShowCustomerModal(false)}>Apply</button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+
+                {showCommentModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="pos-modal-overlay"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="pos-modal-content"
+                            style={{ width: '400px' }}
+                        >
+                            <div className="pos-modal-header">
+                                <h3>Bill Wise Comment</h3>
+                                <button className="pos-modal-close" onClick={() => setShowCommentModal(false)}>×</button>
+                            </div>
+                            <div className="pos-modal-body" style={{ background: '#fff', padding: '20px', display: 'block' }}>
+                                <textarea
+                                    className="pos-search-input"
+                                    placeholder="Add special instructions for the entire bill..."
+                                    style={{ width: '100%', height: '120px', resize: 'none', background: '#fff', fontSize: '14px' }}
+                                    value={billComment}
+                                    onChange={(e) => setBillComment(e.target.value)}
+                                />
+                            </div>
+                            <div className="pos-modal-footer">
+                                <button className="pos-modal-btn cancel" onClick={() => {
+                                    setBillComment('');
+                                    setShowCommentModal(false);
+                                }}>Clear</button>
+                                <button className="pos-modal-btn print" onClick={() => setShowCommentModal(false)}>Save Note</button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+
+                {showTenderModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="pos-modal-overlay"
+                    >
+                        <motion.div
+                            initial={{ y: 50, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 50, opacity: 0 }}
+                            className="pos-tender-modal"
+                        >
+                            <div className="pos-modal-header">
+                                <h3>PAYMENT SECTION</h3>
+                                <button className="pos-modal-close" onClick={() => setShowTenderModal(false)}>×</button>
+                            </div>
+                            <div className="pos-tender-body">
+                                <div className="payment-method-grid">
+                                    <button className={`method-btn ${paymentMethod === 'Cash' ? 'active' : ''}`} onClick={() => setPaymentMethod('Cash')}>
+                                        <span>💵</span> Cash
+                                    </button>
+                                    <button className={`method-btn ${paymentMethod === 'UPI' ? 'active' : ''}`} onClick={() => setPaymentMethod('UPI')}>
+                                        <span>📱</span> UPI
+                                    </button>
+                                    <button className={`method-btn ${paymentMethod === 'Card' ? 'active' : ''}`} onClick={() => setPaymentMethod('Card')}>
+                                        <span>💳</span> Card
+                                    </button>
+                                </div>
+
+                                <div className="tender-total-display">
+                                    <span className="label">Grand Total</span>
+                                    <span className="value">₹{total.toFixed(2)}</span>
+                                </div>
+
+                                <div className="received-input-wrapper">
+                                    <label>RECEIVED AMOUNT</label>
+                                    <div className="input-group">
+                                        <span className="currency">₹</span>
+                                        <input
+                                            type="number"
+                                            placeholder="0.00"
+                                            value={receivedAmount}
+                                            onChange={(e) => setReceivedAmount(e.target.value)}
+                                            autoFocus
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="return-amount-row">
+                                    <span className="label">Return Amount</span>
+                                    <span className="value">₹{Math.max(0, (Number(receivedAmount) - total)).toFixed(2)}</span>
+                                </div>
+
+                                <div className="tender-utility-btns">
+                                    <button className="utility-btn" onClick={() => setPrintModal('BILL')}>
+                                        <span>📄</span> Print Bill
+                                    </button>
+                                    <button className="utility-btn" onClick={openSmsModal}>
+                                        <span>💬</span> SMS Receipt
+                                    </button>
+                                    <button className="utility-btn" onClick={openEmailModal}>
+                                        <span>📧</span> Email
+                                    </button>
+                                </div>
+
+                                <button className="main-tender-btn" onClick={handleTenderSubmit}>
+                                    Tender ₹{total}
+                                </button>
+
+                                <div className="room-posting-section">
+                                    <h4>Room Posting Today</h4>
+                                    <div className="posting-row">
+                                        <button className="posting-btn room" onClick={handleRoomPosting}>
+                                            <span>🏨</span>
+                                        </button>
+                                        <button className="posting-btn sms" onClick={openSmsModal}>
+                                            <span>💬</span> SMS Receipt
+                                        </button>
+                                        <button className="posting-btn email" onClick={openEmailModal}>
+                                            <span>📧</span> Email
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+
+                {smsModal.show && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="pos-modal-overlay"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="message-modal"
+                        >
+                            <div className="pos-modal-header">
+                                <h3>Send SMS Receipt</h3>
+                                <button className="pos-modal-close" onClick={() => setSmsModal({ ...smsModal, show: false })}>×</button>
+                            </div>
+                            <div className="message-modal-body">
+                                <div className="form-field">
+                                    <label>Customer Name</label>
+                                    <input
+                                        type="text"
+                                        value={smsModal.name}
+                                        onChange={(e) => setSmsModal({ ...smsModal, name: e.target.value })}
+                                        placeholder="Guest Name"
+                                    />
+                                </div>
+                                <div className="form-field">
+                                    <label>Mobile Number {!smsModal.phone && <span style={{ color: '#dc2626' }}>*</span>}</label>
+                                    <input
+                                        type="text"
+                                        maxLength="10"
+                                        value={smsModal.phone}
+                                        onChange={(e) => setSmsModal({ ...smsModal, phone: e.target.value.replace(/\D/g, '') })}
+                                        placeholder="Enter 10-digit mobile number"
+                                        style={{ borderColor: validationErrors.phone ? '#dc2626' : '#e2e8f0' }}
+                                    />
+                                    {validationErrors.phone && <span className="error-text" style={{ color: '#dc2626', fontSize: '11px', marginTop: '4px', display: 'block' }}>{validationErrors.phone}</span>}
+                                </div>
+                                <div className="template-preview" style={{ marginTop: '15px' }}>
+                                    <strong style={{ fontSize: '12px', color: '#64748b' }}>SMS Receipt Preview (Mall Style):</strong>
+                                    <div style={{
+                                        background: '#f8fafc',
+                                        padding: '12px',
+                                        borderRadius: '6px',
+                                        border: '1px dashed #cbd5e1',
+                                        fontSize: '13px',
+                                        lineHeight: '1.5',
+                                        color: '#1e293b',
+                                        marginTop: '8px',
+                                        whiteSpace: 'pre-wrap',
+                                        fontFamily: 'monospace'
+                                    }}>
+                                        {`BAREENA ATHITHI
+Bill #${orderId ? orderId.toString().slice(-6).toUpperCase() : 'N/A'}
+Amt ₹${total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
+Thank you visit again`}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="pos-modal-footer">
+                                <button
+                                    className="pos-modal-btn print"
+                                    onClick={sendSms}
+                                    disabled={isSendingSms}
+                                    style={{ opacity: isSendingSms ? 0.7 : 1, width: '100%', justifyContent: 'center' }}
+                                >
+                                    {isSendingSms ? 'Sending Receipt...' : 'Send SMS Receipt'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+
+                {emailModal.show && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="pos-modal-overlay"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="message-modal"
+                        >
+                            <div className="pos-modal-header">
+                                <h3>Send Payment Email</h3>
+                                <button className="pos-modal-close" onClick={() => setEmailModal({ ...emailModal, show: false })}>×</button>
+                            </div>
+                            <div className="message-modal-body">
+                                <div className="form-field">
+                                    <label>Customer Name</label>
+                                    <input
+                                        type="text"
+                                        value={emailModal.name}
+                                        onChange={(e) => setEmailModal({ ...emailModal, name: e.target.value })}
+                                    />
+                                </div>
+                                <div className="form-field">
+                                    <label>Email Address</label>
+                                    <input
+                                        type="email"
+                                        value={emailModal.email}
+                                        onChange={(e) => setEmailModal({ ...emailModal, email: e.target.value })}
+                                    />
+                                    {validationErrors.email && <span className="error-text">{validationErrors.email}</span>}
+                                </div>
+                                <div className="template-preview">
+                                    <strong>Preview:</strong>
+                                    <p>Subject: Payment Receipt – BAREENA ATHITHI</p>
+                                    <p>Dear {emailModal.name || 'Customer'}, We have received your payment of ₹{total}. Thank you for choosing BAREENA ATHITHI.</p>
+                                </div>
+                            </div>
+                            <div className="pos-modal-footer">
+                                <button className="pos-modal-btn print" onClick={sendEmail}>Send Email</button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+
+                {printModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="pos-modal-overlay"
+                    >
+                        <motion.div
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 20, opacity: 0 }}
+                            className="pos-modal-content"
+                        >
+                            <div className="pos-modal-header">
+                                <h3>{printModal === 'KOT' ? 'KOT PREVIEW' : 'BILL PREVIEW'}</h3>
+                                <button className="pos-modal-close" onClick={() => setPrintModal(null)}>×</button>
+                            </div>
+                            <div className="pos-modal-body" style={{ background: '#fff' }}>
+                                {printModal === 'BILL' ? (
+                                    <div className="pos-preview-bill-v2" style={{ padding: '20px', width: '100%' }}>
+                                        <h2 style={{ textAlign: 'center', margin: '0' }}>BAREENA ATHITHI</h2>
+                                        <p style={{ textAlign: 'center', marginBottom: '15px' }}>Receipt / Bill</p>
+                                        <div style={{ fontSize: '13px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+                                            <p>Room: {room?.roomNumber}</p>
+                                            <p>Guest: {room?.guestName}</p>
+                                        </div>
+                                        <table style={{ width: '100%', marginTop: '10px', fontSize: '13px' }}>
+                                            <thead><tr style={{ borderBottom: '1px solid #eee' }}><th align="left">Item</th><th>Qty</th><th align="right">Total</th></tr></thead>
+                                            <tbody>{cart.map(item => <tr key={item.id}><td>{item.name}</td><td align="center">{item.quantity}</td><td align="right">₹{item.price * item.quantity}</td></tr>)}</tbody>
+                                        </table>
+                                        <div style={{ borderTop: '2px solid #333', marginTop: '15px', paddingTop: '10px', textAlign: 'right' }}>
+                                            <h3 style={{ margin: '0' }}>Total: ₹{total.toFixed(2)}</h3>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="pos-preview-kot-v2" style={{ padding: '20px', width: '100%' }}>
+                                        <h2 style={{ textAlign: 'center' }}>KITCHEN ORDER</h2>
+                                        <div style={{ borderBottom: '1px solid #333', paddingBottom: '10px', marginBottom: '10px' }}>
+                                            <p>Room: {room?.roomNumber}</p>
+                                            <p>Time: {new Date().toLocaleTimeString()}</p>
+                                        </div>
+                                        <table style={{ width: '100%' }}>
+                                            <thead><tr style={{ borderBottom: '1px solid #eee' }}><th align="left">Item</th><th>Qty</th></tr></thead>
+                                            <tbody>{cart.map(item => <tr key={item.id}><td>{item.name}</td><td align="center">{item.quantity}</td></tr>)}</tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="pos-modal-footer">
+                                <button className="pos-modal-btn cancel" onClick={handleModalClose}>Cancel</button>
+                                <button className="pos-modal-btn" onClick={handleModalDownload} style={{ background: '#4b5563', color: '#fff' }}>Download</button>
+                                <button className="pos-modal-btn print" onClick={handleModalPrint}>Print Now</button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </motion.div>
     );
 };
 

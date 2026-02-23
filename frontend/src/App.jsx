@@ -49,13 +49,7 @@ function HomePageContent() {
         <Hero />
       </Reveal>
 
-      {/* <Reveal delay={0.1}>
-        <FloatingDashboard />
-      </Reveal> */}
 
-      {/* <Reveal delay={0.1}>
-        <ThreeColumnFeatures />
-      </Reveal> */}
 
       <Reveal width="100%">
         <WhyChooseUs />

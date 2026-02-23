@@ -7,12 +7,32 @@ import './RoomService.css';
 const RoomService = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
+
+    // Permission Check
+    const hasAccess = user?.role !== 'staff' || (user?.permissions?.includes('Rooms (Room Service)'));
+
+    if (!hasAccess) {
+        return (
+            <div className="rs-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+                <div style={{ fontSize: '48px', marginBottom: '20px' }}>🚫</div>
+                <h2>Access Denied</h2>
+                <p>You do not have permission to access Room Service.</p>
+                <button
+                    className="rs-back-btn"
+                    style={{ marginTop: '20px', padding: '10px 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                    onClick={() => navigate('/admin/dashboard')}
+                >
+                    Back to Dashboard
+                </button>
+            </div>
+        );
+    }
+
     const [rooms, setRooms] = useState([]);
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('all');
-    const [openMenuId, setOpenMenuId] = useState(null);
 
     // Fetch rooms and orders
     const fetchData = async () => {
@@ -29,12 +49,29 @@ const RoomService = () => {
             const bookingsData = await bookingsRes.json();
 
             if (roomsData.success && bookingsData.success) {
-                const inHouseRooms = roomsData.data.filter(r => r.status === 'Occupied');
+                // Get all checked-in bookings first
+                const checkedInBookings = (bookingsData.data || []).filter(b =>
+                    b.status === 'Checked-in' || b.status === 'CheckedIn' || b.status === 'IN_HOUSE'
+                );
+
+                // Get rooms that are either Occupied OR have a checked-in booking
+                const checkedInRoomNumbers = checkedInBookings.map(b => b.roomNumber);
+
+                const inHouseRooms = (roomsData.data || []).filter(r =>
+                    r.status === 'Occupied' ||
+                    r.status === 'In House' ||
+                    r.status === 'IN_HOUSE' ||
+                    checkedInRoomNumbers.includes(r.roomNumber)
+                );
+
                 const mappedRooms = inHouseRooms.map(room => {
-                    const activeBooking = bookingsData.data?.find(b =>
-                        b.roomNumber === room.roomNumber && b.status === 'Checked-in'
+                    const activeBooking = checkedInBookings.find(b =>
+                        b.roomNumber === room.roomNumber
                     );
-                    return { ...room, guestName: activeBooking?.guestName || 'Occupied' };
+                    return {
+                        ...room,
+                        guestName: activeBooking?.guestName || activeBooking?.guest?.name || 'Occupied'
+                    };
                 });
                 setRooms(mappedRooms);
             }
@@ -105,6 +142,7 @@ const RoomService = () => {
             { key: 'Pending', label: 'PENDING', color: '#f59e0b' },
             { key: 'Preparing', label: 'PREPARING', color: '#3b82f6' },
             { key: 'Ready', label: 'READY', color: '#22c55e' },
+            { key: 'Delivered', label: 'READY', color: '#22c55e' }, // 4th step to match image placeholder
         ];
 
         const statusOrder = { 'Active': 0, 'Pending': 0, 'Preparing': 1, 'Ready': 2, 'Started': 3 };
@@ -120,26 +158,14 @@ const RoomService = () => {
                     return (
                         <div key={step.key} className="rs-tracker-step-wrap">
                             <div className="rs-tracker-step">
-                                <div
-                                    className={`rs-step-circle ${done ? 'done' : active ? 'active' : ''}`}
-                                    style={{
-                                        background: done ? '#22c55e' : active ? step.color : '#e5e7eb',
-                                        borderColor: done ? '#22c55e' : active ? step.color : '#e5e7eb',
-                                    }}
-                                >
-                                    {done ? '✓' : active ? '●' : ''}
-                                </div>
-                                <span
-                                    className="rs-step-label"
-                                    style={{ color: done ? '#22c55e' : active ? step.color : '#9ca3af' }}
-                                >
+                                <div className={`rs-step-circle ${done ? 'done' : active ? 'active' : ''}`} />
+                                <span className="rs-step-label">
                                     {step.label}
                                 </span>
                             </div>
                             {!isLast && (
                                 <div
-                                    className="rs-step-line"
-                                    style={{ background: done ? '#22c55e' : '#e5e7eb' }}
+                                    className={`rs-step-line ${done ? 'done' : ''}`}
                                 />
                             )}
                         </div>
@@ -160,12 +186,7 @@ const RoomService = () => {
                         <p className="rs-subtitle">Live status of all room orders and service requests</p>
                     </div>
                 </div>
-                <button
-                    className="rs-add-btn"
-                    onClick={() => navigate('/admin/dashboard', { state: { activeMenu: 'food-order-pos', orderMode: 'roomservice', source: 'room-service' } })}
-                >
-                    + Add Order
-                </button>
+
             </div>
 
             {/* Controls */}
@@ -203,114 +224,67 @@ const RoomService = () => {
                     filteredRooms.map(room => {
                         const roomOrder = orders.find(o => o.roomNumber === room.roomNumber);
                         const status = roomOrder?.status || null;
-                        const borderColor = getBorderColor(status);
 
                         return (
-                            <div
-                                key={room._id}
-                                className="rs-card"
-                                style={{ borderLeft: `4px solid ${borderColor}` }}
-                            >
-                                {/* Row 1: Badge + Guest Info + Tracker + Menu */}
-                                <div className="rs-card-main">
-                                    {/* Left: Room badge + guest */}
-                                    <div className="rs-card-left">
-                                        <div className="rs-room-badge">
-                                            <span>{room.roomNumber}</span>
+                            <div key={room._id} className="rs-card">
+                                {/* Top Section: Badge, Type Title, and Plus Button */}
+                                <div className="rs-card-top">
+                                    <div className="rs-top-left">
+                                        <div className="rs-room-badge-sq">
+                                            {room.roomNumber}
                                         </div>
-                                        <div className="rs-guest-info">
-                                            <h4 className="rs-guest-name">{room.guestName || 'Occupied'}</h4>
-                                            {status && (
-                                                <span
-                                                    className="rs-status-badge"
-                                                    style={{ background: getStatusColor(status) }}
-                                                >
-                                                    {getStatusLabel(status).toUpperCase()}
-                                                </span>
-                                            )}
-                                        </div>
+                                        <h4 className="rs-room-type-title">
+                                            {room.roomType || room.type || 'Standard Room'}
+                                        </h4>
                                     </div>
-
-                                    {/* Middle: Room type label + tracker */}
-                                    <div className="rs-card-center">
-                                        <div className="rs-type-row">
-                                            <span className="rs-type-label">TYPE</span>
-                                            <span className="rs-type-val">{room.roomType || room.type || '—'}</span>
-                                        </div>
-                                        {roomOrder ? renderTracker(status) : (
-                                            <span className="rs-no-order">No active order</span>
-                                        )}
-                                    </div>
-
-                                    {/* Right: Menu button */}
-                                    <div className="rs-card-right">
-                                        <div className="rs-menu-wrap">
-                                            <button
-                                                className="rs-menu-btn"
-                                                onClick={() => setOpenMenuId(openMenuId === room._id ? null : room._id)}
-                                            >
-                                                ⋯
-                                            </button>
-                                            {openMenuId === room._id && (
-                                                <div className="rs-dropdown">
-                                                    <button onClick={() => {
-                                                        setOpenMenuId(null);
-                                                        navigate('/admin/dashboard', {
-                                                            state: { activeMenu: 'view-order', activeFilter: 'Room Order' }
-                                                        });
-                                                    }}>View Order</button>
-                                                    <button onClick={() => {
-                                                        setOpenMenuId(null);
-                                                        navigate('/admin/dashboard', {
-                                                            state: {
-                                                                activeMenu: 'food-order-pos',
-                                                                orderMode: 'roomservice',
-                                                                room: { ...room, id: room._id, source: 'room-service' },
-                                                                source: 'room-service'
-                                                            }
-                                                        });
-                                                    }}>Add Order</button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+                                    <button
+                                        className="rs-plus-btn-sq"
+                                        onClick={() => navigate('/admin/dashboard', {
+                                            state: {
+                                                activeMenu: 'food-order',
+                                                orderMode: 'roomservice',
+                                                room: { ...room, id: room._id, source: 'room-service' },
+                                                source: 'room-service'
+                                            }
+                                        })}
+                                    >
+                                        +
+                                    </button>
                                 </div>
 
-                                {/* Row 2: Info columns */}
-                                <div className="rs-card-info">
-                                    <div className="rs-info-col">
-                                        <span className="rs-info-label">TYPE</span>
-                                        <span className="rs-info-val">{room.roomNumber}</span>
-                                    </div>
-                                    <div className="rs-info-col">
-                                        <span className="rs-info-label">CAPACITY</span>
-                                        <span className="rs-info-val">{room.capacity || '—'} Pax</span>
-                                    </div>
-                                    <div className="rs-info-col">
-                                        <span className="rs-info-label">CATEGORY</span>
-                                        <span className="rs-info-val">{room.bedType || 'Double'}</span>
-                                    </div>
-                                    <div className="rs-info-col">
-                                        <span className="rs-info-label">CATEGORY</span>
-                                        <span className="rs-info-val rs-info-red">{room.bedType || 'Double'}</span>
-                                    </div>
+                                {/* Middle Section: Progress Tracker */}
+                                <div className="rs-card-mid">
+                                    {renderTracker(status)}
                                 </div>
 
-                                {/* Floating add button */}
-                                <button
-                                    className="rs-fab"
-                                    onClick={() => navigate('/admin/dashboard', {
-                                        state: {
-                                            activeMenu: 'food-order-pos',
-                                            orderMode: 'roomservice',
-                                            room: { ...room, id: room._id, source: 'room-service' },
-                                            source: 'room-service'
-                                        }
-                                    })}
-                                    title="Add Order"
-                                >
-                                    +
-                                </button>
+                                {/* Bottom Section: Info Grid + Bill Button */}
+                                <div className="rs-card-bottom">
+                                    <div className="rs-bottom-info">
+                                        <div className="rs-info-item">
+                                            <span className="rs-label-grey">TYPE</span>
+                                            <span className="rs-val-bold">{room.roomNumber}</span>
+                                        </div>
+                                        <div className="rs-info-item">
+                                            <span className="rs-label-grey">CATEGORY</span>
+                                            <span className="rs-val-bold rs-red-text">{room.bedType || 'Double'}</span>
+                                        </div>
+                                    </div>
+
+                                    {roomOrder && (
+                                        <button
+                                            className="rs-rect-bill-btn"
+                                            onClick={() => navigate('/admin/dashboard', {
+                                                state: {
+                                                    activeMenu: 'cashier-section',
+                                                    refresh: true,
+                                                    room: { ...room, id: room._id, orderId: roomOrder._id }
+                                                }
+                                            })}
+                                        >
+                                            Bill
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         );
                     })
@@ -320,7 +294,7 @@ const RoomService = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };
 

@@ -4,6 +4,11 @@ const Table = require('../models/Table');
 exports.getAllTables = async (req, res) => {
     try {
         const tables = await Table.find().sort({ tableNumber: 1 });
+        
+        // Log unique types
+        const uniqueTypes = [...new Set(tables.map(t => t.type || 'General'))];
+        console.log('📊 Fetching tables - Total:', tables.length, '| Types:', uniqueTypes);
+        
         res.status(200).json({ success: true, count: tables.length, data: tables });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server Error', error: error.message });
@@ -13,10 +18,72 @@ exports.getAllTables = async (req, res) => {
 // Create a new table
 exports.createTable = async (req, res) => {
     try {
-        const table = await Table.create(req.body);
-        res.status(201).json({ success: true, data: table });
+        const { tableName, type, capacity, tableNumber, status } = req.body;
+
+        // Validate required fields
+        if (!tableName || !tableName.trim()) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Table name is required' 
+            });
+        }
+
+        const tableType = type || 'General';
+
+        // Check if table name already exists in the same type
+        const existingTable = await Table.findOne({ 
+            tableName: new RegExp(`^${tableName.trim()}$`, 'i'),
+            type: tableType
+        });
+
+        if (existingTable) {
+            return res.status(400).json({ 
+                success: false, 
+                message: `Table "${tableName}" already exists in "${tableType}" type. Same table names are allowed in different types.` 
+            });
+        }
+
+        // Create table
+        const newTable = await Table.create({
+            tableName: tableName.trim(),
+            type: tableType,
+            capacity: capacity || 4,
+            tableNumber: tableNumber || Date.now(),
+            status: status || 'Available'
+        });
+
+        console.log('✅ Table created:', {
+            tableName: newTable.tableName,
+            type: newTable.type,
+            capacity: newTable.capacity
+        });
+
+        res.status(201).json({ success: true, data: newTable });
     } catch (error) {
-        res.status(400).json({ success: false, message: 'Error creating table', error: error.message });
+        console.error('Create table error:', error);
+        
+        // Handle MongoDB duplicate key error (E11000)
+        if (error.code === 11000) {
+            const field = Object.keys(error.keyPattern || {})[0];
+            if (field === 'tableName' || error.keyPattern?.tableName) {
+                const tableName = error.keyValue?.tableName;
+                const type = error.keyValue?.type || 'General';
+                return res.status(400).json({ 
+                    success: false, 
+                    message: `Table "${tableName}" already exists in "${type}" type.` 
+                });
+            }
+            return res.status(400).json({ 
+                success: false, 
+                message: 'A table with this information already exists.' 
+            });
+        }
+        
+        res.status(400).json({ 
+            success: false, 
+            message: 'Error creating table', 
+            error: error.message 
+        });
     }
 };
 

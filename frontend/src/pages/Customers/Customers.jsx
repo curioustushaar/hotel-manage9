@@ -250,7 +250,6 @@ const Customers = () => {
                 {/* Filters */}
                 <div className="customers-filters">
                     <div className="search-filter">
-                        <span className="search-icon">🔍</span>
                         <input
                             type="text"
                             placeholder="Search by name, phone or email..."

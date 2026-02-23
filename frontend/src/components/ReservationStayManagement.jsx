@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import API_URL_CONFIG from '../config/api';
 import { searchBookings } from '../services/searchService';
@@ -22,6 +23,19 @@ import RoomService from './RoomService';
 const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { user } = useAuth();
+
+    // Permission Helper
+    const hasRoomPermission = (type) => {
+        if (!user) return false;
+        if (user.role !== 'staff') return true; // Admin has full access
+
+        const permissions = user.permissions || [];
+        if (type === 'Housekeeping') return permissions.includes('Rooms (Housekeeping)');
+        if (type === 'Room Service') return permissions.includes('Rooms (Room Service)');
+        if (type === 'New Reservation') return permissions.includes('Rooms (New Reservation)');
+        return false;
+    };
     const API_URL = `${API_URL_CONFIG}/api/bookings`;
     const [view, setView] = useState(viewMode); // 'dashboard', 'form', 'housekeeping', or 'roomservice'
     const [prefilledData, setPrefilledData] = useState(null);
@@ -41,6 +55,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [loading, setLoading] = useState(true);
     const [fromRoomsPage, setFromRoomsPage] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [cardViewMode, setCardViewMode] = useState('grid'); // 'grid' or 'list'
 
     // Filter reservations
     const filteredReservations = useMemo(() => {
@@ -169,6 +184,20 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             }
         }
     }, [viewMode, location, navigate]);
+
+    // Permission-based Auto-redirect
+    useEffect(() => {
+        if (user?.role === 'staff' && view === 'dashboard') {
+            const hasNewRes = hasRoomPermission('New Reservation');
+            const hasHousekeeping = hasRoomPermission('Housekeeping');
+            const hasRoomService = hasRoomPermission('Room Service');
+
+            if (!hasNewRes) {
+                if (hasHousekeeping) setView('housekeeping');
+                else if (hasRoomService) setView('roomservice');
+            }
+        }
+    }, [user, view]);
 
 
 
@@ -912,9 +941,10 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                     })
                 });
 
+                const responseData = await response.json().catch(() => ({}));
+
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Failed to update checkout status');
+                    throw new Error(responseData.message || 'Failed to update checkout status');
                 }
 
                 // Refresh list from server to stay in sync
@@ -927,16 +957,28 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             } catch (error) {
                 console.error('Error updating status in DB:', error);
 
-                // Fallback to local update if API fails (not ideal but better than nothing)
-                setReservations(reservations.map(r =>
-                    r.id === reservation.id ? {
-                        ...r,
-                        status: 'CHECKED_OUT',
-                        invoiceId: invoice.invoiceId,
-                        updatedAt: new Date().toISOString()
-                    } : r
-                ));
-                alert('Checked-out locally. Database update failed.');
+                // Still try to update locally and refresh
+                try {
+                    await fetchReservationsFromAPI();
+                } catch (e) {
+                    // ignore refresh error
+                }
+
+                // Show specific error from backend
+                if (error.message && error.message.includes('Pending payment')) {
+                    alert(error.message);
+                } else {
+                    // Fallback to local update
+                    setReservations(reservations.map(r =>
+                        r.id === reservation.id ? {
+                            ...r,
+                            status: 'CHECKED_OUT',
+                            invoiceId: invoice.invoiceId,
+                            updatedAt: new Date().toISOString()
+                        } : r
+                    ));
+                    alert('Checkout completed. ' + (error.message || ''));
+                }
             }
         } finally {
             setInvoiceGenerationInProgress(false);
@@ -1186,6 +1228,14 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
     // Room Service View
     if (view === 'roomservice') {
+        if (!hasRoomPermission('Room Service')) {
+            return (
+                <div className="reservation-management-container">
+                    <div className="error-alert">Unknown Permission: You do not have access to Room Service.</div>
+                    <button className="back-btn" onClick={() => setView('dashboard')}>Back to Dashboard</button>
+                </div>
+            );
+        }
         return (
             <div className="reservation-management-container">
                 <button className="back-btn" onClick={() => setView('dashboard')}>
@@ -1198,6 +1248,14 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
     // Housekeeping View
     if (view === 'housekeeping') {
+        if (!hasRoomPermission('Housekeeping')) {
+            return (
+                <div className="reservation-management-container">
+                    <div className="error-alert">Unknown Permission: You do not have access to Housekeeping.</div>
+                    <button className="back-btn" onClick={() => setView('dashboard')}>Back to Dashboard</button>
+                </div>
+            );
+        }
         return (
             <div className="reservation-management-container">
                 <button className="back-btn" onClick={() => setView('dashboard')}>
@@ -1209,6 +1267,14 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     }
 
     if (view === 'form') {
+        if (!isEditingMode && !hasRoomPermission('New Reservation')) {
+            return (
+                <div className="reservation-management-container">
+                    <div className="error-alert">Unknown Permission: You do not have access to create New Reservations.</div>
+                    <button className="back-btn" onClick={() => setView('dashboard')}>Back to Dashboard</button>
+                </div>
+            );
+        }
         return (
             <div className="reservation-management-container">
                 <div className="form-container">
@@ -1565,18 +1631,24 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                     </div>
                 </div>
                 <div className="header-actions">
-                    <button className="btn btn-primary" onClick={() => setView('form')}>
-                        <span style={{ marginRight: '0.5rem' }}>📅</span>
-                        + New Reservation
-                    </button>
-                    <button className="btn btn-primary" onClick={() => setView('housekeeping')}>
-                        <span style={{ marginRight: '0.5rem' }}>🧹</span>
-                        Housekeeping View
-                    </button>
-                    <button className="btn btn-primary" onClick={() => setView('roomservice')}>
-                        <span style={{ marginRight: '0.5rem' }}>🔔</span>
-                        Room Service
-                    </button>
+                    {hasRoomPermission('New Reservation') && (
+                        <button className="btn btn-primary" onClick={() => setView('form')}>
+                            <span style={{ marginRight: '0.5rem' }}>📅</span>
+                            + New Reservation
+                        </button>
+                    )}
+                    {hasRoomPermission('Housekeeping') && (
+                        <button className="btn btn-primary" onClick={() => setView('housekeeping')}>
+                            <span style={{ marginRight: '0.5rem' }}>🧹</span>
+                            Housekeeping View
+                        </button>
+                    )}
+                    {hasRoomPermission('Room Service') && (
+                        <button className="btn btn-primary" onClick={() => setView('roomservice')}>
+                            <span style={{ marginRight: '0.5rem' }}>🔔</span>
+                            Room Service
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -1594,9 +1666,41 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                 ))}
             </div>
 
+            {/* View Toggle */}
+            <div className="view-toggle-container">
+                <div className="view-toggle">
+                    <button 
+                        className={`view-toggle-btn ${cardViewMode === 'grid' ? 'active' : ''}`}
+                        onClick={() => setCardViewMode('grid')}
+                        title="Grid View"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                            <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                            <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                            <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                        </svg>
+                    </button>
+                    <button 
+                        className={`view-toggle-btn ${cardViewMode === 'list' ? 'active' : ''}`}
+                        onClick={() => setCardViewMode('list')}
+                        title="List View"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="8" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="8" y1="18" x2="21" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="3" y1="6" x2="4" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="3" y1="12" x2="4" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="3" y1="18" x2="4" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
             {/* Reservation Cards and Details Panel */}
             <div className="reservation-content-layout">
-                <div className={`reservation-cards-grid ${selectedReservation ? 'with-details' : ''}`}>
+                <div className={`${cardViewMode === 'grid' ? 'reservation-cards-grid' : 'reservation-cards-list'} ${selectedReservation ? 'with-details' : ''}`}>
                     <AnimatePresence mode="popLayout">
                         {displayReservations.length > 0 ? (
                             displayReservations.map(reservation => (

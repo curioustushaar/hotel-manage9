@@ -28,15 +28,15 @@ const MoreOptionsMenu = ({ onAction, buttonLabel = "More Options", buttonClassNa
     };
 
     const options = [
-        { label: 'Check-In', value: 'check-in', icon: '✓', color: '#10b981' }, // Green
-        { label: 'Add Payment', value: 'add-payment', icon: '💳', color: '#0ea5e9' }, // Blue
-        { label: 'Amend Stay', value: 'amend-stay', icon: '📅', color: '#f59e0b' }, // Amber
-        { label: 'Room Move', value: 'room-move', icon: '🚪', color: '#d97706' }, // Orange
-        { label: 'Exchange Room', value: 'exchange-room', icon: '⇄', color: '#6366f1' }, // Indigo
-        { label: 'Add Visitor', value: 'add-visitor', icon: '👤', color: '#8b5cf6' }, // Violet
-        { label: 'No-Show', value: 'no-show', icon: '✕', color: '#ef4444' }, // Red
-        { label: 'Void', value: 'void', icon: '🗑', color: '#6b7280' }, // Gray
-        { label: 'Cancel', value: 'cancel', icon: '⚠️', color: '#f97316' } // Orange
+        { label: 'Check-In', value: 'check-in', icon: '✓', type: 'success' },
+        { label: 'Add Payment', value: 'add-payment', icon: '💳', type: 'normal' },
+        { label: 'Amend Stay', value: 'amend-stay', icon: '📅', type: 'normal' },
+        { label: 'Room Move', value: 'room-move', icon: '🚪', type: 'normal' },
+        { label: 'Exchange Room', value: 'exchange-room', icon: '⇄', type: 'normal' },
+        { label: 'Add Visitor', value: 'add-visitor', icon: '👤', type: 'normal' },
+        { label: 'No-Show', value: 'no-show', icon: '✕', type: 'danger' },
+        { label: 'Void', value: 'void', icon: '🗑', type: 'danger' },
+        { label: 'Cancel', value: 'cancel', icon: '⚠️', type: 'danger' }
     ];
 
     return (
@@ -47,23 +47,21 @@ const MoreOptionsMenu = ({ onAction, buttonLabel = "More Options", buttonClassNa
                 type="button"
             >
                 {buttonLabel}
-                <span className="dropdown-arrow">▼</span>
+                <span className={`dropdown-arrow ${isOpen ? 'open' : ''}`}>▼</span>
             </button>
 
-            {isOpen && (
-                <div className="more-options-dropdown">
-                    {options.map((option) => (
-                        <div
-                            key={option.value}
-                            className={`more-options-item ${option.value}`}
-                            onClick={() => handleOptionClick(option.value)}
-                        >
-                            <span className="option-icon" style={{ color: option.color }}>{option.icon}</span>
-                            <span className="option-label">{option.label}</span>
-                        </div>
-                    ))}
-                </div>
-            )}
+            <div className={`more-options-dropdown ${isOpen ? 'show' : ''}`}>
+                {options.map((option) => (
+                    <div
+                        key={option.value}
+                        className={`more-options-item ${option.type}`}
+                        onClick={() => handleOptionClick(option.value)}
+                    >
+                        <span className="option-icon">{option.icon}</span>
+                        <span className="option-label">{option.label}</span>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 };

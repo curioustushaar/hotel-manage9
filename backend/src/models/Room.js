@@ -40,6 +40,11 @@ const roomSchema = new mongoose.Schema({
         default: 'Available',
         index: true
     },
+    housekeepingStatus: {
+        type: String,
+        enum: ["clean", "dirty"],
+        default: "clean"
+    },
 
     // Enterprise / Advanced Features
     roomViewType: {

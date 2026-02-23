@@ -13,7 +13,31 @@
 
 html,
 body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
   overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* Admin specifically might need hidden overflow for its own internal scrolling */
+body:not(.public-page) {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+#root {
+  min-height: 100%;
+}
+
+body:not(.public-page) #root {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
 }
 
 /* Page Transition Animation */
@@ -37,15 +61,27 @@ body {
    GLOBAL SCROLLBAR HIDE — scroll still works
    via mouse wheel / touch / cursor
    ============================================= */
+/* Global Scrollbar styling for a premium look */
 *::-webkit-scrollbar {
-  display: none;
+  width: 8px;
 }
 
-* {
-  -ms-overflow-style: none;
-  /* IE / Edge legacy */
-  scrollbar-width: none;
-  /* Firefox */
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Specific Hide for Admin if needed, or keep it consistent */
+body:not(.public-page) *::-webkit-scrollbar {
+  display: none;
 }
 
 body {
@@ -1748,4 +1784,48 @@ body {
 .admin-layout .admin-profile-section {
   padding-top: 0 !important;
   margin-top: 0 !important;
+}
+
+/* ========================================
+   GLOBAL INPUT & SELECT TEXT VISIBILITY FIX
+   Force all form inputs to have visible black text
+   ======================================== */
+input,
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+select,
+textarea {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  opacity: 1 !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af !important;
+  -webkit-text-fill-color: #9ca3af !important;
+  opacity: 0.6 !important;
+}
+
+/* Autofill override */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px white inset !important;
+  -webkit-text-fill-color: #000000 !important;
+  color: #000000 !important;
+}
+
+/* Select options visibility */
+select option,
+select optgroup {
+  color: #000000 !important;
+  background-color: #ffffff !important;
 }

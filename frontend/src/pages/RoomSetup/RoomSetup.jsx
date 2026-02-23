@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
+import { hasPermission, MODULES, PERMISSIONS } from '../../config/rbac';
 import './RoomSetup.css';
 import API_URL from '../../config/api';
 import RoomDetailsPanel from '../../components/rooms/RoomDetailsPanel';
@@ -16,6 +19,12 @@ const RoomSetup = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const { user } = useAuth();
+    const canManageRooms = hasPermission(user, MODULES.PROPERTY_CONFIG, PERMISSIONS.EDIT);
+    const canBook = hasPermission(user, MODULES.RESERVATIONS, PERMISSIONS.CREATE);
+    const canManageStatus = hasPermission(user, MODULES.ROOMS, PERMISSIONS.EDIT);
+
+
     // Date Range State
     const [startDate, setStartDate] = useState(new Date().toLocaleDateString('en-CA'));
     const [endDate, setEndDate] = useState(() => {
@@ -25,6 +34,7 @@ const RoomSetup = () => {
     });
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [viewMonth, setViewMonth] = useState(new Date());
+    const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
     const getDaysInMonth = (year, month) => {
         const date = new Date(year, month, 1);
@@ -493,7 +503,12 @@ const RoomSetup = () => {
     };
 
     return (
-        <div className="room-setup-container">
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="room-setup-container"
+        >
             <RoomDetailsPanel
                 roomId={selectedRoomIdForPanel}
                 computedStatus={selectedRoomStatusForPanel}
@@ -520,6 +535,9 @@ const RoomSetup = () => {
                     openModal('edit', roomFromState || room);
                 }}
                 onQuickBook={handleQuickBook}
+                canManageRooms={canManageRooms}
+                canBook={canBook}
+                canManageStatus={canManageStatus}
             />
             {/* Header Section */}
             <header className="room-setup-header">
@@ -616,7 +634,38 @@ const RoomSetup = () => {
                     <option value="Under Maintenance">Maintenance</option>
                 </select>
 
-                <button className="add-room-btn" onClick={() => openModal('add')}>+ Add Room</button>
+                <div className="view-toggle">
+                    <button 
+                        className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                        onClick={() => setViewMode('grid')}
+                        title="Grid View"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                            <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                            <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                            <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                        </svg>
+                    </button>
+                    <button 
+                        className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+                        onClick={() => setViewMode('list')}
+                        title="List View"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="8" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="8" y1="18" x2="21" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="3" y1="6" x2="4" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="3" y1="12" x2="4" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="3" y1="18" x2="4" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                    </button>
+                </div>
+
+                {canManageRooms && (
+                    <button className="add-room-btn" onClick={() => openModal('add')}>+ Add Room</button>
+                )}
             </div>
 
             {/* Sub-Header Section */}
@@ -628,14 +677,14 @@ const RoomSetup = () => {
                 </div>
             </div>
 
-            {/* Room Cards Grid */}
+            {/* Room Cards Grid/List */}
             <div className="room-setup-grid-container">
                 {loading ? (
                     <div style={{ padding: '20px', textAlign: 'center' }}>Loading rooms...</div>
                 ) : error ? (
                     <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>{error}</div>
                 ) : (
-                    <div className="room-cards-grid">
+                    <div className={viewMode === 'grid' ? 'room-cards-grid' : 'room-cards-list'}>
                         {filteredRooms.length > 0 ? (
                             filteredRooms.map((room) => {
                                 const statusClass =
@@ -651,41 +700,106 @@ const RoomSetup = () => {
                                         onClick={() => handleRoomClick(room)}
                                         style={{ cursor: 'pointer' }}
                                     >
-                                        <div className="room-card-header">
-                                            <h4>Room {room.roomNumber}</h4>
-                                            <div className="card-actions">
-                                                <button
-                                                    className="icon-btn"
-                                                    onClick={(e) => { e.stopPropagation(); openModal('edit', room); }}
-                                                    title="Edit"
-                                                >
-                                                    ✏️
-                                                </button>
-                                                <button
-                                                    className="icon-btn"
-                                                    onClick={(e) => { e.stopPropagation(); handleDelete(room.id); }}
-                                                    title="Delete"
-                                                >
-                                                    🗑️
-                                                </button>
+                                        {viewMode === 'grid' ? (
+                                            // Grid View
+                                            <>
+                                                <div className="room-card-header">
+                                                    <h4>Room {room.roomNumber}</h4>
+                                                    {room.housekeepingStatus === 'dirty' && <div className="dirty-badge">DIRTY</div>}
+                                                    <div className="card-actions">
+                                                        {canManageRooms && (
+                                                            <>
+                                                                <button
+                                                                    className="icon-btn"
+                                                                    onClick={(e) => { e.stopPropagation(); openModal('edit', room); }}
+                                                                    title="Edit"
+                                                                >
+                                                                    ✏️
+                                                                </button>
+                                                                <button
+                                                                    className="icon-btn"
+                                                                    onClick={(e) => { e.stopPropagation(); handleDelete(room.id); }}
+                                                                    title="Delete"
+                                                                >
+                                                                    🗑️
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="room-card-body">
+                                                    <div className="room-type">{room.roomType}</div>
+                                                    <p className="room-info">Capacity: {room.capacity.adults} persons</p>
+                                                    <p className="room-type" style={{ marginTop: 'auto' }}>{room.basePrice}/night</p>
+                                                </div>
+                                                <div className="room-card-footer">
+                                                    <span className="status-pill">{room.computedStatus}</span>
+                                                    {canBook && (
+                                                        <button
+                                                            className="book-btn"
+                                                            onClick={(e) => { e.stopPropagation(); handleQuickBook(room); }}
+                                                            disabled={room.computedStatus !== 'Available'}
+                                                            style={{ opacity: room.computedStatus !== 'Available' ? 0.5 : 1 }}
+                                                        >
+                                                            💼 Book
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            // List View
+                                            <div className="room-list-layout">
+                                                <div className="room-list-number">
+                                                    <h4>Room {room.roomNumber}</h4>
+                                                    {room.housekeepingStatus === 'dirty' && <div className="dirty-badge-small">DIRTY</div>}
+                                                </div>
+                                                <div className="room-list-type">
+                                                    <span className="label">Type</span>
+                                                    <span className="value">{room.roomType}</span>
+                                                </div>
+                                                <div className="room-list-capacity">
+                                                    <span className="label">Capacity</span>
+                                                    <span className="value">{room.capacity.adults} persons</span>
+                                                </div>
+                                                <div className="room-list-price">
+                                                    <span className="label">Price</span>
+                                                    <span className="value">{room.basePrice}/night</span>
+                                                </div>
+                                                <div className="room-list-status">
+                                                    <span className="status-pill">{room.computedStatus}</span>
+                                                </div>
+                                                <div className="room-list-actions">
+                                                    {canBook && (
+                                                        <button
+                                                            className="book-btn"
+                                                            onClick={(e) => { e.stopPropagation(); handleQuickBook(room); }}
+                                                            disabled={room.computedStatus !== 'Available'}
+                                                            style={{ opacity: room.computedStatus !== 'Available' ? 0.5 : 1 }}
+                                                        >
+                                                            💼 Book
+                                                        </button>
+                                                    )}
+                                                    {canManageRooms && (
+                                                        <>
+                                                            <button
+                                                                className="icon-btn"
+                                                                onClick={(e) => { e.stopPropagation(); openModal('edit', room); }}
+                                                                title="Edit"
+                                                            >
+                                                                ✏️
+                                                            </button>
+                                                            <button
+                                                                className="icon-btn"
+                                                                onClick={(e) => { e.stopPropagation(); handleDelete(room.id); }}
+                                                                title="Delete"
+                                                            >
+                                                                🗑️
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="room-card-body">
-                                            <div className="room-type">{room.roomType}</div>
-                                            <p className="room-info">Capacity: {room.capacity.adults} persons</p>
-                                            <p className="room-type" style={{ marginTop: 'auto' }}>{room.basePrice}/night</p>
-                                        </div>
-                                        <div className="room-card-footer">
-                                            <span className="status-pill">{room.computedStatus}</span>
-                                            <button
-                                                className="book-btn"
-                                                onClick={(e) => { e.stopPropagation(); handleQuickBook(room); }}
-                                                disabled={room.computedStatus !== 'Available'}
-                                                style={{ opacity: room.computedStatus !== 'Available' ? 0.5 : 1 }}
-                                            >
-                                                💼 Book
-                                            </button>
-                                        </div>
+                                        )}
                                     </div>
                                 );
                             })
@@ -705,151 +819,153 @@ const RoomSetup = () => {
             </div>
 
             {/* Add/Edit Modal */}
-            {isModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h3>{modalMode === 'add' ? 'Add New Room' : 'Edit Room'}</h3>
-                            <button className="modal-close" onClick={() => setIsModalOpen(false)}>✕</button>
-                        </div>
-                        <form onSubmit={handleSubmit}>
-                            <div className="modal-body">
-                                <div className="form-group">
-                                    <label>Room Number</label>
-                                    <input
-                                        type="text"
-                                        name="roomNumber"
-                                        value={formData.roomNumber}
-                                        onChange={handleInputChange}
-                                        required
-                                        className="form-input"
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Floor</label>
-                                    <select name="floor" value={formData.floor} onChange={handleInputChange} className="form-input">
-                                        <option value="">Select Floor</option>
-                                        {floors.map(floor => {
-                                            const currentCount = rooms.filter(r => r.floor === floor.name).length;
-                                            const isFull = currentCount >= floor.roomCount;
-                                            // Disable if full, UNLESS we are in edit mode and this is the room's current floor
-                                            const isDisabled = isFull && !(modalMode === 'edit' && currentRoom?.floor === floor.name);
+            {
+                isModalOpen && (
+                    <div className="modal-overlay">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h3>{modalMode === 'add' ? 'Add New Room' : 'Edit Room'}</h3>
+                                <button className="modal-close" onClick={() => setIsModalOpen(false)}>✕</button>
+                            </div>
+                            <form onSubmit={handleSubmit}>
+                                <div className="modal-body">
+                                    <div className="form-group">
+                                        <label>Room Number</label>
+                                        <input
+                                            type="text"
+                                            name="roomNumber"
+                                            value={formData.roomNumber}
+                                            onChange={handleInputChange}
+                                            required
+                                            className="form-input"
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Floor</label>
+                                        <select name="floor" value={formData.floor} onChange={handleInputChange} className="form-input">
+                                            <option value="">Select Floor</option>
+                                            {floors.map(floor => {
+                                                const currentCount = rooms.filter(r => r.floor === floor.name).length;
+                                                const isFull = currentCount >= floor.roomCount;
+                                                // Disable if full, UNLESS we are in edit mode and this is the room's current floor
+                                                const isDisabled = isFull && !(modalMode === 'edit' && currentRoom?.floor === floor.name);
 
-                                            return (
-                                                <option key={floor._id} value={floor.name} disabled={isDisabled}>
-                                                    {floor.name} {isDisabled ? '(Full)' : `(${currentCount}/${floor.roomCount})`}
-                                                </option>
-                                            );
-                                        })}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>Room Type</label>
-                                    <select name="roomType" value={formData.roomType} onChange={handleInputChange} className="form-input">
-                                        <option value="">Select Room Type</option>
-                                        {roomTypes.map(type => (
-                                            <option key={type._id} value={type.name}>{type.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>Capacity</label>
-                                    <input
-                                        type="number"
-                                        name="capacity"
-                                        value={formData.capacity}
-                                        onChange={handleInputChange}
-                                        required
-                                        min="1"
-                                        className="form-input"
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Base Price</label>
-                                    <input
-                                        type="number"
-                                        name="basePrice"
-                                        value={formData.basePrice}
-                                        onChange={handleInputChange}
-                                        required
-                                        className="form-input"
-                                    />
-                                </div>
-
-                                {/* PHASE 2 UPGRADE: Enterprise-level fields */}
-                                <div className="enterprise-fields-section">
-                                    <div className="section-divider">
-                                        <span className="section-title">Room Details</span>
+                                                return (
+                                                    <option key={floor._id} value={floor.name} disabled={isDisabled}>
+                                                        {floor.name} {isDisabled ? '(Full)' : `(${currentCount}/${floor.roomCount})`}
+                                                    </option>
+                                                );
+                                            })}
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Room Type</label>
+                                        <select name="roomType" value={formData.roomType} onChange={handleInputChange} className="form-input">
+                                            <option value="">Select Room Type</option>
+                                            {roomTypes.map(type => (
+                                                <option key={type._id} value={type.name}>{type.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Capacity</label>
+                                        <input
+                                            type="number"
+                                            name="capacity"
+                                            value={formData.capacity}
+                                            onChange={handleInputChange}
+                                            required
+                                            min="1"
+                                            className="form-input"
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Base Price</label>
+                                        <input
+                                            type="number"
+                                            name="basePrice"
+                                            value={formData.basePrice}
+                                            onChange={handleInputChange}
+                                            required
+                                            className="form-input"
+                                        />
                                     </div>
 
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>Room View Type</label>
-                                            <select
-                                                name="roomViewType"
-                                                value={formData.roomViewType}
-                                                onChange={handleInputChange}
-                                                className="form-input"
-                                            >
-                                                <option value="Sea View">Sea View</option>
-                                                <option value="City View">City View</option>
-                                                <option value="Garden View">Garden View</option>
-                                                <option value="Pool View">Pool View</option>
-                                                <option value="Mountain View">Mountain View</option>
-                                            </select>
+                                    {/* PHASE 2 UPGRADE: Enterprise-level fields */}
+                                    <div className="enterprise-fields-section">
+                                        <div className="section-divider">
+                                            <span className="section-title">Room Details</span>
                                         </div>
 
-                                        <div className="form-group">
-                                            <label>Smoking Policy</label>
-                                            <select
-                                                name="smokingPolicy"
-                                                value={formData.smokingPolicy}
-                                                onChange={handleInputChange}
-                                                className="form-input"
-                                            >
-                                                <option value="Non-Smoking">Non-Smoking</option>
-                                                <option value="Smoking">Smoking</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>Room Size</label>
-                                            <div className="input-with-suffix">
-                                                <input
-                                                    type="number"
-                                                    name="roomSize"
-                                                    value={formData.roomSize}
+                                        <div className="form-row">
+                                            <div className="form-group">
+                                                <label>Room View Type</label>
+                                                <select
+                                                    name="roomViewType"
+                                                    value={formData.roomViewType}
                                                     onChange={handleInputChange}
-                                                    min="0"
                                                     className="form-input"
-                                                />
-                                                <span className="input-suffix">sq ft</span>
+                                                >
+                                                    <option value="Sea View">Sea View</option>
+                                                    <option value="City View">City View</option>
+                                                    <option value="Garden View">Garden View</option>
+                                                    <option value="Pool View">Pool View</option>
+                                                    <option value="Mountain View">Mountain View</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="form-group">
+                                                <label>Smoking Policy</label>
+                                                <select
+                                                    name="smokingPolicy"
+                                                    value={formData.smokingPolicy}
+                                                    onChange={handleInputChange}
+                                                    className="form-input"
+                                                >
+                                                    <option value="Non-Smoking">Non-Smoking</option>
+                                                    <option value="Smoking">Smoking</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="form-row">
+                                            <div className="form-group">
+                                                <label>Room Size</label>
+                                                <div className="input-with-suffix">
+                                                    <input
+                                                        type="number"
+                                                        name="roomSize"
+                                                        value={formData.roomSize}
+                                                        onChange={handleInputChange}
+                                                        min="0"
+                                                        className="form-input"
+                                                    />
+                                                    <span className="input-suffix">sq ft</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="form-group">
-                                    <label>Status</label>
-                                    <select name="status" value={formData.status} onChange={handleInputChange} className="form-input">
-                                        <option value="Available">Available</option>
-                                        <option value="Booked">Booked</option>
-                                        <option value="Occupied">Occupied</option>
-                                        <option value="Under Maintenance">Under Maintenance</option>
-                                    </select>
+                                    <div className="form-group">
+                                        <label>Status</label>
+                                        <select name="status" value={formData.status} onChange={handleInputChange} className="form-input">
+                                            <option value="Available">Available</option>
+                                            <option value="Booked">Booked</option>
+                                            <option value="Occupied">Occupied</option>
+                                            <option value="Under Maintenance">Under Maintenance</option>
+                                        </select>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">{modalMode === 'add' ? 'Add Room' : 'Update Room'}</button>
-                            </div>
-                        </form>
+                                <div className="modal-footer">
+                                    <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                                    <button type="submit" className="btn btn-primary">{modalMode === 'add' ? 'Add Room' : 'Update Room'}</button>
+                                </div>
+                            </form>
+                        </div >
                     </div >
-                </div >
-            )}
-        </div >
+                )
+            }
+        </motion.div >
     );
 };
 
