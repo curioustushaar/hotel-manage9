@@ -39,6 +39,7 @@ import TableManagement from '../TableManagement/TableManagement';
 import RoomDetailsPanel from '../../components/rooms/RoomDetailsPanel';
 import RoomService from '../../components/RoomService';
 import CompanySettings from '../CompanySettings/CompanySettings';
+import UniversalReport from '../Reports/UniversalReport';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -221,6 +222,10 @@ const AdminDashboard = () => {
         else if (path.includes('/food-order')) setActiveMenu('food-order');
         else if (path.includes('/reservation-card')) setActiveMenu('reservation-card');
         else if (path.includes('/company-settings')) setActiveMenu('company');
+        else if (path.includes('/reports-')) {
+            const reportType = path.split('/').pop();
+            setActiveMenu(reportType);
+        }
 
     }, [location]);
 
@@ -496,6 +501,7 @@ const AdminDashboard = () => {
         else if (menuId === 'cashier-report') navigate(`${prefix}/cashier-report`);
         else if (menuId === 'food-payment-report') navigate(`${prefix}/food-payment-report`);
         else if (menuId === 'view-order') navigate(`${prefix}/view-order`);
+        else if (menuId.startsWith('reports-')) navigate(`${prefix}/${menuId}`);
 
         // Property Setup
         else if (menuId === 'discount') navigate(`${prefix}/discount`);
@@ -875,6 +881,11 @@ const AdminDashboard = () => {
             {/* Cashier Section View (New) */}
             {activeMenu === 'cashier-section' && (
                 <CashierSection />
+            )}
+
+            {/* Universal Reports */}
+            {activeMenu?.startsWith('reports-') && (
+                <UniversalReport type={activeMenu} />
             )}
 
             {/* Stay Overview View (Image 1) */}

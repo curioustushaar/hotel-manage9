@@ -259,6 +259,17 @@ const AppRoutes = () => {
             </ProtectedRoute>
           } />
 
+          {/* New Report Routes */}
+          <Route path="/admin/reports-sales" element={<ProtectedRoute module={MODULES.REPORTS_SALES}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/reports-payments" element={<ProtectedRoute module={MODULES.REPORTS_PAYMENTS}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/reports-rooms" element={<ProtectedRoute module={MODULES.REPORTS_ROOMS}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/reports-kitchen" element={<ProtectedRoute module={MODULES.REPORTS_KITCHEN}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/reports-gst" element={<ProtectedRoute module={MODULES.REPORTS_GST}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/reports-staff" element={<ProtectedRoute module={MODULES.REPORTS_STAFF}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/reports-billing" element={<ProtectedRoute module={MODULES.REPORTS_BILLING}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/reports-reservations" element={<ProtectedRoute module={MODULES.REPORTS_RESERVATIONS}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/reports-analytics" element={<ProtectedRoute module={MODULES.REPORTS_ANALYTICS}><AdminDashboard /></ProtectedRoute>} />
+
           {/* Property Setup Routes */}
           <Route path="/admin/discount" element={<ProtectedRoute module={MODULES.PROPERTY_SETUP}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/taxes" element={<ProtectedRoute module={MODULES.PROPERTY_SETUP}><AdminDashboard /></ProtectedRoute>} />

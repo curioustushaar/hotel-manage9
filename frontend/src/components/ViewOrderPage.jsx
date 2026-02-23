@@ -9,7 +9,7 @@ const ViewOrderPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
     // Top Tabs State
-    const [activeTab, setActiveTab] = useState('Bill View');
+    const [activeTab, setActiveTab] = useState('KOT View');
     const [activeFilter, setActiveFilter] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [orders, setOrders] = useState([]);
@@ -223,9 +223,6 @@ const ViewOrderPage = () => {
             if (activeTab === 'KOT View') {
                 // KOT View only shows active kitchen orders
                 matchesTab = !['Billed', 'Closed', 'Cancelled'].includes(order.rawStatus || order.status);
-            } else if (activeTab === 'Bill View') {
-                // Bill View shows everything but sorted for billing/history
-                matchesTab = true;
             }
 
             return matchesSearch && matchesFilter && matchesTab;
@@ -274,7 +271,7 @@ const ViewOrderPage = () => {
             )}
             {/* Top Tabs */}
             <div className="view-order-tabs">
-                {['Bill View', 'KOT View', 'Outlet Current Status', 'Item Stock Status'].map(tab => (
+                {['KOT View', 'Outlet Current Status', 'Item Stock Status'].map(tab => (
                     <button
                         key={tab}
                         className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
@@ -315,47 +312,12 @@ const ViewOrderPage = () => {
                     </div>
 
                     {/* Grid */}
-                    <div className={activeTab === 'Bill View' ? 'bill-grid' : 'orders-grid'}>
+                    <div className="orders-grid">
                         {filteredOrders.map(order => {
                             const isBilled = order.status === 'Billed' || order.status === 'Closed';
                             const isReady = order.status === 'Ready' || order.status === 'In Service';
                             const pendingElapsed = getMinutesElapsed(order.createdAt);
                             const prepElapsed = getMinutesElapsed(preparingTimes[order.id]);
-
-                            if (activeTab === 'Bill View') {
-                                return (
-                                    <div className={`bill-history-card ${order.status.toLowerCase().replace(' ', '-')}`} key={order.id}>
-                                        <div className="bill-card-header">
-                                            <span className={`type-badge ${order.type.toLowerCase().replace(' ', '-')}`}>
-                                                {order.type}
-                                            </span>
-                                            <span className="order-time">{order.time}</span>
-                                        </div>
-                                        <div className="bill-card-body">
-                                            <div className="bill-main-info">
-                                                <h3>{order.table !== '-' ? `Table/Room ${order.table}` : 'Take Away'}</h3>
-                                                <p className="guest-name">{order.guestName || 'Walk-in Guest'}</p>
-                                            </div>
-                                            <div className="bill-items-summary">
-                                                <span className="item-count">{order.items.length} Items</span>
-                                                <span className="bill-amount">₹{order.amount}</span>
-                                            </div>
-                                            <div className="bill-status-badge">
-                                                Status: <span className={order.status.toLowerCase().replace(' ', '-')}>{order.status}</span>
-                                            </div>
-                                        </div>
-                                        <div className="bill-card-actions">
-
-                                            <button className="bill-action-btn view" onClick={() => handleViewBill(order)}>
-                                                <span>📄</span> Bill
-                                            </button>
-                                            <button className="bill-action-btn delete" onClick={() => handleDeleteOrder(order.id)}>
-                                                <span>🗑️</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            }
 
                             // KOT VIEW CARD
                             return (
