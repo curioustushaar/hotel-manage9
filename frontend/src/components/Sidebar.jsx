@@ -216,10 +216,11 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
 
             <nav className="sidebar-nav">
                 {filteredItems.map((item) => {
-                    const isOpenDropdown = item.id === 'proper-configuration' ? openConfigDropdown :
+                    const isOpenDropdown = item.id === MODULES.RESERVATIONS ? openReservationDropdown :
                         item.id === 'property-setup' ? openPropertySetupDropdown :
                             item.id === 'property-configuration' ? openPropertyConfigDropdown :
-                                item.id === 'reports' ? openReportsDropdown : false;
+                                item.id === 'reports' ? openReportsDropdown :
+                                    item.id === 'proper-configuration' ? openConfigDropdown : false;
 
 
                     // If searching, auto-expand if matched

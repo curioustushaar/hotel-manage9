@@ -1480,6 +1480,21 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                 </button>
                             </div>
 
+                            {/* Billing Summary Panel moved above actions */}
+                            <BillingSummary
+                                roomCharges={billingData.roomCharges}
+                                discount={billingData.totalDiscount}
+                                tax={billingData.taxAmount}
+                                totalAmount={billingData.totalAmount}
+                                paidAmount={paidAmount}
+                                balanceDue={billingData.balanceDue}
+                                paymentMode={paymentMode}
+                                onPaymentModeChange={setPaymentMode}
+                                onPaidAmountChange={setPaidAmount}
+                                onTaxExemptChange={setTaxExempt}
+                                taxExempt={taxExempt}
+                            />
+
                             {/* Form Actions */}
                             <div className="form-actions">
                                 <button type="button" className="btn btn-outline" onClick={() => { resetForm(); setView('dashboard'); }}>
@@ -1502,21 +1517,6 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                 </button>
                             </div>
                         </div>
-
-                        {/* Billing Summary Panel */}
-                        <BillingSummary
-                            roomCharges={billingData.roomCharges}
-                            discount={billingData.totalDiscount}
-                            tax={billingData.taxAmount}
-                            totalAmount={billingData.totalAmount}
-                            paidAmount={paidAmount}
-                            balanceDue={billingData.balanceDue}
-                            paymentMode={paymentMode}
-                            onPaymentModeChange={setPaymentMode}
-                            onPaidAmountChange={setPaidAmount}
-                            onTaxExemptChange={setTaxExempt}
-                            taxExempt={taxExempt}
-                        />
 
                         {/* Guest Booking History Section - Premium Design */}
                         <div className="booking-history-container premium-card-wide">
@@ -1556,8 +1556,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                                 {[
                                                     { id: 'RES-001', roomCategory: 'Deluxe Double', checkIn: '15 Oct', checkOut: '18 Oct', amount: '₹9,500', status: 'paid' },
                                                     { id: 'RES-002', roomCategory: 'Club AC Single', checkIn: '20 Aug', checkOut: '23 Aug', amount: '₹7,200', status: 'paid' },
-                                                    { id: 'RES-003', roomCategory: 'Suite Double', checkIn: '10 May', checkOut: '13 May', amount: '215,000', status: 'overdue' },
-                                                    { id: 'RES-004', roomCategory: 'Club AC Double', checkIn: '3 Mar', checkOut: '8 Mar', amount: '112,000', status: 'overdue' }
+                                                    { id: 'RES-003', roomCategory: 'Suite Double', checkIn: '10 May', checkOut: '13 May', amount: '₹215,000', status: 'overdue' },
+                                                    { id: 'RES-004', roomCategory: 'Club AC Double', checkIn: '3 Mar', checkOut: '8 Mar', amount: '₹112,000', status: 'overdue' }
                                                 ].map(booking => (
                                                     <tr key={booking.id} className="history-row">
                                                         <td className="res-id">{booking.id}</td>
@@ -1577,7 +1577,6 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                 )}
                             </AnimatePresence>
                         </div>
-
                     </div>
                 </div>
 
@@ -1669,30 +1668,30 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             {/* View Toggle */}
             <div className="view-toggle-container">
                 <div className="view-toggle">
-                    <button 
+                    <button
                         className={`view-toggle-btn ${cardViewMode === 'grid' ? 'active' : ''}`}
                         onClick={() => setCardViewMode('grid')}
                         title="Grid View"
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
-                            <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
-                            <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
-                            <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                            <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+                            <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+                            <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+                            <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
                         </svg>
                     </button>
-                    <button 
+                    <button
                         className={`view-toggle-btn ${cardViewMode === 'list' ? 'active' : ''}`}
                         onClick={() => setCardViewMode('list')}
                         title="List View"
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                            <line x1="8" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                            <line x1="8" y1="18" x2="21" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                            <line x1="3" y1="6" x2="4" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                            <line x1="3" y1="12" x2="4" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                            <line x1="3" y1="18" x2="4" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            <line x1="8" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            <line x1="8" y1="18" x2="21" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            <line x1="3" y1="6" x2="4" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            <line x1="3" y1="12" x2="4" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            <line x1="3" y1="18" x2="4" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                         </svg>
                     </button>
                 </div>

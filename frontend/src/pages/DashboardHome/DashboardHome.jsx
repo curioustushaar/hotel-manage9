@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-    BedDouble, 
-    CalendarCheck, 
-    CheckCircle, 
-    Users, 
-    Clock, 
-    LogIn, 
-    LogOut 
+import {
+    BedDouble,
+    CalendarCheck,
+    CheckCircle,
+    Users,
+    Clock,
+    LogIn,
+    LogOut
 } from 'lucide-react';
 import API_URL from '../../config/api';
 import { useAuth } from '../../context/AuthContext';
 import './DashboardHome.css';
 
 const DashboardHome = () => {
+    const navigate = useNavigate();
     const { user } = useAuth();
     const isStaff = user?.role === 'staff';
     const [roomStats, setRoomStats] = useState({
@@ -1029,7 +1031,12 @@ const DashboardHome = () => {
                                         <span className="breakup-label">Rooms</span>
                                         <span className="breakup-value">{revenueBreakup.rooms.toLocaleString()}</span>
                                     </div>
-                                    <div className="breakup-item">
+                                    <div
+                                        className="breakup-item"
+                                        onClick={() => navigate('/admin/food-order')}
+                                        style={{ cursor: 'pointer' }}
+                                        title="Go to Food Order"
+                                    >
                                         <span className="breakup-label">Restaurant</span>
                                         <span className="breakup-value">{revenueBreakup.restaurant.toLocaleString()}</span>
                                     </div>
@@ -1105,25 +1112,31 @@ const DashboardHome = () => {
                                         <text x="35" y="55" fontSize="12" fill="#6b7280" textAnchor="end">{roomStats.total}</text>
 
                                         {/* Clean */}
-                                        {(() => { const h = Math.max((housekeepingStats.clean / (roomStats.total || 1)) * 200, 2); return (
-                                            <><rect x="100" y={250 - h} width="80" height={h} fill="#10b981" rx="6" />
-                                            <text x="140" y={244 - h} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#10b981">{housekeepingStats.clean}</text>
-                                            <text x="140" y="275" textAnchor="middle" fontSize="12" fill="#6b7280">Clean</text></>
-                                        );})()}
+                                        {(() => {
+                                            const h = Math.max((housekeepingStats.clean / (roomStats.total || 1)) * 200, 2); return (
+                                                <><rect x="100" y={250 - h} width="80" height={h} fill="#10b981" rx="6" />
+                                                    <text x="140" y={244 - h} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#10b981">{housekeepingStats.clean}</text>
+                                                    <text x="140" y="275" textAnchor="middle" fontSize="12" fill="#6b7280">Clean</text></>
+                                            );
+                                        })()}
 
                                         {/* Dirty */}
-                                        {(() => { const h = Math.max((housekeepingStats.dirty / (roomStats.total || 1)) * 200, 2); return (
-                                            <><rect x="250" y={250 - h} width="80" height={h} fill="#ef4444" rx="6" />
-                                            <text x="290" y={244 - h} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#ef4444">{housekeepingStats.dirty}</text>
-                                            <text x="290" y="275" textAnchor="middle" fontSize="12" fill="#6b7280">Dirty</text></>
-                                        );})()}
+                                        {(() => {
+                                            const h = Math.max((housekeepingStats.dirty / (roomStats.total || 1)) * 200, 2); return (
+                                                <><rect x="250" y={250 - h} width="80" height={h} fill="#ef4444" rx="6" />
+                                                    <text x="290" y={244 - h} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#ef4444">{housekeepingStats.dirty}</text>
+                                                    <text x="290" y="275" textAnchor="middle" fontSize="12" fill="#6b7280">Dirty</text></>
+                                            );
+                                        })()}
 
                                         {/* Pending/Inspection */}
-                                        {(() => { const h = Math.max((housekeepingStats.inspection / (roomStats.total || 1)) * 200, 2); return (
-                                            <><rect x="400" y={250 - h} width="80" height={h} fill="#f59e0b" rx="6" />
-                                            <text x="440" y={244 - h} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#f59e0b">{housekeepingStats.inspection}</text>
-                                            <text x="440" y="275" textAnchor="middle" fontSize="12" fill="#6b7280">Pending</text></>
-                                        );})()}
+                                        {(() => {
+                                            const h = Math.max((housekeepingStats.inspection / (roomStats.total || 1)) * 200, 2); return (
+                                                <><rect x="400" y={250 - h} width="80" height={h} fill="#f59e0b" rx="6" />
+                                                    <text x="440" y={244 - h} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#f59e0b">{housekeepingStats.inspection}</text>
+                                                    <text x="440" y="275" textAnchor="middle" fontSize="12" fill="#6b7280">Pending</text></>
+                                            );
+                                        })()}
                                     </svg>
                                 </div>
                             </div>

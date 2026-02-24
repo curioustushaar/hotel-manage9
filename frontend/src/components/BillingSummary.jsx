@@ -20,107 +20,106 @@ const BillingSummary = ({
     return (
         <div className="billing-payment-dual-container">
             {/* Left Card: Billing Summary */}
-            <div className="billing-card premium-card">
-                <div className="card-header">
+            <div className="billing-card premium-card-v2">
+                <div className="card-header-v2">
                     <div className="header-icon-title">
-                        <FileText className="header-icon" size={20} />
-                        <h3>Billing Summary</h3>
+                        <span className="header-icon-wrap">💰</span>
+                        <h3>BILLING SUMMARY</h3>
                     </div>
                 </div>
 
-                <div className="card-body">
-                    <div className="summary-list">
-                        <div className="summary-item">
+                <div className="card-body-v2">
+                    <div className="card-body-left">
+                        <div className="summary-item-v2">
                             <span className="label">Room Charges</span>
                             <span className="value">₹{roomCharges.toLocaleString('en-IN')}</span>
                         </div>
-
-                        <div className="summary-item subtotal">
-                            <span className="label">Subtotal</span>
-                            <span className="value">₹{(roomCharges - discount).toLocaleString('en-IN')}</span>
-                        </div>
-
-                        <div className="summary-item">
+                        <div className="summary-item-v2" style={{ marginTop: '20px' }}>
                             <span className="label">Tax (12%)</span>
                             <span className="value">₹{tax.toLocaleString('en-IN')}</span>
                         </div>
                     </div>
 
-                    <div className="total-amount-box">
-                        <div className="total-label-group">
-                            <CheckCircle2 size={18} className="total-icon" />
-                            <span className="total-label">Total Amount</span>
+                    <div className="card-body-right">
+                        <div className="summary-item-v2 align-right">
+                            <span className="label">Subtotal</span>
+                            <span className="value">₹{(roomCharges - discount).toLocaleString('en-IN')}</span>
                         </div>
-                        <span className="total-value">₹{totalAmount.toLocaleString('en-IN')}</span>
+
+                        <div className="total-amount-box-v2">
+                            <span className="total-label-v2">GRAND TOTAL</span>
+                            <span className="total-value-v2">₹{totalAmount.toLocaleString('en-IN')}</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Right Card: Payment Details */}
-            <div className="payment-card premium-card">
-                <div className="card-header">
+            <div className="payment-card premium-card-v2">
+                <div className="card-header-v2">
                     <div className="header-icon-title">
-                        <CreditCard className="header-icon" size={20} />
-                        <h3>Payment Details</h3>
+                        <span className="header-icon-wrap">💳</span>
+                        <h3>PAYMENT DETAILS</h3>
                     </div>
                 </div>
 
-                <div className="card-body">
-                    <div className="payment-form-group">
-                        <label className="input-label">Payment Mode</label>
-                        <select
-                            className="premium-select"
-                            value={paymentMode}
-                            onChange={(e) => onPaymentModeChange(e.target.value)}
-                        >
-                            <option value="Cash">Cash</option>
-                            <option value="Card">Card</option>
-                            <option value="UPI">UPI / Online</option>
-                            <option value="Cheque">Cheque</option>
-                        </select>
-                    </div>
+                <div className="card-body-v2">
+                    <div className="card-body-left">
+                        <div className="payment-form-group-v2">
+                            <label className="input-label-v2">PAYMENT MODE</label>
+                            <select
+                                className="premium-select-v2"
+                                value={paymentMode}
+                                onChange={(e) => onPaymentModeChange(e.target.value)}
+                            >
+                                <option value="Cash">Cash</option>
+                                <option value="Card">Card</option>
+                                <option value="UPI">UPI / Online</option>
+                                <option value="Cheque">Cheque</option>
+                            </select>
+                        </div>
 
-                    <div className="payment-form-group">
-                        <div className="premium-input-wrapper">
-                            <span className="currency-symbol">₹</span>
-                            <input
-                                type="number"
-                                className="premium-input"
-                                value={paidAmount}
-                                onChange={(e) => onPaidAmountChange(parseFloat(e.target.value) || 0)}
-                                placeholder="0"
-                            />
+                        <div className="payment-form-group-v2">
+                            <label className="input-label-v2">ADVANCE / PAID AMOUNT</label>
+                            <div className="premium-input-wrapper-v2">
+                                <span className="currency-symbol-v2">₹</span>
+                                <input
+                                    type="number"
+                                    className="premium-input-v2"
+                                    value={paidAmount}
+                                    onChange={(e) => onPaidAmountChange(parseFloat(e.target.value) || 0)}
+                                    placeholder="0"
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    <div className="payment-progress-container">
-                        <div className="progress-bar-bg">
-                            <div
-                                className="progress-bar-fill"
-                                style={{ width: `${paidPercentage}%` }}
-                            ></div>
+                    <div className="card-body-right">
+                        <div className="payment-progress-container-v2">
+                            <div className="progress-bar-bg-v2">
+                                <div
+                                    className="progress-bar-fill-v2"
+                                    style={{ width: `${paidPercentage}%` }}
+                                ></div>
+                            </div>
+                            <span className="progress-label-v2">{paidPercentage}% Collected</span>
                         </div>
-                        <span className="progress-label">{paidPercentage}% Paid</span>
-                    </div>
 
-                    <div className="toggle-group">
-                        <div className="premium-toggle-row">
-                            <span className="toggle-label">Tax Exempt</span>
-                            <label className="premium-switch">
+                        <div className="toggle-group-v2">
+                            <div className="premium-checkbox-row">
                                 <input
                                     type="checkbox"
+                                    id="taxExempt"
                                     checked={taxExempt}
                                     onChange={(e) => onTaxExemptChange(e.target.checked)}
                                 />
-                                <span className="switch-slider"></span>
-                            </label>
-                        </div>
+                                <label htmlFor="taxExempt">Tax Exempt</label>
+                            </div>
 
-                        <div className="premium-toggle-row">
-                            <span className="toggle-label">Mark as Fully Paid</span>
-                            <label className="premium-switch">
+                            <div className="premium-checkbox-row">
                                 <input
                                     type="checkbox"
+                                    id="markPaid"
                                     checked={isFullyPaid}
                                     onChange={(e) => {
                                         if (e.target.checked) {
@@ -130,21 +129,15 @@ const BillingSummary = ({
                                         }
                                     }}
                                 />
-                                <span className="switch-slider"></span>
-                            </label>
+                                <label htmlFor="markPaid">Mark as Fully Paid</label>
+                            </div>
+                        </div>
+
+                        <div className={`due-box-v2 ${balanceDue > 0 ? 'has-due' : 'is-clear'}`}>
+                            <span className="due-icon">⚠️</span>
+                            <span className="due-label">DUE: ₹{balanceDue.toLocaleString('en-IN')}</span>
                         </div>
                     </div>
-
-                    <button
-                        className={`balance-btn ${isFullyPaid ? 'fully-paid' : ''}`}
-                        disabled={isFullyPaid}
-                    >
-                        {isFullyPaid ? (
-                            <><CheckCircle2 size={16} /> FULLY PAID</>
-                        ) : (
-                            <><AlertCircle size={16} /> BALANCE REMAINING : ₹{balanceDue.toLocaleString('en-IN')}</>
-                        )}
-                    </button>
                 </div>
             </div>
         </div>
