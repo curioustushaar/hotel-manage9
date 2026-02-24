@@ -474,8 +474,7 @@ const AdminDashboard = () => {
         } else if (menuId === 'food-order') {
             navigate(`${prefix}/food-order`);
         } else if (menuId === 'reservation-card') {
-            navigate(`${prefix}/reservations`, { state: { viewMode: 'dashboard' } });
-            setActiveMenu('reservation-card');
+            navigate(`${prefix}/reservation-card`);
         }
         // Handle main menu items with navigation
         else if (menuId === 'dashboard') navigate(`${prefix}/dashboard`);

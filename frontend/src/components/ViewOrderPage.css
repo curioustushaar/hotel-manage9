@@ -117,21 +117,22 @@
 /* --- KDS Grid --- */
 .orders-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 18px;
+  grid-template-columns: repeat(8, 1fr); /* Increased from 5 to 8 for smaller cards */
+  gap: 12px; /* Slightly reduced gap */
 }
 
 .order-card {
   background: #ffffff;
-  border-radius: 12px;
-  border: 1.5px solid #ef4444;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  border-radius: 10px; /* Smaller radius */
+  border: 1.2px solid #ef4444; /* Thinner border */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Softer shadow */
   display: flex;
   flex-direction: column;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  height: 100%;
+  height: auto; /* Allow auto height based on content */
+  min-height: 200px; /* Maintain a reasonable minimum */
 }
 
 .order-card:hover {
@@ -147,7 +148,7 @@
 
 /* Header */
 .card-header {
-  padding: 10px 14px;
+  padding: 6px 10px; /* Reduced from 10px 14px */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -157,8 +158,8 @@
 }
 
 .header-table {
-  font-size: 0.95rem;
-  font-weight: 900;
+  font-size: 0.8rem; /* Reduced from 0.95rem */
+  font-weight: 800;
   letter-spacing: -0.01em;
   white-space: nowrap;
   overflow: hidden;
@@ -167,20 +168,20 @@
 }
 
 .header-time {
-  font-size: 0.75rem;
+  font-size: 0.65rem; /* Reduced from 0.75rem */
   font-weight: 600;
   opacity: 0.92;
 }
 
 /* Status Strip (Delay/Timer) */
 .status-strip {
-  padding: 8px 14px;
-  font-size: 0.8rem;
+  padding: 4px 10px; /* Reduced from 8px 14px */
+  font-size: 0.7rem; /* Reduced from 0.8rem */
   font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 32px;
+  gap: 6px;
+  min-height: 24px; /* Reduced from 32px */
 }
 
 .status-strip.pending-delay {
@@ -215,21 +216,46 @@
 
 /* Body (Bill List) */
 .card-body {
-  padding: 14px 14px 10px;
+  padding: 8px 10px 6px; /* Reduced padding */
   flex-grow: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .item-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px; /* Reduced gap */
+  max-height: 80px; /* Reduced from 105px to match smaller scale */
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Custom scrollbar for better look */
+.item-list::-webkit-scrollbar {
+  width: 5px; /* Slightly wider to be visible */
+}
+
+.item-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.item-list::-webkit-scrollbar-thumb {
+  background: #dc2626; /* Changed to red to be more prominent */
+  border-radius: 10px;
+  border: 1px solid #f1f5f9;
+}
+
+.item-list::-webkit-scrollbar-thumb:hover {
+  background: #b91c1c;
 }
 
 .order-item {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  font-size: 0.82rem;
+  font-size: 0.75rem; /* Reduced from 0.82rem */
   font-weight: 600;
   color: #1e293b;
 }
@@ -244,32 +270,32 @@
 
 .item-separator {
   flex: 1;
-  border-bottom: 1.5px dotted #cbd5e1;
-  margin: 0 6px;
+  border-bottom: 1px dotted #cbd5e1; /* Thinner dots */
+  margin: 0 4px;
   position: relative;
-  top: -4px;
+  top: -3px;
 }
 
 .item-price {
   font-weight: 700;
   color: #0f172a;
-  font-size: 0.82rem;
+  font-size: 0.75rem; /* Reduced from 0.82rem */
 }
 
 /* Status Buttons */
 .status-actions {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
-  padding: 12px;
+  gap: 4px; /* Reduced gap */
+  padding: 6px 8px; /* Reduced padding */
   background-color: #f8fafc;
   border-top: 1px solid #f1f5f9;
 }
 
 .status-btn {
-  padding: 6px 4px;
-  border-radius: 8px;
-  font-size: 0.7rem;
+  padding: 4px 2px; /* Reduced padding */
+  border-radius: 6px;
+  font-size: 0.6rem; /* Reduced from 0.7rem */
   font-weight: 700;
   border: 1px solid transparent;
   background: #ffffff;
@@ -278,7 +304,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
@@ -300,7 +326,7 @@
   }
 
   70% {
-    box-shadow: 0 0 0 10px rgba(249, 115, 22, 0);
+    box-shadow: 0 0 0 6px rgba(249, 115, 22, 0); /* Reduced shadow spread */
     border-color: #f97316;
   }
 
@@ -324,7 +350,7 @@
   }
 
   70% {
-    box-shadow: 0 0 0 10px rgba(37, 99, 235, 0);
+    box-shadow: 0 0 0 6px rgba(37, 99, 235, 0); /* Reduced shadow spread */
     border-color: #2563eb;
   }
 
@@ -341,7 +367,7 @@
   }
 
   70% {
-    box-shadow: 0 0 0 10px rgba(22, 163, 74, 0);
+    box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); /* Reduced shadow spread */
     border-color: #16a34a;
   }
 
@@ -371,24 +397,24 @@
 
 /* Icons */
 .status-icon {
-  font-size: 1.15rem;
+  font-size: 0.9rem; /* Reduced from 1.15rem */
 }
 
 /* Footer Actions */
 .card-footer {
   display: grid;
   grid-template-columns: 1fr 1.5fr;
-  gap: 12px;
-  padding: 10px 14px 16px;
+  gap: 8px; /* Reduced gap */
+  padding: 8px 10px 12px; /* Reduced padding */
   background-color: #fff;
 }
 
 .action-btn {
-  padding: 8px 4px;
-  border-radius: 8px;
-  font-size: 0.8rem;
+  padding: 5px 2px; /* Reduced padding */
+  border-radius: 6px;
+  font-size: 0.7rem; /* Reduced from 0.8rem */
   font-weight: 800;
-  border: 1.5px solid transparent;
+  border: 1.2px solid transparent;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: center;
@@ -428,29 +454,29 @@
 /* Responsive */
 @media (max-width: 1600px) {
   .orders-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(6, 1fr);
   }
 }
 
 @media (max-width: 1200px) {
   .orders-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
 @media (max-width: 900px) {
   .orders-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
 @media (max-width: 600px) {
   .orders-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .view-order-container {
-    padding: 16px;
+    padding: 12px;
   }
 }
 
@@ -464,6 +490,7 @@
   align-items: flex-start;
   gap: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  flex-shrink: 0;
 }
 
 .notes-icon {

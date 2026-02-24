@@ -1,6 +1,7 @@
 const Table = require('../models/Table');
 const GuestMealOrder = require('../models/Order');
 const MenuItem = require('../models/Menu');
+const Room = require('../models/Room');
 
 // ============================================================================
 // TABLE MANAGEMENT CONTROLLERS
@@ -1288,78 +1289,182 @@ exports.getOutletStatus = async (req, res) => {
     try {
         console.log('[getOutletStatus] Fetching live status...');
 
-        // Table Stats
-        const totalTables = await Table.countDocuments();
-        const occupiedTables = await Table.countDocuments({ status: 'Running' });
-        const billedTables = await Table.countDocuments({ status: 'Billed' });
-        const availableTables = totalTables - occupiedTables - billedTables;
-
-        console.log(`[getOutletStatus] Tables: Total=${totalTables}, Occupied=${occupiedTables}, Billed=${billedTables}`);
-
-        // Order/Kitchen Stats (Live Load)
-        // Explicitly include all active-like statuses
-        const pendingOrders = await GuestMealOrder.countDocuments({
-            status: { $in: ['Active', 'Pending', 'Pending Payment'] }
-        });
-        const preparingOrders = await GuestMealOrder.countDocuments({ status: 'Preparing' });
-        const readyOrders = await GuestMealOrder.countDocuments({ status: 'Ready' });
-
-        console.log(`[getOutletStatus] Orders: Pending=${pendingOrders}, Preparing=${preparingOrders}, Ready=${readyOrders}`);
-
-        // Calculate Average Preparation Time from recently closed orders (last 24h)
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
         const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        const recentOrders = await GuestMealOrder.find({
-            status: 'Closed',
-            closedAt: { $gte: dayAgo }
+
+        // ============ 1. DINE-IN (Tables) ============
+        const totalTables = await Table.countDocuments();
+        const occupiedTablesCount = await Table.countDocuments({ status: { $in: ['Running', 'Occupied', 'Billed'] } });
+        const billedTables = await Table.countDocuments({ status: 'Billed' });
+        const availableTables = Math.max(0, totalTables - occupiedTablesCount);
+
+        // Dine-In Kitchen Stats
+        const dineInPending = await GuestMealOrder.countDocuments({
+            status: { $in: ['Active', 'Pending', 'Pending Payment'] },
+            orderType: { $nin: ['Room Service', 'Room Order', 'Post to Room', 'Take Away'] }
+        });
+        const dineInPreparing = await GuestMealOrder.countDocuments({
+            status: 'Preparing',
+            orderType: { $nin: ['Room Service', 'Room Order', 'Post to Room', 'Take Away'] }
+        });
+        const dineInReady = await GuestMealOrder.countDocuments({
+            status: 'Ready',
+            orderType: { $nin: ['Room Service', 'Room Order', 'Post to Room', 'Take Away'] }
         });
 
-        let totalPrepTime = 0;
-        let countedOrders = 0;
-
-        recentOrders.forEach(order => {
-            if (order.updatedAt && order.createdAt) {
-                const prepTime = (order.updatedAt - order.createdAt) / 60000; // in minutes
-                if (prepTime > 0 && prepTime < 180) { // filter out anomalies
-                    totalPrepTime += prepTime;
-                    countedOrders++;
-                }
+        // Dine-In Avg Prep Time
+        const recentDineIn = await GuestMealOrder.find({
+            status: 'Closed', closedAt: { $gte: dayAgo },
+            orderType: { $nin: ['Room Service', 'Room Order', 'Post to Room', 'Take Away'] }
+        });
+        let diPrepTotal = 0, diPrepCount = 0;
+        recentDineIn.forEach(o => {
+            if (o.updatedAt && o.createdAt) {
+                const t = (o.updatedAt - o.createdAt) / 60000;
+                if (t > 0 && t < 180) { diPrepTotal += t; diPrepCount++; }
             }
         });
+        const diAvgPrep = diPrepCount > 0 ? Math.round(diPrepTotal / diPrepCount) : 0;
 
-        const avgPrepTime = countedOrders > 0 ? Math.round(totalPrepTime / countedOrders) : 0;
+        // Dine-In Load Assessment
+        let diLoad = 'Low', diStaff = 'Normal', diRisk = 'Minimal';
+        const diActive = dineInPending + dineInPreparing;
+        if (diActive > 15) { diLoad = 'High'; diStaff = 'Busy'; diRisk = 'High'; }
+        else if (diActive > 7) { diLoad = 'Moderate'; diStaff = 'Active'; diRisk = 'Moderate'; }
 
-        // Load Assessment
-        let kitchenLoad = 'Low';
-        let staffLoad = 'Normal';
-        let delayRisk = 'Minimal';
+        // ============ 2. ROOM SERVICE ============
+        const occupiedRoomsCount = await Room.countDocuments({ status: { $in: ['Occupied', 'Booked'] } });
 
-        const totalActive = pendingOrders + preparingOrders;
-        if (totalActive > 15) {
-            kitchenLoad = 'High';
-            staffLoad = 'Busy';
-            delayRisk = 'High';
-        } else if (totalActive > 7) {
-            kitchenLoad = 'Moderate';
-            staffLoad = 'Active';
-            delayRisk = 'Moderate';
-        }
+        const roomPending = await GuestMealOrder.countDocuments({
+            status: { $in: ['Active', 'Pending', 'Pending Payment'] },
+            orderType: { $in: ['Room Service', 'Room Order', 'Post to Room'] }
+        });
+        const roomPreparing = await GuestMealOrder.countDocuments({
+            status: 'Preparing',
+            orderType: { $in: ['Room Service', 'Room Order', 'Post to Room'] }
+        });
+        const roomReady = await GuestMealOrder.countDocuments({
+            status: 'Ready',
+            orderType: { $in: ['Room Service', 'Room Order', 'Post to Room'] }
+        });
+
+        // Room Service Avg Prep Time
+        const recentRoom = await GuestMealOrder.find({
+            status: 'Closed', closedAt: { $gte: dayAgo },
+            orderType: { $in: ['Room Service', 'Room Order', 'Post to Room'] }
+        });
+        let rmPrepTotal = 0, rmPrepCount = 0;
+        recentRoom.forEach(o => {
+            if (o.updatedAt && o.createdAt) {
+                const t = (o.updatedAt - o.createdAt) / 60000;
+                if (t > 0 && t < 180) { rmPrepTotal += t; rmPrepCount++; }
+            }
+        });
+        const rmAvgPrep = rmPrepCount > 0 ? Math.round(rmPrepTotal / rmPrepCount) : 0;
+
+        // Room Service Load Assessment
+        let rmLoad = 'Low', rmStaff = 'Normal', rmRisk = 'Minimal';
+        const rmActive = roomPending + roomPreparing;
+        if (rmActive > 10) { rmLoad = 'High'; rmStaff = 'Busy'; rmRisk = 'High'; }
+        else if (rmActive > 5) { rmLoad = 'Moderate'; rmStaff = 'Active'; rmRisk = 'Moderate'; }
+
+        // ============ 3. TAKE AWAY ============
+        const taPending = await GuestMealOrder.countDocuments({
+            orderType: 'Take Away',
+            status: { $in: ['Active', 'Pending', 'Preparing'] }
+        });
+        const taReady = await GuestMealOrder.countDocuments({
+            orderType: 'Take Away',
+            status: 'Ready'
+        });
+        const taClosedToday = await GuestMealOrder.countDocuments({
+            orderType: 'Take Away',
+            status: 'Closed',
+            updatedAt: { $gte: startOfDay, $lte: endOfDay }
+        });
+        const taTotalToday = taPending + taReady + taClosedToday;
+        const taCompletionRate = taTotalToday > 0 ? Math.round(((taTotalToday - taPending) / taTotalToday) * 100) : 0;
+
+        // Take Away Kitchen Stats
+        const taKOTPending = await GuestMealOrder.countDocuments({
+            status: { $in: ['Active', 'Pending', 'Pending Payment'] },
+            orderType: 'Take Away'
+        });
+        const taKOTPreparing = await GuestMealOrder.countDocuments({
+            status: 'Preparing',
+            orderType: 'Take Away'
+        });
+
+        // Take Away Avg Prep Time
+        const recentTA = await GuestMealOrder.find({
+            status: 'Closed', closedAt: { $gte: dayAgo },
+            orderType: 'Take Away'
+        });
+        let taPrepTotal = 0, taPrepCount = 0;
+        recentTA.forEach(o => {
+            if (o.updatedAt && o.createdAt) {
+                const t = (o.updatedAt - o.createdAt) / 60000;
+                if (t > 0 && t < 180) { taPrepTotal += t; taPrepCount++; }
+            }
+        });
+        const taAvgPrep = taPrepCount > 0 ? Math.round(taPrepTotal / taPrepCount) : 0;
+
+        // Take Away Load Assessment
+        let taLoad = 'Low', taStaff = 'Normal', taRisk = 'Minimal';
+        if (taPending > 10) { taLoad = 'High'; taStaff = 'Busy'; taRisk = 'High'; }
+        else if (taPending > 5) { taLoad = 'Moderate'; taStaff = 'Active'; taRisk = 'Moderate'; }
+
+        console.log(`[getOutletStatus] Tables=${totalTables}, Occupied=${occupiedTablesCount}, RoomOccupied=${occupiedRoomsCount}, RoomPending=${roomPending}, TAPending=${taPending}`);
 
         res.status(200).json({
             success: true,
             data: {
                 tables: {
                     total: totalTables,
-                    occupied: occupiedTables + billedTables, // Group both as occupied for this view
-                    available: Math.max(0, availableTables)
+                    occupied: occupiedTablesCount,
+                    available: availableTables
+                },
+                rooms: {
+                    total: occupiedRoomsCount,
+                    occupied: occupiedRoomsCount,
+                    pendingOrders: roomPending,
+                    available: 0
+                },
+                takeAway: {
+                    total: taTotalToday,
+                    pending: taPending,
+                    ready: taReady,
+                    completionRate: taCompletionRate
                 },
                 kitchen: {
-                    pending: pendingOrders,
-                    preparing: preparingOrders,
-                    ready: readyOrders,
-                    avgPrepTime: avgPrepTime,
-                    load: kitchenLoad,
-                    staffLoad: staffLoad,
-                    delayRisk: delayRisk
+                    pending: dineInPending,
+                    preparing: dineInPreparing,
+                    ready: dineInReady,
+                    avgPrepTime: diAvgPrep,
+                    load: diLoad,
+                    staffLoad: diStaff,
+                    delayRisk: diRisk
+                },
+                roomKitchen: {
+                    pending: roomPending,
+                    preparing: roomPreparing,
+                    ready: roomReady,
+                    avgPrepTime: rmAvgPrep,
+                    load: rmLoad,
+                    staffLoad: rmStaff,
+                    delayRisk: rmRisk
+                },
+                taKitchen: {
+                    pending: taKOTPending,
+                    preparing: taKOTPreparing,
+                    ready: taReady,
+                    avgPrepTime: taAvgPrep,
+                    load: taLoad,
+                    staffLoad: taStaff,
+                    delayRisk: taRisk
                 }
             }
         });

@@ -201,6 +201,11 @@ const AppRoutes = () => {
               <AdminDashboard />
             </ProtectedRoute>
           } />
+          <Route path="/admin/reservation-card" element={
+            <ProtectedRoute module={MODULES.RESERVATIONS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
           <Route path="/admin/my-profile" element={
             <ProtectedRoute module={MODULES.PROFILE}>
               <AdminDashboard />
