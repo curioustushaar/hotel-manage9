@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Bell, Search, Plus, ArrowLeft, Utensils, CheckCircle } from 'lucide-react';
 import API_URL from '../config/api';
 import { useAuth } from '../context/AuthContext';
 import './RoomService.css';
@@ -13,15 +14,11 @@ const RoomService = () => {
 
     if (!hasAccess) {
         return (
-            <div className="rs-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-                <div style={{ fontSize: '48px', marginBottom: '20px' }}>🚫</div>
+            <div className="rs-container-error">
+                <div className="rs-error-icon">🚫</div>
                 <h2>Access Denied</h2>
                 <p>You do not have permission to access Room Service.</p>
-                <button
-                    className="rs-back-btn"
-                    style={{ marginTop: '20px', padding: '10px 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
-                    onClick={() => navigate('/admin/dashboard')}
-                >
+                <button className="rs-error-btn" onClick={() => navigate('/admin/dashboard')}>
                     Back to Dashboard
                 </button>
             </div>
@@ -34,7 +31,6 @@ const RoomService = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('all');
 
-    // Fetch rooms and orders
     const fetchData = async () => {
         try {
             setLoading(true);
@@ -49,28 +45,21 @@ const RoomService = () => {
             const bookingsData = await bookingsRes.json();
 
             if (roomsData.success && bookingsData.success) {
-                // Get all checked-in bookings first
                 const checkedInBookings = (bookingsData.data || []).filter(b =>
-                    b.status === 'Checked-in' || b.status === 'CheckedIn' || b.status === 'IN_HOUSE'
+                    ['Checked-in', 'CheckedIn', 'IN_HOUSE'].includes(b.status)
                 );
-
-                // Get rooms that are either Occupied OR have a checked-in booking
                 const checkedInRoomNumbers = checkedInBookings.map(b => b.roomNumber);
 
                 const inHouseRooms = (roomsData.data || []).filter(r =>
-                    r.status === 'Occupied' ||
-                    r.status === 'In House' ||
-                    r.status === 'IN_HOUSE' ||
+                    ['Occupied', 'In House', 'IN_HOUSE'].includes(r.status) ||
                     checkedInRoomNumbers.includes(r.roomNumber)
                 );
 
                 const mappedRooms = inHouseRooms.map(room => {
-                    const activeBooking = checkedInBookings.find(b =>
-                        b.roomNumber === room.roomNumber
-                    );
+                    const activeBooking = checkedInBookings.find(b => b.roomNumber === room.roomNumber);
                     return {
                         ...room,
-                        guestName: activeBooking?.guestName || activeBooking?.guest?.name || 'Occupied'
+                        guestName: activeBooking?.guestName || activeBooking?.guest?.name || 'Occupied Room'
                     };
                 });
                 setRooms(mappedRooms);
@@ -78,7 +67,8 @@ const RoomService = () => {
 
             if (allOrdersData.success) {
                 const roomOrders = allOrdersData.data.filter(o =>
-                    o.orderType === 'Post to Room' || o.orderType === 'Room Order' || o.orderType === 'Room Service'
+                    ['Post to Room', 'Room Order', 'Room Service'].includes(o.orderType) &&
+                    o.status !== 'Completed' && o.status !== 'Settled'
                 );
                 setOrders(roomOrders);
             }
@@ -91,123 +81,108 @@ const RoomService = () => {
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 10000);
+        const interval = setInterval(fetchData, 15000);
         return () => clearInterval(interval);
     }, []);
 
-    // Filter logic
     const filteredRooms = rooms.filter(room => {
         const roomOrder = orders.find(o => o.roomNumber === room.roomNumber);
         const matchesSearch =
             room.roomNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (room.guestName || '').toLowerCase().includes(searchQuery.toLowerCase());
 
-        const currentStatus = roomOrder?.status === 'Active' ? 'Pending' : (roomOrder?.status || '');
-
+        const status = roomOrder?.status || '';
         let matchesFilter = true;
-        if (activeFilter === 'pending') matchesFilter = currentStatus === 'Pending';
-        else if (activeFilter === 'preparing') matchesFilter = currentStatus === 'Preparing';
-        else if (activeFilter === 'inservice') matchesFilter = currentStatus === 'Started';
+        if (activeFilter === 'pending') matchesFilter = (status === 'Pending' || status === 'Active');
+        else if (activeFilter === 'preparing') matchesFilter = status === 'Preparing';
+        else if (activeFilter === 'inservice') matchesFilter = status === 'Started';
 
         return matchesSearch && matchesFilter;
     });
 
-    // Status helpers
-    const getStatusLabel = (status) => {
-        if (!status) return 'No Order';
-        if (status === 'Active') return 'Pending';
-        if (status === 'Started') return 'In Service';
-        return status;
+    const formatCurrentDate = () => {
+        const now = new Date();
+        const options = { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false };
+        return now.toLocaleString('en-US', options).replace(',', ' •').toUpperCase();
     };
 
-    const getStatusColor = (status) => {
-        if (status === 'Started') return '#8b5cf6';
-        if (status === 'Ready') return '#22c55e';
-        if (status === 'Preparing') return '#3b82f6';
-        if (status === 'Pending' || status === 'Active') return '#f59e0b';
-        return '#64748b';
+    const getTimeDifference = (updatedAt) => {
+        if (!updatedAt) return '';
+        const diff = Math.floor((new Date() - new Date(updatedAt)) / (1000 * 60));
+        return `${diff} mins ago`;
     };
 
-    const getBorderColor = (status) => {
-        if (status === 'Started') return '#8b5cf6';
-        if (status === 'Ready') return '#22c55e';
-        if (status === 'Preparing') return '#3b82f6';
-        if (status === 'Pending' || status === 'Active') return '#f59e0b';
-        return '#e5e7eb';
-    };
-
-    // Progress tracker
-    const renderTracker = (rawStatus) => {
-        const steps = [
-            { key: 'Pending', label: 'PENDING', color: '#f59e0b' },
-            { key: 'Preparing', label: 'PREPARING', color: '#3b82f6' },
-            { key: 'Ready', label: 'READY', color: '#22c55e' },
-            { key: 'Delivered', label: 'READY', color: '#22c55e' }, // 4th step to match image placeholder
-        ];
-
-        const statusOrder = { 'Active': 0, 'Pending': 0, 'Preparing': 1, 'Ready': 2, 'Started': 3 };
-        const currentIdx = statusOrder[rawStatus] ?? 0;
+    const renderStatusBar = (status) => {
+        const stages = ['PENDING', 'PREPARING', 'READY', 'SERVICE'];
+        const statusMap = { 'Active': 0, 'Pending': 0, 'Preparing': 1, 'Ready': 2, 'Started': 3 };
+        const currentIdx = statusMap[status] ?? -1;
 
         return (
-            <div className="rs-tracker">
-                {steps.map((step, idx) => {
-                    const done = idx < currentIdx || rawStatus === 'Started';
-                    const active = idx === currentIdx && rawStatus !== 'Started';
-                    const isLast = idx === steps.length - 1;
-
-                    return (
-                        <div key={step.key} className="rs-tracker-step-wrap">
-                            <div className="rs-tracker-step">
-                                <div className={`rs-step-circle ${done ? 'done' : active ? 'active' : ''}`} />
-                                <span className="rs-step-label">
-                                    {step.label}
-                                </span>
-                            </div>
-                            {!isLast && (
-                                <div
-                                    className={`rs-step-line ${done ? 'done' : ''}`}
-                                />
-                            )}
+            <div className="rs-status-tracking-container">
+                <div className="rs-tracking-header">
+                    <span className="rs-tracking-label-main">STATUS TRACKING</span>
+                    {currentIdx >= 2 && <span className="rs-final-stage-badge">FINAL STAGE</span>}
+                </div>
+                <div className="rs-progress-bar-wrap">
+                    {stages.map((stage, idx) => (
+                        <div key={stage} className="rs-progress-segment-wrap">
+                            <div className={`rs-progress-segment ${idx <= currentIdx ? 'active' : ''}`} />
+                            <span className={`rs-progress-label ${idx <= currentIdx ? 'active' : ''}`}>
+                                {stage}
+                            </span>
                         </div>
-                    );
-                })}
+                    ))}
+                </div>
             </div>
         );
     };
 
     return (
-        <div className="rs-container">
-            {/* Header */}
-            <div className="rs-header">
-                <div className="rs-header-left">
-                    <button className="rs-back-btn" onClick={() => navigate(-1)}>←</button>
-                    <div>
-                        <h2 className="rs-title">Room Service</h2>
-                        <p className="rs-subtitle">Live status of all room orders and service requests</p>
+        <div className="rs-management-wrapper">
+            {/* Top Bar Header */}
+            <header className="rs-top-header">
+                <div className="rs-header-main-left">
+                    <button className="rs-back-circle-btn" onClick={() => navigate(-1)}>
+                        <ArrowLeft size={20} />
+                    </button>
+                    <div className="rs-title-section">
+                        <h1 className="rs-main-title">Room Service Management</h1>
+                        <p className="rs-active-ops">ACTIVE OPERATIONS • {formatCurrentDate()}</p>
                     </div>
                 </div>
+                <div className="rs-header-main-right">
+                    <div className="rs-orders-count-badge">
+                        <Utensils size={16} />
+                        <span>{orders.length} Active Orders</span>
+                    </div>
+                    <button className="rs-bell-btn">
+                        <Bell size={20} />
+                    </button>
+                </div>
+            </header>
 
-            </div>
-
-            {/* Controls */}
-            <div className="rs-controls">
-                <input
-                    type="text"
-                    placeholder="Search Room or Guest..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="rs-search"
-                />
-                <div className="rs-filters">
+            {/* Controls Bar */}
+            <div className="rs-controls-bar">
+                <div className="rs-search-container">
+                    <Search className="rs-search-icon" size={18} />
+                    <input
+                        type="text"
+                        placeholder="Search rooms, guests or items..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="rs-search-field"
+                    />
+                </div>
+                <div className="rs-filter-pills">
                     {[
-                        { key: 'all', label: 'All' },
+                        { key: 'all', label: 'All Orders' },
                         { key: 'pending', label: 'Pending' },
                         { key: 'preparing', label: 'Preparing' },
                         { key: 'inservice', label: 'In Service' },
                     ].map(({ key, label }) => (
                         <button
                             key={key}
-                            className={`rs-filter-btn ${activeFilter === key ? 'active' : ''}`}
+                            className={`rs-pill-btn ${activeFilter === key ? 'active' : ''}`}
                             onClick={() => setActiveFilter(key)}
                         >
                             {label}
@@ -216,85 +191,96 @@ const RoomService = () => {
                 </div>
             </div>
 
-            {/* Room Cards */}
-            <div className="rs-list">
+            {/* Room Cards Grid */}
+            <main className="rs-cards-grid">
                 {loading ? (
-                    <div className="rs-empty">Loading room data...</div>
+                    <div className="rs-status-msg">Loading current operations...</div>
                 ) : filteredRooms.length > 0 ? (
                     filteredRooms.map(room => {
                         const roomOrder = orders.find(o => o.roomNumber === room.roomNumber);
-                        const status = roomOrder?.status || null;
+                        const status = roomOrder?.status || '';
 
                         return (
-                            <div key={room._id} className="rs-card">
-                                {/* Top Section: Badge, Type Title, and Plus Button */}
-                                <div className="rs-card-top">
-                                    <div className="rs-top-left">
-                                        <div className="rs-room-badge-sq">
+                            <div key={room._id} className="rs-operation-card">
+                                <div className="rs-card-header">
+                                    <div className="rs-room-basic-info">
+                                        <div className="rs-room-num-box">
                                             {room.roomNumber}
                                         </div>
-                                        <h4 className="rs-room-type-title">
-                                            {room.roomType || room.type || 'Standard Room'}
-                                        </h4>
+                                        <div className="rs-room-meta">
+                                            <h3 className="rs-room-type-name">{room.roomType || 'Standard Room'}</h3>
+                                            <button
+                                                className="rs-add-order-plus"
+                                                onClick={() => navigate('/admin/dashboard', {
+                                                    state: {
+                                                        activeMenu: 'food-order',
+                                                        orderMode: 'roomservice',
+                                                        room: { ...room, id: room._id, source: 'room-service' },
+                                                        source: 'room-service'
+                                                    }
+                                                })}
+                                            >
+                                                <Plus size={14} />
+                                            </button>
+                                        </div>
                                     </div>
+                                    <div className="rs-order-status-tag">
+                                        {status === 'Started' ? 'STARTED' : status.toUpperCase()}
+                                    </div>
+                                </div>
+
+                                <div className="rs-card-body">
+                                    <div className="rs-guest-display">
+                                        <span className="rs-label-small">GUEST:</span>
+                                        <span className="rs-guest-name-val">{room.guestName.toUpperCase()}</span>
+                                    </div>
+
+                                    {renderStatusBar(status)}
+
+                                    <div className="rs-order-details-summary">
+                                        <div className="rs-detail-column">
+                                            <span className="rs-label-small">TYPE</span>
+                                            <span className="rs-detail-val">{roomOrder?.items?.[0]?.name || 'N/A'}</span>
+                                        </div>
+                                        <div className="rs-detail-column">
+                                            <span className="rs-label-small">CATEGORY</span>
+                                            <div className="rs-category-tag">
+                                                <CheckCircle size={14} />
+                                                <span>{roomOrder?.orderType || 'Post to Room'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="rs-card-footer">
+                                    <span className="rs-time-lapsed">
+                                        🕒 {roomOrder ? getTimeDifference(roomOrder.updatedAt) : 'No recent updates'}
+                                    </span>
                                     <button
-                                        className="rs-plus-btn-sq"
+                                        className="rs-bill-details-btn"
                                         onClick={() => navigate('/admin/dashboard', {
                                             state: {
-                                                activeMenu: 'food-order',
-                                                orderMode: 'roomservice',
-                                                room: { ...room, id: room._id, source: 'room-service' },
-                                                source: 'room-service'
+                                                activeMenu: 'cashier-section',
+                                                refresh: true,
+                                                room: { ...room, id: room._id, orderId: roomOrder?._id }
                                             }
                                         })}
                                     >
-                                        +
+                                        Bill Details
                                     </button>
-                                </div>
-
-                                {/* Middle Section: Progress Tracker */}
-                                <div className="rs-card-mid">
-                                    {renderTracker(status)}
-                                </div>
-
-                                {/* Bottom Section: Info Grid + Bill Button */}
-                                <div className="rs-card-bottom">
-                                    <div className="rs-bottom-info">
-                                        <div className="rs-info-item">
-                                            <span className="rs-label-grey">TYPE</span>
-                                            <span className="rs-val-bold">{room.roomNumber}</span>
-                                        </div>
-                                        <div className="rs-info-item">
-                                            <span className="rs-label-grey">CATEGORY</span>
-                                            <span className="rs-val-bold rs-red-text">{room.bedType || 'Double'}</span>
-                                        </div>
-                                    </div>
-
-                                    {roomOrder && (
-                                        <button
-                                            className="rs-rect-bill-btn"
-                                            onClick={() => navigate('/admin/dashboard', {
-                                                state: {
-                                                    activeMenu: 'cashier-section',
-                                                    refresh: true,
-                                                    room: { ...room, id: room._id, orderId: roomOrder._id }
-                                                }
-                                            })}
-                                        >
-                                            Bill
-                                        </button>
-                                    )}
                                 </div>
                             </div>
                         );
                     })
                 ) : (
-                    <div className="rs-empty">
-                        {searchQuery ? 'No rooms found matching your search' : 'No active orders or rooms found'}
-                    </div>
+                    <div className="rs-status-msg">No matching operations found</div>
                 )}
-            </div>
-        </div >
+            </main>
+
+            <footer className="rs-page-footer">
+                Viewing {rooms.length} occupied rooms
+            </footer>
+        </div>
     );
 };
 

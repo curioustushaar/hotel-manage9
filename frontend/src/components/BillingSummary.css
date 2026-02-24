@@ -2,30 +2,23 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
-    margin-top: 2rem;
-    margin-bottom: 2rem;
+    margin-top: 1.5rem;
+    padding: 0 1rem;
 }
 
-.premium-card {
+.premium-card-v2 {
     background: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    border: 1px solid #f0f2f5;
-    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #e8ecf1;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.premium-card:hover {
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-}
-
-.card-header {
-    border-bottom: 1px solid #f0f2f5;
-    padding-bottom: 1rem;
-    margin-bottom: 0.5rem;
+.card-header-v2 {
+    background: #fafafa;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
 }
 
 .header-icon-title {
@@ -34,273 +27,222 @@
     gap: 0.75rem;
 }
 
-.header-icon {
-    color: #4f46e5;
+.header-icon-wrap {
+    font-size: 1.25rem;
 }
 
 .header-icon-title h3 {
     margin: 0;
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #1a1a1a;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #334155;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
 }
 
-.card-body {
+.card-body-v2 {
+    padding: 1.5rem;
+    display: flex;
+    gap: 1.5rem;
+}
+
+.card-body-left,
+.card-body-right {
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 1rem;
 }
 
-/* Billing Summary List */
-.summary-list {
+/* Summary Items */
+.summary-item-v2 {
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: 0.25rem;
 }
 
-.summary-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.summary-item-v2.align-right {
+    align-items: flex-end;
 }
 
-.summary-item .label {
-    color: #64748b;
-    font-weight: 500;
+.summary-item-v2 .label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #94a3b8;
 }
 
-.summary-item .value {
-    color: #1e293b;
-    font-weight: 700;
+.summary-item-v2 .value {
     font-size: 1.1rem;
-}
-
-.summary-item.subtotal {
-    padding-top: 0.5rem;
-    border-top: 1px dashed #e2e8f0;
+    font-weight: 800;
+    color: #1e293b;
 }
 
 /* Total Amount Box */
-.total-amount-box {
-    margin-top: 0.5rem;
-    background-color: #f0fdf4;
+.total-amount-box-v2 {
+    margin-top: auto;
+    background-color: #e6f9f0;
+    border: 1px solid #d1f2e1;
     border-radius: 12px;
-    padding: 1.25rem;
+    padding: 1rem 1.25rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border: 1px solid #dcfce7;
 }
 
-.total-label-group {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.total-icon {
-    color: #22c55e;
-}
-
-.total-label {
-    color: #166534;
-    font-weight: 600;
-    font-size: 1rem;
-}
-
-.total-value {
-    color: #15803d;
+.total-label-v2 {
+    color: #065f46;
     font-weight: 800;
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+}
+
+.total-value-v2 {
+    color: #059669;
+    font-weight: 900;
     font-size: 1.75rem;
 }
 
-/* Payment Form */
-.payment-form-group {
+/* Payment Mode / Inputs */
+.payment-form-group-v2 {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
-.input-label {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #64748b;
+.input-label-v2 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #94a3b8;
     text-transform: uppercase;
-    letter-spacing: 0.025em;
+    letter-spacing: 0.05em;
 }
 
-.premium-select,
-.premium-input {
+.premium-select-v2,
+.premium-input-v2 {
     width: 100%;
-    padding: 0.75rem 1rem;
-    border-radius: 10px;
-    border: 1.5px solid #e2e8f0;
-    font-size: 1rem;
-    font-weight: 500;
+    padding: 0.8rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fdfdfd;
+    font-size: 0.95rem;
+    font-weight: 600;
     color: #1e293b;
-    transition: all 0.2s ease;
-    background-color: #f8fafc;
-}
-
-.premium-select:focus,
-.premium-input:focus {
-    border-color: #4f46e5;
-    background-color: #ffffff;
     outline: none;
-    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    transition: all 0.2s;
 }
 
-.premium-input-wrapper {
+.premium-select-v2:focus,
+.premium-input-v2:focus {
+    border-color: #94a3b8;
+    background: #ffffff;
+}
+
+.premium-input-wrapper-v2 {
     position: relative;
     display: flex;
     align-items: center;
 }
 
-.currency-symbol {
+.currency-symbol-v2 {
     position: absolute;
     left: 1rem;
-    color: #64748b;
-    font-weight: 600;
+    font-weight: 700;
+    color: #1e293b;
     font-size: 1.1rem;
 }
 
-.premium-input {
+.premium-input-v2 {
     padding-left: 2.25rem;
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     font-weight: 700;
 }
 
-/* Progress Bar */
-.payment-progress-container {
-    margin-top: 0.5rem;
+/* Progress Section */
+.payment-progress-container-v2 {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
-.progress-bar-bg {
-    height: 10px;
-    background-color: #e2e8f0;
-    border-radius: 5px;
+.progress-bar-bg-v2 {
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 3px;
     overflow: hidden;
-    margin-bottom: 0.5rem;
 }
 
-.progress-bar-fill {
+.progress-bar-fill-v2 {
     height: 100%;
-    background: linear-gradient(90deg, #22c55e, #10b981);
-    border-radius: 5px;
-    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #cbd5e1;
+    transition: width 0.3s ease;
 }
 
-.progress-label {
-    font-size: 0.875rem;
+.progress-label-v2 {
+    font-size: 0.8rem;
     font-weight: 700;
-    color: #64748b;
-    display: block;
+    color: #94a3b8;
     text-align: right;
 }
 
-/* Toggle Group */
-.toggle-group {
+/* Checkboxes */
+.toggle-group-v2 {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    margin-top: 0.5rem;
+    gap: 0.5rem;
 }
 
-.premium-toggle-row {
+.premium-checkbox-row {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 0.75rem;
 }
 
-.toggle-label {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #475569;
-}
-
-/* Custom Switch Toggle */
-.premium-switch {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 24px;
-}
-
-.premium-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.switch-slider {
-    position: absolute;
+.premium-checkbox-row input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
     cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #e2e8f0;
-    transition: .4s;
-    border-radius: 24px;
 }
 
-.switch-slider:before {
-    position: absolute;
-    content: "";
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: .4s;
-    border-radius: 50%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.premium-checkbox-row label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
 }
 
-input:checked+.switch-slider {
-    background-color: #10b981;
-}
-
-input:focus+.switch-slider {
-    box-shadow: 0 0 1px #10b981;
-}
-
-input:checked+.switch-slider:before {
-    transform: translateX(20px);
-}
-
-/* Balance Button */
-.balance-btn {
-    width: 100%;
-    padding: 1rem;
-    border-radius: 12px;
-    border: none;
-    background-color: #ef4444;
-    color: white;
-    font-weight: 700;
-    font-size: 1rem;
+/* Due Box */
+.due-box-v2 {
+    margin-top: auto;
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.75rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    margin-top: 0.5rem;
+    gap: 0.5rem;
+    text-align: center;
 }
 
-.balance-btn:hover:not(:disabled) {
-    background-color: #dc2626;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+.due-box-v2.has-due {
+    background-color: #fff1f2;
+    border: 1px solid #fee2e2;
+    color: #e11d48;
 }
 
-.balance-btn:disabled {
-    cursor: default;
-    background-color: #10b981;
+.due-box-v2.is-clear {
+    background-color: #f0fdf4;
+    border: 1px solid #dcfce7;
+    color: #166534;
 }
 
-.balance-btn.fully-paid {
-    background-color: #10b981;
+.due-icon {
+    font-size: 0.9rem;
+}
+
+.due-label {
+    font-size: 0.9rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 /* Responsive */
