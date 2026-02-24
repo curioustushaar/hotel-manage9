@@ -20,6 +20,9 @@ const CashierSection = () => {
     const [trackedOrders, setTrackedOrders] = useState(null); // null means not searched yet
     const [trackLoading, setTrackLoading] = useState(false);
 
+    // Checked-in Rooms for Folio
+    const [checkedInRooms, setCheckedInRooms] = useState([]);
+
     // State for Orders
     const [orders, setOrders] = useState([]);
     const [stats, setStats] = useState({
@@ -51,11 +54,24 @@ const CashierSection = () => {
         allowedTabs.push('Online Order');
     }
 
-    // Fetch pending orders from API
     useEffect(() => {
         fetchPendingOrders();
         fetchDashboardStats();
+        fetchCheckedInRooms();
     }, []);
+
+    const fetchCheckedInRooms = async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/bookings/list`);
+            const data = await response.json();
+            if (data.success) {
+                const checkedIn = data.data.filter(b => b.status === 'Checked-in');
+                setCheckedInRooms(checkedIn);
+            }
+        } catch (error) {
+            console.error("Error fetching checked-in rooms:", error);
+        }
+    };
 
     // Listen for refresh triggers (e.g. from GuestMealService 'Send')
     useEffect(() => {
@@ -380,8 +396,9 @@ const CashierSection = () => {
                                         onClick={() => handleOrderClick(order)}
                                     >
                                         <div className="order-item-left">
-                                            <span className="order-id">Order #{order.billNo}</span>
-                                            <span className="order-source">{order.name}</span>
+                                            <span className="order-id">Order {order.billNo}</span>
+                                            <span className="order-source">{order.name} • {order.guest.split('-')[0].trim()}</span>
+                                            <span className="order-kot">{order.kotInfo}</span>
                                         </div>
                                         <div className="order-item-right">
                                             <span className="order-amount">₹ {order.amount}</span>
@@ -402,6 +419,7 @@ const CashierSection = () => {
                         order={selectedOrder}
                         onPaymentComplete={handlePaymentComplete}
                         onRoomPostingAction={handleRoomPostingAction}
+                        checkedInRooms={checkedInRooms}
                     />
 
                 </div>
@@ -522,13 +540,14 @@ const CashierSection = () => {
     );
 };
 
-const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
+const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checkedInRooms = [] }) => {
     // State for payment interactions
     const [paymentMode, setPaymentMode] = useState('Cash');
     const [paymentType, setPaymentType] = useState('Direct Payment');
     const [receivedAmount, setReceivedAmount] = useState('');
     const [returnAmount, setReturnAmount] = useState(0);
     const [targetRoom, setTargetRoom] = useState('');
+    const [selectedBooking, setSelectedBooking] = useState(null);
 
     // Initial state reset when order changes
     useEffect(() => {
@@ -539,16 +558,21 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
 
             // Pre-fill room number if it's a Room order
             if (order.type === 'Room' && order.name.includes('Room')) {
-                setTargetRoom(order.name.replace('Room', '').trim());
+                const rNum = order.name.replace('Room', '').trim();
+                setTargetRoom(rNum);
+                const booking = checkedInRooms.find(b => b.roomNumber === rNum);
+                if (booking) setSelectedBooking(booking);
             } else {
                 setTargetRoom('');
+                setSelectedBooking(null);
             }
         } else {
             setReceivedAmount('');
             setReturnAmount(0);
             setTargetRoom('');
+            setSelectedBooking(null);
         }
-    }, [order]);
+    }, [order, checkedInRooms]);
 
     // Calculate Return Amount
     useEffect(() => {
@@ -801,7 +825,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {!isPlaceholder && displayOrder.items.length > 0 ? (
+                                {!isPlaceholder && (displayOrder.items && displayOrder.items.length > 0) ? (
                                     displayOrder.items.map((item, idx) => (
                                         <tr key={idx}>
                                             <td align="left">{item.name}</td>
@@ -811,18 +835,11 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
                                     ))
                                 ) : (
                                     !isPlaceholder && (
-                                        <>
-                                            <tr>
-                                                <td align="left">Presto Coffee</td>
-                                                <td align="center">× 1</td>
-                                                <td align="right">₹ 320</td>
-                                            </tr>
-                                            <tr>
-                                                <td align="left">Creamy Pasta</td>
-                                                <td align="center">× 1</td>
-                                                <td align="right">₹ 500</td>
-                                            </tr>
-                                        </>
+                                        <tr>
+                                            <td colSpan="3" align="center" style={{ padding: '40px', color: '#94a3b8' }}>
+                                                No items found in this order.
+                                            </td>
+                                        </tr>
                                     )
                                 )}
                             </tbody>
@@ -852,14 +869,29 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
                 <h3 className="payment-section-title">Payment Section</h3>
 
                 <div className="payment-modes-modern">
-                    <button className={`mode-btn-modern ${paymentMode === 'Cash' ? 'active' : ''}`} onClick={() => setPaymentMode('Cash')}>
+                    <button
+                        className={`mode-btn-modern ${(paymentType === 'Direct Payment' && paymentMode === 'Cash') ? 'active' : ''}`}
+                        onClick={() => { setPaymentType('Direct Payment'); setPaymentMode('Cash'); }}
+                    >
                         💵 Cash
                     </button>
-                    <button className={`mode-btn-modern ${paymentMode === 'UPI' ? 'active' : ''}`} onClick={() => setPaymentMode('UPI')}>
+                    <button
+                        className={`mode-btn-modern ${(paymentType === 'Direct Payment' && paymentMode === 'UPI') ? 'active' : ''}`}
+                        onClick={() => { setPaymentType('Direct Payment'); setPaymentMode('UPI'); }}
+                    >
                         📱 UPI
                     </button>
-                    <button className={`mode-btn-modern ${paymentMode === 'Card' ? 'active' : ''}`} onClick={() => setPaymentMode('Card')}>
+                    <button
+                        className={`mode-btn-modern ${(paymentType === 'Direct Payment' && paymentMode === 'Card') ? 'active' : ''}`}
+                        onClick={() => { setPaymentType('Direct Payment'); setPaymentMode('Card'); }}
+                    >
                         💳 Card
+                    </button>
+                    <button
+                        className={`mode-btn-modern ${paymentType === 'Add to Room' ? 'active' : ''}`}
+                        onClick={() => { setPaymentType('Add to Room'); setPaymentMode('Room'); }}
+                    >
+                        💼 Room Folio
                     </button>
                 </div>
 
@@ -868,19 +900,82 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
                     <span className="big-sum">₹{displayOrder.amount.toFixed(2)}</span>
                 </div>
 
-                <div className="payment-input-modern">
-                    <label>Received Amount</label>
-                    <div className="input-box-wrap">
-                        <span>₹</span>
-                        <input
-                            type="number"
-                            placeholder="0.00"
-                            value={receivedAmount}
-                            onChange={(e) => setReceivedAmount(e.target.value)}
-                            disabled={isPlaceholder}
-                        />
+                {paymentType === 'Direct Payment' ? (
+                    <div className="payment-input-modern">
+                        <label>Received Amount</label>
+                        <div className="input-box-wrap">
+                            <span>₹</span>
+                            <input
+                                type="number"
+                                placeholder="0.00"
+                                value={receivedAmount}
+                                onChange={(e) => setReceivedAmount(e.target.value)}
+                                disabled={isPlaceholder}
+                            />
+                        </div>
                     </div>
-                </div>
+                ) : (
+                    <div className="folio-transfer-form">
+                        <div className="payment-input-modern">
+                            <label>Room Number</label>
+                            <div className="input-box-wrap">
+                                <span>₹</span>
+                                <select
+                                    className="folio-room-select"
+                                    value={targetRoom}
+                                    onChange={(e) => {
+                                        setTargetRoom(e.target.value);
+                                        const booking = checkedInRooms.find(b => b.roomNumber === e.target.value);
+                                        setSelectedBooking(booking || null);
+                                    }}
+                                    disabled={isPlaceholder}
+                                >
+                                    <option value="">Select Room</option>
+                                    {checkedInRooms.map(room => (
+                                        <option key={room._id} value={room.roomNumber}>{room.roomNumber}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="payment-input-modern">
+                            <label>Guest Name</label>
+                            <div className="input-box-wrap read-only">
+                                <input
+                                    type="text"
+                                    value={selectedBooking ? selectedBooking.guestName : ''}
+                                    placeholder="Guest Name"
+                                    readOnly
+                                />
+                            </div>
+                        </div>
+
+                        <div className="payment-input-modern">
+                            <label>Booking ID</label>
+                            <div className="input-box-wrap read-only">
+                                <input
+                                    type="text"
+                                    value={selectedBooking ? (selectedBooking.bookingReferenceId || selectedBooking._id.substr(-6).toUpperCase()) : ''}
+                                    placeholder="Booking ID"
+                                    readOnly
+                                />
+                            </div>
+                        </div>
+
+                        {selectedBooking && (
+                            <div className="folio-balance-info">
+                                Outstanding Room Balance: ₹{(selectedBooking.balanceAmount || 0).toFixed(2)}
+                            </div>
+                        )}
+
+                        {selectedBooking && !isPlaceholder && (
+                            <div className="folio-confirm-banner">
+                                <span className="info-icon">ℹ️</span>
+                                <p>Are you sure you want to transfer ₹{displayOrder.amount.toFixed(2)} to Room {targetRoom} Folio?</p>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 <div className="return-amount-box-modern">
                     <span className="label">Return Amount</span>
@@ -895,10 +990,10 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction }) => {
 
                 <button
                     className="btn-tender-main"
-                    disabled={isPlaceholder}
+                    disabled={isPlaceholder || (paymentType === 'Add to Room' && !selectedBooking)}
                     onClick={handleTender}
                 >
-                    Tender ₹ {displayOrder.amount.toFixed(0)}
+                    {paymentType === 'Add to Room' ? 'Post to Room Folio' : `Tender ₹ ${displayOrder.amount.toFixed(0)}`}
                 </button>
 
                 <div className="room-posting-section">

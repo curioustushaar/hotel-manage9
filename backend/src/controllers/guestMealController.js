@@ -1191,16 +1191,21 @@ exports.settleOrder = async (req, res) => {
 
             // Create folio transaction
             const transactionData = {
-                type: 'charge',
-                day: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
-                particulars: `Restaurant Bill - Table ${order.tableNumber}`,
-                description: `Food Order #${orderId.toString().substr(-6).toUpperCase()}`,
+                type: 'Charge',
+                particulars: 'Restaurant Bill',
+                description: `${order.orderType || 'Dine-In'} ${order.tableNumber ? `(Table ${order.tableNumber})` : order.roomNumber ? `(Room ${order.roomNumber})` : ''} #${orderId.toString().substr(-6).toUpperCase()}`,
                 amount: order.finalAmount,
-                user: 'cashier',
-                folioId: 0
+                date: new Date(),
+                notes: `Restaurant Bill - ${orderId.toString().substr(-6).toUpperCase()}`
             };
 
+            // Add to transactions and update total billing
             booking.transactions.push(transactionData);
+
+            // Increment total amount so balance recalculates correctly
+            if (!booking.billing) booking.billing = {};
+            booking.billing.totalAmount = (booking.billing.totalAmount || 0) + order.finalAmount;
+
             await booking.save();
 
             order.paymentMethod = 'Room Billing';

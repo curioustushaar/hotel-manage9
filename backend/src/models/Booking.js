@@ -105,12 +105,17 @@ const bookingSchema = new mongoose.Schema({
 
     // Payment History (Embedded for transactional integrity within booking context)
     transactions: [{
-        type: { type: String, enum: ['Payment', 'Refund', 'Adjustment', 'Charge'], required: true },
+        type: { type: String, enum: ['Payment', 'Refund', 'Adjustment', 'Charge', 'Discount', 'payment', 'charge', 'discount'], required: true },
         amount: { type: Number, required: true },
         method: { type: String, enum: ['Cash', 'Card', 'UPI', 'Transfer'], default: 'Cash' },
         referenceId: String, // Transaction ID from payment gateway
         date: { type: Date, default: Date.now },
+        day: String, // UI field
+        particulars: String, // UI field
+        description: String, // UI field
+        user: String, // UI field
         notes: String,
+        folioId: { type: Number, default: 0 }, // For routing support
         recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } // Staff
     }],
 

@@ -34,10 +34,17 @@ const FolioOperations = ({ reservation }) => {
     // Fetch all bookings and current booking transactions on component load
     useEffect(() => {
         fetchAllBookings();
-        if (reservation && (reservation.id || reservation._id)) {
-            fetchTransactions();
+    }, []);
+
+    // Fetch transactions whenever the selected room changes
+    useEffect(() => {
+        const selectedFolio = folioList.find(f => f.id === selectedRoom);
+        if (selectedFolio && selectedFolio.bookingId) {
+            fetchTransactions(selectedFolio.bookingId);
+        } else if (reservation && (reservation.id || reservation._id)) {
+            fetchTransactions(reservation.id || reservation._id);
         }
-    }, [reservation]);
+    }, [selectedRoom, folioList, reservation]);
 
     // Fetch all IN_HOUSE bookings to populate folio list
     const fetchAllBookings = async () => {
@@ -78,26 +85,35 @@ const FolioOperations = ({ reservation }) => {
         }
     };
 
-    const fetchTransactions = async () => {
+    const fetchTransactions = async (bookingId) => {
         try {
             setLoading(true);
-            const bookingId = reservation.id || reservation._id;
-            console.log('Fetching transactions for booking:', bookingId);
-            console.log('Full reservation object:', reservation);
-            const response = await fetch(`${BASE_API_URL}/${bookingId}`);
+            const idToFetch = bookingId || (reservation.id || reservation._id);
+            if (!idToFetch) return;
+
+            console.log('Fetching transactions for booking:', idToFetch);
+            const response = await fetch(`${BASE_API_URL}/${idToFetch}`);
             const data = await response.json();
 
             console.log('Fetched data:', data);
             console.log('Transactions from API:', data.data?.transactions);
 
             if (data.success && data.data.transactions) {
-                // Add folioId to existing transactions that don't have one (default to folio 0)
-                const transactionsWithFolios = data.data.transactions.map(t => ({
+                // Map transactions to ensure UI fields exist
+                const mappedTransactions = data.data.transactions.map(t => ({
                     ...t,
-                    folioId: t.folioId !== undefined ? t.folioId : 0
+                    folioId: t.folioId !== undefined ? t.folioId : 0,
+                    particulars: t.particulars || (t.type === 'charge' || t.type === 'Charge' ? 'Room Stay' : t.type),
+                    description: t.description || t.notes || '',
+                    day: t.day || new Date(t.date || Date.now()).toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        weekday: 'short'
+                    })
                 }));
-                setAllTransactions(transactionsWithFolios);
-                console.log('Set transactions:', transactionsWithFolios);
+                setAllTransactions(mappedTransactions);
+                console.log('Set transactions:', mappedTransactions);
             } else {
                 console.log('No transactions found or API error');
                 setAllTransactions([]);
@@ -126,7 +142,7 @@ const FolioOperations = ({ reservation }) => {
     // Handler for adding new charge
     const handleAddCharge = async (chargeData) => {
         const newTransaction = {
-            type: 'charge',
+            type: 'Charge',
             day: new Date(chargeData.date).toLocaleDateString('en-GB', {
                 day: '2-digit',
                 month: '2-digit',
@@ -150,7 +166,8 @@ const FolioOperations = ({ reservation }) => {
 
             const data = await response.json();
             if (data.success) {
-                await fetchTransactions();
+                const selectedFolio = folioList.find(f => f.id === selectedRoom);
+                await fetchTransactions(selectedFolio ? selectedFolio.bookingId : null);
                 setShowAddCharges(false);
 
                 // Show success toast
@@ -176,7 +193,7 @@ const FolioOperations = ({ reservation }) => {
     // Handler for adding new payment
     const handleAddPayment = async (paymentData) => {
         const newTransaction = {
-            type: 'payment',
+            type: 'Payment',
             day: new Date(paymentData.date).toLocaleDateString('en-GB', {
                 day: '2-digit',
                 month: '2-digit',
@@ -200,7 +217,8 @@ const FolioOperations = ({ reservation }) => {
 
             const data = await response.json();
             if (data.success) {
-                await fetchTransactions();
+                const selectedFolio = folioList.find(f => f.id === selectedRoom);
+                await fetchTransactions(selectedFolio ? selectedFolio.bookingId : null);
                 setShowAddPayment(false);
 
                 // Show success toast
@@ -245,7 +263,7 @@ const FolioOperations = ({ reservation }) => {
             : `₹${discountData.discountValue}`;
 
         const newTransaction = {
-            type: 'discount',
+            type: 'Discount',
             day: new Date(discountData.date).toLocaleDateString('en-GB', {
                 day: '2-digit',
                 month: '2-digit',
@@ -272,7 +290,8 @@ const FolioOperations = ({ reservation }) => {
 
             const data = await response.json();
             if (data.success) {
-                await fetchTransactions();
+                const selectedFolio = folioList.find(f => f.id === selectedRoom);
+                await fetchTransactions(selectedFolio ? selectedFolio.bookingId : null);
                 setShowApplyDiscount(false);
 
                 // Show success toast
@@ -502,9 +521,18 @@ User:        ${item.user}
     const currentFolioTransactions = allTransactions.filter(t => t.folioId === selectedRoom);
 
     const calculateTotals = () => {
-        const charges = currentFolioTransactions.filter(t => t.type === 'charge').reduce((sum, t) => sum + t.amount, 0);
-        const discounts = Math.abs(currentFolioTransactions.filter(t => t.type === 'discount').reduce((sum, t) => sum + t.amount, 0));
-        const payments = Math.abs(currentFolioTransactions.filter(t => t.type === 'payment').reduce((sum, t) => sum + t.amount, 0));
+        const charges = currentFolioTransactions
+            .filter(t => t.type?.toLowerCase() === 'charge')
+            .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+        const discounts = Math.abs(currentFolioTransactions
+            .filter(t => t.type?.toLowerCase() === 'discount')
+            .reduce((sum, t) => sum + (Number(t.amount) || 0), 0));
+
+        const payments = Math.abs(currentFolioTransactions
+            .filter(t => t.type?.toLowerCase() === 'payment')
+            .reduce((sum, t) => sum + (Number(t.amount) || 0), 0));
+
         const grandTotal = charges - discounts;
         const remaining = grandTotal - payments;
 

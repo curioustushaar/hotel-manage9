@@ -67,7 +67,8 @@ const ViewOrderPage = () => {
                     rawStatus: order.status, // Keep raw for API calls
                     amount: order.finalAmount || 0,
                     updatedAt: new Date(order.updatedAt),
-                    guestName: order.guestName || ''
+                    guestName: order.guestName || '',
+                    notes: order.notes || ''
                 }));
                 setOrders(mappedOrders);
 
@@ -373,6 +374,13 @@ const ViewOrderPage = () => {
                                                 </div>
                                             ))}
                                         </div>
+
+                                        {order.notes && (
+                                            <div className="order-notes-display">
+                                                <span className="notes-icon">📝</span>
+                                                <p>{order.notes}</p>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Status Buttons Row — locked when In Service */}

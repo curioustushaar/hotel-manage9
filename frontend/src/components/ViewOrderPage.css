@@ -454,6 +454,31 @@
   }
 }
 
+.order-notes-display {
+  margin-top: 12px;
+  padding: 10px;
+  background-color: #fefce8;
+  border: 1.5px dashed #facc15;
+  border-radius: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.notes-icon {
+  font-size: 1.1rem;
+}
+
+.order-notes-display p {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #854d0e;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
 /* --- Bill History View --- */
 .bill-grid {
   display: grid;
