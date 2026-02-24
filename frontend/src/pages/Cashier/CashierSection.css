@@ -385,6 +385,13 @@
     font-weight: 500;
 }
 
+.cashier-container .order-kot {
+    font-size: 10px;
+    color: #94a3b8;
+    font-weight: 600;
+    margin-top: 2px;
+}
+
 .cashier-container .order-card.active .order-source {
     color: #ff4d4f;
 }
@@ -634,7 +641,8 @@
 }
 
 .cashier-container .payment-modes-modern {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
 }
 
@@ -1137,4 +1145,78 @@
         gap: 12px;
         align-items: flex-start;
     }
+}
+
+/* ─────────────────────────────────────────────────────
+   FOLIO TRANSFER FORM
+   ───────────────────────────────────────────────────── */
+.cashier-container .folio-transfer-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.cashier-container .folio-room-select {
+    width: 100%;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text-main);
+    font-family: var(--font-family);
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: 16px;
+    padding-right: 24px;
+}
+
+.cashier-container .input-box-wrap.read-only {
+    background: #f1f5f9;
+}
+
+.cashier-container .input-box-wrap.read-only input {
+    color: #64748b;
+    cursor: default;
+}
+
+.cashier-container .folio-balance-info {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    margin: 4px 2px;
+}
+
+.cashier-container .folio-confirm-banner {
+    background: #eff6ff;
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid #dbeafe;
+    margin-top: 4px;
+}
+
+.cashier-container .folio-confirm-banner .info-icon {
+    font-size: 18px;
+}
+
+.cashier-container .folio-confirm-banner p {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e40af;
+    line-height: 1.4;
+}
+
+.cashier-container .btn-tender-main:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
 }
