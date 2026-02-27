@@ -171,8 +171,8 @@ const AppRoutes = () => {
               <AdminDashboard />
             </ProtectedRoute>
           } />
-          <Route path="/admin/settings" element={
-            <ProtectedRoute module={MODULES.STAFF_MANAGEMENT}>
+          <Route path="/admin/crm-model" element={
+            <ProtectedRoute module={MODULES.CRM_MODEL}>
               <AdminDashboard />
             </ProtectedRoute>
           } />
@@ -192,6 +192,11 @@ const AppRoutes = () => {
             </ProtectedRoute>
           } />
           <Route path="/admin/room-service" element={
+            <ProtectedRoute module={MODULES.RESERVATIONS}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/housekeeping" element={
             <ProtectedRoute module={MODULES.RESERVATIONS}>
               <AdminDashboard />
             </ProtectedRoute>

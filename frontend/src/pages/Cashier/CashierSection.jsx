@@ -714,6 +714,12 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                     </div>
                 </div>
 
+                ${order.notes ? `
+                <div class="divider"></div>
+                <div style="font-style: italic; background: #f8f9fa; padding: 5px; border-left: 3px solid #000; font-size: 10px; margin-top: 10px;">
+                    <strong>Note:</strong> ${order.notes}
+                </div>` : ''}
+
                 <div class="footer">
                     <div class="thanks">Thank You!</div>
                     <div class="visit-again">We hope to see you again soon.</div>

@@ -10,7 +10,7 @@ const RoomService = () => {
     const { user } = useAuth();
 
     // Permission Check
-    const hasAccess = user?.role !== 'staff' || (user?.permissions?.includes('Rooms (Room Service)'));
+    const hasAccess = user?.role !== 'staff' || (user?.permissions?.includes('Room Service') || user?.permissions?.includes('Rooms (Room Service)'));
 
     if (!hasAccess) {
         return (

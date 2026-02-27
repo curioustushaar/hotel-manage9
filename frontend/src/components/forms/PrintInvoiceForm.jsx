@@ -2,363 +2,182 @@ import { useState } from 'react';
 import './FormStyles.css';
 
 const PrintInvoiceForm = ({ booking, onSubmit, onCancel }) => {
-    const [printType, setPrintType] = useState('Dot Matrix');
+    const [printType, setPrintType] = useState('A4');
 
-    const printOptions = [
-        'Dot Matrix', 'Thermal', 'A4', 'A5', '2 inch', '3 inch'
-    ];
+    const printOptions = ['A4', 'A5', 'Thermal', 'Dot Matrix', '3 inch', '2 inch'];
 
-    const getPrintStyle = (type) => {
-        const reset = `
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { color: #000; line-height: 1.4; }
-            .text-right { text-align: right; }
-            .text-center { text-align: center; }
-            .bold { font-weight: bold; }
-            .row { display: flex; justify-content: space-between; }
-            .flex-col { flex-direction: column; }
-        `;
+    const formatDate = (date) => {
+        if (!date) return 'N/A';
+        try {
+            return new Date(date).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        } catch { return 'N/A'; }
+    };
 
-        // A4 and A5 specific styles (Standard Invoice)
-        if (type === 'A4' || type === 'A5') {
-            return `
-                ${reset}
-                body { 
-                    font-family: Arial, Helvetica, sans-serif; 
-                    padding: 40px; 
-                    font-size: ${type === 'A5' ? '11px' : '14px'};
-                }
-                .invoice-container { 
-                    border: 1px solid #ccc; 
-                    padding: 20px; 
-                    height: 100%; 
-                }
-                .header { 
-                    border-bottom: 2px solid #333; 
-                    padding-bottom: 10px; 
-                    margin-bottom: 20px; 
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }
-                .hotel-name { 
-                    font-size: 24px; 
-                    font-weight: 800; 
-                    color: #000;
-                }
-                .invoice-title { 
-                    text-align: center; 
-                    font-size: 20px; 
-                    font-weight: bold; 
-                    margin: 10px 0 20px 0; 
-                    text-transform: uppercase; 
-                    background: #f8f8f8;
-                    padding: 5px;
-                    border: 1px solid #ddd;
-                }
-                .section { margin-bottom: 20px; }
-                .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                .table th { 
-                    background: #f3f4f6; 
-                    padding: 10px; 
-                    border: 1px solid #ddd; 
-                    font-weight: bold; 
-                    text-align: left;
-                }
-                .table td { 
-                    padding: 10px; 
-                    border: 1px solid #ddd; 
-                }
-                .total-section { 
-                    float: right; 
-                    width: 300px; 
-                    border: 1px solid #ddd; 
-                    padding: 10px;
-                    background: #f9f9f9;
-                }
-                .grand-total { 
-                    font-size: 16px; 
-                    font-weight: bold; 
-                    border-top: 2px solid #000; 
-                    margin-top: 5px; 
-                    padding-top: 5px;
-                }
-                @page { size: ${type}; margin: 10mm; }
-            `;
-        }
+    const b = booking || {};
+    const taxRate = 0.12;
+    const subtotal = b.totalAmount || 0;
+    const tax = Math.round(subtotal * taxRate);
+    const grandTotal = subtotal + tax;
+    const nights = b.numberOfNights || 1;
 
-        // Dot Matrix (Courier, dashed lines)
-        if (type === 'Dot Matrix') {
-            return `
-                ${reset}
-                body { 
-                    font-family: 'Courier New', Courier, monospace; 
-                    font-size: 13px; 
-                    padding: 20px;
-                }
-                .invoice-container { 
-                    padding: 10px; 
-                    border: 1px dashed #000;
-                }
-                .header { 
-                    text-align: center; 
-                    border-bottom: 1px dashed #000; 
-                    padding-bottom: 10px; 
-                    margin-bottom: 15px; 
-                }
-                .hotel-name { 
-                    font-size: 18px; 
-                    font-weight: bold; 
-                    text-transform: uppercase;
-                }
-                .invoice-title { 
-                    text-align: center; 
-                    font-weight: bold; 
-                    margin: 15px 0; 
-                    border-top: 1px dashed #000;
-                    border-bottom: 1px dashed #000;
-                    padding: 5px;
-                }
-                .table { width: 100%; margin: 15px 0; }
-                .table th { 
-                    border-bottom: 1px dashed #000; 
-                    padding: 5px 0; 
-                    text-align: left;
-                }
-                .table td { padding: 5px 0; }
-                .total-section { 
-                    border-top: 1px dashed #000; 
-                    margin-top: 10px; 
-                    padding-top: 10px;
-                }
-                .grand-total { font-weight: bold; font-size: 15px; }
-                @page { size: auto; margin: 5mm; }
-            `;
-        }
+    const getPageStyle = (type) => {
+        if (type === '2 inch') return '@page { size: 56mm auto; margin: 2mm; }';
+        if (type === '3 inch' || type === 'Thermal') return '@page { size: 78mm auto; margin: 2mm; }';
+        if (type === 'A5') return '@page { size: A5; margin: 12mm; }';
+        if (type === 'Dot Matrix') return '@page { size: auto; margin: 5mm; }';
+        return '@page { size: A4; margin: 15mm; }';
+    };
 
-        // Thermal, 3 inch, 2 inch (Receipt style)
-        // 2 inch = 58mm, 3 inch/Thermal = 80mm
-        const isSmall = type === '2 inch';
-        const width = isSmall ? '56mm' : '78mm'; // slightly less than 58/80 for safety
-        const fontSize = isSmall ? '10px' : '12px';
+    const isReceipt = ['2 inch', '3 inch', 'Thermal'].includes(printType);
+    const isDotMatrix = printType === 'Dot Matrix';
 
-        return `
-            ${reset}
-            body { 
-                font-family: 'Roboto Mono', monospace;
-                font-size: ${fontSize};
-                width: ${width};
-                background: #fff;
-            }
-            .invoice-container { padding: 0; }
-            .header { 
-                text-align: center; 
-                margin-bottom: 10px; 
-            }
-            .hotel-name { 
-                font-size: ${isSmall ? '14px' : '16px'}; 
-                font-weight: bold; 
-                margin-bottom: 5px;
-            }
-            .header div { margin-bottom: 2px; }
-            .invoice-title { 
-                text-align: center; 
-                font-weight: bold; 
-                border-top: 1px dashed #000; 
-                border-bottom: 1px dashed #000; 
-                padding: 4px 0;
-                margin: 10px 0;
-            }
-            .section { margin-bottom: 10px; }
-            .row { 
-                display: flex; 
-                justify-content: space-between; 
-                ${isSmall ? 'flex-direction: column; margin-bottom: 4px;' : 'margin-bottom: 2px;'}
-            }
-            .table { width: 100%; margin: 10px 0; border-collapse: collapse; }
-            .table th { 
-                text-align: left; 
-                border-bottom: 1px solid #000; 
-                font-size: ${isSmall ? '9px' : '11px'};
-                padding: 2px 0;
-            }
-            .table td { 
-                padding: 2px 0; 
-                vertical-align: top;
-            }
-            .total-section { 
-                border-top: 1px dashed #000; 
-                padding-top: 5px; 
-                margin-top: 10px; 
-            }
-            .grand-total { 
-                font-weight: bold; 
-                font-size: ${isSmall ? '12px' : '14px'}; 
-                margin-top: 5px;
-            }
-            .footer { 
-                text-align: center; 
-                margin-top: 15px; 
-                font-size: ${isSmall ? '9px' : '10px'};
-            }
-            @page { size: ${width} auto; margin: 0; }
-        `;
+    const generateInvoice = () => {
+        return `<!DOCTYPE html>
+<html><head><title>Invoice - ${b.bookingId || 'INV'}</title>
+<style>
+${getPageStyle(printType)}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: ${isDotMatrix ? "'Courier New', monospace" : isReceipt ? "'Roboto Mono', 'Courier New', monospace" : "'Segoe UI', Arial, sans-serif"};
+    font-size: ${isReceipt ? (printType === '2 inch' ? '10px' : '11px') : isDotMatrix ? '12px' : '13px'};
+    color: #000; padding: ${isReceipt ? '4px' : isDotMatrix ? '10px' : '30px'}; line-height: 1.5;
+    ${isReceipt ? `width: ${printType === '2 inch' ? '56mm' : '78mm'};` : ''}
+}
+.hotel-name { font-size: ${isReceipt ? '14px' : isDotMatrix ? '16px' : '24px'}; font-weight: bold; text-align: center; text-transform: uppercase; }
+.hotel-addr { text-align: center; font-size: ${isReceipt ? '9px' : '11px'}; color: #444; margin-bottom: ${isReceipt ? '4px' : '8px'}; }
+.gst-no { text-align: center; font-size: ${isReceipt ? '9px' : '11px'}; font-weight: bold; color: #333; margin-bottom: ${isReceipt ? '6px' : '12px'}; }
+.divider { border: none; border-top: ${isDotMatrix ? '1px dashed #000' : isReceipt ? '1px dashed #333' : '2px solid #333'}; margin: ${isReceipt ? '5px 0' : '10px 0'}; }
+.divider-thin { border: none; border-top: 1px solid #ddd; margin: ${isReceipt ? '4px 0' : '8px 0'}; }
+.inv-title { text-align: center; font-size: ${isReceipt ? '13px' : isDotMatrix ? '14px' : '18px'}; font-weight: bold; text-transform: uppercase; padding: ${isReceipt ? '4px 0' : '8px 0'}; ${!isReceipt && !isDotMatrix ? 'background: #f3f4f6; border: 1px solid #ddd; letter-spacing: 3px;' : ''} margin: ${isReceipt ? '4px 0' : '10px 0'}; }
+.row { display: flex; justify-content: space-between; padding: ${isReceipt ? '2px 0' : '5px 0'}; }
+.row .label { color: #555; font-size: ${isReceipt ? '9px' : '12px'}; }
+.row .val { font-weight: 600; }
+.section-title { font-weight: bold; font-size: ${isReceipt ? '11px' : '13px'}; margin: ${isReceipt ? '6px 0 3px' : '12px 0 5px'}; text-transform: uppercase; color: #333; }
+table { width: 100%; border-collapse: collapse; margin: ${isReceipt ? '5px 0' : '10px 0'}; }
+th { background: ${isDotMatrix ? 'transparent' : '#f3f4f6'}; padding: ${isReceipt ? '3px 2px' : '8px 10px'}; text-align: left; font-size: ${isReceipt ? '9px' : '12px'}; font-weight: bold; border-bottom: ${isDotMatrix ? '1px dashed #000' : '2px solid #ddd'}; }
+td { padding: ${isReceipt ? '3px 2px' : '8px 10px'}; font-size: ${isReceipt ? '10px' : '12px'}; border-bottom: 1px solid #eee; }
+.text-right { text-align: right; }
+.total-box { ${!isReceipt && !isDotMatrix ? 'float: right; width: 280px;' : ''} margin-top: ${isReceipt ? '6px' : '10px'}; ${!isReceipt && !isDotMatrix ? 'border: 1px solid #ddd; padding: 10px; background: #fafafa;' : ''} }
+.total-row { display: flex; justify-content: space-between; padding: ${isReceipt ? '3px 0' : '6px 0'}; }
+.grand-total { font-size: ${isReceipt ? '13px' : '16px'}; font-weight: bold; border-top: 2px solid #000; padding-top: 5px; margin-top: 5px; }
+.paid { color: green; font-weight: 600; }
+.due { color: #dc2626; font-weight: 600; }
+.footer { text-align: center; margin-top: ${isReceipt ? '10px' : '25px'}; font-size: ${isReceipt ? '8px' : '10px'}; color: #777; ${!isReceipt ? 'clear: both; padding-top: 20px;' : ''} }
+.terms { margin-top: ${isReceipt ? '8px' : '15px'}; font-size: ${isReceipt ? '8px' : '10px'}; color: #666; ${!isReceipt ? 'clear: both; padding-top: 15px;' : ''} }
+.terms p { margin: 2px 0; }
+@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style></head>
+<body>
+<div class="hotel-name">Bireena Athithi Hotel</div>
+<div class="hotel-addr">123 Hotel Street, City, State 12345 | +91-1234-567890 | info@bireena-athithi.com</div>
+<div class="gst-no">GSTIN: 22AACCU1234H1Z0</div>
+<hr class="divider">
+<div class="inv-title">Tax Invoice</div>
+<hr class="divider">
+
+<div class="row"><span class="label">Invoice No:</span><span class="val">${b.bookingId || 'INV-' + Date.now()}</span></div>
+<div class="row"><span class="label">Date:</span><span class="val">${new Date().toLocaleDateString('en-IN')}</span></div>
+<hr class="divider-thin">
+<div class="section-title">Bill To</div>
+<div class="row"><span class="label">Guest:</span><span class="val">${b.guestName || 'N/A'}</span></div>
+<div class="row"><span class="label">Mobile:</span><span class="val">${b.mobileNumber || 'N/A'}</span></div>
+${b.email ? `<div class="row"><span class="label">Email:</span><span class="val">${b.email}</span></div>` : ''}
+<hr class="divider-thin">
+
+<table>
+<thead><tr><th>Description</th><th class="text-right">Qty</th><th class="text-right">Rate</th><th class="text-right">Amount</th></tr></thead>
+<tbody>
+<tr>
+<td>Room Charges - ${b.roomType || 'Room'}<br><span style="font-size:${isReceipt ? '9px' : '11px'};color:#666">Room ${b.roomNumber || 'TBA'} | ${formatDate(b.checkInDate)} → ${formatDate(b.checkOutDate)}</span></td>
+<td class="text-right">${nights} Night${nights > 1 ? 's' : ''}</td>
+<td class="text-right">₹${(b.pricePerNight || 0).toLocaleString('en-IN')}</td>
+<td class="text-right">₹${subtotal.toLocaleString('en-IN')}</td>
+</tr>
+</tbody>
+</table>
+
+<div class="total-box">
+<div class="total-row"><span>Subtotal:</span><span>₹${subtotal.toLocaleString('en-IN')}</span></div>
+<div class="total-row"><span>GST (12%):</span><span>₹${tax.toLocaleString('en-IN')}</span></div>
+<div class="total-row grand-total"><span>Grand Total:</span><span>₹${grandTotal.toLocaleString('en-IN')}</span></div>
+${(b.advancePaid || 0) > 0 ? `<div class="total-row paid"><span>Paid:</span><span>₹${(b.advancePaid || 0).toLocaleString('en-IN')}</span></div>` : ''}
+${(b.remainingAmount || 0) > 0 ? `<div class="total-row due"><span>Balance Due:</span><span>₹${(b.remainingAmount || 0).toLocaleString('en-IN')}</span></div>` : ''}
+</div>
+
+<div class="terms">
+<p><strong>Terms & Conditions:</strong></p>
+<p>1. Check-in: 2:00 PM | Check-out: 11:00 AM</p>
+<p>2. Late checkout subject to availability and charges</p>
+<p>3. Payment at checkout</p>
+</div>
+<hr class="divider">
+<div class="footer">Thank you for your business! | Generated: ${new Date().toLocaleString('en-IN')}</div>
+</body></html>`;
     };
 
     const handlePrint = () => {
-        const printContent = generateInvoice();
-
-        const printWindow = window.open('', '', 'width=800,height=600');
-        printWindow.document.write(printContent);
+        const content = generateInvoice();
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        printWindow.document.write(content);
         printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-
+        setTimeout(() => {
+            printWindow.focus();
+            printWindow.print();
+        }, 400);
         onSubmit({ action: 'print-invoice', timestamp: new Date().toISOString(), type: printType });
-    };
-
-    const generateInvoice = () => {
-        const taxRate = 0.12; // 12% GST
-        const subtotal = booking.totalAmount || 0;
-        const tax = subtotal * taxRate;
-        const grandTotal = subtotal + tax;
-
-        return `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Invoice - ${booking.bookingId}</title>
-                <style>
-                    ${getPrintStyle(printType)}
-                </style>
-            </head>
-            <body>
-                <div class="invoice-container">
-                    <div class="header">
-                        <div class="hotel-name">BIREENA ATHITHI HOTEL</div>
-                        <div>123 Hotel Street, City, State 12345</div>
-                        <div>Phone: +91-1234-567890 | Email: info@bireena-athithi.com</div>
-                        <div>GST No: 22AACCU1234H1Z0</div>
-                    </div>
-
-                    <div class="invoice-title">TAX INVOICE</div>
-
-                    <div class="section">
-                        <div class="row">
-                            <div>
-                                <div class="label">Invoice No: ${booking.bookingId || 'INV-' + Date.now()}</div>
-                                <div>Date: ${new Date().toLocaleDateString('en-IN')}</div>
-                            </div>
-                            <div style="text-align: right;">
-                                <div class="label">Booking Ref: ${booking.bookingId}</div>
-                                <div>Status: ${booking.status}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="section">
-                        <div class="label">BILL TO:</div>
-                        <div>${booking.guestName || 'Guest'}</div>
-                        <div>Mobile: ${booking.mobileNumber || 'N/A'}</div>
-                        <div>Email: ${booking.email || 'N/A'}</div>
-                    </div>
-
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Description</th>
-                                <th class="text-right">Qty</th>
-                                <th class="text-right">Rate</th>
-                                <th class="text-right">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>
-                                    <strong>Room Charges - ${booking.roomType || 'Room'}</strong><br>
-                                    Room No: ${booking.roomNumber || 'TBA'}<br>
-                                    Check-In: ${new Date(booking.checkInDate).toLocaleDateString('en-IN')}<br>
-                                    Check-Out: ${new Date(booking.checkOutDate).toLocaleDateString('en-IN')}
-                                </td>
-                                <td class="text-right">${booking.numberOfNights || 1} Night(s)</td>
-                                <td class="text-right">₹${(booking.pricePerNight || 0).toLocaleString('en-IN')}</td>
-                                <td class="text-right">₹${subtotal.toLocaleString('en-IN')}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <div class="total-section">
-                        <div class="row">
-                            <div class="label">Subtotal:</div>
-                            <div>₹${subtotal.toLocaleString('en-IN')}</div>
-                        </div>
-                        <div class="row">
-                            <div class="label">GST (12%):</div>
-                            <div>₹${tax.toLocaleString('en-IN')}</div>
-                        </div>
-                        <div class="grand-total row">
-                            <div>GRAND TOTAL:</div>
-                            <div>₹${grandTotal.toLocaleString('en-IN')}</div>
-                        </div>
-                        <div class="row" style="color: green; font-weight: bold; margin-top: 10px;">
-                            <div>Paid Amount:</div>
-                            <div>₹${(booking.advancePaid || 0).toLocaleString('en-IN')}</div>
-                        </div>
-                        <div class="row" style="color: red; font-weight: bold;">
-                            <div>Balance Due:</div>
-                            <div>₹${(booking.remainingAmount || 0).toLocaleString('en-IN')}</div>
-                        </div>
-                    </div>
-
-                    <div class="footer">
-                        <p><strong>Terms & Conditions:</strong></p>
-                        <p>1. Check-in time: 2:00 PM | Check-out time: 11:00 AM</p>
-                        <p>2. Late checkout subject to availability and additional charges</p>
-                        <p>3. Payment must be made at the time of checkout</p>
-                        <p style="margin-top: 15px;"><strong>Thank you for your business!</strong></p>
-                        <p style="margin-top: 5px;">Generated: ${new Date().toLocaleString('en-IN')}</p>
-                    </div>
-                </div>
-            </body>
-            </html>
-        `;
     };
 
     return (
         <div className="flex flex-col h-full bg-white">
-            {/* Main Content */}
-            <div className="flex-1 p-8 space-y-8">
-                {/* Reservation Number */}
-                <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                    <p className="text-sm font-medium text-gray-500 mb-2">Reservation No</p>
-                    <h3 className="text-2xl font-bold text-gray-900">{booking.bookingId || 'RES-51'}</h3>
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                {/* Booking Info Card */}
+                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-[11px] text-gray-400 uppercase tracking-wide">Invoice</p>
+                            <p className="text-sm font-bold text-gray-900">{b.bookingId || 'N/A'}</p>
+                        </div>
+                        <p className="text-[11px] text-gray-400">{new Date().toLocaleDateString('en-IN')}</p>
+                    </div>
+                    <div className="border-t border-gray-200 pt-2 grid grid-cols-2 gap-2 text-[12px]">
+                        <div><span className="text-gray-400">Guest</span><p className="font-semibold text-gray-800 truncate">{b.guestName || 'N/A'}</p></div>
+                        <div><span className="text-gray-400">Room</span><p className="font-semibold text-gray-800">{b.roomNumber || 'TBA'} ({b.roomType || 'Std'})</p></div>
+                        <div><span className="text-gray-400">Check-in</span><p className="font-semibold text-gray-800">{formatDate(b.checkInDate)}</p></div>
+                        <div><span className="text-gray-400">Check-out</span><p className="font-semibold text-gray-800">{formatDate(b.checkOutDate)}</p></div>
+                    </div>
+                    <div className="border-t border-gray-200 pt-2 space-y-1 text-[12px]">
+                        <div className="flex justify-between"><span className="text-gray-400">Subtotal</span><span className="font-semibold text-gray-800">₹{subtotal.toLocaleString('en-IN')}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-400">GST (12%)</span><span className="font-semibold text-gray-800">₹{tax.toLocaleString('en-IN')}</span></div>
+                        <div className="flex justify-between text-sm font-bold pt-1 border-t border-gray-200"><span className="text-gray-900">Grand Total</span><span className="text-gray-900">₹{grandTotal.toLocaleString('en-IN')}</span></div>
+                        {(b.advancePaid || 0) > 0 && <div className="flex justify-between text-[12px]"><span className="text-green-600">Paid</span><span className="font-semibold text-green-600">₹{(b.advancePaid || 0).toLocaleString('en-IN')}</span></div>}
+                        {(b.remainingAmount || 0) > 0 && <div className="flex justify-between text-[12px]"><span className="text-red-600">Balance</span><span className="font-semibold text-red-600">₹{(b.remainingAmount || 0).toLocaleString('en-IN')}</span></div>}
+                    </div>
                 </div>
 
-                {/* Print Type Dropdown */}
+                {/* Format Selector */}
                 <div>
-                    <label className="block text-base font-semibold text-gray-700 mb-3">Print Type</label>
-                    <select
-                        value={printType}
-                        onChange={(e) => setPrintType(e.target.value)}
-                        className="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white"
-                    >
+                    <label className="text-[11px] text-gray-400 uppercase tracking-wide mb-1 block">Print Format</label>
+                    <div className="grid grid-cols-3 gap-2">
                         {printOptions.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
+                            <button key={opt} type="button" onClick={() => setPrintType(opt)}
+                                className={`py-2 text-xs font-semibold rounded-lg border transition-all ${
+                                    printType === opt
+                                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                        : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                                }`}>
+                                {opt}
+                            </button>
                         ))}
-                    </select>
+                    </div>
                 </div>
             </div>
 
-            {/* Footer Action - Centered Green Print Button */}
-            <div className="p-6 border-t bg-gray-50">
-                <button
-                    type="button"
-                    onClick={handlePrint}
-                    className="w-full py-3.5 bg-green-600 text-white text-base font-semibold rounded-lg shadow-md hover:bg-green-700 hover:shadow-lg transform transition-all duration-200 active:scale-98 flex items-center justify-center gap-2"
-                >
-                    <span className="text-xl">🖨️</span>
-                    <span>Print Invoice</span>
+            {/* Print Button */}
+            <div className="p-4 border-t border-gray-100">
+                <button type="button" onClick={handlePrint}
+                    className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                    Print Invoice
                 </button>
             </div>
         </div>

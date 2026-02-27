@@ -13,7 +13,6 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['super_admin', 'admin', 'staff', 'manager', 'receptionist', 'accountant', 'waiter'],
         default: 'staff'
     },
     phone: {
@@ -49,6 +48,35 @@ const userSchema = new mongoose.Schema({
     permissions: {
         type: [String],
         default: []
+    },
+    // New Staff Management Fields
+    image: {
+        type: String, // URL to image
+        default: ''
+    },
+    outlet: {
+        type: String,
+        default: 'General'
+    },
+    shift: {
+        type: String,
+        enum: ['Morning', 'Evening', 'Night'],
+        default: 'Morning'
+    },
+    salary: {
+        type: Number,
+        default: 0
+    },
+    attendanceStatus: {
+        type: String,
+        enum: ['Present', 'Absent', 'On Leave'],
+        default: 'Present'
+    },
+    performance: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 5
     }
 }, {
     timestamps: true

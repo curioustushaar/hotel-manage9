@@ -76,6 +76,7 @@ const orderSchema = new mongoose.Schema({
     },
 
     notes: String,
+    kotNote: String,
     billedAt: Date,
     closedAt: Date
 

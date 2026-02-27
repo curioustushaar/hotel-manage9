@@ -31,9 +31,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         if (user.role !== 'staff') return true; // Admin has full access
 
         const permissions = user.permissions || [];
-        if (type === 'Housekeeping') return permissions.includes('Rooms (Housekeeping)');
-        if (type === 'Room Service') return permissions.includes('Rooms (Room Service)');
-        if (type === 'New Reservation') return permissions.includes('Rooms (New Reservation)');
+        if (type === 'Housekeeping') return permissions.includes('Housekeeping') || permissions.includes('Rooms (Housekeeping)');
+        if (type === 'Room Service') return permissions.includes('Room Service') || permissions.includes('Rooms (Room Service)');
+        if (type === 'New Reservation') return permissions.includes('Reservations') || permissions.includes('Rooms (New Reservation)');
         return false;
     };
     const API_URL = `${API_URL_CONFIG}/api/bookings`;

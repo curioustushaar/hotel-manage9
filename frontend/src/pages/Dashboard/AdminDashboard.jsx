@@ -9,7 +9,6 @@ import FoodOrderPage from '../../components/FoodOrderPage';
 import ViewOrderPage from '../../components/ViewOrderPage';
 import AdminLayout from '../../components/AdminLayout';
 import FoodPaymentReport from '../FoodPaymentReport/FoodPaymentReport';
-import Settings from '../Settings/Settings';
 import Customers from '../Customers/Customers';
 import DashboardHome from '../DashboardHome/DashboardHome';
 import MyProfile from '../Profile/MyProfile';
@@ -22,6 +21,7 @@ import CashierReport from '../CashierReport/CashierReport';
 import CashierSection from '../Cashier/CashierSection';
 import StayOverview from '../../components/StayOverview';
 import RoomSetup from '../RoomSetup/RoomSetup';
+import CRMModel from '../CRMModel/CRMModel';
 
 import RoomFacilityType from '../RoomFacilityType/RoomFacilityType';
 import MealType from '../MealType/MealType';
@@ -38,6 +38,7 @@ import FloorSetup from '../FloorSetup/FloorSetup';
 import TableManagement from '../TableManagement/TableManagement';
 import RoomDetailsPanel from '../../components/rooms/RoomDetailsPanel';
 import RoomService from '../../components/RoomService';
+import HousekeepingView from '../../components/HousekeepingView';
 import CompanySettings from '../CompanySettings/CompanySettings';
 import UniversalReport from '../Reports/UniversalReport';
 import './AdminDashboard.css';
@@ -68,11 +69,13 @@ const AdminDashboard = () => {
             '/guest-meal-service': 'guest-meal-service',
             '/food-menu': 'food-menu',
             '/customers': 'customers',
-            '/settings': 'settings',
             '/cashier-section': 'cashier-section',
             '/food-order': 'food-order',
             '/view-order': 'view-order',
-            '/reservation-card': 'reservation-card'
+            '/reservation-card': 'reservation-card',
+            '/crm-model': 'crm-model',
+            '/room-service': 'room-service',
+            '/housekeeping': 'housekeeping'
         };
 
         for (const [route, menu] of Object.entries(menuMap)) {
@@ -186,11 +189,12 @@ const AdminDashboard = () => {
         else if (path.includes('/guest-meal-service')) setActiveMenu('guest-meal-service');
         else if (path.includes('/food-menu')) setActiveMenu('food-menu');
         else if (path.includes('/customers')) setActiveMenu('customers');
-        else if (path.includes('/settings')) setActiveMenu('settings');
+        else if (path.includes('/crm-model')) setActiveMenu('crm-model');
         else if (path.includes('/stay-overview')) setActiveMenu('stay-overview');
         else if (path.includes('/reservation-stay-management')) setActiveMenu('reservations');
         else if (path.includes('/view-reservation')) setActiveMenu('reservations');
         else if (path.includes('/room-service')) setActiveMenu('room-service');
+        else if (path.includes('/housekeeping')) setActiveMenu('housekeeping');
         else if (path.includes('/view-order')) setActiveMenu('view-order');
         else if (path.includes('/dashboard')) setActiveMenu('dashboard');
         else if (path.includes('/cashier-section')) setActiveMenu('cashier-section');
@@ -398,6 +402,7 @@ const AdminDashboard = () => {
     const handleViewProfile = () => {
         setActiveMenu('my-profile');
         setShowProfileDropdown(false);
+        navigate('/admin/my-profile');
     };
 
     const handleChangePassword = () => {
@@ -460,7 +465,7 @@ const AdminDashboard = () => {
 
 
     const handleMenuClick = (menuId) => {
-        const prefix = user?.role === 'staff' ? '/staff' : '/admin';
+        const prefix = '/admin';
 
         // Handle Sub-menu routing for Reservation Dropdown
         if (menuId === 'reservations-dashboard') {
@@ -468,7 +473,7 @@ const AdminDashboard = () => {
         } else if (menuId === 'new-reservation') {
             navigate(`${prefix}/reservations`, { state: { viewMode: 'form' } });
         } else if (menuId === 'housekeeping') {
-            navigate(`${prefix}/reservations`, { state: { viewMode: 'housekeeping' } });
+            navigate(`${prefix}/housekeeping`);
         } else if (menuId === 'room-service') {
             navigate(`${prefix}/room-service`);
         } else if (menuId === 'food-order') {
@@ -496,7 +501,7 @@ const AdminDashboard = () => {
         else if (menuId === 'guest-meal-service') navigate(`${prefix}/guest-meal-service`);
         else if (menuId === 'food-menu') navigate(`${prefix}/food-menu`);
         else if (menuId === 'customers') navigate(`${prefix}/customers`);
-        else if (menuId === 'settings') navigate(`${prefix}/settings`);
+        else if (menuId === 'crm-model') navigate(`${prefix}/crm-model`);
         else if (menuId === 'cashier-report') navigate(`${prefix}/cashier-report`);
         else if (menuId === 'food-payment-report') navigate(`${prefix}/food-payment-report`);
         else if (menuId === 'view-order') navigate(`${prefix}/view-order`);
@@ -853,6 +858,13 @@ const AdminDashboard = () => {
                 )
             }
 
+            {/* Housekeeping View */}
+            {
+                activeMenu === 'housekeeping' && (
+                    <HousekeepingView />
+                )
+            }
+
             {/* Food Menu View */}
             {
                 activeMenu === 'food-menu' && (
@@ -906,10 +918,10 @@ const AdminDashboard = () => {
                 )
             }
 
-            {/* Reservation Card Management View */}
+            {/* Reservation Card Management View - Calendar/Timeline */}
             {
                 activeMenu === 'reservation-card' && (
-                    <ReservationStayManagement viewMode="dashboard" />
+                    <StayOverview />
                 )
             }
 
@@ -1145,10 +1157,10 @@ const AdminDashboard = () => {
                 )
             }
 
-            {/* Settings View */}
+            {/* CRM Model View */}
             {
-                activeMenu === 'settings' && (
-                    <Settings />
+                activeMenu === 'crm-model' && (
+                    <CRMModel />
                 )
             }
 

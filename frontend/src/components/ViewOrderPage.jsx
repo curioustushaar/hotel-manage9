@@ -330,7 +330,19 @@ const ViewOrderPage = () => {
                                                     (order.type === 'Post to Room' || order.type === 'Room Order' || order.type === 'Room Service') ? `Room: ${order.table}` :
                                                         order.table === '-' ? 'Walk-in' : `Table: ${order.table}`}
                                         </span>
-                                        <span className="header-time">{order.time}</span>
+                                        <div className="header-right">
+                                            <span className="header-time">{order.time}</span>
+                                            <button 
+                                                className="card-close-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteOrder(order.id);
+                                                }}
+                                                title="Delete Order"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
                                     </div>
 
                                     {/* Status Strip */}

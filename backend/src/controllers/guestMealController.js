@@ -477,7 +477,7 @@ exports.releaseTable = async (req, res) => {
 // Create new order for a table
 exports.createOrder = async (req, res) => {
     try {
-        const { tableId, tableNumber, orderType = 'Direct Payment', roomNumber, guestName, numberOfGuests = 1, taxRate = 0, notes, guest, guestPhone } = req.body;
+        const { tableId, tableNumber, orderType = 'Direct Payment', roomNumber, guestName, numberOfGuests = 1, taxRate = 0, notes, kotNote, guest, guestPhone } = req.body;
 
         let table = null;
         let room = null;
@@ -531,6 +531,7 @@ exports.createOrder = async (req, res) => {
             guestPhone: guestPhone || req.body.guestPhone || null,
             guest: guest || null,
             notes: notes || null,
+            kotNote: kotNote || null,
             numberOfGuests: Number(numberOfGuests) || 1,
             items: (req.body.items || []).map(item => ({
                 ...item,
@@ -660,7 +661,7 @@ exports.getOrderByTableId = async (req, res) => {
 exports.updateOrderItems = async (req, res) => {
     try {
         const { orderId } = req.params;
-        const { items, taxRate, notes, guestName, guestPhone, guest } = req.body;
+        const { items, taxRate, notes, kotNote, guestName, guestPhone, guest } = req.body;
 
         const order = await GuestMealOrder.findById(orderId);
         if (!order) {
@@ -721,6 +722,7 @@ exports.updateOrderItems = async (req, res) => {
 
         if (taxRate !== undefined) order.taxRate = Number(taxRate) || 0;
         if (notes !== undefined) order.notes = notes;
+        if (kotNote !== undefined) order.kotNote = kotNote;
         if (guestName !== undefined) order.guestName = guestName;
         if (guestPhone !== undefined) order.guestPhone = guestPhone;
         if (guest !== undefined) order.guest = guest;
@@ -1315,9 +1317,10 @@ exports.getOutletStatus = async (req, res) => {
             orderType: { $nin: ['Room Service', 'Room Order', 'Post to Room', 'Take Away'] }
         });
 
-        // Dine-In Avg Prep Time
+        // Dine-In Avg Prep Time (Include 'Ready' and 'Closed')
         const recentDineIn = await GuestMealOrder.find({
-            status: 'Closed', closedAt: { $gte: dayAgo },
+            status: { $in: ['Closed', 'Ready', 'Served', 'Billed'] },
+            updatedAt: { $gte: dayAgo },
             orderType: { $nin: ['Room Service', 'Room Order', 'Post to Room', 'Take Away'] }
         });
         let diPrepTotal = 0, diPrepCount = 0;
@@ -1351,9 +1354,10 @@ exports.getOutletStatus = async (req, res) => {
             orderType: { $in: ['Room Service', 'Room Order', 'Post to Room'] }
         });
 
-        // Room Service Avg Prep Time
+        // Room Service Avg Prep Time (Include 'Ready', 'Closed', 'Served')
         const recentRoom = await GuestMealOrder.find({
-            status: 'Closed', closedAt: { $gte: dayAgo },
+            status: { $in: ['Closed', 'Ready', 'Served', 'Billed'] },
+            updatedAt: { $gte: dayAgo },
             orderType: { $in: ['Room Service', 'Room Order', 'Post to Room'] }
         });
         let rmPrepTotal = 0, rmPrepCount = 0;
@@ -1398,9 +1402,10 @@ exports.getOutletStatus = async (req, res) => {
             orderType: 'Take Away'
         });
 
-        // Take Away Avg Prep Time
+        // Take Away Avg Prep Time (Include 'Ready', 'Closed', 'Picked Up')
         const recentTA = await GuestMealOrder.find({
-            status: 'Closed', closedAt: { $gte: dayAgo },
+             status: { $in: ['Closed', 'Ready', 'PickedUp', 'Served', 'Billed'] },
+            updatedAt: { $gte: dayAgo },
             orderType: 'Take Away'
         });
         let taPrepTotal = 0, taPrepCount = 0;

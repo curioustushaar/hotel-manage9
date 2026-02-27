@@ -9,6 +9,8 @@ export const ROLES = {
     RECEPTIONIST: 'receptionist',
     ACCOUNTANT: 'accountant',
     WAITER: 'waiter',
+    CHEF: 'chef',
+    HOUSEKEEPING: 'housekeeping',
     STAFF: 'staff'
 };
 
@@ -20,6 +22,8 @@ export const ROLE_DESCRIPTIONS = {
     [ROLES.RECEPTIONIST]: 'Front desk operations, check-in/out, reservations, basic billing',
     [ROLES.ACCOUNTANT]: 'Financial operations, billing, reports, payment management',
     [ROLES.WAITER]: 'Food service operations, KOT system, table management',
+    [ROLES.CHEF]: 'Kitchen operations, food order management',
+    [ROLES.HOUSEKEEPING]: 'Room cleaning and maintenance operations',
     [ROLES.STAFF]: 'Limited access to assigned tasks only'
 };
 
@@ -45,6 +49,7 @@ export const MODULES = {
     PROPERTY_CONFIG: 'property-configuration',
     CUSTOMERS: 'customers',
     STAFF_MANAGEMENT: 'settings',
+    CRM_MODEL: 'crm-model',
     CASHIER_LOGS: 'cashier-report',
     PAYMENT_LOGS: 'food-payment-report',
     PROFILE: 'my-profile',
@@ -77,6 +82,8 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
         [ROLES.WAITER]: [],
+        [ROLES.CHEF]: [],
+        [ROLES.HOUSEKEEPING]: [],
         [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
@@ -99,6 +106,8 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW],
         [ROLES.ACCOUNTANT]: [],
         [ROLES.WAITER]: [],
+        [ROLES.CHEF]: [],
+        [ROLES.HOUSEKEEPING]: [],
         [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
@@ -110,6 +119,34 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW, PERMISSIONS.CREATE, PERMISSIONS.EDIT],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
         [ROLES.WAITER]: [],
+        [ROLES.CHEF]: [],
+        [ROLES.HOUSEKEEPING]: [],
+        [ROLES.STAFF]: [PERMISSIONS.VIEW]
+    },
+
+    // ROOM SERVICE
+    'room-service': {
+        [ROLES.SUPER_ADMIN]: [PERMISSIONS.FULL],
+        [ROLES.ADMIN]: [PERMISSIONS.FULL],
+        [ROLES.MANAGER]: [PERMISSIONS.FULL],
+        [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW, PERMISSIONS.CREATE, PERMISSIONS.EDIT],
+        [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
+        [ROLES.WAITER]: [],
+        [ROLES.CHEF]: [PERMISSIONS.VIEW],
+        [ROLES.HOUSEKEEPING]: [],
+        [ROLES.STAFF]: [PERMISSIONS.VIEW]
+    },
+
+    // HOUSEKEEPING
+    'housekeeping': {
+        [ROLES.SUPER_ADMIN]: [PERMISSIONS.FULL],
+        [ROLES.ADMIN]: [PERMISSIONS.FULL],
+        [ROLES.MANAGER]: [PERMISSIONS.FULL],
+        [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW, PERMISSIONS.CREATE, PERMISSIONS.EDIT],
+        [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
+        [ROLES.WAITER]: [],
+        [ROLES.CHEF]: [],
+        [ROLES.HOUSEKEEPING]: [PERMISSIONS.FULL],
         [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
@@ -121,6 +158,8 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW, PERMISSIONS.CREATE],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.FULL],
         [ROLES.WAITER]: [],
+        [ROLES.CHEF]: [],
+        [ROLES.HOUSEKEEPING]: [],
         [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
@@ -132,6 +171,8 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
         [ROLES.WAITER]: [PERMISSIONS.FULL],
+        [ROLES.CHEF]: [PERMISSIONS.VIEW],
+        [ROLES.HOUSEKEEPING]: [],
         [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
@@ -143,6 +184,8 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
         [ROLES.WAITER]: [PERMISSIONS.VIEW],
+        [ROLES.CHEF]: [PERMISSIONS.VIEW, PERMISSIONS.EDIT],
+        [ROLES.HOUSEKEEPING]: [],
         [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
@@ -154,6 +197,8 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
         [ROLES.WAITER]: [],
+        [ROLES.CHEF]: [],
+        [ROLES.HOUSEKEEPING]: [],
         [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
@@ -165,6 +210,8 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [],
         [ROLES.ACCOUNTANT]: [],
         [ROLES.WAITER]: [],
+        [ROLES.CHEF]: [],
+        [ROLES.HOUSEKEEPING]: [],
         [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
@@ -176,6 +223,8 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW, PERMISSIONS.CREATE, PERMISSIONS.EDIT],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
         [ROLES.WAITER]: [],
+        [ROLES.CHEF]: [],
+        [ROLES.HOUSEKEEPING]: [],
         [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
@@ -187,6 +236,21 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [],
         [ROLES.ACCOUNTANT]: [],
         [ROLES.WAITER]: [],
+        [ROLES.CHEF]: [],
+        [ROLES.HOUSEKEEPING]: [],
+        [ROLES.STAFF]: [PERMISSIONS.VIEW]
+    },
+
+    // CRM MODEL
+    [MODULES.CRM_MODEL]: {
+        [ROLES.SUPER_ADMIN]: [PERMISSIONS.FULL],
+        [ROLES.ADMIN]: [PERMISSIONS.FULL],
+        [ROLES.MANAGER]: [PERMISSIONS.FULL],
+        [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW, PERMISSIONS.EDIT],
+        [ROLES.ACCOUNTANT]: [],
+        [ROLES.WAITER]: [],
+        [ROLES.CHEF]: [],
+        [ROLES.HOUSEKEEPING]: [],
         [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
@@ -198,6 +262,8 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
         [ROLES.WAITER]: [],
+        [ROLES.CHEF]: [],
+        [ROLES.HOUSEKEEPING]: [],
         [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
@@ -209,6 +275,8 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.FULL],
         [ROLES.WAITER]: [],
+        [ROLES.CHEF]: [],
+        [ROLES.HOUSEKEEPING]: [],
         [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
@@ -220,6 +288,8 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [PERMISSIONS.FULL],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.FULL],
         [ROLES.WAITER]: [PERMISSIONS.FULL],
+        [ROLES.CHEF]: [PERMISSIONS.FULL],
+        [ROLES.HOUSEKEEPING]: [PERMISSIONS.FULL],
         [ROLES.STAFF]: [PERMISSIONS.FULL]
     },
 
@@ -231,6 +301,8 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW], // Own logs only
         [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW], // Own logs only
         [ROLES.WAITER]: [PERMISSIONS.VIEW], // Own logs only
+        [ROLES.CHEF]: [PERMISSIONS.VIEW], // Own logs only
+        [ROLES.HOUSEKEEPING]: [PERMISSIONS.VIEW], // Own logs only
         [ROLES.STAFF]: [PERMISSIONS.VIEW] // Own logs only
     },
 
@@ -242,6 +314,8 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [],
         [ROLES.ACCOUNTANT]: [],
         [ROLES.WAITER]: [],
+        [ROLES.CHEF]: [],
+        [ROLES.HOUSEKEEPING]: [],
         [ROLES.STAFF]: []
     },
 
@@ -253,6 +327,8 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
         [ROLES.WAITER]: [PERMISSIONS.VIEW],
+        [ROLES.CHEF]: [PERMISSIONS.VIEW],
+        [ROLES.HOUSEKEEPING]: [],
         [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
@@ -264,6 +340,8 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW, PERMISSIONS.EDIT],
         [ROLES.ACCOUNTANT]: [],
         [ROLES.WAITER]: [],
+        [ROLES.CHEF]: [],
+        [ROLES.HOUSEKEEPING]: [],
         [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
@@ -275,6 +353,8 @@ export const ACCESS_MATRIX = {
         [ROLES.RECEPTIONIST]: [PERMISSIONS.VIEW, PERMISSIONS.CREATE],
         [ROLES.ACCOUNTANT]: [PERMISSIONS.VIEW],
         [ROLES.WAITER]: [PERMISSIONS.FULL],
+        [ROLES.CHEF]: [PERMISSIONS.FULL],
+        [ROLES.HOUSEKEEPING]: [],
         [ROLES.STAFF]: [PERMISSIONS.VIEW]
     },
 
@@ -349,6 +429,57 @@ export const SUBSCRIPTION_FEATURES = {
 
 // ==================== HELPER FUNCTIONS ====================
 
+// Shared mapping: module IDs → permission labels assigned via CRM/Settings
+const MODULE_LABEL_MAP = {
+    [MODULES.DASHBOARD]: ['Dashboard'],
+    [MODULES.ROOMS]: ['Reservations', 'Rooms (Dashboard)'],
+    [MODULES.RESERVATIONS]: ['Reservations', 'Rooms (New Reservation)'],
+    [MODULES.CASHIER_SECTION]: ['Cashier Section (Table)', 'Cashier Section (Room Service)', 'Cashier Section (Take Away)'],
+    [MODULES.GUEST_MEAL_SERVICE]: ['Table View'],
+    [MODULES.FOOD_MENU]: ['Food Order'],
+    [MODULES.CUSTOMERS]: ['Customer List'],
+    [MODULES.CASHIER_LOGS]: ['Cashier Logs'],
+    [MODULES.PAYMENT_LOGS]: ['Payment Logs'],
+    'housekeeping': ['Housekeeping', 'Rooms (Housekeeping)'],
+    'room-service': ['Room Service', 'Rooms (Room Service)'],
+    'view-order': ['View Order', 'View order'],
+    'reservations-dashboard': ['Reservations', 'Rooms (New Reservation)'],
+    'new-reservation': ['Reservations', 'Rooms (New Reservation)'],
+    [MODULES.RESERVATION_CARD]: ['Reservation Card', 'Registration Card'],
+    [MODULES.FOOD_ORDER]: ['Food Order'],
+    [MODULES.PROPERTY_SETUP]: ['Property Setup'],
+    [MODULES.PROPERTY_CONFIG]: ['Property Configuration'],
+    [MODULES.REPORTS]: ['Reports'],
+    [MODULES.CRM_MODEL]: ['CRM Model'],
+    [MODULES.VIEW_ORDER]: ['View Order', 'View order'],
+    [MODULES.STAFF_MANAGEMENT]: ['Settings', 'Staff Management'],
+    [MODULES.REPORTS_SALES]: ['Reports'],
+    [MODULES.REPORTS_PAYMENTS]: ['Reports'],
+    [MODULES.REPORTS_ROOMS]: ['Reports'],
+    [MODULES.REPORTS_KITCHEN]: ['Reports'],
+    [MODULES.REPORTS_INVENTORY]: ['Reports'],
+    [MODULES.REPORTS_GST]: ['Reports'],
+    [MODULES.REPORTS_STAFF]: ['Reports'],
+    [MODULES.REPORTS_BILLING]: ['Reports'],
+    [MODULES.REPORTS_RESERVATIONS]: ['Reports'],
+    [MODULES.REPORTS_ANALYTICS]: ['Reports']
+};
+
+/**
+ * Check if user has a custom permission label for a module
+ * Works for ALL roles — checks the permissions[] array assigned via CRM/Settings
+ */
+const _hasCustomPermission = (user, module) => {
+    const userPermissions = user.permissions || [];
+    if (userPermissions.length === 0) return false;
+
+    const labels = MODULE_LABEL_MAP[module];
+    if (labels) {
+        return labels.some(label => userPermissions.includes(label));
+    }
+    return false;
+};
+
 /**
  * Check if a user has permission for a specific module and action
  */
@@ -356,44 +487,20 @@ export const hasPermission = (user, module, permission) => {
     if (!user) return false;
     const userRole = user.role;
 
-    // If user is Staff, check their specific permissions array first for module access
+    // Everyone has permission for their own profile
+    if (module === MODULES.PROFILE) return true;
+
+    // Step 1: Check custom permissions array (works for ALL roles including staff, waiter, chef, etc.)
+    if (_hasCustomPermission(user, module)) {
+        return true;
+    }
+
+    // Step 2: For staff role, if no custom permission found, deny (staff has no default ACCESS_MATRIX access)
     if (userRole === ROLES.STAFF) {
-        const userPermissions = user.permissions || [];
-        const moduleLabelMap = {
-            [MODULES.DASHBOARD]: 'Dashboard',
-            [MODULES.ROOMS]: 'Rooms (Dashboard)',
-            [MODULES.RESERVATIONS]: 'Rooms (New Reservation)',
-            [MODULES.CASHIER_SECTION]: ['Cashier Section (Table)', 'Cashier Section (Room Service)', 'Cashier Section (Take Away)'],
-            [MODULES.GUEST_MEAL_SERVICE]: 'Table View',
-            [MODULES.FOOD_MENU]: 'Food Order',
-            [MODULES.CUSTOMERS]: 'Customer List',
-            [MODULES.CASHIER_LOGS]: 'Cashier Logs',
-            [MODULES.PAYMENT_LOGS]: 'Payment Logs',
-            'housekeeping': 'Rooms (Housekeeping)',
-            'room-service': 'Rooms (Room Service)',
-            'view-order': 'View Order',
-            [MODULES.RESERVATION_CARD]: 'Reservation Card',
-            [MODULES.FOOD_ORDER]: 'Food Order',
-            [MODULES.PROPERTY_SETUP]: 'Property Setup',
-            [MODULES.PROPERTY_CONFIG]: 'Property Configuration',
-            [MODULES.REPORTS]: 'Reports'
-        };
-
-        const permissionLabel = moduleLabelMap[module];
-        if (permissionLabel) {
-            if (Array.isArray(permissionLabel)) {
-                return permissionLabel.some(label => userPermissions.includes(label));
-            }
-            return userPermissions.includes(permissionLabel);
-        }
-
-        // Everyone has permission for their own profile
-        if (module === MODULES.PROFILE) return true;
-
-        // If it's a staff member and the module is not explicitly granted, deny access
         return false;
     }
 
+    // Step 3: For other known roles, fall back to ACCESS_MATRIX
     if (!ACCESS_MATRIX[module]) return false;
     const modulePermissions = ACCESS_MATRIX[module][userRole] || [];
 
@@ -410,53 +517,20 @@ export const hasModuleAccess = (user, module) => {
     if (!user) return false;
     const userRole = user.role;
 
-    // Special handling for Staff role based on their custom permissions
+    // Everyone can access their own profile
+    if (module === MODULES.PROFILE) return true;
+
+    // Step 1: Check custom permissions array (works for ALL roles)
+    if (_hasCustomPermission(user, module)) {
+        return true;
+    }
+
+    // Step 2: For staff role, if no custom permission, deny
     if (userRole === ROLES.STAFF) {
-        const userPermissions = user.permissions || [];
-        const moduleLabelMap = {
-            [MODULES.DASHBOARD]: 'Dashboard',
-            [MODULES.ROOMS]: 'Rooms (Dashboard)',
-            [MODULES.RESERVATIONS]: 'Rooms (New Reservation)',
-            [MODULES.CASHIER_SECTION]: ['Cashier Section (Table)', 'Cashier Section (Room Service)', 'Cashier Section (Take Away)'],
-            [MODULES.GUEST_MEAL_SERVICE]: 'Table View',
-            [MODULES.FOOD_MENU]: 'Food Order',
-            [MODULES.CUSTOMERS]: 'Customer List',
-            [MODULES.CASHIER_LOGS]: 'Cashier Logs',
-            [MODULES.PAYMENT_LOGS]: 'Payment Logs',
-            [MODULES.PROPERTY_SETUP]: 'Property Setup',
-            [MODULES.PROPERTY_CONFIG]: 'Property Configuration',
-            [MODULES.REPORTS]: 'Reports'
-        };
-
-        const staffPermissionLabel = moduleLabelMap[module];
-        if (staffPermissionLabel) {
-            if (Array.isArray(staffPermissionLabel)) {
-                return staffPermissionLabel.some(label => userPermissions.includes(label));
-            }
-            return userPermissions.includes(staffPermissionLabel);
-        }
-
-        // Check for specific sub-modules that might be checked individually
-        const subModuleMap = {
-            'housekeeping': 'Rooms (Housekeeping)',
-            'room-service': 'Rooms (Room Service)',
-            'view-order': 'View Order',
-            [MODULES.RESERVATION_CARD]: 'Reservation Card',
-            [MODULES.FOOD_ORDER]: 'Food Order'
-        };
-
-        const subPermissionLabel = subModuleMap[module];
-        if (subPermissionLabel) {
-            return userPermissions.includes(subPermissionLabel);
-        }
-
-        // Everyone can access their own profile
-        if (module === MODULES.PROFILE) return true;
-
-        // If it's a staff member and the module is not explicitly granted, deny access
         return false;
     }
 
+    // Step 3: For other roles, fall back to ACCESS_MATRIX
     if (!ACCESS_MATRIX[module]) return false;
     const modulePermissions = ACCESS_MATRIX[module][userRole] || [];
     return modulePermissions.length > 0;
@@ -466,10 +540,20 @@ export const hasModuleAccess = (user, module) => {
  * Get all permissions for a user on a specific module
  */
 export const getModulePermissions = (user, module) => {
-    if (!user || user.role === ROLES.STAFF) {
-        // Staff permissions are binary (module access or not)
-        return hasModuleAccess(user, module) ? [PERMISSIONS.VIEW] : [];
+    if (!user) return [];
+
+    // If user has custom permissions for this module, grant VIEW at minimum
+    if (_hasCustomPermission(user, module)) {
+        // For staff, only VIEW; for other roles, merge with ACCESS_MATRIX if available
+        if (user.role === ROLES.STAFF) {
+            return [PERMISSIONS.VIEW];
+        }
+        const matrixPerms = (ACCESS_MATRIX[module] && ACCESS_MATRIX[module][user.role]) || [];
+        return matrixPerms.length > 0 ? matrixPerms : [PERMISSIONS.VIEW];
     }
+
+    if (user.role === ROLES.STAFF) return [];
+
     const userRole = user.role;
     if (!ACCESS_MATRIX[module]) return [];
     return ACCESS_MATRIX[module][userRole] || [];
@@ -536,7 +620,6 @@ export const getFilteredMenuItems = (user) => {
         { id: MODULES.PROPERTY_SETUP, label: 'Property Setup' },
         { id: MODULES.PROPERTY_CONFIG, label: 'Property Configuration' },
         { id: MODULES.CUSTOMERS, label: 'Customer List' },
-        { id: MODULES.STAFF_MANAGEMENT, label: 'Add Staff' },
         { id: MODULES.CASHIER_LOGS, label: 'Cashier Logs' },
         { id: MODULES.PAYMENT_LOGS, label: 'Payment Logs' }
     ];
@@ -551,8 +634,8 @@ export const getFilteredMenuItems = (user) => {
 export const getDefaultRoute = (user) => {
     if (!user) return '/login';
 
-    // Determine prefix based on role
-    const prefix = user.role === ROLES.STAFF ? '/staff' : '/admin';
+    // All roles use /admin prefix since all routes are under /admin
+    const prefix = '/admin';
 
     // Define route priority order (generic paths)
     const routePriority = [

@@ -14,6 +14,8 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
     // Prefer prop over state (prop comes from AdminDashboard posGuestDetails)
     const room = roomProp || roomState;
 
+    const isDirectAccess = !room && !source && !orderMode;
+
     const handleMenuClick = (menuId) => {
         const routeMap = {
             'dashboard': '/admin/dashboard',
@@ -215,6 +217,8 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
 
     // New Features States
     const [billComment, setBillComment] = useState('');
+    const [kotNote, setKotNote] = useState('');
+    const [activeNoteType, setActiveNoteType] = useState('BILL'); // 'BILL' or 'KOT'
     const [showCommentModal, setShowCommentModal] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -258,6 +262,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                 setTaxRate(data.data.taxRate || 5);
                 setIsTaxApplied((data.data.tax || 0) > 0);
                 setBillComment(data.data.notes || '');
+                setKotNote(data.data.kotNote || ''); // Populate KOT Note
                 // Map items back to cart format
                 const mappedCart = data.data.items.map(item => ({
                     id: item.id || item.menuItem || item._id,
@@ -282,6 +287,8 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                 setOrderId(data.data._id);
                 setTaxRate(data.data.taxRate || 5);
                 setIsTaxApplied((data.data.tax || 0) > 0);
+                setBillComment(data.data.notes || '');
+                setKotNote(data.data.kotNote || ''); // Populate KOT Note
                 // Map items back to cart format
                 const mappedCart = data.data.items.map(item => ({
                     id: item.id,
@@ -334,6 +341,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                     activeOrderType === 'takeaway' ? 'Take Away' : 'Direct Payment',
                 taxRate: isTaxApplied ? Number(taxRate) : 0,
                 notes: billComment, // Bill Wise Comment
+                kotNote: kotNote, // Special Note (KOT Only)
                 guest: selectedCustomer?.id || null, // Link to Guest model
                 items: cart.map(item => ({
                     id: item.id || item._id, // Ensure id is passed
@@ -354,6 +362,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                         items: orderData.items,
                         taxRate: orderData.taxRate,
                         notes: orderData.notes,
+                        kotNote: orderData.kotNote,
                         guestName: orderData.guestName,
                         guestPhone: orderData.guestPhone,
                         guest: orderData.guest
@@ -392,20 +401,13 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
         const success = await saveOrderToBackend();
         if (success) {
             addToast('Saved to KOT');
-            // Navigate immediately
-            let targetFilter = 'All';
-            if (activeOrderType === 'takeaway') targetFilter = 'Take Away';
-            else if (activeOrderType === 'roomservice' || activeOrderType === 'room') targetFilter = 'Room Order';
-            else if (activeOrderType === 'dinein') targetFilter = 'Dine In';
-
-            // If coming from room-service, go to KOT View tab
-            const targetTab = (source === 'room-service') ? 'KOT View' : 'Bill View';
-
+            // Navigate immediately to Current Orders (KOT View) showing All orders
+            // This ensures the new order is visible along with outlet status functionality
             navigate('/admin/dashboard', {
                 state: {
                     activeMenu: 'view-order',
-                    activeFilter: targetFilter,
-                    activeTab: targetTab
+                    activeFilter: 'All', // Show all types (Dine In, Take Away, Room, Online)
+                    activeTab: 'Current Orders' // Force to Current Orders view (previously KOT View)
                 }
             });
         } else {
@@ -735,32 +737,32 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                         <button
                             className={`pos-mode-btn ${activeOrderType === 'dinein' ? 'active' : ''}`}
                             onClick={() => setActiveOrderType('dinein')}
-                            disabled={(orderMode && orderMode !== 'dinein') || source === 'room-service'}
-                            style={{ opacity: ((orderMode && orderMode !== 'dinein') || source === 'room-service') ? 0.5 : 1, cursor: ((orderMode && orderMode !== 'dinein') || source === 'room-service') ? 'not-allowed' : 'pointer' }}
+                            disabled={(orderMode && orderMode !== 'dinein') || source === 'room-service' || isDirectAccess}
+                            style={{ opacity: ((orderMode && orderMode !== 'dinein') || source === 'room-service' || isDirectAccess) ? 0.5 : 1, cursor: ((orderMode && orderMode !== 'dinein') || source === 'room-service' || isDirectAccess) ? 'not-allowed' : 'pointer' }}
                         >
                             Dine In (F1)
                         </button>
                         <button
                             className={`pos-mode-btn ${activeOrderType === 'takeaway' ? 'active' : ''}`}
                             onClick={() => setActiveOrderType('takeaway')}
-                            disabled={(orderMode && orderMode !== 'takeaway') || source === 'room-service'}
-                            style={{ opacity: ((orderMode && orderMode !== 'takeaway') || source === 'room-service') ? 0.5 : 1, cursor: ((orderMode && orderMode !== 'takeaway') || source === 'room-service') ? 'not-allowed' : 'pointer' }}
+                            disabled={(orderMode && orderMode !== 'takeaway') || source === 'room-service' || isDirectAccess}
+                            style={{ opacity: ((orderMode && orderMode !== 'takeaway') || source === 'room-service' || isDirectAccess) ? 0.5 : 1, cursor: ((orderMode && orderMode !== 'takeaway') || source === 'room-service' || isDirectAccess) ? 'not-allowed' : 'pointer' }}
                         >
                             Take Away (F3)
                         </button>
                         <button
                             className={`pos-mode-btn ${activeOrderType === 'online' ? 'active' : ''}`}
                             onClick={() => setActiveOrderType('online')}
-                            disabled={!!orderMode || source === 'room-service'}
-                            style={{ opacity: (!!orderMode || source === 'room-service') ? 0.5 : 1, cursor: (!!orderMode || source === 'room-service') ? 'not-allowed' : 'pointer' }}
+                            disabled={!!orderMode || source === 'room-service' || isDirectAccess}
+                            style={{ opacity: (!!orderMode || source === 'room-service' || isDirectAccess) ? 0.5 : 1, cursor: (!!orderMode || source === 'room-service' || isDirectAccess) ? 'not-allowed' : 'pointer' }}
                         >
                             Online Order (F5)
                         </button>
                         <button
                             className={`pos-mode-btn ${activeOrderType === 'roomservice' ? 'active' : ''}`}
                             onClick={() => setActiveOrderType('roomservice')}
-                            disabled={(orderMode && orderMode !== 'roomservice')}
-                            style={{ opacity: (orderMode && orderMode !== 'roomservice') ? 0.5 : 1, cursor: (orderMode && orderMode !== 'roomservice') ? 'not-allowed' : 'pointer' }}
+                            disabled={(orderMode && orderMode !== 'roomservice') || isDirectAccess}
+                            style={{ opacity: (orderMode && orderMode !== 'roomservice' || isDirectAccess) ? 0.5 : 1, cursor: (orderMode && orderMode !== 'roomservice' || isDirectAccess) ? 'not-allowed' : 'pointer' }}
                         >
                             Room Service
                         </button>
@@ -800,7 +802,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                             </button>
                             <button
                                 className={`pos-action-btn ${billComment ? 'active' : ''}`}
-                                onClick={() => setShowCommentModal(true)}
+                                onClick={() => { setActiveNoteType('BILL'); setShowCommentModal(true); }}
                             >
                                 {billComment ? '📝 Note Added' : 'Bill Wise Comment'}
                             </button>
@@ -908,30 +910,17 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
 
                         {/* ACTION BAR */}
                         <div className="pos-action-bar">
-                            <button className="pos-action-btn-tender" onClick={() => setShowTenderModal(true)}>TENDER (TOTAL: ₹{total})</button>
-                            <button className="pos-action-btn-small" onClick={() => setShowCommentModal(true)}>Special Note</button>
+                             <button className="pos-action-btn" style={{ width: '100%' }} onClick={() => { setActiveNoteType('KOT'); setShowCommentModal(true); }}>Special Note</button>
                         </div>
 
                         {/* TWO ROWS BELOW */}
                         <div className="pos-footer-rows">
                             {/* KOT ROW */}
-                            <div className="pos-footer-row">
-                                <div className="pos-row-label kot">KOT</div>
+                            <div className="pos-footer-row" style={{ height: '40px' }}>
+                                <div className="pos-row-label kot" style={{ fontSize: '10px' }}>KOT</div>
                                 <div className="pos-row-btns">
                                     <button className="pos-footer-btn" onClick={handleSaveKOT}>Save (K)</button>
                                     <button className="pos-footer-btn" onClick={handleSavePrintKOT}>Save & Print(F4)</button>
-                                </div>
-                            </div>
-
-                            {/* BILL ROW */}
-                            <div className="pos-footer-row">
-                                <div className="pos-row-label bill">BILL</div>
-                                <div className="pos-row-btns">
-                                    <button className="pos-footer-btn" onClick={handleSaveBill}>Save(B)</button>
-                                    <button className="pos-footer-btn" onClick={handleSavePrintBill}>Save & Print(F8)</button>
-                                    {(activeOrderType === 'dinein' || activeOrderType === 'roomservice') && (
-                                        <button className="pos-footer-btn" onClick={handleRoomPosting}>Room Posting</button>
-                                    )}
                                 </div>
                             </div>
                         </div>
@@ -1034,21 +1023,21 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                             style={{ width: '400px' }}
                         >
                             <div className="pos-modal-header">
-                                <h3>Bill Wise Comment</h3>
+                                <h3>{activeNoteType === 'KOT' ? 'Special KOT Note' : 'Bill Wise Comment'}</h3>
                                 <button className="pos-modal-close" onClick={() => setShowCommentModal(false)}>×</button>
                             </div>
                             <div className="pos-modal-body" style={{ background: '#fff', padding: '20px', display: 'block' }}>
                                 <textarea
                                     className="pos-search-input"
-                                    placeholder="Add special instructions for the entire bill..."
+                                    placeholder={activeNoteType === 'KOT' ? "Add note for the kitchen..." : "Add comment for the bill..."}
                                     style={{ width: '100%', height: '120px', resize: 'none', background: '#fff', fontSize: '14px' }}
-                                    value={billComment}
-                                    onChange={(e) => setBillComment(e.target.value)}
+                                    value={activeNoteType === 'KOT' ? kotNote : billComment}
+                                    onChange={(e) => activeNoteType === 'KOT' ? setKotNote(e.target.value) : setBillComment(e.target.value)}
                                 />
                             </div>
                             <div className="pos-modal-footer">
                                 <button className="pos-modal-btn cancel" onClick={() => {
-                                    setBillComment('');
+                                    activeNoteType === 'KOT' ? setKotNote('') : setBillComment('');
                                     setShowCommentModal(false);
                                 }}>Clear</button>
                                 <button className="pos-modal-btn print" onClick={() => setShowCommentModal(false)}>Save Note</button>
@@ -1301,6 +1290,7 @@ Thank you visit again`}
                                         </table>
                                         <div style={{ borderTop: '2px solid #333', marginTop: '15px', paddingTop: '10px', textAlign: 'right' }}>
                                             <h3 style={{ margin: '0' }}>Total: ₹{total.toFixed(2)}</h3>
+                                            {billComment && <p style={{ marginTop: '15px', fontStyle: 'italic', background: '#f8f9fa', padding: '10px', textAlign: 'left', border: '1px solid #eee', fontSize: '12px' }}><strong>Note:</strong> {billComment}</p>}
                                         </div>
                                     </div>
                                 ) : (
@@ -1314,6 +1304,7 @@ Thank you visit again`}
                                             <thead><tr style={{ borderBottom: '1px solid #eee' }}><th align="left">Item</th><th>Qty</th></tr></thead>
                                             <tbody>{cart.map(item => <tr key={item.id}><td>{item.name}</td><td align="center">{item.quantity}</td></tr>)}</tbody>
                                         </table>
+                                        {kotNote && <div style={{ marginTop: '15px', border: '1px dashed #333', padding: '8px', fontSize: '13px' }}><strong>KOT NOTE:</strong> {kotNote}</div>}
                                     </div>
                                 )}
                             </div>

@@ -2,370 +2,154 @@ import { useState } from 'react';
 import './FormStyles.css';
 
 const PrintGRCForm = ({ booking, onSubmit, onCancel }) => {
-    const [printType, setPrintType] = useState('Dot Matrix');
+    const [printType, setPrintType] = useState('A4');
 
-    const printOptions = [
-        'Dot Matrix', 'Thermal', 'A4', 'A5', '2 inch', '3 inch'
-    ];
+    const printOptions = ['A4', 'A5', 'Thermal', 'Dot Matrix', '3 inch', '2 inch'];
 
+    const formatDate = (date) => {
+        if (!date) return 'N/A';
+        try { return new Date(date).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }); } catch { return 'N/A'; }
+    };
 
-    const getPrintStyle = (type) => {
-        const reset = `
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { color: #000; line-height: 1.3; }
-            .text-center { text-align: center; }
-            .bold { font-weight: bold; }
-        `;
+    const b = booking || {};
 
-        if (type === 'A4' || type === 'A5') {
-            return `
-                ${reset}
-                body { 
-                    font-family: Arial, sans-serif; 
-                    padding: ${type === 'A5' ? '20px' : '40px'}; 
-                    font-size: ${type === 'A5' ? '11px' : '13px'};
-                }
-                .grc-card {
-                    padding: 20px;
-                    border: 1px solid #000;
-                    height: 100%;
-                }
-                .header {
-                    text-align: center;
-                    border-bottom: 2px solid #000;
-                    padding-bottom: 10px;
-                    margin-bottom: 20px;
-                }
-                .hotel-name {
-                    font-size: 22px;
-                    font-weight: bold;
-                    margin-bottom: 5px;
-                }
-                .document-title {
-                    text-align: center;
-                    background: #000;
-                    color: #fff;
-                    padding: 8px;
-                    font-weight: bold;
-                    margin: 20px 0;
-                    text-transform: uppercase;
-                    font-size: 14px;
-                }
-                .info-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin: 15px 0;
-                }
-                .info-table td {
-                    padding: 8px;
-                    border: 1px solid #999;
-                }
-                .info-table .label {
-                    font-weight: bold;
-                    width: 35%;
-                    background: #f0f0f0;
-                }
-                .declaration {
-                    margin: 20px 0;
-                    padding: 10px;
-                    border: 1px solid #ccc;
-                    font-size: 11px;
-                    text-align: justify;
-                }
-                .signature-area {
-                    display: flex;
-                    justify-content: space-between;
-                    margin-top: 40px;
-                }
-                .sign-line {
-                    border-top: 1px solid #000;
-                    padding-top: 5px;
-                    text-align: center;
-                    width: 40%;
-                }
-                .footer-note {
-                    text-align: center;
-                    margin-top: 20px;
-                    font-size: 10px;
-                    color: #666;
-                }
-                @page { size: ${type}; margin: 10mm; }
-            `;
-        }
+    const getPageStyle = (type) => {
+        if (type === '2 inch') return '@page { size: 56mm auto; margin: 2mm; }';
+        if (type === '3 inch' || type === 'Thermal') return '@page { size: 78mm auto; margin: 2mm; }';
+        if (type === 'A5') return '@page { size: A5; margin: 12mm; }';
+        if (type === 'Dot Matrix') return '@page { size: auto; margin: 5mm; }';
+        return '@page { size: A4; margin: 15mm; }';
+    };
 
-        if (type === 'Dot Matrix') {
-            return `
-                ${reset}
-                body { 
-                    font-family: 'Courier New', Courier, monospace; 
-                    font-size: 13px; 
-                    padding: 15px;
-                }
-                .grc-card {
-                    padding: 10px;
-                    border: 1px dashed #000;
-                }
-                .header {
-                    text-align: center;
-                    border-bottom: 1px dashed #000;
-                    padding-bottom: 10px;
-                    margin-bottom: 15px;
-                }
-                .hotel-name {
-                    font-size: 18px;
-                    font-weight: bold;
-                    text-transform: uppercase;
-                }
-                .document-title {
-                    text-align: center;
-                    border: 1px dashed #000;
-                    padding: 5px;
-                    font-weight: bold;
-                    margin: 15px 0;
-                    text-transform: uppercase;
-                }
-                .info-table {
-                    width: 100%;
-                    margin: 10px 0;
-                }
-                .info-table td {
-                    padding: 4px 0;
-                    border-bottom: 1px dotted #000;
-                }
-                .info-table .label {
-                    font-weight: bold;
-                    width: 40%;
-                }
-                .declaration {
-                    margin: 15px 0;
-                    padding: 5px;
-                    border: 1px dashed #000;
-                    font-size: 11px;
-                }
-                .signature-area {
-                    margin-top: 30px;
-                }
-                .sign-line {
-                    border-top: 1px dashed #000;
-                    margin-top: 20px;
-                    padding-top: 5px;
-                    text-align: center;
-                }
-                @page { size: auto; margin: 5mm; }
-            `;
-        }
+    const isReceipt = ['2 inch', '3 inch', 'Thermal'].includes(printType);
+    const isDotMatrix = printType === 'Dot Matrix';
 
-        // Thermal / Small Format
-        const isSmall = type === '2 inch';
-        const width = isSmall ? '56mm' : '78mm';
-        const fontSize = isSmall ? '10px' : '11px';
+    const generateGRC = () => {
+        return `<!DOCTYPE html>
+<html><head><title>GRC - ${b.guestName || 'Guest'}</title>
+<style>
+${getPageStyle(printType)}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: ${isDotMatrix ? "'Courier New', monospace" : isReceipt ? "'Roboto Mono', 'Courier New', monospace" : "'Segoe UI', Arial, sans-serif"};
+    font-size: ${isReceipt ? (printType === '2 inch' ? '10px' : '11px') : isDotMatrix ? '12px' : '13px'};
+    color: #000; padding: ${isReceipt ? '4px' : isDotMatrix ? '10px' : '30px'}; line-height: 1.5;
+    ${isReceipt ? `width: ${printType === '2 inch' ? '56mm' : '78mm'};` : ''}
+}
+.hotel-name { font-size: ${isReceipt ? '14px' : isDotMatrix ? '16px' : '22px'}; font-weight: bold; text-align: center; text-transform: uppercase; }
+.hotel-addr { text-align: center; font-size: ${isReceipt ? '9px' : '11px'}; color: #444; margin-bottom: ${isReceipt ? '4px' : '8px'}; }
+.divider { border: none; border-top: ${isDotMatrix ? '1px dashed #000' : isReceipt ? '1px dashed #333' : '2px solid #333'}; margin: ${isReceipt ? '5px 0' : '10px 0'}; }
+.doc-title { text-align: center; font-size: ${isReceipt ? '12px' : isDotMatrix ? '13px' : '16px'}; font-weight: bold; text-transform: uppercase; padding: ${isReceipt ? '4px 0' : '8px 0'}; ${!isReceipt && !isDotMatrix ? 'background: #1f2937; color: #fff; letter-spacing: 2px;' : ''} margin: ${isReceipt ? '4px 0' : '10px 0'}; }
+.reg-no { font-size: ${isReceipt ? '10px' : '12px'}; margin-bottom: ${isReceipt ? '5px' : '10px'}; }
+table { width: 100%; border-collapse: collapse; margin: ${isReceipt ? '5px 0' : '10px 0'}; }
+th { background: ${isDotMatrix ? 'transparent' : '#f3f4f6'}; padding: ${isReceipt ? '3px 4px' : '8px 10px'}; text-align: left; font-size: ${isReceipt ? '9px' : '12px'}; font-weight: bold; border-bottom: ${isDotMatrix ? '1px dashed #000' : '2px solid #ddd'}; width: 38%; }
+td { padding: ${isReceipt ? '3px 4px' : '8px 10px'}; font-size: ${isReceipt ? '10px' : '12px'}; border-bottom: 1px solid #eee; }
+.blank-fields p { margin: ${isReceipt ? '4px 0' : '8px 0'}; font-size: ${isReceipt ? '10px' : '12px'}; }
+.declaration { margin: ${isReceipt ? '8px 0' : '15px 0'}; padding: ${isReceipt ? '5px' : '10px'}; border: 1px solid #ddd; font-size: ${isReceipt ? '9px' : '11px'}; text-align: justify; background: #fafafa; }
+.sig-area { display: ${isReceipt ? 'block' : 'flex'}; justify-content: space-between; margin-top: ${isReceipt ? '15px' : '40px'}; }
+.sig-block { text-align: center; ${!isReceipt ? 'width: 40%;' : 'margin-bottom: 15px;'} }
+.sig-line { border-top: 1px solid #000; padding-top: 5px; margin-top: ${isReceipt ? '20px' : '30px'}; font-size: ${isReceipt ? '9px' : '11px'}; font-weight: bold; }
+.footer { text-align: center; margin-top: ${isReceipt ? '10px' : '20px'}; font-size: ${isReceipt ? '8px' : '10px'}; color: #777; }
+@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style></head>
+<body>
+<div class="hotel-name">Bireena Athithi Hotel</div>
+<div class="hotel-addr">123 Hotel Street, City, State 12345 | +91-1234-567890</div>
+<hr class="divider">
+<div class="doc-title">Guest Registration Card (Form C)</div>
+<hr class="divider">
 
-        return `
-            ${reset}
-            body { 
-                font-family: 'Roboto Mono', monospace; 
-                font-size: ${fontSize};
-                width: ${width};
-                background: #fff;
-            }
-            .grc-card { padding: 0; border: none; }
-            .header { 
-                text-align: center; 
-                margin-bottom: 10px; 
-                border-bottom: 1px dashed #000;
-                padding-bottom: 5px;
-            }
-            .hotel-name { 
-                font-size: ${isSmall ? '14px' : '16px'}; 
-                font-weight: bold; 
-                margin-bottom: 5px;
-            }
-            .document-title { 
-                text-align: center; 
-                font-weight: bold; 
-                margin: 10px 0; 
-                border: 1px solid #000; 
-                padding: 4px;
-                font-size: ${fontSize};
-            }
-            .info-table { 
-                width: 100%; 
-                margin: 10px 0; 
-                border-collapse: collapse; 
-            }
-            .info-table td { 
-                padding: 2px 0; 
-                border-bottom: 1px dotted #ccc;
-                display: ${isSmall ? 'block' : 'table-cell'};
-            }
-            .info-table .label { 
-                font-weight: bold; 
-                width: ${isSmall ? '100%' : '40%'}; 
-            }
-            .declaration { 
-                margin: 10px 0; 
-                font-size: ${isSmall ? '9px' : '10px'}; 
-                text-align: justify;
-                border-top: 1px dashed #000;
-                padding-top: 5px;
-            }
-            .signature-area { margin-top: 20px; }
-            .sign-line { 
-                border-top: 1px solid #000; 
-                margin-top: 20px; 
-                padding-top: 5px; 
-                text-align: center; 
-            }
-            .footer-note { 
-                text-align: center; 
-                margin-top: 10px; 
-                font-size: 9px; 
-                color: #666; 
-            }
-            @page { size: ${width} auto; margin: 0; }
-        `;
+<div class="reg-no"><strong>Reg No:</strong> ${b.bookingId || b._id || 'N/A'}</div>
+
+<table>
+<tr><th>Full Name</th><td>${b.guestName || ''}</td></tr>
+<tr><th>Mobile</th><td>${b.mobileNumber || ''}</td></tr>
+<tr><th>Email</th><td>${b.email || ''}</td></tr>
+<tr><th>Room Type</th><td>${b.roomType || ''}</td></tr>
+<tr><th>Room No</th><td>${b.roomNumber || 'TBA'}</td></tr>
+<tr><th>Check-In</th><td>${formatDate(b.checkInDate)}</td></tr>
+<tr><th>Check-Out</th><td>${formatDate(b.checkOutDate)}</td></tr>
+<tr><th>No. of Guests</th><td>${b.numberOfGuests || 1}</td></tr>
+</table>
+
+<div class="blank-fields">
+<p><strong>Father's/Husband's Name:</strong> _________________________</p>
+<p><strong>Age:</strong> _______ &nbsp; <strong>Gender:</strong> _______</p>
+<p><strong>Nationality:</strong> _________________________</p>
+<p><strong>ID Proof No:</strong> _________________________</p>
+<p><strong>Permanent Address:</strong> _________________________</p>
+<p>_________________________________________________</p>
+<p><strong>Purpose of Visit:</strong> _________________________</p>
+</div>
+
+<div class="declaration">
+<strong>DECLARATION:</strong> I declare that the above information is true and correct to the best of my knowledge.
+</div>
+
+<div class="sig-area">
+<div class="sig-block"><div class="sig-line">Guest Signature</div><small>Date: ___________</small></div>
+<div class="sig-block"><div class="sig-line">Reception</div><small>${new Date().toLocaleDateString('en-IN')}</small></div>
+</div>
+
+<hr class="divider">
+<div class="footer">Generated: ${new Date().toLocaleString('en-IN')} | Bireena Athithi Hotel</div>
+</body></html>`;
     };
 
     const handlePrint = () => {
-        const printContent = generateGRC();
-
-        const printWindow = window.open('', '', 'width=800,height=600');
-        printWindow.document.write(printContent);
+        const content = generateGRC();
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        printWindow.document.write(content);
         printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-
+        setTimeout(() => { printWindow.focus(); printWindow.print(); }, 400);
         onSubmit({ action: 'print-grc', timestamp: new Date().toISOString(), type: printType });
-    };
-
-    const generateGRC = () => {
-        return `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>GRC - ${booking.guestName}</title>
-                <style>
-                    ${getPrintStyle(printType)}
-                </style>
-            </head>
-            <body>
-                <div class="grc-card">
-                    <div class="header">
-                        <div class="hotel-name">BIREENA ATHITHI HOTEL</div>
-                        <div style="font-size: 12px;">123 Hotel Street, City, State 12345</div>
-                        <div style="font-size: 11px;">Phone: +91-1234-567890</div>
-                    </div>
-
-                    <div class="document-title">GUEST REGISTRATION CARD (Form C)</div>
-
-                    <div style="margin-bottom: 10px; font-size: 12px;">
-                        <strong>Registration No:</strong> ${booking.bookingId || booking._id}
-                    </div>
-
-                    <table class="info-table">
-                        <tr>
-                            <td class="label">Full Name:</td>
-                            <td class="value">${booking.guestName || ''}</td>
-                        </tr>
-                        <tr>
-                            <td class="label">Mobile Number:</td>
-                            <td class="value">${booking.mobileNumber || ''}</td>
-                        </tr>
-                        <tr>
-                            <td class="label">Email:</td>
-                            <td class="value">${booking.email || ''}</td>
-                        </tr>
-                        <tr>
-                            <td class="label">Room Type:</td>
-                            <td class="value">${booking.roomType || ''}</td>
-                        </tr>
-                        <tr>
-                            <td class="label">Room Number:</td>
-                            <td class="value">${booking.roomNumber || 'TBA'}</td>
-                        </tr>
-                        <tr>
-                            <td class="label">Check-In:</td>
-                            <td class="value">${new Date(booking.checkInDate).toLocaleDateString('en-IN')}</td>
-                        </tr>
-                        <tr>
-                            <td class="label">Check-Out:</td>
-                            <td class="value">${new Date(booking.checkOutDate).toLocaleDateString('en-IN')}</td>
-                        </tr>
-                        <tr>
-                            <td class="label">No. of Guests:</td>
-                            <td class="value">${booking.numberOfGuests || 1}</td>
-                        </tr>
-                    </table>
-
-                    <div class="additional-info">
-                        <p><strong>Father's/Husband's Name:</strong> _________________________</p>
-                        <p><strong>Age:</strong> _______ <strong>Gender:</strong> _______</p>
-                        <p><strong>Nationality:</strong> _________________________</p>
-                        <p><strong>ID Proof No:</strong> _________________________</p>
-                        <p><strong>Permanent Address:</strong> _________________________</p>
-                        <p>_________________________________________________</p>
-                        <p><strong>Purpose of Visit:</strong> _________________________</p>
-                    </div>
-
-                    <div class="declaration">
-                        <strong>DECLARATION:</strong> I declare that the above information is true and correct.
-                    </div>
-
-                    <div class="signature-area">
-                        <div>
-                            <div class="sign-line">Guest Signature</div>
-                            <small>Date: ___________</small>
-                        </div>
-                        <div>
-                            <div class="sign-line">Reception</div>
-                            <small>${new Date().toLocaleDateString('en-IN')}</small>
-                        </div>
-                    </div>
-
-                    <div class="footer-note">
-                        Generated: ${new Date().toLocaleString('en-IN')} | Bireena Athithi Hotel
-                    </div>
-                </div>
-            </body>
-            </html>
-        `;
     };
 
     return (
         <div className="flex flex-col h-full bg-white">
-            {/* Main Content */}
-            <div className="flex-1 p-8 space-y-8">
-                {/* Reservation Number */}
-                <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                    <p className="text-sm font-medium text-gray-500 mb-2">Reservation No</p>
-                    <h3 className="text-2xl font-bold text-gray-900">{booking.bookingId || 'RES-51'}</h3>
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                {/* Booking Info Card */}
+                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-[11px] text-gray-400 uppercase tracking-wide">Registration</p>
+                            <p className="text-sm font-bold text-gray-900">{b.bookingId || b._id || 'N/A'}</p>
+                        </div>
+                    </div>
+                    <div className="border-t border-gray-200 pt-2 grid grid-cols-2 gap-2 text-[12px]">
+                        <div><span className="text-gray-400">Guest</span><p className="font-semibold text-gray-800 truncate">{b.guestName || 'N/A'}</p></div>
+                        <div><span className="text-gray-400">Mobile</span><p className="font-semibold text-gray-800">{b.mobileNumber || 'N/A'}</p></div>
+                        <div><span className="text-gray-400">Room</span><p className="font-semibold text-gray-800">{b.roomNumber || 'TBA'} ({b.roomType || 'Std'})</p></div>
+                        <div><span className="text-gray-400">Guests</span><p className="font-semibold text-gray-800">{b.numberOfGuests || 1}</p></div>
+                        <div><span className="text-gray-400">Check-in</span><p className="font-semibold text-gray-800">{formatDate(b.checkInDate)}</p></div>
+                        <div><span className="text-gray-400">Check-out</span><p className="font-semibold text-gray-800">{formatDate(b.checkOutDate)}</p></div>
+                    </div>
                 </div>
 
-                {/* Print Type Dropdown */}
+                {/* Format Selector */}
                 <div>
-                    <label className="block text-base font-semibold text-gray-700 mb-3">GRC Type</label>
-                    <select
-                        value={printType}
-                        onChange={(e) => setPrintType(e.target.value)}
-                        className="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white"
-                    >
+                    <label className="text-[11px] text-gray-400 uppercase tracking-wide mb-1 block">Print Format</label>
+                    <div className="grid grid-cols-3 gap-2">
                         {printOptions.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
+                            <button key={opt} type="button" onClick={() => setPrintType(opt)}
+                                className={`py-2 text-xs font-semibold rounded-lg border transition-all ${
+                                    printType === opt
+                                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                        : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                                }`}>
+                                {opt}
+                            </button>
                         ))}
-                    </select>
+                    </div>
                 </div>
             </div>
 
-            {/* Footer Action - Centered Green Print Button */}
-            <div className="p-6 border-t bg-gray-50">
-                <button
-                    type="button"
-                    onClick={handlePrint}
-                    className="w-full py-3.5 bg-green-600 text-white text-base font-semibold rounded-lg shadow-md hover:bg-green-700 hover:shadow-lg transform transition-all duration-200 active:scale-98 flex items-center justify-center gap-2"
-                >
-                    <span className="text-xl">🖨️</span>
-                    <span>Print GRC</span>
+            {/* Print Button */}
+            <div className="p-4 border-t border-gray-100">
+                <button type="button" onClick={handlePrint}
+                    className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                    Print GRC
                 </button>
             </div>
         </div>

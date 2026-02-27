@@ -21,22 +21,24 @@ const Settings = () => {
 
     const [availablePermissions, setAvailablePermissions] = useState([
         'Dashboard',
-        'Rooms (Dashboard)',
-        'Rooms (New Reservation)',
-        'Rooms (Housekeeping)',
-        'Rooms (Room Service)',
+        'Reservations',
+        'Housekeeping',
+        'Room Service',
+        'Reservation Card',
         'Food Order',
         'Cashier Section (Table)',
         'Cashier Section (Room Service)',
         'Cashier Section (Take Away)',
         'Table View',
+        'View Order',
         'Customer List',
         'Cashier Logs',
         'Payment Logs',
-        'View order',
-        'Registration Card',
+        'Reports',
         'Property Setup',
-        'Property Configuration'
+        'Property Configuration',
+        'CRM Model',
+        'Add Staff'
     ]);
     const [isPermissionsOpen, setIsPermissionsOpen] = useState(false);
 

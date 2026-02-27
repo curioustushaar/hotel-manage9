@@ -73,11 +73,11 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
             dropdownItems: [
                 { id: 'reservations-dashboard', label: 'Dashboard', iconVal: <Icons.Dot /> },
                 { id: 'new-reservation', label: 'New Reservation', iconVal: <Icons.Dot /> },
-                { id: 'housekeeping', label: 'Housekeeping View', iconVal: <Icons.Dot /> },
-                { id: 'room-service', label: 'Room Service', iconVal: <Icons.Dot /> },
                 { id: MODULES.RESERVATION_CARD, label: 'Reservation Card', iconVal: <Icons.Dot /> }
             ]
         },
+        { id: 'room-service', iconVal: <Icons.Reservation />, label: 'Room Service' },
+        { id: 'housekeeping', iconVal: <Icons.Reservation />, label: 'Housekeeping View' },
         { id: MODULES.VIEW_ORDER, iconVal: <Icons.Report />, label: 'View Order' },
         { id: MODULES.FOOD_ORDER, iconVal: <Icons.Meal />, label: 'Food Order' },
         { id: MODULES.CASHIER_SECTION, iconVal: <Icons.Cashier />, label: 'Cashier Section' },
@@ -121,7 +121,7 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
             ]
         },
         { id: MODULES.CUSTOMERS, iconVal: <Icons.Users />, label: 'Customer List' },
-        { id: MODULES.STAFF_MANAGEMENT, iconVal: <Icons.Settings />, label: 'Add Staff' },
+        { id: MODULES.CRM_MODEL, iconVal: <Icons.Users />, label: 'CRM Model' },
         {
             id: MODULES.REPORTS,
             iconVal: <Icons.Analytics />,
