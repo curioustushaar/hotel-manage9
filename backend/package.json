@@ -32,6 +32,7 @@
         "mongoose": "^7.6.3",
         "nodemailer": "^8.0.0",
         "qrcode": "^1.5.4",
+        "socket.io": "^4.8.3",
         "twilio": "^5.12.1",
         "uuid": "^13.0.0",
         "xss-clean": "^0.1.4"

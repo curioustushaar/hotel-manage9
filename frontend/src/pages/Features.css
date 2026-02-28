@@ -17,6 +17,7 @@
 /* LEFT SIDE */
 .features-hero-left {
     flex: 1;
+    margin-left: -22px;
 }
 
 .features-hero-left h1 {
@@ -83,14 +84,12 @@
     background: white;
     color: #e11d48;
     border: 2px solid #e11d48;
+    transition: all 0.4s ease-in-out;
 }
 
 .btn-secondary:hover {
     background: #e11d48;
     color: white !important;
-    border-color: #e11d48;
-    transform: translateY(-3px);
-    box-shadow: 0 10px 20px rgba(225, 29, 72, 0.2);
 }
 
 /* RIGHT SIDE */
@@ -177,6 +176,12 @@
 .feature-card:nth-child(7),
 .feature-card:nth-child(8) {
     margin-top: 30px;
+}
+
+.feature-card:nth-child(1),
+.feature-card:nth-child(5) {
+    position: relative;
+    left: -22px;
 }
 
 .feature-card h3 {

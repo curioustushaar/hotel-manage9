@@ -43,13 +43,16 @@
     font-weight: 700;
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s;
     box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+    min-width: 160px;
 }
 
 .btn-generate-top:hover {
     background: #dc2626;
-    transform: translateY(-1px);
+}
+
+.btn-generate-top:active {
+    transform: scale(0.98);
 }
 
 /* FILTERS ROW */
@@ -61,8 +64,9 @@
 
 .date-filter-group {
     display: flex;
-    align-items: flex-end;
-    gap: 10px;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
 }
 
 .filter-item {

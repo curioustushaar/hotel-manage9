@@ -828,6 +828,12 @@ exports.billOrder = async (req, res) => {
             await table.save();
         }
 
+        // Emit real-time sales update
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('salesUpdated');
+        }
+
         res.status(200).json({
             success: true,
             message: 'Order billed successfully',
@@ -1404,7 +1410,7 @@ exports.getOutletStatus = async (req, res) => {
 
         // Take Away Avg Prep Time (Include 'Ready', 'Closed', 'Picked Up')
         const recentTA = await GuestMealOrder.find({
-             status: { $in: ['Closed', 'Ready', 'PickedUp', 'Served', 'Billed'] },
+            status: { $in: ['Closed', 'Ready', 'PickedUp', 'Served', 'Billed'] },
             updatedAt: { $gte: dayAgo },
             orderType: 'Take Away'
         });

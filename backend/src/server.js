@@ -3,8 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
-// Load environment variables from root folder
-dotenv.config({ path: path.join(__dirname, '../../.env') });
+// Load environment variables from the current backend folder
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -179,6 +179,12 @@ app.use('/api/folio', folioRoutes);
 const notificationRoutes = require('./routes/notificationRoutes');
 app.use('/api/notifications', notificationRoutes);
 
+const salesReportRoutes = require('./routes/salesReportRoutes');
+app.use('/api/sales-report', salesReportRoutes);
+
+const paymentReportRoutes = require('./routes/paymentReportRoutes');
+app.use('/api/payment-report', paymentReportRoutes);
+
 // Root route
 app.get('/', (req, res) => {
     res.json({
@@ -215,6 +221,15 @@ const startServer = (port) => {
     const numericPort = parseInt(port, 10);
     const server = app.listen(numericPort, () => {
         console.log(`Server running on port ${numericPort}`);
+    });
+
+    // Initialize Socket.io mapping
+    const io = require('socket.io')(server, {
+        cors: { origin: "*", methods: ["GET", "POST"] }
+    });
+    app.set('io', io);
+    io.on('connection', (socket) => {
+        console.log('Client connected to socket.io');
     });
 
     server.on('error', (err) => {

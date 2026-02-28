@@ -36,7 +36,6 @@ import MaintenanceBlock from '../MaintenanceBlock/MaintenanceBlock';
 import BedType from '../BedType/BedType';
 import FloorSetup from '../FloorSetup/FloorSetup';
 import TableManagement from '../TableManagement/TableManagement';
-import RoomDetailsPanel from '../../components/rooms/RoomDetailsPanel';
 import RoomService from '../../components/RoomService';
 import HousekeepingView from '../../components/HousekeepingView';
 import CompanySettings from '../CompanySettings/CompanySettings';
