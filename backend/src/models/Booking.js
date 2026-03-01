@@ -44,6 +44,25 @@ const bookingSchema = new mongoose.Schema({
     vehicleNumber: String,
     securityDeposit: Number,
 
+    // Additional guests on the same booking
+    additionalGuests: [{
+        name: String,
+        mobile: String,
+        email: String,
+        gender: String,
+        nationality: String,
+        dob: String,
+        address: String,
+        city: String,
+        state: String,
+        country: String,
+        pinCode: String,
+        idProofType: String,
+        idProofNumber: String,
+        vehicleNumber: String,
+        companyName: String
+    }],
+
     // Multi-room support inside single booking record
     rooms: [{
         roomType: String,

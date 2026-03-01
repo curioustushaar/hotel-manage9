@@ -224,7 +224,8 @@ exports.addBooking = async (req, res) => {
             mobileNumber: bookingData.mobileNumber,
             email: bookingData.email,
             referenceId: bookingData.referenceId || bookingData.bookingId,
-            rooms: bookingData.rooms || []
+            rooms: bookingData.rooms || [],
+            additionalGuests: Array.isArray(bookingData.additionalGuests) ? bookingData.additionalGuests : []
         };
 
         // Update all room statuses
