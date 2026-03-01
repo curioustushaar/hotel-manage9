@@ -1,4 +1,6 @@
 import React from "react";
+import { Link } from "react-router-dom";
+import Reveal from "../components/Reveal";
 import "./Features.css";
 import heroImage from "../assets/feature-hero.png";
 import f1 from "../assets/f1.png";
@@ -58,54 +60,62 @@ const Features = () => {
         <div className="features-page">
 
             {/* HERO SECTION */}
-            <section className="features-hero">
-                <div className="features-hero-left">
-                    <h1>
-                        Smart Hotel Management <br />
-                        <span>with KOT Automation</span>
-                    </h1>
+            <Reveal width="100%">
+                <section className="features-hero">
+                    <div className="features-hero-left">
+                        <h1>
+                            Smart Hotel Management <br />
+                            <span>with KOT Automation</span>
+                        </h1>
 
-                    <p>
-                        Manage reservations, billing, inventory, housekeeping and KOT
-                        seamlessly with powerful real-time automation built for modern hotels.
-                    </p>
+                        <p>
+                            Manage reservations, billing, inventory, housekeeping and KOT
+                            seamlessly with powerful real-time automation built for modern hotels.
+                        </p>
 
-                    <div className="hero-buttons">
-                        <button className="btn-primary">Get Started</button>
-                        <button className="btn-secondary">See Pricing</button>
+                        <div className="hero-buttons">
+                            <button className="btn-primary">Get Started</button>
+                            <button className="btn-secondary">See Pricing</button>
+                        </div>
                     </div>
-                </div>
 
-                <div className="features-hero-image-wrapper">
-                    <img
-                        src={heroImage}
-                        alt="Bireena Atithi Feature Hero"
-                        className="features-hero-image"
-                        draggable="false"
-                    />
-                </div>
-            </section>
+                    <div className="features-hero-image-wrapper">
+                        <img
+                            src={heroImage}
+                            alt="Bireena Atithi Feature Hero"
+                            className="features-hero-image"
+                            draggable="false"
+                        />
+                    </div>
+                </section>
+            </Reveal>
 
             {/* NEW FEATURES GRID SECTION */}
-            <section className="features-grid-wrapper">
-                <div className="features-grid-container">
-                    {featureData.map((item, index) => (
-                        <div className="feature-card" key={index}>
-                            <img src={item.img} alt={item.title} />
-                        </div>
-                    ))}
-                </div>
-            </section>
+            <Reveal width="100%" delay={0.1}>
+                <section className="features-grid-wrapper">
+                    <div className="features-grid-container">
+                        {featureData.map((item, index) => (
+                            <div className="feature-card" key={index}>
+                                <img src={item.img} alt={item.title} />
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            </Reveal>
 
             {/* CTA BANNER */}
-            <section className="features-cta">
-                <h2>Empower Your Hotel with Real-Time KOT Intelligence</h2>
-                <p>
-                    Streamline your kitchen operations, reduce order delays, and deliver
-                    a seamless guest experience with our advanced automation.
-                </p>
-                <button className="cta-btn">Book a Free Demo</button>
-            </section>
+            <Reveal width="100%" delay={0.2}>
+                <section className="features-cta">
+                    <h2>Empower Your Hotel with Real-Time KOT Intelligence</h2>
+                    <p>
+                        Streamline your kitchen operations, reduce order delays, and deliver
+                        a seamless guest experience with our advanced automation.
+                    </p>
+                    <Link to="/login">
+                        <button className="cta-btn" onClick={() => window.scrollTo(0, 0)}>Book a Free Demo</button>
+                    </Link>
+                </section>
+            </Reveal>
 
         </div>
     );
