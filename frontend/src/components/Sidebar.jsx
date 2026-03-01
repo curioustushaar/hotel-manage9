@@ -100,9 +100,8 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
             label: 'Property Setup',
             hasDropdown: true,
             dropdownItems: [
-                { id: 'room-setup', label: 'Room Setup', iconVal: <Icons.Dot /> },
                 { id: 'floor-setup', label: 'Floor Setup', iconVal: <Icons.Dot /> },
-                { id: 'bed-type', label: 'Bed Type', iconVal: <Icons.Dot /> },
+
 
                 { id: 'room-facilities-type', label: 'Room Facilities Type', iconVal: <Icons.Dot /> },
                 { id: 'meal-type', label: 'Meal Type', iconVal: <Icons.Dot /> },

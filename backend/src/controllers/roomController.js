@@ -247,36 +247,73 @@ const deleteRoom = async (req, res) => {
 // @access  Public
 const getAvailableRooms = async (req, res) => {
     try {
-        const { from, to, type, roomViewType, smokingPolicy, isSmartRoom } = req.query;
+        const { from, to, type } = req.query;
+        const Booking = require('../models/Booking');
+        const MaintenanceBlock = require('../models/MaintenanceBlock');
 
-        // Basic filtering for available status
-        // In a real system, we'd check against bookings for these dates
-        let query = { status: 'Available' };
-
+        // 1. Start with all rooms of the requested type (or all rooms if no type specified)
+        let query = {};
         if (type) {
             query.roomType = type;
         }
 
-        // PHASE 1 UPGRADE: Support filtering by new enterprise fields
-        if (roomViewType) {
-            query.roomViewType = roomViewType;
+        const allPotentialRooms = await Room.find(query).sort({ roomNumber: 1 });
+
+        // If no dates provided, just return rooms with status 'Available' or 'Dirty'
+        if (!from || !to) {
+            const currentAvailable = allPotentialRooms.filter(r => ['Available', 'Dirty'].includes(r.status));
+            return res.status(200).json({
+                success: true,
+                data: currentAvailable
+            });
         }
 
-        if (smokingPolicy) {
-            query.smokingPolicy = smokingPolicy;
-        }
+        const checkIn = new Date(from);
+        const checkOut = new Date(to);
 
-        if (isSmartRoom !== undefined) {
-            query.isSmartRoom = isSmartRoom === 'true' || isSmartRoom === true;
-        }
+        // 2. Identify rooms that have overlapping bookings
+        const overlappingBookings = await Booking.find({
+            status: { $in: ['Upcoming', 'Checked-in', 'RESERVED', 'IN_HOUSE', 'CheckedIn', 'Reserved'] },
+            $and: [
+                { checkInDate: { $lt: checkOut } },
+                { checkOutDate: { $gt: checkIn } }
+            ]
+        });
 
-        const rooms = await Room.find(query).sort({ roomNumber: 1 });
+        const bookedRoomNumbers = new Set();
+        overlappingBookings.forEach(booking => {
+            if (booking.isMulti && booking.rooms) {
+                booking.rooms.forEach(r => {
+                    if (r.roomNumber) bookedRoomNumbers.add(r.roomNumber);
+                });
+            } else if (booking.roomNumber) {
+                bookedRoomNumbers.add(booking.roomNumber);
+            }
+        });
+
+        // 3. Identify rooms that have maintenance blocks
+        const maintenanceBlocks = await MaintenanceBlock.find({
+            status: { $ne: 'Completed' },
+            $and: [
+                { startDate: { $lt: checkOut } },
+                { endDate: { $gt: checkIn } }
+            ]
+        });
+
+        maintenanceBlocks.forEach(block => {
+            if (block.room) bookedRoomNumbers.add(block.room);
+        });
+
+        // 4. Filter out booked/blocked rooms from our potential list
+        const availableRooms = allPotentialRooms.filter(room => !bookedRoomNumbers.has(room.roomNumber));
 
         res.status(200).json({
             success: true,
-            data: rooms
+            count: availableRooms.length,
+            data: availableRooms
         });
     } catch (error) {
+        console.error('Error in getAvailableRooms:', error);
         res.status(500).json({
             success: false,
             message: 'Error fetching available rooms',

@@ -42,33 +42,53 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
     const category = roomCategories[room.categoryId];
     const baseRate = category?.baseRate || 0;
 
-    const handleRoomNumberChange = async (value) => {
-        handleChange('roomNumber', value);
 
-        // Auto-detect category from room number
-        if (value && value.length >= 1) {
-            try {
-                // Fetch room list (could be optimized with a specific search endpoint)
-                const response = await fetch(`${API_URL}/api/rooms/list`);
-                const data = await response.json();
-                if (data.success && data.data) {
-                    const roomInfo = data.data.find(r => String(r.roomNumber).trim() === String(value).trim());
-                    if (roomInfo && roomInfo.roomType) {
-                        // Find if this roomType exists in our categories
-                        if (roomCategories[roomInfo.roomType]) {
-                            // Update both room number and category
-                            onUpdate(index, {
-                                ...room,
-                                roomNumber: value,
-                                categoryId: roomInfo.roomType,
-                                ratePerNight: roomInfo.price || room.ratePerNight
-                            });
-                        }
-                    }
-                }
-            } catch (err) {
-                console.error('Auto-fill error:', err);
+
+    const [availableRooms, setAvailableRooms] = useState([]);
+    const [loadingRooms, setLoadingRooms] = useState(false);
+
+    // Fetch available rooms for this row
+    useEffect(() => {
+        const fetchAvailableRooms = async () => {
+            if (!room.categoryId || !checkInDate || !nights) {
+                setAvailableRooms([]);
+                return;
             }
+
+            try {
+                setLoadingRooms(true);
+                // Calculate check-out date
+                const ciDate = new Date(checkInDate);
+                const coDate = new Date(ciDate);
+                coDate.setDate(coDate.getDate() + nights);
+                const checkOutDate = coDate.toISOString().split('T')[0];
+
+                const response = await fetch(`${API_URL}/api/rooms/available?type=${room.categoryId}&from=${checkInDate}&to=${checkOutDate}`);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    setAvailableRooms(data.data);
+                }
+            } catch (error) {
+                console.error('Error fetching available rooms:', error);
+            } finally {
+                setLoadingRooms(false);
+            }
+        };
+
+        fetchAvailableRooms();
+    }, [room.categoryId, checkInDate, nights]);
+
+    const handleRoomNumberChange = (value) => {
+        const selectedRoom = availableRooms.find(r => r.roomNumber === value);
+        if (selectedRoom) {
+            onUpdate(index, {
+                ...room,
+                roomNumber: value,
+                ratePerNight: selectedRoom.price || room.ratePerNight
+            });
+        } else {
+            handleChange('roomNumber', value);
         }
     };
 
@@ -103,13 +123,25 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
 
                 <div className="form-row">
                     <label>Room Number</label>
-                    <input
-                        type="text"
-                        placeholder="e.g., 101, A1"
+                    <select
                         value={room.roomNumber || ''}
                         onChange={(e) => handleRoomNumberChange(e.target.value)}
-                        disabled={readOnly}
-                    />
+                        disabled={readOnly || !room.categoryId || loadingRooms}
+                        className={loadingRooms ? 'loading-select' : ''}
+                    >
+                        <option value="">
+                            {loadingRooms ? 'Loading available rooms...' : !room.categoryId ? '-- Select Category First --' : '-- Select Room No. --'}
+                        </option>
+                        {/* Include current room if it exists (for editing) */}
+                        {room.roomNumber && !availableRooms.find(r => r.roomNumber === room.roomNumber) && (
+                            <option key="current" value={room.roomNumber}>{room.roomNumber} (Current)</option>
+                        )}
+                        {availableRooms.map((r) => (
+                            <option key={r._id} value={r.roomNumber}>
+                                {r.roomNumber}
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
                 <div className="form-row">

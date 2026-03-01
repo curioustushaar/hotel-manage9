@@ -33,7 +33,7 @@ import BookingSource from '../BookingSource/BookingSource';
 import BusinessSource from '../BusinessSource/BusinessSource';
 import MaintenanceBlock from '../MaintenanceBlock/MaintenanceBlock';
 
-import BedType from '../BedType/BedType';
+
 import FloorSetup from '../FloorSetup/FloorSetup';
 import TableManagement from '../TableManagement/TableManagement';
 import RoomService from '../../components/RoomService';
@@ -208,9 +208,8 @@ const AdminDashboard = () => {
         else if (path.includes('/generate-room-qr')) setActiveMenu('generate-room-qr');
 
         // Property Configuration
-        else if (path.includes('/room-setup')) setActiveMenu('room-setup');
+        else if (path.includes('/room-setup')) setActiveMenu('rooms');
         else if (path.includes('/floor-setup')) setActiveMenu('floor-setup');
-        else if (path.includes('/bed-type')) setActiveMenu('bed-type');
 
         else if (path.includes('/room-facilities-type')) setActiveMenu('room-facilities-type');
         else if (path.includes('/meal-type')) setActiveMenu('meal-type');
@@ -513,9 +512,8 @@ const AdminDashboard = () => {
         else if (menuId === 'generate-room-qr') navigate(`${prefix}/generate-room-qr`);
 
         // Property Config
-        else if (menuId === 'room-setup') navigate(`${prefix}/room-setup`);
+
         else if (menuId === 'floor-setup') navigate(`${prefix}/floor-setup`);
-        else if (menuId === 'bed-type') navigate(`${prefix}/bed-type`);
         else if (menuId === 'room-facilities') navigate(`${prefix}/room-facilities`);
         else if (menuId === 'room-facilities-type') navigate(`${prefix}/room-facilities-type`);
         else if (menuId === 'meal-type') navigate(`${prefix}/meal-type`);
@@ -1068,12 +1066,7 @@ const AdminDashboard = () => {
                 )
             }
 
-            {/* Room Setup View */}
-            {
-                activeMenu === 'room-setup' && (
-                    <RoomSetup />
-                )
-            }
+
 
 
 
@@ -1149,12 +1142,7 @@ const AdminDashboard = () => {
                 )
             }
 
-            {/* Bed Type View */}
-            {
-                activeMenu === 'bed-type' && (
-                    <BedType />
-                )
-            }
+
 
             {/* CRM Model View */}
             {
