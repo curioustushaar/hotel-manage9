@@ -105,6 +105,21 @@ const UniversalReport = ({ type }) => {
     const outletOptions = ['Dine-In', 'Room Service', 'Take Away', 'Online'];
 
     const getOptionsForFilter = (filterName) => {
+        if (type === 'reports-analytics' && filterName === 'Metric') {
+            if (activeTab === 'Top Selling Items') {
+                return ['All Metrics', 'Quantity Sold', 'Revenue Generated', 'Profit Margin', 'Orders Count'];
+            } else if (activeTab === 'Peak Hours') {
+                return ['All Metrics', 'Orders Count', 'Revenue', 'Avg Order Value', 'Table Occupancy'];
+            } else if (activeTab === 'Best Table Revenue') {
+                return ['All Metrics', 'Revenue', 'Orders Count', 'Avg Bill Size', 'Turnover Rate'];
+            } else if (activeTab === 'Room vs Restaurant Revenue') {
+                return ['All Metrics', 'Room Revenue', 'Restaurant Revenue', 'Contribution %', 'Profit'];
+            } else if (activeTab === 'Daily Profit Estimate') {
+                return ['All Metrics', 'Revenue', 'Expenses', 'Net Profit', 'Cash Flow'];
+            }
+            return ['All Metrics', 'Quantity Sold', 'Revenue Generated', 'Profit Margin', 'Orders Count'];
+        }
+
         if (type !== 'reports-sales' && type !== 'reports-payments') {
             return ['Option 1', 'Option 2'];
         }
@@ -243,12 +258,122 @@ const UniversalReport = ({ type }) => {
         }
     };
 
+    const fetchAnalyticsReport = async (isManual = false) => {
+        if (isManual) setLoading(true);
+        try {
+            const metricFilter = filters['Metric'] || 'All Metrics';
+            if (activeTab === 'Top Selling Items') {
+                setReportData([]); // Reset State First
+                const res = await axios.get("http://localhost:5000/api/reports/top-selling", {
+                    params: {
+                        startDate: dateRange.from,
+                        endDate: dateRange.to,
+                        metric: metricFilter
+                    }
+                });
+
+                if (res.data.success) {
+                    const { data, metric } = res.data;
+                    let mappedData = [];
+
+                    if (metric === 'All Metrics') {
+                        let totalQuantity = 0, totalRevenue = 0, totalProfit = 0, totalOrders = 0;
+                        data.forEach(item => {
+                            totalQuantity += item.totalQuantity || 0;
+                            totalRevenue += item.totalRevenue || 0;
+                            totalProfit += item.totalProfit || 0;
+                            totalOrders += item.totalOrders || 0;
+                        });
+                        mappedData = [
+                            { id: 1, val1: 'Total Quantity Sold', val2: totalQuantity, val3: '-', val4: '-' },
+                            { id: 2, val1: 'Total Revenue', val2: `₹${totalRevenue.toFixed(2)}`, val3: '-', val4: '-' },
+                            { id: 3, val1: 'Total Profit', val2: `₹${totalProfit.toFixed(2)}`, val3: '-', val4: '-' },
+                            { id: 4, val1: 'Total Orders', val2: totalOrders, val3: '-', val4: '-' },
+                        ];
+                    } else if (metric === 'Quantity Sold') {
+                        mappedData = data.map((item, idx) => ({ id: idx, val1: item.itemName, val2: item.totalQuantity, val3: '-', val4: '-' }));
+                    } else if (metric === 'Revenue Generated') {
+                        mappedData = data.map((item, idx) => ({ id: idx, val1: item.itemName, val2: `₹${parseFloat(item.totalRevenue).toFixed(2)}`, val3: '-', val4: '-' }));
+                    } else if (metric === 'Profit Margin') {
+                        mappedData = data.map((item, idx) => ({ id: idx, val1: item.itemName, val2: `₹${parseFloat(item.totalProfit).toFixed(2)}`, val3: `${parseFloat(item.profitPercentage).toFixed(1)}%`, val4: '-' }));
+                    } else if (metric === 'Orders Count') {
+                        mappedData = data.map((item, idx) => ({ id: idx, val1: item.itemName, val2: item.totalOrders, val3: '-', val4: '-' }));
+                    }
+
+                    setReportData(mappedData);
+
+                    // Export to CSV if Manual Generate
+                    if (isManual && mappedData.length > 0) {
+                        const headers = config.columns.join(',');
+                        const rows = mappedData.map(row => config.columns.map((_, i) => `"${row[`val${i + 1}`] || ''}"`).join(','));
+                        const csvString = [headers, ...rows].join('\n');
+
+                        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvString], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.setAttribute("href", url);
+                        link.setAttribute("download", `Top_Selling_Items_${new Date().toISOString().split('T')[0]}.csv`);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                    }
+                }
+            } else {
+                setReportData([]);
+                const queryParams = {
+                    tab: activeTab,
+                    metric: metricFilter,
+                    startDate: dateRange.from,
+                    endDate: dateRange.to
+                };
+
+                const res = await axios.get("http://localhost:5000/api/analytics-report", { params: queryParams });
+                if (res.data.success) {
+                    const mappedData = res.data.data.map((item, idx) => ({
+                        id: idx,
+                        val1: item.metric,
+                        val2: item.value,
+                        val3: item.growth,
+                        val4: item.trend
+                    }));
+                    setReportData(mappedData);
+
+                    // Export to CSV if Manual Generate
+                    if (isManual && mappedData.length > 0) {
+                        const headers = config.columns.join(',');
+                        const rows = mappedData.map(row => config.columns.map((_, i) => `"${row[`val${i + 1}`] || ''}"`).join(','));
+                        const csvString = [headers, ...rows].join('\n');
+
+                        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvString], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.setAttribute("href", url);
+                        link.setAttribute("download", `Analytics_Report_${activeTab.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching analytics report:", error);
+            // Optionally, show a toast error as requested: "If backend error → show toast error"
+            // Since we don't have a toast component explicitly mentioned, we log it.
+        } finally {
+            if (isManual) setLoading(false);
+        }
+    };
+
     const handleGenerate = () => {
         soundManager.play('click');
         if (type === 'reports-sales') {
             fetchSalesReport(true); // Pass true flag to trigger CSV download
         } else if (type === 'reports-payments') {
             fetchPaymentReport(true); // Pass true flag to trigger CSV download
+        } else if (type === 'reports-analytics') {
+            fetchAnalyticsReport(true);
         } else {
             setLoading(true);
             setTimeout(() => {
@@ -261,11 +386,13 @@ const UniversalReport = ({ type }) => {
         }
     };
 
-    // Auto-fetch and socket connection for Sales and Payment Reports
+    // Auto-fetch and socket connection for Sales, Payment, and Analytics Reports
     useEffect(() => {
-        if (type === 'reports-sales' || type === 'reports-payments') {
+        if (type === 'reports-sales' || type === 'reports-payments' || type === 'reports-analytics') {
             if (type === 'reports-sales') {
                 fetchSalesReport();
+            } else if (type === 'reports-analytics') {
+                fetchAnalyticsReport();
             } else {
                 fetchPaymentReport(false).then((data) => {
                     if (data && data.success) {
@@ -304,6 +431,8 @@ const UniversalReport = ({ type }) => {
                 console.log("Real-time update received!");
                 if (type === 'reports-sales') {
                     fetchSalesReport();
+                } else if (type === 'reports-analytics') {
+                    fetchAnalyticsReport();
                 } else {
                     fetchPaymentReport(false).then((data) => {
                         if (data && data.success) {
@@ -408,8 +537,20 @@ const UniversalReport = ({ type }) => {
                     {config.filters.map(filter => (
                         <div className="control-group-header" key={filter}>
                             <label>{filter}</label>
-                            <select onChange={(e) => setFilters({ ...filters, [filter]: e.target.value })}>
-                                <option value="All">All {filter}s</option>
+                            <select
+                                value={filters[filter] || (type === 'reports-analytics' && filter === 'Metric' ? 'All Metrics' : 'All')}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setFilters({ ...filters, [filter]: val });
+                                    if (type === 'reports-sales' && filter === 'Outlet') {
+                                        if (val === 'Dine-In') setActiveTab('Dine-In Orders');
+                                        else if (val === 'Room Service') setActiveTab('Room Service Orders');
+                                        else if (val === 'Take Away') setActiveTab('Take-Away Orders');
+                                        else if (val === 'Online') setActiveTab('Online Orders');
+                                    }
+                                }}
+                            >
+                                {((type === 'reports-analytics' && filter === 'Metric') || (type === 'reports-sales' && filter === 'Outlet')) ? null : <option value="All">All {filter}s</option>}
                                 {getOptionsForFilter(filter).map((opt, idx) => (
                                     <option key={idx} value={opt}>{opt}</option>
                                 ))}
@@ -433,7 +574,7 @@ const UniversalReport = ({ type }) => {
                 </div>
             </header>
 
-            <div className="report-content">
+            <div className="report-content" key={activeTab}>
                 {/* Summary Cards */}
                 <div className="report-stats-grid">
                     <div className="stat-card">
@@ -548,7 +689,7 @@ const UniversalReport = ({ type }) => {
                         <table className="report-table">
                             <thead>
                                 <tr>
-                                    {config.columns.map(col => <th key={col}>{col}</th>)}
+                                    {config.columns.map((col, idx) => <th key={idx}>{col === 'Value' && type === 'reports-analytics' && filters['Metric'] && filters['Metric'] !== 'All Metrics' ? filters['Metric'] : col}</th>)}
                                 </tr>
                             </thead>
                             <tbody>

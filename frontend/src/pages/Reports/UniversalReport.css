@@ -99,7 +99,7 @@
     font-size: 14px;
 }
 
-/* TABS */
+/* TABS as Dropdown style */
 .report-tabs-outer {
     margin-top: 10px;
 }
@@ -107,38 +107,59 @@
 .report-tabs {
     display: flex;
     gap: 8px;
-    background: #ffffff;
-    padding: 4px;
-    border-radius: 10px;
-    width: fit-content;
-    border: 1px solid #fee2e2;
+    background: transparent;
+    padding: 0;
+    width: 100%;
+    border: none;
+    border-bottom: 2px solid #fee2e2;
+    border-radius: 0;
 }
 
 .report-tab {
     background: transparent;
     border: none;
     color: #64748b;
-    padding: 8px 18px;
-    border-radius: 8px;
+    padding: 12px 24px;
+    border-radius: 8px 8px 0 0;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     transition: all 0.2s;
+    position: relative;
+    margin-bottom: -2px;
+}
+
+.report-tab:hover {
+    color: #ef4444;
 }
 
 .report-tab.active {
     background: #fff1f2;
     color: #d32f2f;
-    box-shadow: 0 2px 4px rgba(211, 47, 47, 0.05);
+    border-bottom: 2px solid #ef4444;
+    box-shadow: none;
 }
 
 /* CONTENT GRID */
+@keyframes fadeSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .report-content {
     width: 100%;
     /* Full screen width */
     max-width: 100%;
     margin: 20px 0;
     padding: 0 40px;
+    animation: fadeSlideUp 0.4s ease-out forwards;
 }
 
 /* STAT CARDS */
