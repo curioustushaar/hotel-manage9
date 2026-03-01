@@ -3,11 +3,12 @@ import CreateGuestForm from './CreateGuestForm';
 import './GuestModal.css';
 import API_URL from '../config/api';
 
-const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGuests, autoOpenCreate = false }) => {
+const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGuests, autoOpenCreate = false, multiSelect = false, preSelectedGuests = [] }) => {
     const [view, setView] = useState(autoOpenCreate ? 'create' : 'selection'); // 'selection' or 'create'
     const [searchTerm, setSearchTerm] = useState('');
     const [editingGuest, setEditingGuest] = useState(null);
     const [guestsList, setGuestsList] = useState(guests); // Local state for real-time updates
+    const [tempSelected, setTempSelected] = useState(preSelectedGuests); // multi-select pending selections
 
     // Sync local state with props
     useEffect(() => {
@@ -26,7 +27,21 @@ const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGues
     if (!isOpen) return null;
 
     const handleSelectGuest = (guest) => {
-        onSelectGuest(guest);
+        if (multiSelect) {
+            const id = guest._id || guest.id || guest.guestId;
+            setTempSelected(prev =>
+                prev.some(g => (g._id || g.id || g.guestId) === id)
+                    ? prev.filter(g => (g._id || g.id || g.guestId) !== id)
+                    : [...prev, guest]
+            );
+        } else {
+            onSelectGuest(guest);
+            onClose();
+        }
+    };
+
+    const handleConfirmMultiSelect = () => {
+        onSelectGuest(tempSelected);
         onClose();
     };
 
@@ -61,13 +76,17 @@ const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGues
 
             setGuestsList(prevGuests => [...prevGuests, updatedGuest]);
 
-            // Select the newly created guest
-            onSelectGuest(updatedGuest);
+            if (multiSelect) {
+                // In multiSelect mode: add to tempSelected and return to selection view
+                setTempSelected(prev => [...prev, updatedGuest]);
+                setView('selection');
+            } else {
+                // Select the newly created guest and close
+                onSelectGuest(updatedGuest);
+                onClose();
+            }
 
-            console.log('✅ New guest added, closing modal');
-
-            // Close the modal
-            onClose();
+            console.log('✅ New guest added');
         }
     };
 
@@ -111,7 +130,9 @@ const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGues
                 <div className="modal-header">
                     <h2>
                         {view === 'selection'
-                            ? 'Select Guest'
+                            ? multiSelect
+                                ? `Select Guests${tempSelected.length > 0 ? ` (${tempSelected.length} selected)` : ''}`
+                                : 'Select Guest'
                             : editingGuest
                                 ? 'Edit Guest Profile'
                                 : 'Create New Guest'
@@ -139,15 +160,27 @@ const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGues
                                 {/* Guests List */}
                                 <div className="guests-list">
                                     {filteredGuests.length > 0 ? (
-                                        filteredGuests.map((guest, idx) => (
+                                        filteredGuests.map((guest, idx) => {
+                                            const gid = guest._id || guest.id || guest.guestId;
+                                            const isChecked = tempSelected.some(g => (g._id || g.id || g.guestId) === gid);
+                                            return (
                                             <div
-                                                key={guest._id || guest.id || guest.guestId || `guest-${idx}`}
-                                                className="guest-item"
+                                                key={gid || `guest-${idx}`}
+                                                className={`guest-item${multiSelect && isChecked ? ' guest-item-selected' : ''}`}
                                             >
                                                 <div
                                                     className="guest-item-main"
                                                     onClick={() => handleSelectGuest(guest)}
                                                 >
+                                                    {multiSelect && (
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isChecked}
+                                                            onChange={() => handleSelectGuest(guest)}
+                                                            onClick={e => e.stopPropagation()}
+                                                            className="guest-multiselect-checkbox"
+                                                        />
+                                                    )}
                                                     <div className="guest-item-avatar">
                                                         {(guest.fullName || guest.name)?.charAt(0).toUpperCase()}
                                                     </div>
@@ -184,7 +217,8 @@ const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGues
                                                     </button>
                                                 </div>
                                             </div>
-                                        ))
+                                            );
+                                        })
                                     ) : (
                                         <div className="no-results">
                                             {guestsList.length === 0 ? (
@@ -212,6 +246,15 @@ const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGues
                                     >
                                         + Create New Guest
                                     </button>
+                                    {multiSelect && (
+                                        <button
+                                            className="btn-confirm-selection"
+                                            onClick={handleConfirmMultiSelect}
+                                            disabled={tempSelected.length === 0}
+                                        >
+                                            Confirm ({tempSelected.length}) Guest{tempSelected.length !== 1 ? 's' : ''}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </>

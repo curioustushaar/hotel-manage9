@@ -1549,6 +1549,9 @@
     border: 1px solid #e8e8e8;
     border-radius: 0.4rem;
     padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .selected-guest-card {
@@ -1556,6 +1559,46 @@
     justify-content: space-between;
     align-items: center;
     gap: 1.25rem;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.35rem;
+    padding: 0.6rem 0.85rem;
+}
+
+.guest-primary-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: #4f46e5;
+    color: #fff;
+    border-radius: 3px;
+    padding: 0.1rem 0.4rem;
+    margin-bottom: 0.3rem;
+}
+
+.btn-remove-guest {
+    background: none;
+    border: 1px solid #e5e7eb;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 0.75rem;
+    line-height: 1;
+    color: #9ca3af;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s, color 0.2s;
+}
+
+.btn-remove-guest:hover {
+    background: #fee2e2;
+    color: #dc2626;
+    border-color: #fca5a5;
 }
 
 .guest-info {

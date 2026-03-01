@@ -253,6 +253,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                 guestName: reservation.guestName,
                                 guestEmail: reservation.email,
                                 guestPhone: reservation.phone,
+                                additionalGuests: reservation.additionalGuests || [],
                                 checkInDate: new Date(reservation.checkInDate).toISOString().split('T')[0],
                                 checkInTime: '14:00',
                                 checkOutDate: new Date(reservation.checkOutDate).toISOString().split('T')[0],
@@ -320,6 +321,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             guestName: booking.guestName,
             guestEmail: booking.email || '',
             guestPhone: booking.mobileNumber,
+            additionalGuests: booking.additionalGuests || [],
             checkInDate: booking.checkInDate ? new Date(booking.checkInDate).toISOString().split('T')[0] : '',
             checkInTime: booking.actualCheckIn ? new Date(booking.actualCheckIn).toTimeString().slice(0, 5) : (booking.scheduledCheckInTime || '14:00'),
             checkOutDate: booking.checkOutDate ? new Date(booking.checkOutDate).toISOString().split('T')[0] : '',
@@ -369,6 +371,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             auditTrail: booking.auditTrail || [],
             transactions: booking.transactions || [],
             notes: booking.checkInRemarks || '',
+            specialRequests: booking.specialRequests || booking.remarks || '',
             cancellationDetails: booking.cancellationDetails || {},
             noShowDetails: booking.noShowDetails || {},
             voidDetails: booking.voidDetails || {},
@@ -589,7 +592,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     }]);
 
     // Form State - Guest Information
-    const [selectedGuest, setSelectedGuest] = useState(null);
+    const [selectedGuests, setSelectedGuests] = useState([]);
     const [showGuestModal, setShowGuestModal] = useState(false);
     const [guests, setGuests] = useState([]);
 
@@ -1036,7 +1039,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         setCheckOutTime('11:00');
         setFlexibleCheckout(false);
         setRooms([{ id: 1, categoryId: '', roomNumber: '', mealPlan: '', adultsCount: 1, childrenCount: 0, ratePerNight: 0, discount: 0 }]);
-        setSelectedGuest(null);
+        setSelectedGuests([]);
         setPaidAmount(0);
         setPaymentMode('Cash');
         setTaxExempt(false);
@@ -1051,8 +1054,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const handleSaveReservation = async (e, status = 'RESERVED') => {
         if (e && e.preventDefault) e.preventDefault();
 
-        if (!selectedGuest) {
-            alert('Please select a guest');
+        if (selectedGuests.length === 0) {
+            alert('Please select at least one guest');
             return;
         }
 
@@ -1081,9 +1084,27 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         const totalGuests = mappedRooms.reduce((sum, r) => sum + r.adults + r.children, 0);
 
         const bookingData = {
-            guestName: selectedGuest.fullName || selectedGuest.name || selectedGuest.guestName,
-            mobileNumber: selectedGuest.mobile || selectedGuest.phone || selectedGuest.mobileNumber,
-            email: selectedGuest.email || selectedGuest.guestEmail,
+            guestName: selectedGuests[0].fullName || selectedGuests[0].name || selectedGuests[0].guestName,
+            mobileNumber: selectedGuests[0].mobile || selectedGuests[0].phone || selectedGuests[0].mobileNumber,
+            email: selectedGuests[0].email || selectedGuests[0].guestEmail,
+            additionalGuests: selectedGuests.slice(1).map(g => ({
+                name: g.fullName || g.name || g.guestName,
+                mobile: g.mobile || g.phone || g.mobileNumber,
+                email: g.email || g.guestEmail,
+                gender: g.gender || '',
+                nationality: g.nationality || 'Indian',
+                dob: g.dob || '',
+                address: (typeof g.address === 'object' ? g.address?.line : g.address) || '',
+                city: g.city || g.address?.city || '',
+                state: g.state || g.address?.state || '',
+                country: g.country || g.address?.country || 'India',
+                pinCode: g.pinCode || g.address?.pinCode || '',
+                idProofType: g.idProof?.type || g.idType || '',
+                idProofNumber: g.idProof?.number || g.idNumber || '',
+                vehicleNumber: g.vehicleNumber || '',
+                companyName: g.companyName || ''
+            })),
+            totalGuestProfiles: selectedGuests.length,
             rooms: mappedRooms,
             isMulti: mappedRooms.length > 1,
             roomType: mappedRooms[0].roomType, // Primary room for legacy support
@@ -1167,12 +1188,12 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         setCheckOutTime(reservation.checkOutTime);
         setFlexibleCheckout(reservation.flexibleCheckout);
         setRooms(JSON.parse(JSON.stringify(reservation.rooms)));
-        setSelectedGuest({
+        setSelectedGuests([{
             id: reservation.guestId,
             name: reservation.guestName,
             email: reservation.guestEmail,
             phone: reservation.guestPhone
-        });
+        }]);
         setPaidAmount(reservation.paidAmount);
         setPaymentMode(reservation.paymentMode);
         setTaxExempt(reservation.taxExempt);
@@ -1366,17 +1387,28 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                             {/* Guest Selection Section */}
                             <div className="form-section">
                                 <h3 className="section-title">👤 Guest Information</h3>
-                                {selectedGuest ? (
+                                {selectedGuests.length > 0 ? (
                                     <div className="guest-selection">
-                                        <div className="selected-guest-card">
-                                            <div className="guest-info">
-                                                <p className="guest-name">{selectedGuest.fullName || selectedGuest.name}</p>
-                                                <p className="guest-details">{selectedGuest.mobile || selectedGuest.phone} | {selectedGuest.email}</p>
+                                        {selectedGuests.map((guest, idx) => (
+                                            <div className="selected-guest-card" key={guest._id || guest.id || guest.guestId || idx}>
+                                                <div className="guest-info">
+                                                    {idx === 0 && <span className="guest-primary-badge">Primary</span>}
+                                                    <p className="guest-name">{guest.fullName || guest.name}</p>
+                                                    <p className="guest-details">{guest.mobile || guest.phone} | {guest.email}</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="btn-remove-guest"
+                                                    onClick={() => setSelectedGuests(prev => prev.filter((_, i) => i !== idx))}
+                                                    title="Remove guest"
+                                                >
+                                                    ✕
+                                                </button>
                                             </div>
-                                            <button type="button" className="btn btn-sm btn-outline" onClick={() => setShowGuestModal(true)}>
-                                                Change
-                                            </button>
-                                        </div>
+                                        ))}
+                                        <button type="button" className="btn btn-sm btn-outline" onClick={() => setShowGuestModal(true)}>
+                                            + Add / Change Guests
+                                        </button>
                                     </div>
                                 ) : (
                                     <div className="no-guest-selected">
@@ -1389,10 +1421,18 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                 <GuestModal
                                     isOpen={showGuestModal}
                                     onClose={() => setShowGuestModal(false)}
-                                    onSelectGuest={setSelectedGuest}
+                                    onSelectGuest={(result) => {
+                                        if (Array.isArray(result)) {
+                                            setSelectedGuests(result);
+                                        } else {
+                                            setSelectedGuests([result]);
+                                        }
+                                    }}
                                     guests={guests}
                                     onRefreshGuests={fetchGuestsFromAPI}
                                     autoOpenCreate={location.state?.autoOpenGuestModal || false}
+                                    multiSelect={true}
+                                    preSelectedGuests={selectedGuests}
                                 />
                             </div>
 
