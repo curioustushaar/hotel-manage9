@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import API_URL_CONFIG from '../config/api';
 import './ViewOrderPage.css';
 import ItemStockStatus from './ItemStockStatus';
@@ -18,6 +19,14 @@ const ViewOrderPage = () => {
 
     const [currentTime, setCurrentTime] = useState(new Date());
     const [toast, setToast] = useState(null);
+    const [hiddenOrderIds, setHiddenOrderIds] = useState(() => {
+        const saved = localStorage.getItem('hiddenOrderIds');
+        return saved ? JSON.parse(saved) : [];
+    });
+
+    useEffect(() => {
+        localStorage.setItem('hiddenOrderIds', JSON.stringify(hiddenOrderIds));
+    }, [hiddenOrderIds]);
 
     // Show toast notification
     const showToast = (message, type = 'success') => {
@@ -95,26 +104,21 @@ const ViewOrderPage = () => {
     }, []);
 
     const handleStatusUpdate = async (orderId, newStatus) => {
-        // Find order index
         const orderIndex = orders.findIndex(o => o.id === orderId);
         if (orderIndex === -1) return;
 
         const order = orders[orderIndex];
-        // Use rawStatus for comparison to avoid display-mapped values
         const currentRaw = order.rawStatus || order.status;
         if (currentRaw === 'Billed' || currentRaw === newStatus) return;
 
-        // Validation: No backward transition
         if ((currentRaw === 'Ready' || order.status === 'Ready') && (newStatus === 'Preparing' || newStatus === 'Pending')) return;
         if ((currentRaw === 'Preparing' || order.status === 'Preparing') && newStatus === 'Pending') return;
 
-        // OPTIMISTIC UPDATE
         const previousOrders = [...orders];
         const updatedOrders = [...orders];
         updatedOrders[orderIndex] = { ...order, status: newStatus };
         setOrders(updatedOrders);
 
-        // Timer Start
         if (newStatus === 'Preparing') {
             setPreparingTimes(prev => ({ ...prev, [orderId]: new Date() }));
         }
@@ -128,12 +132,11 @@ const ViewOrderPage = () => {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error("Status update failed:", errorData);
                 setOrders(previousOrders);
                 alert(`Failed to update status: ${errorData.message || 'Unknown Error'}`);
                 return false;
             } else {
-                fetchOrders(); // Sync
+                fetchOrders();
                 return true;
             }
         } catch (error) {
@@ -153,7 +156,6 @@ const ViewOrderPage = () => {
         if (!order) return;
 
         if (order.type === 'Post to Room' || order.type === 'Room Order' || order.type === 'Room Service') {
-            // Room Service: Mark as 'Started' → shows in Room Service 'In Service' tab
             const success = await handleStatusUpdate(orderId, 'Started');
             if (success) showToast('✅ Order sent — delivery started!');
         } else if (order.type === 'Take Away') {
@@ -185,9 +187,8 @@ const ViewOrderPage = () => {
             const data = await response.json();
             if (data.success) {
                 showToast('🗑️ Order deleted successfully', 'success');
-                fetchOrders(); // Refresh list
+                fetchOrders();
             } else {
-                // Show actual error from backend if available
                 alert(data.message || data.error || 'Failed to delete order');
             }
         } catch (error) {
@@ -196,13 +197,11 @@ const ViewOrderPage = () => {
         }
     };
 
-    // Elapsed calculation helpers
     const getMinutesElapsed = (startTime) => {
         if (!startTime) return 0;
         return Math.floor((currentTime - startTime) / 60000);
     };
 
-    // Filter Logic
     const filteredOrders = useMemo(() => {
         return orders.filter(order => {
             const matchesSearch =
@@ -219,19 +218,17 @@ const ViewOrderPage = () => {
                 else if (activeFilter === 'Online Order') matchesFilter = order.type === 'Online' || order.type === 'Delivery';
             }
 
-            // Tab specific filtering
             let matchesTab = true;
             if (activeTab === 'KOT View') {
-                // KOT View only shows active kitchen orders
-                matchesTab = !['Billed', 'Closed', 'Cancelled'].includes(order.rawStatus || order.status);
+                matchesTab = !['Cancelled'].includes(order.rawStatus || order.status);
             }
 
-            return matchesSearch && matchesFilter && matchesTab;
+            const isHidden = hiddenOrderIds.includes(order.id);
+            return matchesSearch && matchesFilter && matchesTab && !isHidden;
         });
-    }, [searchQuery, activeFilter, orders, activeTab]);
+    }, [searchQuery, activeFilter, orders, activeTab, hiddenOrderIds]);
 
     const handleEditOrder = (order) => {
-        // If it's a room order, we need room details
         const roomData = (order.type === 'Post to Room' || order.type === 'Room Order' || order.type === 'Room Service')
             ? { id: null, roomNumber: order.table, guestName: order.guestName }
             : { id: order.tableId?._id || order.tableId, roomNumber: order.table, guestName: order.guestName };
@@ -245,13 +242,8 @@ const ViewOrderPage = () => {
         });
     };
 
-    const handleViewBill = (order) => {
-        setSelectedOrderForBill(order);
-    };
-
     return (
         <div className="view-order-container">
-            {/* Toast Notification */}
             {toast && (
                 <div style={{
                     position: 'fixed',
@@ -270,7 +262,6 @@ const ViewOrderPage = () => {
                     {toast.message}
                 </div>
             )}
-            {/* Top Tabs */}
             <div className="view-order-tabs">
                 {['KOT View', 'Outlet Current Status', 'Item Stock Status'].map(tab => (
                     <button
@@ -283,14 +274,12 @@ const ViewOrderPage = () => {
                 ))}
             </div>
 
-            {/* Content Switch */}
             {activeTab === 'Item Stock Status' ? (
                 <ItemStockStatus />
             ) : activeTab === 'Outlet Current Status' ? (
                 <OutletCurrentStatus />
             ) : (
                 <>
-                    {/* Filters */}
                     <div className="view-order-filters">
                         <div className="search-wrapper">
                             <input
@@ -312,145 +301,135 @@ const ViewOrderPage = () => {
                         ))}
                     </div>
 
-                    {/* Grid */}
                     <div className="orders-grid">
-                        {filteredOrders.map(order => {
-                            const isBilled = order.status === 'Billed' || order.status === 'Closed';
-                            const isReady = order.status === 'Ready' || order.status === 'In Service';
-                            const pendingElapsed = getMinutesElapsed(order.createdAt);
-                            const prepElapsed = getMinutesElapsed(preparingTimes[order.id]);
+                        <AnimatePresence>
+                            {filteredOrders.map(order => {
+                                const isBilled = order.status === 'Billed' || order.status === 'Closed';
+                                const isReady = order.status === 'Ready' || order.status === 'In Service';
+                                const pendingElapsed = getMinutesElapsed(order.createdAt);
+                                const prepElapsed = getMinutesElapsed(preparingTimes[order.id]);
 
-                            // KOT VIEW CARD
-                            return (
-                                <div className={`order-card ${isBilled ? 'completed' : ''}`} key={order.id}>
-                                    <div className="card-header">
-                                        <span className="header-table">
-                                            {(order.type === 'Take Away') ? `${order.guestName || 'Take Away'}` :
-                                                (order.type === 'Online' || order.type === 'Delivery') ? `Online: ${order.guestName || 'Order'}` :
-                                                    (order.type === 'Post to Room' || order.type === 'Room Order' || order.type === 'Room Service') ? `Room: ${order.table}` :
-                                                        order.table === '-' ? 'Walk-in' : `Table: ${order.table}`}
-                                        </span>
-                                        <div className="header-right">
-                                            <span className="header-time">{order.time}</span>
-                                            <button 
-                                                className="card-close-btn"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDeleteOrder(order.id);
-                                                }}
-                                                title="Delete Order"
-                                            >
-                                                ×
-                                            </button>
+                                return (
+                                    <motion.div
+                                        className={`order-card ${isBilled ? 'completed' : ''}`}
+                                        key={order.id}
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.8, x: -20 }}
+                                        transition={{ duration: 0.2 }}
+                                    >
+                                        <div className="card-header">
+                                            <span className="header-table">
+                                                {(order.type === 'Take Away') ? `${order.guestName || 'Take Away'}` :
+                                                    (order.type === 'Online' || order.type === 'Delivery') ? `Online: ${order.guestName || 'Order'}` :
+                                                        (order.type === 'Post to Room' || order.type === 'Room Order' || order.type === 'Room Service') ? `Room: ${order.table}` :
+                                                            order.table === '-' ? 'Walk-in' : `Table: ${order.table}`}
+                                            </span>
+                                            <div className="header-right">
+                                                <span className="header-time">{order.time}</span>
+                                                <button
+                                                    className="card-close-btn"
+                                                    onClick={() => handleDeleteOrder(order.id)}
+                                                    title="Delete Order"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    {/* Status Strip */}
-                                    {
-                                        !isBilled && order.status === 'Pending' && (
+                                        {!isBilled && order.status === 'Pending' && (
                                             <div className="status-strip pending-delay">
                                                 ⚠️ DELAY {pendingElapsed}m elapsed
                                             </div>
-                                        )
-                                    }
-                                    {
-                                        !isBilled && order.status === 'Preparing' && (
+                                        )}
+                                        {!isBilled && order.status === 'Preparing' && (
                                             <div className={`status-strip ${prepElapsed > 15 ? 'preparing-delay' : 'preparing-timer'}`}>
                                                 {prepElapsed > 15 ? `⚠️ DELAY in preparation (${prepElapsed}m)` : `Preparing • ${prepElapsed}m`}
                                             </div>
-                                        )
-                                    }
-                                    {
-                                        !isBilled && order.status === 'In Service' && (
+                                        )}
+                                        {!isBilled && order.status === 'In Service' && (
                                             <div className="status-strip" style={{ background: '#8b5cf6', color: '#fff', fontWeight: '700' }}>
                                                 🛵 In Service — Delivery on the way
                                             </div>
-                                        )
-                                    }
-                                    {
-                                        (isBilled || order.status === 'Ready') && (
+                                        )}
+                                        {(isBilled || order.status === 'Ready') && (
                                             <div className="status-strip"></div>
-                                        )
-                                    }
+                                        )}
 
-                                    {/* Body */}
-                                    <div className="card-body">
-                                        <div className="item-list">
-                                            {order.items.map((item, idx) => (
-                                                <div key={idx} className="order-item">
-                                                    <span className="item-name-qty">
-                                                        {item.name} {item.quantity > 1 ? `×${item.quantity}` : ''}
-                                                    </span>
-                                                    <div className="item-separator"></div>
-                                                    <span className="item-price">₹{item.price * item.quantity}</span>
+                                        <div className="card-body">
+                                            <div className="item-list">
+                                                {order.items.map((item, idx) => (
+                                                    <div key={idx} className="order-item">
+                                                        <span className="item-name-qty">
+                                                            {item.name} {item.quantity > 1 ? `×${item.quantity}` : ''}
+                                                        </span>
+                                                        <span className="item-price">₹{item.price * item.quantity}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {order.notes && (
+                                                <div className="order-notes-display">
+                                                    <span className="notes-icon">📝</span>
+                                                    <p>{order.notes}</p>
                                                 </div>
-                                            ))}
+                                            )}
                                         </div>
 
-                                        {order.notes && (
-                                            <div className="order-notes-display">
-                                                <span className="notes-icon">📝</span>
-                                                <p>{order.notes}</p>
-                                            </div>
-                                        )}
-                                    </div>
+                                        <div className="status-actions">
+                                            <button
+                                                className={`status-btn ${order.status === 'Pending' && !isBilled ? 'blinking pending' : ''} ${(isBilled || order.status === 'In Service') ? 'disabled' : ''}`}
+                                                onClick={() => handleStatusUpdate(order.id, 'Pending')}
+                                                disabled={isBilled || order.status === 'In Service'}
+                                            >
+                                                <span className="status-icon">⏱</span>
+                                                <span>Pending</span>
+                                            </button>
+                                            <button
+                                                className={`status-btn ${order.status === 'Preparing' && !isBilled ? 'blinking preparing' : ''} ${(isBilled || order.status === 'In Service') ? 'disabled' : ''}`}
+                                                onClick={() => handleStatusUpdate(order.id, 'Preparing')}
+                                                disabled={isBilled || order.status === 'In Service'}
+                                            >
+                                                <span className="status-icon">🔥</span>
+                                                <span>Preparing</span>
+                                            </button>
+                                            <button
+                                                className={`status-btn ${order.status === 'Ready' && !isBilled ? 'blinking ready' : ''} ${(isBilled || order.status === 'In Service') ? 'disabled' : ''}`}
+                                                onClick={() => handleStatusUpdate(order.id, 'Ready')}
+                                                disabled={isBilled || order.status === 'In Service'}
+                                            >
+                                                <span className="status-icon">✔</span>
+                                                <span>Ready</span>
+                                            </button>
+                                        </div>
 
-                                    {/* Status Buttons Row — locked when In Service */}
-                                    <div className="status-actions">
-                                        <button
-                                            className={`status-btn ${order.status === 'Pending' && !isBilled ? 'blinking pending' : ''} ${(isBilled || order.status === 'In Service') ? 'disabled' : ''}`}
-                                            onClick={() => handleStatusUpdate(order.id, 'Pending')}
-                                            disabled={isBilled || order.status === 'In Service'}
-                                        >
-                                            <span className="status-icon">⏱</span>
-                                            <span>Pending</span>
-                                        </button>
-                                        <button
-                                            className={`status-btn ${order.status === 'Preparing' && !isBilled ? 'blinking preparing' : ''} ${(isBilled || order.status === 'In Service') ? 'disabled' : ''}`}
-                                            onClick={() => handleStatusUpdate(order.id, 'Preparing')}
-                                            disabled={isBilled || order.status === 'In Service'}
-                                        >
-                                            <span className="status-icon">🔥</span>
-                                            <span>Preparing</span>
-                                        </button>
-                                        <button
-                                            className={`status-btn ${order.status === 'Ready' && !isBilled ? 'blinking ready' : ''} ${(isBilled || order.status === 'In Service') ? 'disabled' : ''}`}
-                                            onClick={() => handleStatusUpdate(order.id, 'Ready')}
-                                            disabled={isBilled || order.status === 'In Service'}
-                                        >
-                                            <span className="status-icon">✔</span>
-                                            <span>Ready</span>
-                                        </button>
-                                    </div>
-
-                                    {/* Footer Actions */}
-                                    <div className="card-footer">
-                                        <button
-                                            className={`action-btn send ${isReady && !isBilled ? 'blinking-green' : ''} ${!isReady || isBilled ? 'disabled' : ''}`}
-                                            onClick={() => handleSendNotification(order.id, order.status)}
-                                            style={{
-                                                opacity: isReady && !isBilled ? 1 : 0.4,
-                                                cursor: isReady && !isBilled ? 'pointer' : 'not-allowed'
-                                            }}
-                                        >
-                                            {order.type === 'Take Away' ? 'To Customer' : 'Send'}
-                                        </button>
-                                        <button
-                                            className={`action-btn done ${isBilled ? 'disabled' : ''}`}
-                                            onClick={() => handleDeleteOrder(order.id)}
-                                            disabled={isBilled}
-                                        >
-                                            Done
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                                        <div className="card-footer">
+                                            <button
+                                                className={`action-btn send ${isReady && !isBilled ? 'blinking-green' : ''} ${!isReady || isBilled ? 'disabled' : ''}`}
+                                                onClick={() => handleSendNotification(order.id, order.status)}
+                                                style={{
+                                                    opacity: isReady && !isBilled ? 1 : 0.4,
+                                                    cursor: isReady && !isBilled ? 'pointer' : 'not-allowed'
+                                                }}
+                                            >
+                                                {order.type === 'Take Away' ? 'To Customer' : 'Send'}
+                                            </button>
+                                            <button
+                                                className={`action-btn done ${!isBilled ? 'disabled' : ''}`}
+                                                onClick={() => setHiddenOrderIds(prev => [...prev, order.id])}
+                                                disabled={!isBilled}
+                                            >
+                                                Done
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </AnimatePresence>
                     </div>
                 </>
             )}
 
-            {/* Receipt Modal */}
             {selectedOrderForBill && (
                 <div className="receipt-modal-overlay">
                     <div className="receipt-modal-container">
@@ -464,9 +443,7 @@ const ViewOrderPage = () => {
                                     Ph: +91-9876543210 | GSTIN: 22AAAAA0000A1Z5
                                 </p>
                             </div>
-
                             <div className="receipt-divider"></div>
-
                             <div className="receipt-info-grid">
                                 <div className="info-row">
                                     <span className="info-label">Bill No:</span>
@@ -481,7 +458,6 @@ const ViewOrderPage = () => {
                                     <span className="info-value">{selectedOrderForBill.type} - {selectedOrderForBill.table}</span>
                                 </div>
                             </div>
-
                             <table className="receipt-table">
                                 <thead>
                                     <tr>
@@ -500,28 +476,20 @@ const ViewOrderPage = () => {
                                     ))}
                                 </tbody>
                             </table>
-
                             <div className="receipt-totals">
                                 <div className="total-row">
                                     <span>Subtotal</span>
                                     <span>₹ {selectedOrderForBill.amount}.00</span>
-                                </div>
-                                <div className="total-row">
-                                    <span>Taxes (Included)</span>
-                                    <span>₹ 0.00</span>
                                 </div>
                                 <div className="total-row grand-total">
                                     <span>NET PAYABLE</span>
                                     <span>₹ {selectedOrderForBill.amount}.00</span>
                                 </div>
                             </div>
-
                             <div className="receipt-footer">
                                 <h3>Thank You!</h3>
                                 <p>We hope to see you again soon.</p>
-                                <div className="footer-id-brand">{selectedOrderForBill.id.slice(-6).toUpperCase()}</div>
                             </div>
-
                             <div className="receipt-modal-actions">
                                 <button className="print-btn" onClick={() => window.print()}>
                                     <span>🖨️</span> Print Bill

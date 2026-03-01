@@ -360,6 +360,16 @@
     box-shadow: 0 12px 20px -3px rgba(249, 115, 22, 0.4);
 }
 
+.rs-bill-details-btn.pending {
+    background: #6366f1;
+    /* Indigo for pending cashier bills */
+    box-shadow: 0 8px 12px -3px rgba(99, 102, 241, 0.25);
+}
+
+.rs-bill-details-btn.pending:hover {
+    box-shadow: 0 12px 20px -3px rgba(99, 102, 241, 0.4);
+}
+
 /* --- Global Footer --- */
 .rs-page-footer {
     margin-top: 48px;
@@ -401,4 +411,46 @@
     padding: 64px;
     color: #94a3b8;
     font-weight: 700;
+}
+
+/* --- New Functional Styles --- */
+.rs-tracking-label-wait {
+    font-size: 11px;
+    font-weight: 800;
+    color: #94a3b8;
+    background: #f1f5f9;
+    padding: 4px 12px;
+    border-radius: 6px;
+    letter-spacing: 0.05em;
+}
+
+.rs-place-order-footer-btn {
+    padding: 10px 20px;
+    background: #eff6ff;
+    color: #3b82f6;
+    border: 1px solid #dbeafe;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.rs-place-order-footer-btn:hover {
+    background: #3b82f6;
+    color: #fff;
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+}
+
+.rs-room-num-box:hover {
+    color: #3b82f6;
+}
+
+.rs-progress-segment-wrap:hover .rs-progress-segment:not(.active) {
+    background: #dcfce7;
+}
+
+.rs-progress-segment-wrap:active {
+    transform: scale(0.95);
 }

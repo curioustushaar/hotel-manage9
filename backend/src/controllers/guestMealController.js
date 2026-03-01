@@ -1071,7 +1071,7 @@ exports.getRoomServiceOrders = async (req, res) => {
     try {
         // Find all active-like orders that are for rooms (Post to Room or linked to a room)
         const query = {
-            status: { $in: ['Pending', 'Preparing', 'Ready', 'Started', 'Active'] },
+            status: { $in: ['Pending', 'Preparing', 'Ready', 'Started', 'Active', 'Pending Payment'] },
             orderType: 'Post to Room'
         };
 

@@ -68,7 +68,7 @@ const RoomService = () => {
             if (allOrdersData.success) {
                 const roomOrders = allOrdersData.data.filter(o =>
                     ['Post to Room', 'Room Order', 'Room Service'].includes(o.orderType) &&
-                    o.status !== 'Completed' && o.status !== 'Settled'
+                    !['Completed', 'Settled', 'Closed', 'Billed', 'Cancelled'].includes(o.status)
                 );
                 setOrders(roomOrders);
             }
@@ -81,7 +81,7 @@ const RoomService = () => {
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 15000);
+        const interval = setInterval(fetchData, 3000); // Fast refresh for real-time order tracking
         return () => clearInterval(interval);
     }, []);
 
@@ -112,9 +112,80 @@ const RoomService = () => {
         return `${diff} mins ago`;
     };
 
-    const renderStatusBar = (status) => {
-        const stages = ['PENDING', 'PREPARING', 'READY', 'SERVICE'];
-        const statusMap = { 'Active': 0, 'Pending': 0, 'Preparing': 1, 'Ready': 2, 'Started': 3 };
+    const handleStatusUpdate = async (orderId, newStatus) => {
+        if (!orderId) return;
+        try {
+            const response = await fetch(`${API_URL}/api/guest-meal/orders/${orderId}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                // Instantly update local state for snappy feel
+                setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status: newStatus, updatedAt: new Date() } : o));
+            } else {
+                console.error("Status update failed:", data.message);
+                alert("Failed to update status: " + data.message);
+            }
+        } catch (error) {
+            console.error("Error updating order status:", error);
+            alert("Network error updating status");
+        }
+    };
+
+    const handleBillDetails = async (room, orderId) => {
+        if (!orderId) {
+            alert("No active order to bill");
+            return;
+        }
+
+        try {
+            // First send to cashier (updates status to 'Pending Payment')
+            const response = await fetch(`${API_URL}/api/guest-meal/orders/${orderId}/send-to-cashier`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                // Then navigate to cashier section
+                navigate('/admin/dashboard', {
+                    state: {
+                        activeMenu: 'cashier-section',
+                        refresh: true,
+                        room: { ...room, id: room._id, orderId: orderId }
+                    }
+                });
+            } else {
+                console.error("Failed to send to cashier:", data.message);
+                alert("Error sending bill to cashier: " + data.message);
+            }
+        } catch (error) {
+            console.error("Error sending to cashier:", error);
+            alert("Network error sending bill to cashier");
+        }
+    };
+
+    const renderStatusBar = (order) => {
+        if (!order) return (
+            <div className="rs-status-tracking-container">
+                <div className="rs-tracking-header">
+                    <span className="rs-tracking-label-wait">WAITING FOR ORDER ENTRY</span>
+                </div>
+            </div>
+        );
+
+        const status = order.status;
+        const stages = [
+            { label: 'PENDING', status: 'Pending' },
+            { label: 'PREPARING', status: 'Preparing' },
+            { label: 'READY', status: 'Ready' },
+            { label: 'SERVICE', status: 'Started' }
+        ];
+
+        const statusMap = { 'Active': 0, 'Pending': 0, 'Preparing': 1, 'Ready': 2, 'Started': 3, 'Served': 3 };
         const currentIdx = statusMap[status] ?? -1;
 
         return (
@@ -125,10 +196,16 @@ const RoomService = () => {
                 </div>
                 <div className="rs-progress-bar-wrap">
                     {stages.map((stage, idx) => (
-                        <div key={stage} className="rs-progress-segment-wrap">
+                        <div
+                            key={stage.label}
+                            className="rs-progress-segment-wrap"
+                            onClick={() => handleStatusUpdate(order._id, stage.status)}
+                            style={{ cursor: 'pointer' }}
+                            title={`Mark as ${stage.label}`}
+                        >
                             <div className={`rs-progress-segment ${idx <= currentIdx ? 'active' : ''}`} />
                             <span className={`rs-progress-label ${idx <= currentIdx ? 'active' : ''}`}>
-                                {stage}
+                                {stage.label}
                             </span>
                         </div>
                     ))}
@@ -204,24 +281,37 @@ const RoomService = () => {
                             <div key={room._id} className="rs-operation-card">
                                 <div className="rs-card-header">
                                     <div className="rs-room-basic-info">
-                                        <div className="rs-room-num-box">
+                                        <div
+                                            className="rs-room-num-box"
+                                            style={{ cursor: roomOrder ? 'pointer' : 'default' }}
+                                            onClick={() => roomOrder && navigate('/admin/dashboard', {
+                                                state: {
+                                                    activeMenu: 'view-order',
+                                                    orderId: roomOrder._id,
+                                                    source: 'room-service'
+                                                }
+                                            })}
+                                            title={roomOrder ? "View Full Order Details" : ""}
+                                        >
                                             {room.roomNumber}
                                         </div>
                                         <div className="rs-room-meta">
                                             <h3 className="rs-room-type-name">{room.roomType || 'Standard Room'}</h3>
-                                            <button
-                                                className="rs-add-order-plus"
-                                                onClick={() => navigate('/admin/dashboard', {
-                                                    state: {
-                                                        activeMenu: 'food-order',
-                                                        orderMode: 'roomservice',
-                                                        room: { ...room, id: room._id, source: 'room-service' },
-                                                        source: 'room-service'
-                                                    }
-                                                })}
-                                            >
-                                                <Plus size={14} />
-                                            </button>
+                                            {!roomOrder && (
+                                                <button
+                                                    className="rs-add-order-plus"
+                                                    onClick={() => navigate('/admin/dashboard', {
+                                                        state: {
+                                                            activeMenu: 'food-order',
+                                                            orderMode: 'roomservice',
+                                                            room: { ...room, id: room._id, source: 'room-service' },
+                                                            source: 'room-service'
+                                                        }
+                                                    })}
+                                                >
+                                                    <Plus size={14} />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="rs-order-status-tag">
@@ -235,12 +325,16 @@ const RoomService = () => {
                                         <span className="rs-guest-name-val">{room.guestName.toUpperCase()}</span>
                                     </div>
 
-                                    {renderStatusBar(status)}
+                                    {renderStatusBar(roomOrder)}
 
                                     <div className="rs-order-details-summary">
                                         <div className="rs-detail-column">
-                                            <span className="rs-label-small">TYPE</span>
-                                            <span className="rs-detail-val">{roomOrder?.items?.[0]?.name || 'N/A'}</span>
+                                            <span className="rs-label-small">ORDER ITEMS</span>
+                                            <span className="rs-detail-val">
+                                                {roomOrder?.items?.length > 0
+                                                    ? `${roomOrder.items[0].name}${roomOrder.items.length > 1 ? ` +${roomOrder.items.length - 1}` : ''}`
+                                                    : 'N/A'}
+                                            </span>
                                         </div>
                                         <div className="rs-detail-column">
                                             <span className="rs-label-small">CATEGORY</span>
@@ -254,20 +348,30 @@ const RoomService = () => {
 
                                 <div className="rs-card-footer">
                                     <span className="rs-time-lapsed">
-                                        🕒 {roomOrder ? getTimeDifference(roomOrder.updatedAt) : 'No recent updates'}
+                                        🕒 {roomOrder ? getTimeDifference(roomOrder.updatedAt) : 'Ready for order'}
                                     </span>
-                                    <button
-                                        className="rs-bill-details-btn"
-                                        onClick={() => navigate('/admin/dashboard', {
-                                            state: {
-                                                activeMenu: 'cashier-section',
-                                                refresh: true,
-                                                room: { ...room, id: room._id, orderId: roomOrder?._id }
-                                            }
-                                        })}
-                                    >
-                                        Bill Details
-                                    </button>
+                                    {roomOrder ? (
+                                        <button
+                                            className={`rs-bill-details-btn ${roomOrder?.status === 'Pending Payment' ? 'pending' : ''}`}
+                                            onClick={() => handleBillDetails(room, roomOrder?._id)}
+                                        >
+                                            {roomOrder?.status === 'Pending Payment' ? 'Pending Payment' : 'Bill Details'}
+                                        </button>
+                                    ) : (
+                                        <button
+                                            className="rs-place-order-footer-btn"
+                                            onClick={() => navigate('/admin/dashboard', {
+                                                state: {
+                                                    activeMenu: 'food-order',
+                                                    orderMode: 'roomservice',
+                                                    room: { ...room, id: room._id, source: 'room-service' },
+                                                    source: 'room-service'
+                                                }
+                                            })}
+                                        >
+                                            Place Order
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         );

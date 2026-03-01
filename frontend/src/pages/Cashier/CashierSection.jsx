@@ -54,10 +54,17 @@ const CashierSection = () => {
         allowedTabs.push('Online Order');
     }
 
+    // Initial fetch and periodic refresh
     useEffect(() => {
-        fetchPendingOrders();
-        fetchDashboardStats();
-        fetchCheckedInRooms();
+        const refreshData = () => {
+            fetchPendingOrders();
+            fetchDashboardStats();
+            fetchCheckedInRooms();
+        };
+
+        refreshData();
+        const interval = setInterval(refreshData, 15000); // Refresh every 15 seconds
+        return () => clearInterval(interval);
     }, []);
 
     const fetchCheckedInRooms = async () => {

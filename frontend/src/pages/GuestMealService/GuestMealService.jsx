@@ -156,9 +156,11 @@ const GuestMealService = () => {
     const [appliedTime, setAppliedTime] = useState(new Date().toTimeString().slice(0, 5));
     const [isTimeFilterActive, setIsTimeFilterActive] = useState(false);
 
-    // Fetch tables on mount
+    // Fetch tables on mount and periodically
     useEffect(() => {
         fetchTables();
+        const interval = setInterval(fetchTables, 15000); // Refresh every 15 seconds
+        return () => clearInterval(interval);
     }, []);
 
     const fetchTables = async () => {
