@@ -163,7 +163,7 @@ const StayOverview = () => {
     const handleEditRoomFromPanel = (room) => {
         setIsRoomPanelOpen(false);
         // Navigate to room setup or open edit modal if available here
-        navigate('/admin/room-setup', { state: { editRoomId: room._id } });
+        navigate('/admin/rooms', { state: { editRoomId: room._id } });
     };
 
     const handleQuickBookFromPanel = (room) => {

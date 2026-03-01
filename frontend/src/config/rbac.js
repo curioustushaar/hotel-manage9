@@ -651,7 +651,7 @@ export const getDefaultRoute = (user) => {
         { module: MODULES.CASHIER_LOGS, route: '/cashier-report' },
         { module: MODULES.PAYMENT_LOGS, route: '/food-payment-report' },
         { module: MODULES.PROPERTY_SETUP, route: '/discount' },
-        { module: MODULES.PROPERTY_CONFIG, route: '/room-setup' },
+        { module: MODULES.PROPERTY_CONFIG, route: '/floor-setup' },
         { module: MODULES.PROFILE, route: '/my-profile' }
     ];
 
