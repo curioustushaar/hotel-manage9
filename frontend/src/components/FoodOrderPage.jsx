@@ -53,6 +53,8 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
             navigate('/admin/room-service');
         } else if (source === 'table-order') {
             navigate('/admin/guest-meal-service');
+        } else if (source === 'food-menu') {
+            navigate('/admin/food-menu');
         } else {
             navigate('/admin/dashboard');
         }
@@ -910,7 +912,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
 
                         {/* ACTION BAR */}
                         <div className="pos-action-bar">
-                             <button className="pos-action-btn" style={{ width: '100%' }} onClick={() => { setActiveNoteType('KOT'); setShowCommentModal(true); }}>Special Note</button>
+                            <button className="pos-action-btn" style={{ width: '100%' }} onClick={() => { setActiveNoteType('KOT'); setShowCommentModal(true); }}>Special Note</button>
                         </div>
 
                         {/* TWO ROWS BELOW */}
