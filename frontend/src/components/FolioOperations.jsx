@@ -9,7 +9,7 @@ import RouteFolioSidebar from './RouteFolioSidebar';
 import ConfirmationModal from './ConfirmationModal';
 import Toast from './Toast';
 
-const FolioOperations = ({ reservation }) => {
+const FolioOperations = ({ reservation, onTotalsChange }) => {
     const [selectedRoom, setSelectedRoom] = useState(0);
     const [showAddPayment, setShowAddPayment] = useState(false);
     const [showAddCharges, setShowAddCharges] = useState(false);
@@ -33,8 +33,10 @@ const FolioOperations = ({ reservation }) => {
 
     // Fetch all bookings and current booking transactions on component load
     useEffect(() => {
-        fetchAllBookings();
-    }, []);
+        if (reservation?.roomNumber) {
+            fetchAllBookings();
+        }
+    }, [reservation?.roomNumber]);
 
     // Fetch transactions whenever the selected room changes
     useEffect(() => {
@@ -49,36 +51,70 @@ const FolioOperations = ({ reservation }) => {
     // Fetch all IN_HOUSE bookings to populate folio list
     const fetchAllBookings = async () => {
         try {
+            if (!reservation?.roomNumber) return;
+
             const response = await fetch(`${BASE_API_URL}/list`);
             const data = await response.json();
 
             if (data.success && data.data) {
-                const inHouseBookings = data.data.filter(
-                    booking => booking.status === 'Checked-in' || booking.status === 'Upcoming'
-                );
-                setAllBookings(inHouseBookings);
+                const targetRoom = String(reservation.roomNumber).trim();
+                const currentBookingId = String(reservation?.id || reservation?._id);
 
-                // Create folio list from bookings
-                const folios = inHouseBookings.map((booking, index) => ({
-                    id: index,
-                    name: `${booking.roomNumber} - ${booking.guestName}`,
-                    roomNumber: booking.roomNumber,
-                    guestName: booking.guestName,
-                    bookingId: booking._id
-                }));
+                // Filter bookings for this room
+                const roomBookings = data.data.filter(booking => {
+                    const status = booking.status;
+                    const isStatusValid = ['Checked-in', 'Upcoming', 'IN_HOUSE', 'CheckedIn', 'Checked-out'].includes(status);
+                    const isRoomMatch = String(booking.roomNumber).trim() === targetRoom;
+                    return isStatusValid && isRoomMatch;
+                });
 
-                // Find current reservation's folio and make it first
-                const currentBookingId = reservation?.id || reservation?._id;
-                const currentIndex = folios.findIndex(f => f.bookingId === currentBookingId);
-                if (currentIndex > 0) {
-                    const currentFolio = folios.splice(currentIndex, 1)[0];
-                    folios.unshift(currentFolio);
-                    // Update IDs to maintain order
-                    folios.forEach((f, i) => f.id = i);
-                }
+                setAllBookings(roomBookings);
 
-                setFolioList(folios);
-                console.log('Populated folio list:', folios);
+                let folios = [];
+                let idCounter = 0;
+
+                // Process each booking in the room
+                roomBookings.forEach(booking => {
+                    const isCurrent = String(booking._id) === currentBookingId;
+
+                    // Add Primary Folio (folioId: 0)
+                    folios.push({
+                        id: idCounter++,
+                        folioId: 0,
+                        name: `${booking.roomNumber} - ${booking.guestName}`,
+                        roomNumber: booking.roomNumber,
+                        guestName: booking.guestName,
+                        bookingId: booking._id,
+                        isPrimary: true,
+                        isCurrentBooking: isCurrent
+                    });
+
+                    // If it's the current booking, also add folios for additional guests
+                    if (isCurrent && booking.additionalGuests && Array.isArray(booking.additionalGuests)) {
+                        booking.additionalGuests.forEach((guest, gIdx) => {
+                            folios.push({
+                                id: idCounter++,
+                                folioId: gIdx + 1,
+                                name: `${booking.roomNumber} - ${guest.name || 'Extra Folio'}`,
+                                roomNumber: booking.roomNumber,
+                                guestName: guest.name,
+                                bookingId: booking._id,
+                                isPrimary: false,
+                                isCurrentBooking: true
+                            });
+                        });
+                    }
+                });
+
+                // Ensure the current selection stays at the top if possible
+                const currentFolios = folios.filter(f => f.isCurrentBooking);
+                const otherFolios = folios.filter(f => !f.isCurrentBooking);
+
+                const finalFolios = [...currentFolios, ...otherFolios];
+                // Re-assign 'id' to match order for consistency with setSelectedRoom
+                finalFolios.forEach((f, i) => f.id = i);
+
+                setFolioList(finalFolios);
             }
         } catch (error) {
             console.error('Error fetching bookings:', error);
@@ -95,9 +131,6 @@ const FolioOperations = ({ reservation }) => {
             const response = await fetch(`${BASE_API_URL}/${idToFetch}`);
             const data = await response.json();
 
-            console.log('Fetched data:', data);
-            console.log('Transactions from API:', data.data?.transactions);
-
             if (data.success && data.data.transactions) {
                 // Map transactions to ensure UI fields exist
                 const mappedTransactions = data.data.transactions.map(t => ({
@@ -113,9 +146,7 @@ const FolioOperations = ({ reservation }) => {
                     })
                 }));
                 setAllTransactions(mappedTransactions);
-                console.log('Set transactions:', mappedTransactions);
             } else {
-                console.log('No transactions found or API error');
                 setAllTransactions([]);
             }
         } catch (error) {
@@ -319,26 +350,41 @@ const FolioOperations = ({ reservation }) => {
         console.log('New Folio Data:', folioData);
 
         try {
-            // Find the selected guest
-            const response = await fetch(`${BASE_API_URL}/list`);
-            const data = await response.json();
+            let selectedGuestName = '';
 
-            if (data.success && data.data) {
-                const selectedGuest = data.data.find(booking => booking._id === folioData.customer);
-
-                if (selectedGuest) {
-                    // Add new folio to the list
-                    const newFolio = {
-                        id: folioList.length,
-                        name: `${folioData.rooms} - ${selectedGuest.guestName}`,
-                        roomNumber: folioData.rooms,
-                        guestName: selectedGuest.guestName,
-                        registrationNo: folioData.registrationNo
-                    };
-
-                    setFolioList([...folioList, newFolio]);
-                    setSelectedRoom(newFolio.id);
+            // Check if selected guest is the primary guest
+            if (folioData.customer === (reservation.guestId || reservation.id || 'primary')) {
+                selectedGuestName = reservation.guestName;
+            } else {
+                // Check in additional guests
+                const addGuest = reservation.additionalGuests?.find(g => (g._id || `guest-${reservation.additionalGuests.indexOf(g)}`) === folioData.customer);
+                if (addGuest) {
+                    selectedGuestName = addGuest.name;
                 }
+            }
+
+            // Fallback to global list if not found in current reservation (e.g. if list was fetched from API)
+            if (!selectedGuestName) {
+                const response = await fetch(`${BASE_API_URL}/list`);
+                const data = await response.json();
+                if (data.success && data.data) {
+                    const guestInList = data.data.find(booking => booking._id === folioData.customer);
+                    if (guestInList) selectedGuestName = guestInList.guestName;
+                }
+            }
+
+            if (selectedGuestName) {
+                // Add new folio to the list
+                const newFolio = {
+                    id: folioList.length,
+                    name: `${folioData.rooms} - ${selectedGuestName}`,
+                    roomNumber: folioData.rooms,
+                    guestName: selectedGuestName,
+                    registrationNo: folioData.registrationNo
+                };
+
+                setFolioList([...folioList, newFolio]);
+                setSelectedRoom(newFolio.id);
             }
         } catch (error) {
             console.error('Error saving folio:', error);
@@ -381,8 +427,9 @@ const FolioOperations = ({ reservation }) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     sourceFolioId: pendingRouteData.sourceFolioId,
-                    targetFolioId: pendingRouteData.targetFolioId,
+                    targetFolioId: targetFolio.folioId, // Use actual folioId (0, 1, 2...)
                     transactionIds: pendingRouteData.transactionIds,
+                    selectedCategories: pendingRouteData.selectedCategories,
                     routedBy: 'current_user',
                     targetBookingId: targetBookingId
                 })
@@ -394,14 +441,13 @@ const FolioOperations = ({ reservation }) => {
             if (data.success) {
                 // Refresh all bookings and transactions
                 await fetchAllBookings();
-                await fetchTransactions();
 
-                // Switch to target folio to show routed transactions
-                setSelectedRoom(pendingRouteData.targetFolioId);
+                // Fetch transactions for the target booking if different
+                await fetchTransactions(targetBookingId || bookingId);
 
                 // Show success toast
                 setToast({
-                    message: `Successfully routed ${pendingRouteData.transactionCount} charge(s) to ${pendingRouteData.targetFolioName}. The charges are now visible in ${pendingRouteData.targetFolioName}'s folio.`,
+                    message: `Successfully routed ${pendingRouteData.transactionCount} charge(s) to ${pendingRouteData.targetFolioName}.`,
                     type: 'success'
                 });
 
@@ -518,28 +564,84 @@ User:        ${item.user}
     };
 
     // Filter transactions for current folio
-    const currentFolioTransactions = allTransactions.filter(t => t.folioId === selectedRoom);
+    const currentFolioTransactions = allTransactions.filter(t => {
+        const selectedFolio = folioList.find(f => f.id === selectedRoom);
+        if (!selectedFolio) return false;
+
+        // Match both bookingId (to handle same room different bookings)
+        // and folioId (to handle same booking different guests)
+        const isBookingMatch = String(t.bookingId || (reservation?.id || reservation?._id)) === String(selectedFolio.bookingId);
+        const isFolioMatch = Number(t.folioId || 0) === Number(selectedFolio.folioId || 0);
+
+        return isBookingMatch && isFolioMatch;
+    });
 
     const calculateTotals = () => {
-        const charges = currentFolioTransactions
+        // Core calculation from transactions list
+        let charges = currentFolioTransactions
             .filter(t => t.type?.toLowerCase() === 'charge')
-            .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+            .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
 
         const discounts = Math.abs(currentFolioTransactions
             .filter(t => t.type?.toLowerCase() === 'discount')
             .reduce((sum, t) => sum + (Number(t.amount) || 0), 0));
 
-        const payments = Math.abs(currentFolioTransactions
+        const payments = currentFolioTransactions
             .filter(t => t.type?.toLowerCase() === 'payment')
-            .reduce((sum, t) => sum + (Number(t.amount) || 0), 0));
+            .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+
+        const hasRoomTariff = currentFolioTransactions.some(t =>
+            t.particulars === 'Room Tariff' ||
+            (t.description?.toLowerCase().includes('room charges'))
+        );
+
+        let calculationDetail = '';
+        if (!hasRoomTariff) {
+            const checkIn = reservation?.checkInDate || reservation?.arrivalDate;
+            const checkOut = reservation?.checkOutDate || reservation?.departureDate;
+            const nights = reservation?.duration?.nights ||
+                (checkIn && checkOut ? Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24))) : 1);
+            const rate = reservation?.billing?.roomRate || reservation?.pricePerNight || 0;
+            if (rate > 0 && nights > 0) {
+                calculationDetail = `₹${Math.round(rate)} x ${nights} Night${nights > 1 ? 's' : ''}`;
+            }
+        }
+
+        // Smart Fallback: If no "Room Tariff" charge exists yet, we use the reservation's booking value.
+        // This ensures "Real Data" is shown for Reserved, Upcoming, and Checked-in guests.
+
+        if (!hasRoomTariff) {
+            // Priority 1: Use the existing billing summary from the reservation object
+            const reservationTotal = reservation?.billing?.totalAmount || reservation?.totalAmount || 0;
+            if (reservationTotal > 0) {
+                charges += reservationTotal;
+            } else {
+                // Priority 2: Manual calculation based on stay duration and room rate
+                const checkIn = reservation?.checkInDate || reservation?.arrivalDate;
+                const checkOut = reservation?.checkOutDate || reservation?.departureDate;
+                const nights = reservation?.duration?.nights ||
+                    (checkIn && checkOut ? Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24))) : 1);
+                const rate = reservation?.billing?.roomRate || reservation?.pricePerNight || 0;
+                if (rate > 0) {
+                    charges += (rate * nights);
+                }
+            }
+        }
 
         const grandTotal = charges - discounts;
         const remaining = grandTotal - payments;
 
-        return { subTotal: charges, grandTotal, paid: payments, remaining, discounts };
+        return { subTotal: charges, grandTotal, paid: payments, remaining, discounts, calculationDetail };
     };
 
     const totals = calculateTotals();
+
+    // Notify parent about totals change for checkout button control
+    useEffect(() => {
+        if (onTotalsChange && totals) {
+            onTotalsChange(totals);
+        }
+    }, [totals.remaining, onTotalsChange]);
 
     return (
         <div className="folio-operations-container">
@@ -685,7 +787,10 @@ User:        ${item.user}
                         <div className="summary-grid">
                             <div className="summary-left">
                                 <div className="summary-row">
-                                    <span className="summary-label-text">Sub Total</span>
+                                    <span className="summary-label-text">
+                                        Sub Total
+                                        {totals.calculationDetail && <small style={{ marginLeft: '8px', color: '#6b7280', fontSize: '11px', fontWeight: '400' }}>({totals.calculationDetail})</small>}
+                                    </span>
                                     <span className="summary-amount">₹ {totals.subTotal}</span>
                                 </div>
                                 {totals.discounts > 0 && (
@@ -709,7 +814,10 @@ User:        ${item.user}
                             </div>
                             <div className="summary-right">
                                 <div className="summary-row-right">
-                                    <span className="summary-label-text">Subtotal</span>
+                                    <span className="summary-label-text">
+                                        Subtotal
+                                        {totals.calculationDetail && <small style={{ marginLeft: '8px', color: '#6b7280', fontSize: '11px', fontWeight: '400' }}>({totals.calculationDetail})</small>}
+                                    </span>
                                     <span className="summary-amount-right">₹ {totals.subTotal}</span>
                                 </div>
                                 {totals.discounts > 0 && (
@@ -768,6 +876,7 @@ User:        ${item.user}
                 <NewFolio
                     onClose={() => setShowNewFolio(false)}
                     onSave={handleSaveNewFolio}
+                    reservation={reservation}
                 />
             )}
 
@@ -776,7 +885,7 @@ User:        ${item.user}
                 <RouteFolioSidebar
                     onClose={() => setShowRouteFolioSidebar(false)}
                     onSave={handleRouteFolioSave}
-                    sourceFolioId={selectedRoom}
+                    sourceFolioId={folioList.find(f => f.id === selectedRoom)?.folioId || 0}
                     sourceFolioName={folioList.find(f => f.id === selectedRoom)?.name || ''}
                     availableFolios={folioList}
                     transactions={allTransactions}

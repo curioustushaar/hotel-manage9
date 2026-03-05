@@ -1,90 +1,118 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import './RouteFolioSidebar.css';
 
-const RouteFolioSidebar = ({ 
-    onClose, 
-    onSave, 
-    sourceFolioId, 
+const CATEGORIES_MAPPING = {
+    roomCharges: ['Room Tariff', 'Room Stay', 'Room Charges', 'Rent', 'Accommodation'],
+    roomPosting: ['Room Posting', 'Food Order', 'Room Order', 'Restaurant', 'In House Order', 'Restaurant Bill', 'Meal', 'Breakfast', 'Lunch', 'Dinner', 'Beverage', 'Drink', 'Mini Bar'],
+    laundry: ['Laundry', 'Wash', 'Iron', 'Press', 'Cleaning'],
+    dryCleaning: ['Dry Cleaning'],
+    spa: ['Spa', 'Wellness', 'Massage', 'Therapy', 'Steam', 'Sauna'],
+    gym: ['Gym', 'Fitness', 'Trainer', 'Workout'],
+    pool: ['Pool', 'Swimming'],
+    pets: ['Pet', 'Dog', 'Cat'],
+    special: ['Special Request', 'Extra Person', 'Bed', 'Mattress'],
+    deposit: ['Deposit', 'Security', 'Advance'],
+    key: ['Key', 'Card Replacement', 'Lost Card'],
+    smoking: ['Smoking', 'Cleaning Fee'],
+    towels: ['Towel', 'Toiletries', 'Linen'],
+    parking: ['Parking', 'Garage'],
+    valet: ['Valet']
+};
+
+const RouteFolioSidebar = ({
+    onClose,
+    onSave,
+    sourceFolioId,
     sourceFolioName,
     availableFolios,
-    transactions 
+    transactions = []
 }) => {
     const [targetFolioId, setTargetFolioId] = useState('');
-    const [selectedTransactions, setSelectedTransactions] = useState(new Set());
-    const [selectAll, setSelectAll] = useState(false);
+    const [selectedCategories, setSelectedCategories] = useState({
+        roomCharges: false,
+        roomPosting: false,
+        all: false,
+        laundry: false,
+        dryCleaning: false,
+        spa: false,
+        gym: false,
+        pool: false,
+        pets: false,
+        special: false,
+        deposit: false,
+        key: false,
+        smoking: false,
+        towels: false,
+        parking: false,
+        valet: false
+    });
 
-    // Filter transactions for the source folio only (charges, not payments)
-    const sourceFolioTransactions = transactions.filter(
-        t => t.folioId === sourceFolioId && t.type === 'charge' && t.amount > 0
-    );
-
-    // Handle select all checkbox
-    const handleSelectAll = () => {
-        if (selectAll) {
-            setSelectedTransactions(new Set());
+    const handleCheckboxChange = (name) => {
+        if (name === 'all') {
+            const newValue = !selectedCategories.all;
+            const updated = {};
+            Object.keys(selectedCategories).forEach(key => {
+                if (key !== 'roomCharges') { // Include roomPosting in 'all'
+                    updated[key] = newValue;
+                }
+            });
+            setSelectedCategories(prev => ({ ...prev, ...updated, all: newValue }));
         } else {
-            const allIds = sourceFolioTransactions.map(t => t._id);
-            setSelectedTransactions(new Set(allIds));
+            setSelectedCategories(prev => ({ ...prev, [name]: !prev[name] }));
         }
-        setSelectAll(!selectAll);
     };
 
-    // Handle individual transaction selection
-    const handleTransactionToggle = (transactionId) => {
-        const newSelection = new Set(selectedTransactions);
-        if (newSelection.has(transactionId)) {
-            newSelection.delete(transactionId);
-        } else {
-            newSelection.add(transactionId);
-        }
-        setSelectedTransactions(newSelection);
-        setSelectAll(newSelection.size === sourceFolioTransactions.length);
-    };
-
-    // Update selectAll state when transactions change
-    useEffect(() => {
-        setSelectAll(
-            sourceFolioTransactions.length > 0 && 
-            selectedTransactions.size === sourceFolioTransactions.length
+    // Calculate matching transactions for current selection
+    const matchingData = useMemo(() => {
+        const sourceTransactions = transactions.filter(t =>
+            // Use loose comparison for IDs which could be string/number mixtures
+            String(t.folioId || 0) === String(sourceFolioId || 0) &&
+            t.type?.toLowerCase() === 'charge' &&
+            t.amount > 0
         );
-    }, [selectedTransactions, sourceFolioTransactions.length]);
+
+        const ids = new Set();
+
+        Object.keys(selectedCategories).forEach(cat => {
+            if (selectedCategories[cat] && CATEGORIES_MAPPING[cat]) {
+                const keywords = CATEGORIES_MAPPING[cat];
+                sourceTransactions.forEach(t => {
+                    const text = `${t.particulars || ''} ${t.description || ''} `.toLowerCase();
+                    if (keywords.some(kw => text.includes(kw.toLowerCase()))) {
+                        ids.add(t._id || t.id);
+                    }
+                });
+            }
+        });
+
+        return {
+            ids: Array.from(ids),
+            count: ids.size
+        };
+    }, [selectedCategories, transactions, sourceFolioId]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        
         if (!targetFolioId) {
             alert('Please select a target folio');
             return;
         }
 
-        if (selectedTransactions.size === 0) {
-            alert('Please select at least one transaction to route');
-            return;
-        }
+        const targetFolio = availableFolios.find(f => String(f.id) === String(targetFolioId));
 
-        if (parseInt(targetFolioId) === sourceFolioId) {
-            alert('Source and target folio cannot be the same');
-            return;
-        }
-
-        // Get target folio details
-        const targetFolio = availableFolios.find(f => f.id === parseInt(targetFolioId));
-        
         if (onSave) {
             onSave({
                 sourceFolioId,
                 targetFolioId: parseInt(targetFolioId),
-                targetFolioName: targetFolio?.name || '',
-                transactionIds: Array.from(selectedTransactions),
-                transactionCount: selectedTransactions.size
+                targetFolioName: targetFolio?.name || 'Target Folio',
+                transactionIds: matchingData.ids,
+                transactionCount: matchingData.count,
+                selectedCategories
             });
         }
     };
 
-    // Calculate total amount of selected transactions
-    const selectedTotal = sourceFolioTransactions
-        .filter(t => selectedTransactions.has(t._id))
-        .reduce((sum, t) => sum + t.amount, 0);
+    const hasAnySelection = Object.values(selectedCategories).some(v => v === true);
 
     return (
         <div className="route-folio-overlay" onClick={onClose}>
@@ -95,105 +123,109 @@ const RouteFolioSidebar = ({
                 </div>
 
                 <form onSubmit={handleSubmit} className="route-folio-form">
-                    <div className="route-folio-section">
-                        <div className="source-folio-info">
-                            <label className="route-label">Source Folio</label>
-                            <div className="source-folio-badge">{sourceFolioName}</div>
+                    <div className="route-folio-body">
+                        {/* Source Folio */}
+                        <div className="route-form-group">
+                            <label className="route-main-label">Source Folio: {sourceFolioName}</label>
                         </div>
-                        
-                        <label className="route-label">Target Folio <span className="required">*</span></label>
-                        <select 
-                            value={targetFolioId}
-                            onChange={(e) => setTargetFolioId(e.target.value)}
-                            className="route-select"
-                            required
-                        >
-                            <option value="">Select Target Folio</option>
-                            {availableFolios
-                                .filter(folio => folio.id !== sourceFolioId)
-                                .map(folio => (
-                                    <option key={folio.id} value={folio.id}>
-                                        {folio.name}
-                                    </option>
-                                ))
-                            }
-                        </select>
-                    </div>
 
-                    <div className="route-folio-section">
-                        <div className="section-header">
-                            <h3 className="route-section-title">Select Transactions to Route</h3>
-                            {sourceFolioTransactions.length > 0 && (
-                                <div className="select-all-container">
-                                    <input 
-                                        type="checkbox" 
-                                        id="selectAll" 
-                                        checked={selectAll} 
-                                        onChange={handleSelectAll}
-                                        className="route-checkbox"
+                        {/* Scope */}
+                        <div className="route-form-group">
+                            <label className="route-sub-label">scope</label>
+                            <input
+                                type="text"
+                                className="route-read-only-input"
+                                value="All future folia of this guest"
+                                readOnly
+                            />
+                        </div>
+
+                        {/* Target Folio */}
+                        <div className="route-form-group">
+                            <label className="route-sub-label">Folios</label>
+                            <select
+                                value={targetFolioId}
+                                onChange={(e) => setTargetFolioId(e.target.value)}
+                                className="route-select-modern"
+                                required
+                            >
+                                <option value="">Select Target Folio</option>
+                                {availableFolios
+                                    ?.filter(folio => folio.id !== sourceFolioId)
+                                    .map(f => (
+                                        <option key={f.id} value={f.id}>{f.name}</option>
+                                    ))
+                                }
+                            </select>
+                        </div>
+
+                        {/* Route Section */}
+                        <div className="route-section-modern">
+                            <h3 className="route-section-title-modern">Route</h3>
+                            <div className="checkout-group">
+                                <label className="modern-checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedCategories.roomCharges}
+                                        onChange={() => handleCheckboxChange('roomCharges')}
                                     />
-                                    <label htmlFor="selectAll" className="select-all-label">Select All</label>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="transactions-list">
-                            {sourceFolioTransactions.length === 0 ? (
-                                <div className="no-transactions">
-                                    <p>No charges available to route in this folio</p>
-                                </div>
-                            ) : (
-                                sourceFolioTransactions.map(transaction => (
-                                    <div 
-                                        key={transaction._id} 
-                                        className={`transaction-item ${selectedTransactions.has(transaction._id) ? 'selected' : ''}`}
-                                        onClick={() => handleTransactionToggle(transaction._id)}
-                                    >
-                                        <input 
-                                            type="checkbox" 
-                                            checked={selectedTransactions.has(transaction._id)}
-                                            onChange={() => handleTransactionToggle(transaction._id)}
-                                            className="route-checkbox"
-                                        />
-                                        <div className="transaction-details">
-                                            <div className="transaction-main">
-                                                <span className="transaction-particulars">{transaction.particulars}</span>
-                                                <span className="transaction-amount">₹ {transaction.amount}</span>
-                                            </div>
-                                            <div className="transaction-meta">
-                                                <span className="transaction-date">{transaction.day}</span>
-                                                <span className="transaction-description">{transaction.description}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-
-                        {selectedTransactions.size > 0 && (
-                            <div className="routing-summary">
-                                <div className="summary-row">
-                                    <span>Selected Transactions:</span>
-                                    <span className="summary-value">{selectedTransactions.size}</span>
-                                </div>
-                                <div className="summary-row total">
-                                    <span>Total Amount:</span>
-                                    <span className="summary-value">₹ {selectedTotal}</span>
-                                </div>
+                                    <span>Room Charges & Taxes</span>
+                                </label>
+                                <label className="modern-checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedCategories.roomPosting}
+                                        onChange={() => handleCheckboxChange('roomPosting')}
+                                    />
+                                    <span>Room Posting</span>
+                                </label>
+                                <label className="modern-checkbox-label disabled">
+                                    <input type="checkbox" disabled />
+                                    <span>Inclusions</span>
+                                </label>
                             </div>
-                        )}
+                        </div>
+
+                        {/* Extra Charges Section */}
+                        <div className="route-section-modern">
+                            <h3 className="route-section-title-modern">Extra Charges & Taxes</h3>
+                            <div className="checkout-list">
+                                {[
+                                    { name: 'all', label: 'All' },
+                                    { name: 'laundry', label: 'Laundry' },
+                                    { name: 'dryCleaning', label: 'Dry Cleaning' },
+                                    { name: 'spa', label: 'Spa and Wellness' },
+                                    { name: 'gym', label: 'Gym Access' },
+                                    { name: 'pool', label: 'Pool Access' },
+                                    { name: 'pets', label: 'Pets' },
+                                    { name: 'special', label: 'Special Requests' },
+                                    { name: 'deposit', label: 'Damage or Security Deposit' },
+                                    { name: 'key', label: 'Lost Key or Card Replacement' },
+                                    { name: 'smoking', label: 'Smoking Fees' },
+                                    { name: 'towels', label: 'Extra Towels or Toiletries' },
+                                    { name: 'parking', label: 'Security Parking' },
+                                    { name: 'valet', label: 'Valet Parking' }
+                                ].map(item => (
+                                    <label key={item.name} className="modern-checkbox-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedCategories[item.name]}
+                                            onChange={() => handleCheckboxChange(item.name)}
+                                        />
+                                        <span>{item.label}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="route-folio-footer">
-                        <button type="button" className="route-cancel-btn" onClick={onClose}>
-                            Cancel
-                        </button>
-                        <button 
-                            type="submit" 
-                            className="route-save-btn"
-                            disabled={selectedTransactions.size === 0 || !targetFolioId}
+                    <div className="route-folio-footer-modern">
+                        <button
+                            type="submit"
+                            className="route-save-btn-modern"
+                            disabled={!hasAnySelection || !targetFolioId}
                         >
-                            Route Charges
+                            {matchingData.count > 0 ? `Route ${matchingData.count} Items` : 'Save Rules'}
                         </button>
                     </div>
                 </form>

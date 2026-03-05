@@ -5,7 +5,7 @@ const ApplyDiscount = ({ onClose, onApply, reservation }) => {
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         roomWiseDiscount: true,
-        tableWiseDiscount: false,
+        folioWiseDiscount: false,
         discountType: 'percentage',
         discountValue: '',
         folio: '',
@@ -69,33 +69,26 @@ const ApplyDiscount = ({ onClose, onApply, reservation }) => {
                         <label className="checkbox-label">
                             <input
                                 type="checkbox"
-                                name="tableWiseDiscount"
-                                checked={formData.tableWiseDiscount}
+                                name="folioWiseDiscount"
+                                checked={formData.folioWiseDiscount}
                                 onChange={handleChange}
                             />
-                            <span>Table Wise Discount</span>
+                            <span>Folio Wise Discount</span>
                         </label>
                     </div>
 
                     {/* Discount Type */}
                     <div className="form-group">
                         <label>Discount Type</label>
-                        <div className="discount-type-buttons">
-                            <button
-                                type="button"
-                                className={`discount-type-btn ${formData.discountType === 'percentage' ? 'active' : ''}`}
-                                onClick={() => setFormData(prev => ({ ...prev, discountType: 'percentage', discountValue: '' }))}
-                            >
-                                Percentage (%)
-                            </button>
-                            <button
-                                type="button"
-                                className={`discount-type-btn ${formData.discountType === 'amount' ? 'active' : ''}`}
-                                onClick={() => setFormData(prev => ({ ...prev, discountType: 'amount', discountValue: '' }))}
-                            >
-                                Amount (₹)
-                            </button>
-                        </div>
+                        <select
+                            name="discountType"
+                            value={formData.discountType}
+                            onChange={handleChange}
+                            className="form-select"
+                        >
+                            <option value="percentage">Percentage (%)</option>
+                            <option value="amount">Amount (₹)</option>
+                        </select>
                     </div>
 
                     {/* Discount Value Input */}
