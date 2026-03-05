@@ -1950,6 +1950,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                 isOpen={showEditModal}
                 onClose={() => setShowEditModal(false)}
                 reservation={selectedReservation}
+                onRefresh={fetchReservationsFromAPI}
             />
 
             {/* Invoice Modal */}

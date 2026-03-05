@@ -1208,6 +1208,10 @@ exports.settleOrder = async (req, res) => {
                 notes: `Restaurant Bill - ${orderId.toString().substr(-6).toUpperCase()}`
             };
 
+            // Apply automatic routing rules
+            const { applyRoutingRules } = require('../utils/folioUtils');
+            applyRoutingRules(booking, transactionData);
+
             // Add to transactions and update total billing
             booking.transactions.push(transactionData);
 

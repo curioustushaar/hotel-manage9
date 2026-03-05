@@ -5,10 +5,10 @@ const ReservationHeader = ({ reservation }) => {
     if (!reservation) return null;
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('en-GB', { 
-            day: '2-digit', 
-            month: '2-digit', 
-            year: 'numeric' 
+        return new Date(dateString).toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
         });
     };
 
@@ -65,7 +65,9 @@ const ReservationHeader = ({ reservation }) => {
                     </span>
                 </div>
                 <div className="header-action-section">
-                    <button className="btn-check-in-header">Check-in</button>
+                    <button className="btn-check-in-header">
+                        {['IN_HOUSE', 'Checked-in', 'Occupied', 'CheckedIn'].includes(reservation.status) ? 'Checkout' : 'Check-in'}
+                    </button>
                 </div>
             </div>
         </div>

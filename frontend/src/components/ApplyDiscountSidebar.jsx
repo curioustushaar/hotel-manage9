@@ -5,7 +5,7 @@ const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         roomWiseDiscount: true,
-        tableWiseDiscount: false,
+        folioWiseDiscount: false,
         discountType: 'percentage',
         discountValue: '',
         folio: reservation ? `${reservation.roomNumber} - ${reservation.guestName}` : 'B5 - Shahrukh Ahmed',
@@ -68,7 +68,6 @@ const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
                         />
                     </div>
 
-                    {/* Discount Type Checkboxes */}
                     <div className="apply-discount-field">
                         <div className="discount-checkbox-group">
                             <label className="discount-checkbox-label">
@@ -82,10 +81,10 @@ const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
                             <label className="discount-checkbox-label">
                                 <input
                                     type="checkbox"
-                                    checked={formData.tableWiseDiscount}
-                                    onChange={(e) => handleChange('tableWiseDiscount', e.target.checked)}
+                                    checked={formData.folioWiseDiscount}
+                                    onChange={(e) => handleChange('folioWiseDiscount', e.target.checked)}
                                 />
-                                <span className="checkbox-text">TABLE WISE DISCOUNT</span>
+                                <span className="checkbox-text">FOLIO WISE DISCOUNT</span>
                             </label>
                         </div>
                     </div>
@@ -93,28 +92,14 @@ const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
                     {/* Discount Type Selection */}
                     <div className="apply-discount-field">
                         <label>Discount Type <span className="required">*</span></label>
-                        <div className="discount-type-group">
-                            <label className="discount-type-radio">
-                                <input
-                                    type="radio"
-                                    name="discountType"
-                                    value="percentage"
-                                    checked={formData.discountType === 'percentage'}
-                                    onChange={(e) => handleChange('discountType', e.target.value)}
-                                />
-                                <span className="radio-text">Percentage (%)</span>
-                            </label>
-                            <label className="discount-type-radio">
-                                <input
-                                    type="radio"
-                                    name="discountType"
-                                    value="amount"
-                                    checked={formData.discountType === 'amount'}
-                                    onChange={(e) => handleChange('discountType', e.target.value)}
-                                />
-                                <span className="radio-text">Amount (₹)</span>
-                            </label>
-                        </div>
+                        <select
+                            value={formData.discountType}
+                            onChange={(e) => handleChange('discountType', e.target.value)}
+                            className="apply-discount-dropdown"
+                        >
+                            <option value="percentage">Percentage (%)</option>
+                            <option value="amount">Amount (₹)</option>
+                        </select>
                     </div>
 
                     {/* Discount Value Field */}
@@ -161,15 +146,15 @@ const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
                 </div>
 
                 <div className="apply-discount-footer">
-                    <button 
-                        className="apply-discount-cancel-btn" 
+                    <button
+                        className="apply-discount-cancel-btn"
                         onClick={onClose}
                         disabled={isSubmitting}
                     >
                         Cancel
                     </button>
-                    <button 
-                        className="apply-discount-submit-btn" 
+                    <button
+                        className="apply-discount-submit-btn"
                         onClick={handleSubmit}
                         disabled={isSubmitting}
                     >

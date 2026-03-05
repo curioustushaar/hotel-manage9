@@ -1,5 +1,6 @@
 const Booking = require('../models/Booking');
 const MaintenanceBlock = require('../models/MaintenanceBlock');
+const { applyRoutingRules, CATEGORIES_MAPPING } = require('../utils/folioUtils');
 
 
 // Get all bookings
@@ -404,26 +405,58 @@ exports.updateBookingStatus = async (req, res) => {
 
         // --- STEP 7: Checkout Validation ---
         if (status === 'Checked-out') {
-            const Folio = require('../models/Folio');
-            // Find all folios linked to this reservation
-            const folios = await Folio.find({ reservationId: booking._id });
+            // Real-time Balance Calculation from Booking Transactions (Matches UI logic)
+            const transactions = booking.transactions || [];
 
-            if (folios && folios.length > 0) {
-                const pendingFolios = folios.filter(f => f.balance > 0);
+            const totalPayments = transactions
+                .filter(t => t.type?.toLowerCase() === 'payment')
+                .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
 
-                if (pendingFolios.length > 0) {
-                    const totalPending = pendingFolios.reduce((sum, f) => sum + f.balance, 0);
-                    return res.status(400).json({
-                        success: false,
-                        message: `Cannot checkout. Pending payment exists on ${pendingFolios.length} folio(s).`,
-                        totalBalanceDue: totalPending,
-                        folios: pendingFolios.map(f => ({ type: f.type, balance: f.balance }))
-                    });
+            const totalDiscounts = transactions
+                .filter(t => t.type?.toLowerCase() === 'discount')
+                .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+
+            let totalCharges = transactions
+                .filter(t => t.type?.toLowerCase() === 'charge')
+                .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+
+            const hasRoomTariff = transactions.some(t =>
+                t.particulars === 'Room Tariff' ||
+                (t.description?.toLowerCase().includes('room charges'))
+            );
+
+            if (!hasRoomTariff) {
+                const b = booking.billing || {};
+                const resTotal = b.totalAmount || booking.totalAmount || 0;
+                if (resTotal > 0) {
+                    totalCharges += resTotal;
+                } else {
+                    const checkIn = booking.checkInDate;
+                    const checkOut = booking.checkOutDate;
+                    const nights = (checkIn && checkOut) ? Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24))) : 1;
+                    const rate = b.roomRate || booking.pricePerNight || 0;
+                    totalCharges += (rate * nights);
                 }
+            }
 
-                // Close all folios
+            const currentBalance = totalCharges - totalDiscounts - totalPayments;
+
+            // Strict validation: Block checkout if balance is significantly positive (> 0.5)
+            if (currentBalance > 0.5) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Cannot checkout. Outstanding balance of ₹${Math.round(currentBalance)} found.`,
+                    balance: currentBalance
+                });
+            }
+
+            // Sync and Close Folio models if they exist
+            const Folio = require('../models/Folio');
+            const folios = await Folio.find({ reservationId: booking._id });
+            if (folios && folios.length > 0) {
                 for (const folio of folios) {
                     folio.status = 'CLOSED';
+                    folio.balance = 0; // Reset balance since we verified transactions
                     await folio.save();
                 }
             }
@@ -590,6 +623,9 @@ exports.addTransaction = async (req, res) => {
             });
         }
 
+        // Apply automatic routing rules if it's a new charge
+        applyRoutingRules(booking, transactionData);
+
         booking.transactions.push(transactionData);
         await booking.save();
 
@@ -680,13 +716,25 @@ exports.deleteTransaction = async (req, res) => {
 exports.routeFolioTransactions = async (req, res) => {
     try {
         const { bookingId } = req.params;
-        const { sourceFolioId, targetFolioId, transactionIds, routedBy, targetBookingId } = req.body;
+        const {
+            transactionIds,
+            sourceFolioId,
+            targetFolioId,
+            targetBookingId,
+            selectedCategories,
+            routedBy
+        } = req.body;
 
         // Validate input
-        if (sourceFolioId === undefined || targetFolioId === undefined || !transactionIds || transactionIds.length === 0) {
+        if (sourceFolioId === undefined || targetFolioId === undefined) {
+            return res.status(400).json({ success: false, message: 'Missing folio mapping' });
+        }
+
+        const currentTransactionIds = Array.isArray(transactionIds) ? transactionIds : [];
+        if (currentTransactionIds.length === 0 && !selectedCategories) {
             return res.status(400).json({
                 success: false,
-                message: 'Missing required fields: sourceFolioId, targetFolioId, or transactionIds'
+                message: 'No transactions selected and no routing rules provided'
             });
         }
 
@@ -719,13 +767,30 @@ exports.routeFolioTransactions = async (req, res) => {
             }
         }
 
+        // Save automatic routing rules for the future if selectedCategories provided
+        if (selectedCategories && !isCrossBookingRoute) {
+            if (!sourceBooking.routingRules) sourceBooking.routingRules = [];
+
+            Object.entries(selectedCategories).forEach(([category, isSelected]) => {
+                if (isSelected && category !== 'all' && category !== 'scope') {
+                    // Remove existing rule for this category if any
+                    sourceBooking.routingRules = sourceBooking.routingRules.filter(r => r.category !== category);
+                    // Add new rule
+                    sourceBooking.routingRules.push({
+                        category,
+                        targetFolioId: parseInt(targetFolioId)
+                    });
+                }
+            });
+        }
+
         // Validate and route transactions
         let routedCount = 0;
         const routingTimestamp = new Date();
         const routedTransactions = [];
         const transactionsToRemove = [];
 
-        for (const transactionId of transactionIds) {
+        for (const transactionId of currentTransactionIds) {
             const transaction = sourceBooking.transactions.id(transactionId);
 
             if (!transaction) {
@@ -775,7 +840,7 @@ exports.routeFolioTransactions = async (req, res) => {
             routedCount++;
         }
 
-        if (routedCount === 0) {
+        if (routedCount === 0 && !selectedCategories) {
             return res.status(400).json({
                 success: false,
                 message: 'No valid transactions found to route'
@@ -797,7 +862,7 @@ exports.routeFolioTransactions = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: `Successfully routed ${routedCount} transaction(s) from folio ${sourceFolioId} to folio ${targetFolioId}`,
+            message: `Successfully routed ${routedCount} transaction(s) and updated routing rules.`,
             data: {
                 sourceBooking: isCrossBookingRoute ? sourceBooking : undefined,
                 targetBooking: isCrossBookingRoute ? targetBooking : undefined,
@@ -849,21 +914,62 @@ exports.checkInBooking = async (req, res) => {
         const depositAmount = Number(securityDeposit) || 0;
         booking.securityDeposit = depositAmount;
 
-        // Record security deposit as a payment transaction so it updates the paid amount and balance
-        if (depositAmount > 0) {
-            const hasDeposit = booking.transactions && booking.transactions.some(t => t.notes === 'Security Deposit at Check-in');
+        // Ensure transactions array exists
+        if (!booking.transactions) booking.transactions = [];
 
+        // 1. Record security deposit as a payment transaction
+        if (depositAmount > 0) {
+            const hasDeposit = booking.transactions.some(t => t.notes === 'Security Deposit at Check-in' || t.particulars === 'Security Deposit');
             if (!hasDeposit) {
-                if (!booking.transactions) booking.transactions = [];
-                booking.transactions.push({
+                const depositTransaction = {
                     type: 'Payment',
                     amount: depositAmount,
                     method: 'Cash',
                     notes: 'Security Deposit at Check-in',
-                    date: new Date()
-                });
+                    particulars: 'Security Deposit',
+                    description: 'Security Deposit collected during check-in',
+                    date: new Date(),
+                    day: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
+                    user: 'System'
+                };
+                applyRoutingRules(booking, depositTransaction);
+                booking.transactions.push(depositTransaction);
             }
         }
+
+        // 2. Auto-generate Room Charge transaction for Folio visibility
+        const roomRate = booking.billing?.roomRate || booking.pricePerNight || 0;
+        const nights = booking.duration?.nights || 1;
+        const totalRoomCharge = roomRate * nights;
+
+        if (totalRoomCharge > 0) {
+            const hasRoomCharge = booking.transactions.some(t => t.particulars === 'Room Tariff' || t.notes === 'Auto-generated Room Charge at Check-in');
+            if (!hasRoomCharge) {
+                const roomChargeTransaction = {
+                    type: 'Charge',
+                    amount: totalRoomCharge,
+                    particulars: 'Room Tariff',
+                    description: `Room Charges: ${roomRate} for ${nights} night(s) - Room No ${booking.roomNumber}`,
+                    notes: 'Auto-generated Room Charge at Check-in',
+                    date: new Date(),
+                    day: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
+                    user: 'System'
+                };
+                applyRoutingRules(booking, roomChargeTransaction);
+                booking.transactions.push(roomChargeTransaction);
+            }
+        }
+
+        // Update billing summary
+        booking.billing.totalAmount = (booking.transactions || [])
+            .filter(t => t.type?.toLowerCase() === 'charge')
+            .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+        booking.billing.paidAmount = (booking.transactions || [])
+            .filter(t => t.type?.toLowerCase() === 'payment')
+            .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+        booking.billing.balanceAmount = booking.billing.totalAmount - booking.billing.paidAmount;
 
         await booking.save();
 

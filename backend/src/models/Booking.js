@@ -159,43 +159,44 @@ const bookingSchema = new mongoose.Schema({
         ref: 'Folio'
     }],
     routingRules: [{
-        chargeType: String, // e.g., ROOM_CHARGE, FOOD, DAMAGE
-        routeTo: {
-            type: String,
-            enum: ["PRIMARY", "SECONDARY", "COMPANY"],
-            default: "PRIMARY"
-        }
+        category: String, // e.g., laundry, spa, roomCharges, roomPosting
+        targetFolioId: { type: Number, required: true }
     }]
 
 }, {
     timestamps: true
 });
 
-// Middleware to auto-calculate balance and normalize status
 bookingSchema.pre('save', function (next) {
-    // Ensure billing object exists with defaults
     if (!this.billing) {
         this.billing = { roomRate: 0, totalAmount: 0, paidAmount: 0, balanceAmount: 0 };
     }
-    if (this.billing.roomRate == null) this.billing.roomRate = 0;
-    if (this.billing.totalAmount == null) this.billing.totalAmount = 0;
-    if (this.billing.paidAmount == null) this.billing.paidAmount = 0;
 
-    // Recalculate billing based on transactions
     if (this.transactions && this.transactions.length > 0) {
+        // Core Sign Convention: Charges (+) , Payments (-)
+        // We calculate absolute totals for billing fields
         const totalPaid = this.transactions
-            .filter(t => t.type === 'Payment')
-            .reduce((sum, t) => sum + (t.amount || 0), 0);
+            .filter(t => t.type?.toLowerCase() === 'payment')
+            .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
 
-        const totalRefunded = this.transactions
-            .filter(t => t.type === 'Refund')
-            .reduce((sum, t) => sum + (t.amount || 0), 0);
+        const extraCharges = this.transactions
+            .filter(t => t.type?.toLowerCase() === 'charge' && t.particulars !== 'Room Tariff')
+            .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
 
-        this.billing.paidAmount = totalPaid - totalRefunded;
+        const roomTariffTrans = this.transactions
+            .filter(t => t.particulars === 'Room Tariff')
+            .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+
+        const totalDiscounts = this.transactions
+            .filter(t => t.type?.toLowerCase() === 'discount')
+            .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+
+        // FALLBACK: If "Room Tariff" transaction is missing, we use (roomRate * nights)
+        const baseStayValue = roomTariffTrans || ((this.billing.roomRate || 0) * (this.duration?.nights || 1));
+
+        this.billing.paidAmount = totalPaid;
+        this.billing.totalAmount = baseStayValue + extraCharges - totalDiscounts;
     }
-
-    // Recalculate total if extras added (logic can be expanded)
-    // For now assuming billing.totalAmount is authoritative or calculated elsewhere
 
     this.billing.balanceAmount = (this.billing.totalAmount || 0) - (this.billing.paidAmount || 0);
     next();

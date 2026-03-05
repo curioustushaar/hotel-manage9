@@ -2,21 +2,46 @@ import React, { useState, useEffect } from 'react';
 import API_URL from '../config/api';
 import './NewFolio.css';
 
-const NewFolio = ({ onClose, onSave }) => {
+const NewFolio = ({ onClose, onSave, reservation }) => {
     const [formData, setFormData] = useState({
         phone: '',
         customer: '',
-        rooms: '102',
+        rooms: reservation?.roomNumber || '',
         registrationNo: ''
     });
 
     const [guests, setGuests] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Fetch guests from bookings
+    // Fetch guests from current reservation
     useEffect(() => {
-        fetchGuests();
-    }, []);
+        if (reservation) {
+            const sharersList = [];
+
+            // Add primary guest
+            sharersList.push({
+                id: reservation.guestId || reservation.id || 'primary',
+                name: reservation.guestName,
+                phone: reservation.guestPhone || reservation.mobileNumber || ''
+            });
+
+            // Add additional guests (sharers)
+            if (reservation.additionalGuests && reservation.additionalGuests.length > 0) {
+                reservation.additionalGuests.forEach((guest, index) => {
+                    sharersList.push({
+                        id: guest._id || `guest-${index}`,
+                        name: guest.name,
+                        phone: guest.mobileNumber || guest.phone || ''
+                    });
+                });
+            }
+
+            setGuests(sharersList);
+            setLoading(false);
+        } else {
+            fetchGuests();
+        }
+    }, [reservation]);
 
     const fetchGuests = async () => {
         try {
