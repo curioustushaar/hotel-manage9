@@ -15,6 +15,7 @@ import InvoiceView from './InvoiceView';
 import './InvoiceView.css';
 import EditReservationModal from './EditReservationModal';
 import MoreOptionsMenu from './MoreOptionsMenu';
+import ConfirmationModal from './ConfirmationModal';
 
 import BookingActionsManager from './BookingActionsManager';
 import HousekeepingView from './HousekeepingView';
@@ -68,7 +69,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             if (activeTab === 'in-house') return r.status === 'IN_HOUSE';
             if (activeTab === 'checked-out') return r.status === 'CHECKED_OUT';
             if (activeTab === 'arrival') return r.checkInDate === todayStr && r.status === 'RESERVED';
-            if (activeTab === 'departure') return r.checkOutDate === todayStr && r.status === 'IN_HOUSE';
+            if (activeTab === 'departure') return r.checkOutDate <= todayStr && r.status === 'IN_HOUSE';
             return true;
         });
     }, [reservations, activeTab]);
@@ -84,7 +85,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             'in-house': reservations.filter(r => r.status === 'IN_HOUSE').length,
             'checked-out': reservations.filter(r => r.status === 'CHECKED_OUT').length,
             arrival: reservations.filter(r => r.checkInDate === todayStr && r.status === 'RESERVED').length,
-            departure: reservations.filter(r => r.checkOutDate === todayStr && r.status === 'IN_HOUSE').length
+            departure: reservations.filter(r => r.checkOutDate <= todayStr && r.status === 'IN_HOUSE').length
         };
     }, [reservations]);
 
@@ -254,9 +255,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                 guestEmail: reservation.email,
                                 guestPhone: reservation.phone,
                                 additionalGuests: reservation.additionalGuests || [],
-                                checkInDate: new Date(reservation.checkInDate).toISOString().split('T')[0],
+                                checkInDate: reservation.checkInDate ? (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date(reservation.checkInDate)) : '',
                                 checkInTime: '14:00',
-                                checkOutDate: new Date(reservation.checkOutDate).toISOString().split('T')[0],
+                                checkOutDate: reservation.checkOutDate ? (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date(reservation.checkOutDate)) : '',
                                 checkOutTime: '11:00',
                                 flexibleCheckout: false,
                                 roomNumber: reservation.roomNumber,
@@ -322,9 +323,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             guestEmail: booking.email || '',
             guestPhone: booking.mobileNumber,
             additionalGuests: booking.additionalGuests || [],
-            checkInDate: booking.checkInDate ? new Date(booking.checkInDate).toISOString().split('T')[0] : '',
+            checkInDate: booking.checkInDate ? (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date(booking.checkInDate)) : '',
             checkInTime: booking.actualCheckIn ? new Date(booking.actualCheckIn).toTimeString().slice(0, 5) : (booking.scheduledCheckInTime || '14:00'),
-            checkOutDate: booking.checkOutDate ? new Date(booking.checkOutDate).toISOString().split('T')[0] : '',
+            checkOutDate: booking.checkOutDate ? (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date(booking.checkOutDate)) : '',
             checkOutTime: booking.actualCheckOut ? new Date(booking.actualCheckOut).toTimeString().slice(0, 5) : (booking.scheduledCheckOutTime || '11:00'),
             actualCheckIn: booking.actualCheckIn,
             actualCheckOut: booking.actualCheckOut,
@@ -422,7 +423,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                 const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
                 if (activeTab === 'arrival') return r.checkInDate === todayStr && r.status === 'RESERVED';
-                if (activeTab === 'departure') return r.checkOutDate === todayStr && r.status === 'IN_HOUSE';
+                if (activeTab === 'departure') return r.checkOutDate <= todayStr && r.status === 'IN_HOUSE';
                 return true;
             });
         }
@@ -562,7 +563,10 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
 
     // Current Date for Calendar Restriction
-    const today = new Date().toISOString().split('T')[0];
+    const today = (() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    })();
 
     // Form State - Reservation Meta
     const [reservationType, setReservationType] = useState('');
@@ -631,6 +635,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [actionDrawerOpen, setActionDrawerOpen] = useState(false);
     const [currentAction, setCurrentAction] = useState(null);
     const [actionBooking, setActionBooking] = useState(null);
+    const [showPaymentAlert, setShowPaymentAlert] = useState(false);
+    const [paymentAlertMessage, setPaymentAlertMessage] = useState('');
 
     // Amend Stay State
     // Amend Stay State (Removed)
@@ -904,6 +910,15 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
         if (reservation.status !== 'IN_HOUSE' && reservation.status !== 'CHECKED_OUT') {
             alert('Invoice can only be generated during check-out');
+            return;
+        }
+
+        // Check for pending balance - Prevent Check-out if not fully paid
+        if (reservation.status === 'IN_HOUSE' && reservation.balanceDue > 0.5) {
+            setPaymentAlertMessage(
+                `Payment Pending! \n\nGuest: ${reservation.guestName} \nRoom: ${reservation.roomNumber} \n\nOutstanding Balance: ₹${reservation.balanceDue?.toLocaleString('en-IN')} \n\nPlease settle the full bill in the Folio section before proceeding with check-out.`
+            );
+            setShowPaymentAlert(true);
             return;
         }
 
@@ -1983,6 +1998,21 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                 booking={actionBooking}
                 onSuccess={handleActionSuccess}
             />
+
+            {/* Premium Payment Alert Modal */}
+            {showPaymentAlert && (
+                <ConfirmationModal
+                    isOpen={showPaymentAlert}
+                    onClose={() => setShowPaymentAlert(false)}
+                    onConfirm={() => setShowPaymentAlert(false)}
+                    title="Checkout Restricted"
+                    message={paymentAlertMessage}
+                    confirmText="Okay, Got it"
+                    cancelText={null}
+                    variant="danger"
+                    icon="⚠️"
+                />
+            )}
         </div>
     );
 };

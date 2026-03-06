@@ -108,9 +108,10 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
 
                 // Ensure the current selection stays at the top if possible
                 const currentFolios = folios.filter(f => f.isCurrentBooking);
-                const otherFolios = folios.filter(f => !f.isCurrentBooking);
 
-                const finalFolios = [...currentFolios, ...otherFolios];
+                // Only include the current folios to avoid duplicate/extra entries as requested
+                const finalFolios = [...currentFolios];
+
                 // Re-assign 'id' to match order for consistency with setSelectedRoom
                 finalFolios.forEach((f, i) => f.id = i);
 
@@ -563,21 +564,51 @@ User:        ${item.user}
         setActiveMenu(activeMenu === index ? null : index);
     };
 
-    // Filter transactions for current folio
-    const currentFolioTransactions = allTransactions.filter(t => {
+    // Base transactions from API
+    const baseTransactions = allTransactions.filter(t => {
         const selectedFolio = folioList.find(f => f.id === selectedRoom);
         if (!selectedFolio) return false;
 
-        // Match both bookingId (to handle same room different bookings)
-        // and folioId (to handle same booking different guests)
         const isBookingMatch = String(t.bookingId || (reservation?.id || reservation?._id)) === String(selectedFolio.bookingId);
         const isFolioMatch = Number(t.folioId || 0) === Number(selectedFolio.folioId || 0);
 
         return isBookingMatch && isFolioMatch;
     });
 
+    // Final transactions to display (including virtual Room Tariff if missing)
+    const currentFolioTransactions = [...baseTransactions];
+    const selectedFolio = folioList.find(f => f.id === selectedRoom);
+
+    const hasRoomTariff = currentFolioTransactions.some(t =>
+        t.particulars === 'Room Tariff' ||
+        t.particulars === 'Room Charges' ||
+        (t.description?.toLowerCase().includes('room charges'))
+    );
+
+    // If this is the Primary Folio and no Room Tariff is posted yet, show it as a virtual entry
+    if (!hasRoomTariff && selectedFolio && Number(selectedFolio.folioId) === 0) {
+        const roomTotal = reservation?.billing?.totalAmount || reservation?.totalAmount || 0;
+        if (roomTotal > 0) {
+            currentFolioTransactions.unshift({
+                _id: 'virtual-room-tariff',
+                day: new Date(reservation.checkInDate || reservation.arrivalDate || Date.now()).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    weekday: 'short'
+                }),
+                particulars: 'Room Charges',
+                description: `Room Stay (${reservation?.duration?.nights || 1} nights)`,
+                amount: roomTotal,
+                user: 'System',
+                type: 'charge',
+                isVirtual: true
+            });
+        }
+    }
+
     const calculateTotals = () => {
-        // Core calculation from transactions list
+        // Core calculation from transactions list (includes virtual charges)
         let charges = currentFolioTransactions
             .filter(t => t.type?.toLowerCase() === 'charge')
             .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
@@ -586,52 +617,22 @@ User:        ${item.user}
             .filter(t => t.type?.toLowerCase() === 'discount')
             .reduce((sum, t) => sum + (Number(t.amount) || 0), 0));
 
-        const payments = currentFolioTransactions
+        let payments = currentFolioTransactions
             .filter(t => t.type?.toLowerCase() === 'payment')
             .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
 
-        const hasRoomTariff = currentFolioTransactions.some(t =>
-            t.particulars === 'Room Tariff' ||
-            (t.description?.toLowerCase().includes('room charges'))
-        );
+        // Include advance payment from reservation details if this is the primary folio
+        const selectedFolio = folioList.find(f => f.id === selectedRoom);
+        const advance = (selectedFolio && Number(selectedFolio.folioId) === 0)
+            ? Number(reservation?.billing?.advanceAmount || reservation?.advanceAmount || 0)
+            : 0;
 
-        let calculationDetail = '';
-        if (!hasRoomTariff) {
-            const checkIn = reservation?.checkInDate || reservation?.arrivalDate;
-            const checkOut = reservation?.checkOutDate || reservation?.departureDate;
-            const nights = reservation?.duration?.nights ||
-                (checkIn && checkOut ? Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24))) : 1);
-            const rate = reservation?.billing?.roomRate || reservation?.pricePerNight || 0;
-            if (rate > 0 && nights > 0) {
-                calculationDetail = `₹${Math.round(rate)} x ${nights} Night${nights > 1 ? 's' : ''}`;
-            }
-        }
-
-        // Smart Fallback: If no "Room Tariff" charge exists yet, we use the reservation's booking value.
-        // This ensures "Real Data" is shown for Reserved, Upcoming, and Checked-in guests.
-
-        if (!hasRoomTariff) {
-            // Priority 1: Use the existing billing summary from the reservation object
-            const reservationTotal = reservation?.billing?.totalAmount || reservation?.totalAmount || 0;
-            if (reservationTotal > 0) {
-                charges += reservationTotal;
-            } else {
-                // Priority 2: Manual calculation based on stay duration and room rate
-                const checkIn = reservation?.checkInDate || reservation?.arrivalDate;
-                const checkOut = reservation?.checkOutDate || reservation?.departureDate;
-                const nights = reservation?.duration?.nights ||
-                    (checkIn && checkOut ? Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24))) : 1);
-                const rate = reservation?.billing?.roomRate || reservation?.pricePerNight || 0;
-                if (rate > 0) {
-                    charges += (rate * nights);
-                }
-            }
-        }
+        payments += advance;
 
         const grandTotal = charges - discounts;
         const remaining = grandTotal - payments;
 
-        return { subTotal: charges, grandTotal, paid: payments, remaining, discounts, calculationDetail };
+        return { subTotal: charges, grandTotal, paid: payments, remaining, discounts, advance };
     };
 
     const totals = calculateTotals();
@@ -781,16 +782,13 @@ User:        ${item.user}
                     </div>
                 )}
 
-                {/* Summary Footer - Only show when there are transactions */}
-                {!loading && !showRoutingSection && currentFolioTransactions.length > 0 && (
+                {/* Summary Footer - Accurate Real-Time Data */}
+                {!loading && !showRoutingSection && (
                     <div className="folio-summary-section">
                         <div className="summary-grid">
                             <div className="summary-left">
                                 <div className="summary-row">
-                                    <span className="summary-label-text">
-                                        Sub Total
-                                        {totals.calculationDetail && <small style={{ marginLeft: '8px', color: '#6b7280', fontSize: '11px', fontWeight: '400' }}>({totals.calculationDetail})</small>}
-                                    </span>
+                                    <span className="summary-label-text">Sub Total</span>
                                     <span className="summary-amount">₹ {totals.subTotal}</span>
                                 </div>
                                 {totals.discounts > 0 && (
@@ -804,7 +802,7 @@ User:        ${item.user}
                                     <span className="summary-amount grand-total">₹ {totals.grandTotal}</span>
                                 </div>
                                 <div className="summary-row">
-                                    <span className="summary-label-text">Paid</span>
+                                    <span className="summary-label-text">Paid {totals.advance > 0 && '(Incl. Advance)'}</span>
                                     <span className="summary-amount">₹ {totals.paid}</span>
                                 </div>
                                 <div className="summary-row">
@@ -814,28 +812,13 @@ User:        ${item.user}
                             </div>
                             <div className="summary-right">
                                 <div className="summary-row-right">
-                                    <span className="summary-label-text">
-                                        Subtotal
-                                        {totals.calculationDetail && <small style={{ marginLeft: '8px', color: '#6b7280', fontSize: '11px', fontWeight: '400' }}>({totals.calculationDetail})</small>}
+                                    <span className="summary-label-text">Current Balance</span>
+                                    <span className="summary-amount-right" style={{ fontSize: '1.2rem', fontWeight: '800', color: totals.remaining > 0 ? '#ef4444' : '#22c55e' }}>
+                                        ₹ {totals.remaining}
                                     </span>
-                                    <span className="summary-amount-right">₹ {totals.subTotal}</span>
                                 </div>
-                                {totals.discounts > 0 && (
-                                    <div className="summary-row-right">
-                                        <span className="summary-label-text">Discount</span>
-                                        <span className="summary-amount-right discount-amount">- ₹ {totals.discounts}</span>
-                                    </div>
-                                )}
-                                <div className="summary-row-right">
-                                    <span className="summary-label-text">Grand Total</span>
-                                    <span className="summary-amount-right">₹ {totals.grandTotal}</span>
-                                </div>
-                                <div className="summary-row-right">
-                                    <span className="summary-label-text">Balance</span>
-                                    <span className="summary-amount-right">₹ {totals.remaining}</span>
-                                </div>
-                                <div className="summary-row-right">
-                                    <span className="summary-label-text">Paid</span>
+                                <div className="summary-row-right" style={{ borderTop: '1px dashed #e2e8f0', marginTop: '10px', paddingTop: '10px' }}>
+                                    <span className="summary-label-text">Total Paid</span>
                                     <span className="summary-amount-right paid">₹ {totals.paid}</span>
                                 </div>
                             </div>

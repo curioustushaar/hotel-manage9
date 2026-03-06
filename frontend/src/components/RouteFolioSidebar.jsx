@@ -48,17 +48,30 @@ const RouteFolioSidebar = ({
     });
 
     const handleCheckboxChange = (name) => {
+        const extraChargeCategories = [
+            'laundry', 'dryCleaning', 'spa', 'gym', 'pool', 'pets',
+            'special', 'deposit', 'key', 'smoking', 'towels', 'parking', 'valet'
+        ];
+
         if (name === 'all') {
             const newValue = !selectedCategories.all;
             const updated = {};
-            Object.keys(selectedCategories).forEach(key => {
-                if (key !== 'roomCharges') { // Include roomPosting in 'all'
-                    updated[key] = newValue;
-                }
+            extraChargeCategories.forEach(key => {
+                updated[key] = newValue;
             });
             setSelectedCategories(prev => ({ ...prev, ...updated, all: newValue }));
         } else {
-            setSelectedCategories(prev => ({ ...prev, [name]: !prev[name] }));
+            setSelectedCategories(prev => {
+                const newState = { ...prev, [name]: !prev[name] };
+
+                // If it's one of the extra charges, check if all of them are now selected
+                if (extraChargeCategories.includes(name)) {
+                    const allSelected = extraChargeCategories.every(key => newState[key]);
+                    newState.all = allSelected;
+                }
+
+                return newState;
+            });
         }
     };
 

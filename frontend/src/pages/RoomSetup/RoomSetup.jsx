@@ -6,6 +6,7 @@ import { hasPermission, MODULES, PERMISSIONS } from '../../config/rbac';
 import './RoomSetup.css';
 import API_URL from '../../config/api';
 import RoomDetailsPanel from '../../components/rooms/RoomDetailsPanel';
+import ConfirmationModal from '../../components/ConfirmationModal';
 
 const RoomSetup = () => {
     const navigate = useNavigate();
@@ -110,6 +111,14 @@ const RoomSetup = () => {
         bedType: 'All',
         taxMapping: 'All',
         status: 'All'
+    });
+
+    // Delete Confirmation State
+    const [deleteModal, setDeleteModal] = useState({
+        show: false,
+        id: null,
+        roomNumber: '',
+        isProcessing: false
     });
 
     const datePickerRef = useRef(null);
@@ -447,22 +456,35 @@ const RoomSetup = () => {
         }
     };
 
-    // Handle Delete
-    const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this room?')) {
-            try {
-                const response = await fetch(`${API_URL}/api/rooms/delete/${id}`, {
-                    method: 'DELETE'
-                });
-                const data = await response.json();
-                if (data.success) {
-                    fetchRooms();
-                } else {
-                    alert('Failed to delete room');
-                }
-            } catch (error) {
-                alert('Error deleting room');
+    // Handle Delete Click
+    const handleDeleteClick = (id, roomNumber) => {
+        setDeleteModal({
+            show: true,
+            id,
+            roomNumber,
+            isProcessing: false
+        });
+    };
+
+    // Confirm Delete Action
+    const confirmDelete = async () => {
+        const { id } = deleteModal;
+        setDeleteModal(prev => ({ ...prev, isProcessing: true }));
+        try {
+            const response = await fetch(`${API_URL}/api/rooms/delete/${id}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            if (data.success) {
+                fetchRooms();
+                setDeleteModal({ show: false, id: null, roomNumber: '', isProcessing: false });
+            } else {
+                alert('Failed to delete room');
+                setDeleteModal(prev => ({ ...prev, isProcessing: false }));
             }
+        } catch (error) {
+            alert('Error deleting room');
+            setDeleteModal(prev => ({ ...prev, isProcessing: false }));
         }
     };
 
@@ -635,30 +657,30 @@ const RoomSetup = () => {
                 </select>
 
                 <div className="view-toggle">
-                    <button 
+                    <button
                         className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
                         onClick={() => setViewMode('grid')}
                         title="Grid View"
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
-                            <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
-                            <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
-                            <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                            <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+                            <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+                            <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+                            <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
                         </svg>
                     </button>
-                    <button 
+                    <button
                         className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
                         onClick={() => setViewMode('list')}
                         title="List View"
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                            <line x1="8" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                            <line x1="8" y1="18" x2="21" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                            <line x1="3" y1="6" x2="4" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                            <line x1="3" y1="12" x2="4" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                            <line x1="3" y1="18" x2="4" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            <line x1="8" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            <line x1="8" y1="18" x2="21" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            <line x1="3" y1="6" x2="4" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            <line x1="3" y1="12" x2="4" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            <line x1="3" y1="18" x2="4" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                         </svg>
                     </button>
                 </div>
@@ -718,7 +740,7 @@ const RoomSetup = () => {
                                                                 </button>
                                                                 <button
                                                                     className="icon-btn"
-                                                                    onClick={(e) => { e.stopPropagation(); handleDelete(room.id); }}
+                                                                    onClick={(e) => { e.stopPropagation(); handleDeleteClick(room.id, room.roomNumber); }}
                                                                     title="Delete"
                                                                 >
                                                                     🗑️
@@ -790,7 +812,7 @@ const RoomSetup = () => {
                                                             </button>
                                                             <button
                                                                 className="icon-btn"
-                                                                onClick={(e) => { e.stopPropagation(); handleDelete(room.id); }}
+                                                                onClick={(e) => { e.stopPropagation(); handleDeleteClick(room.id, room.roomNumber); }}
                                                                 title="Delete"
                                                             >
                                                                 🗑️
@@ -965,6 +987,18 @@ const RoomSetup = () => {
                     </div >
                 )
             }
+
+            {/* Custom Delete Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={deleteModal.show}
+                onClose={() => setDeleteModal({ ...deleteModal, show: false })}
+                onConfirm={confirmDelete}
+                title="Delete Room"
+                message={`Are you sure you want to delete room ${deleteModal.roomNumber}? This action cannot be undone.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+                isProcessing={deleteModal.isProcessing}
+            />
         </motion.div >
     );
 };
