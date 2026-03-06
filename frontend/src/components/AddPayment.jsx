@@ -4,7 +4,7 @@ import Toast from './Toast';
 
 const AddPayment = ({ onClose, onAdd, reservation }) => {
     console.log('AddPayment component mounted');
-    
+
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         folio: reservation ? `${reservation.roomNumber} - ${reservation.guestName}` : 'B5 - Shahrukh Ahmed',
@@ -23,7 +23,7 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
             ...prev,
             [field]: value
         }));
-        
+
         // Clear error for this field when user starts typing
         if (errors[field]) {
             setErrors(prev => ({
@@ -111,8 +111,8 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
                 <div className="add-payment-body">
                     <div className="add-payment-field">
                         <label>Date <span className="required">*</span></label>
-                        <input 
-                            type="date" 
+                        <input
+                            type="date"
                             value={formData.date}
                             onChange={(e) => handleChange('date', e.target.value)}
                             onKeyPress={handleKeyPress}
@@ -123,19 +123,17 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
 
                     <div className="add-payment-field">
                         <label>Folio</label>
-                        <select 
-                            value={formData.folio} 
+                        <select
+                            value={formData.folio}
                             onChange={(e) => handleChange('folio', e.target.value)}
                         >
                             <option>{formData.folio}</option>
-                            <option>Deluxe-102</option>
-                            <option>B2 - Mr. Shahrukh Ahmed</option>
                         </select>
                     </div>
 
                     <div className="add-payment-field">
                         <label>Select Payment Type <span className="required">*</span></label>
-                        <select 
+                        <select
                             value={formData.paymentType}
                             onChange={(e) => handleChange('paymentType', e.target.value)}
                             className={errors.paymentType ? 'error' : ''}
@@ -158,7 +156,7 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
                     <div className="add-payment-field">
                         <label>Amount <span className="required">*</span></label>
                         <div className="amount-input-group">
-                            <select 
+                            <select
                                 className="currency-select"
                                 value={formData.currency}
                                 onChange={(e) => handleChange('currency', e.target.value)}
@@ -168,8 +166,8 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
                                 <option>EUR</option>
                                 <option>GBP</option>
                             </select>
-                            <input 
-                                type="number" 
+                            <input
+                                type="number"
                                 className={`amount-input ${errors.amount ? 'error' : ''}`}
                                 value={formData.amount}
                                 onChange={(e) => handleChange('amount', e.target.value)}
@@ -184,7 +182,7 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
 
                     <div className="add-payment-field">
                         <label>Comment</label>
-                        <textarea 
+                        <textarea
                             placeholder="Leave a comment here"
                             value={formData.comment}
                             onChange={(e) => handleChange('comment', e.target.value)}
@@ -194,15 +192,15 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
                 </div>
 
                 <div className="add-payment-footer">
-                    <button 
-                        className="add-payment-cancel-btn" 
+                    <button
+                        className="add-payment-cancel-btn"
                         onClick={onClose}
                         disabled={isSubmitting}
                     >
                         Cancel
                     </button>
-                    <button 
-                        className="add-payment-submit-btn" 
+                    <button
+                        className="add-payment-submit-btn"
                         onClick={handleSubmit}
                         disabled={isSubmitting}
                     >
@@ -210,10 +208,10 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
                     </button>
                 </div>
             </div>
-            
+
             {/* Success Toast */}
             {showToast && (
-                <Toast 
+                <Toast
                     message="Successful!"
                     onClose={() => setShowToast(false)}
                     type="success"

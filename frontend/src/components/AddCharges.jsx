@@ -39,7 +39,7 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
             ...prev,
             [field]: value
         }));
-        
+
         if (errors[field]) {
             setErrors(prev => ({
                 ...prev,
@@ -131,8 +131,8 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
                 <div className="add-charges-body">
                     <div className="add-charges-field">
                         <label>Date <span className="required">*</span></label>
-                        <input 
-                            type="date" 
+                        <input
+                            type="date"
                             value={formData.date}
                             onChange={(e) => handleChange('date', e.target.value)}
                             onKeyPress={handleKeyPress}
@@ -143,19 +143,17 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
 
                     <div className="add-charges-field">
                         <label>Folio</label>
-                        <select 
-                            value={formData.folio} 
+                        <select
+                            value={formData.folio}
                             onChange={(e) => handleChange('folio', e.target.value)}
                         >
                             <option>{formData.folio}</option>
-                            <option>Deluxe-102</option>
-                            <option>B2 - Mr. Shahrukh Ahmed</option>
                         </select>
                     </div>
 
                     <div className="add-charges-field">
                         <label>Charges <span className="required">*</span></label>
-                        <select 
+                        <select
                             value={formData.chargeType}
                             onChange={(e) => handleChange('chargeType', e.target.value)}
                             className={errors.chargeType ? 'error' : ''}
@@ -173,7 +171,7 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
                     <div className="add-charges-field">
                         <label>Amount <span className="required">*</span></label>
                         <div className="amount-input-group">
-                            <select 
+                            <select
                                 className="currency-select"
                                 value={formData.currency}
                                 onChange={(e) => handleChange('currency', e.target.value)}
@@ -183,8 +181,8 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
                                 <option>EUR</option>
                                 <option>GBP</option>
                             </select>
-                            <input 
-                                type="number" 
+                            <input
+                                type="number"
                                 className={`amount-input ${errors.amount ? 'error' : ''}`}
                                 value={formData.amount}
                                 onChange={(e) => handleChange('amount', e.target.value)}
@@ -199,8 +197,8 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
 
                     <div className="add-charges-field">
                         <label>Quantity <span className="required">*</span></label>
-                        <input 
-                            type="number" 
+                        <input
+                            type="number"
                             value={formData.quantity}
                             onChange={(e) => handleChange('quantity', e.target.value)}
                             onKeyPress={handleKeyPress}
@@ -213,8 +211,8 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
 
                     <div className="add-charges-field">
                         <label>Description</label>
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             value={formData.description}
                             onChange={(e) => handleChange('description', e.target.value)}
                             placeholder="Enter description"
@@ -223,7 +221,7 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
 
                     <div className="add-charges-field">
                         <label>Comment</label>
-                        <textarea 
+                        <textarea
                             placeholder="Leave a comment here"
                             value={formData.comment}
                             onChange={(e) => handleChange('comment', e.target.value)}
@@ -233,15 +231,15 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
                 </div>
 
                 <div className="add-charges-footer">
-                    <button 
-                        className="add-charges-cancel-btn" 
+                    <button
+                        className="add-charges-cancel-btn"
                         onClick={onClose}
                         disabled={isSubmitting}
                     >
                         Cancel
                     </button>
-                    <button 
-                        className="add-charges-submit-btn" 
+                    <button
+                        className="add-charges-submit-btn"
                         onClick={handleSubmit}
                         disabled={isSubmitting}
                     >
@@ -249,10 +247,10 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
                     </button>
                 </div>
             </div>
-            
+
             {/* Success Toast */}
             {showToast && (
-                <Toast 
+                <Toast
                     message="Successful!"
                     onClose={() => setShowToast(false)}
                     type="success"
