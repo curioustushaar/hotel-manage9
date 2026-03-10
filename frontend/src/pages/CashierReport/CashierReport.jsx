@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import API_URL from '../../config/api';
+import { useSettings } from '../../context/SettingsContext';
 import './CashierReport.css';
 
 const CashierReport = () => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const today = new Date().toISOString().split('T')[0];
     const [startDate, setStartDate] = useState(today);
     const [endDate, setEndDate] = useState(today);
@@ -68,7 +71,7 @@ const CashierReport = () => {
             index + 1,
             formatDisplayDate(log.date),
             log.type,
-            `₹${log.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+            `${cs}${log.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
             log.by,
             log.reference || '',
             log.notes || ''
@@ -191,17 +194,17 @@ const CashierReport = () => {
                             <div className="card-icon green-icon">💰</div>
                             <div className="card-content">
                                 <h3 className="card-title">Total Collections</h3>
-                                <p className="card-amount">₹{reportData.totalCollections.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                <p className="card-amount">{cs}{reportData.totalCollections.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                 <p className="card-subtitle">Total Payments Received</p>
                                 <p className="card-count">{reportData.totalPayments} payments</p>
                             </div>
                         </div>
 
                         <div className="summary-card red-card">
-                            <div className="card-icon red-icon">₹</div>
+                            <div className="card-icon red-icon">{cs}</div>
                             <div className="card-content">
                                 <h3 className="card-title">Total Payouts</h3>
-                                <p className="card-amount">₹{reportData.totalPayouts.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                <p className="card-amount">{cs}{reportData.totalPayouts.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                 <p className="card-subtitle">Total Payments Made</p>
                                 <p className="card-count">{reportData.totalPayoutsCount} payouts</p>
                             </div>
@@ -211,7 +214,7 @@ const CashierReport = () => {
                             <div className="card-icon orange-icon">💵</div>
                             <div className="card-content">
                                 <h3 className="card-title">Net Cash Flow</h3>
-                                <p className="card-amount">₹{reportData.netCashFlow.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                <p className="card-amount">{cs}{reportData.netCashFlow.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                 <p className="card-subtitle">Collections - Payouts</p>
                                 <p className="card-count">{reportData.netTransactions} total transactions</p>
                             </div>
@@ -227,17 +230,17 @@ const CashierReport = () => {
                                 <div className="overview-icon green-icon">💰</div>
                                 <div className="overview-content">
                                     <h3 className="overview-title">Opening Balance</h3>
-                                    <p className="overview-amount">₹{reportData.openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                    <p className="overview-amount">{cs}{reportData.openingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                     <p className="overview-subtitle">Total Payments - Paid</p>
                                     <p className="overview-count">{reportData.openingPayments} payments</p>
                                 </div>
                             </div>
 
                             <div className="overview-card">
-                                <div className="overview-icon red-icon">₹</div>
+                                <div className="overview-icon red-icon">{cs}</div>
                                 <div className="overview-content">
                                     <h3 className="overview-title">Payments Received</h3>
-                                    <p className="overview-amount">₹{reportData.totalCollections.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                    <p className="overview-amount">{cs}{reportData.totalCollections.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                     <p className="overview-subtitle">Total Payments Made</p>
                                     <p className="overview-count">{reportData.totalPayoutsCount} payouts</p>
                                 </div>
@@ -246,18 +249,18 @@ const CashierReport = () => {
 
                         <div className="overview-grid">
                             <div className="overview-card">
-                                <div className="overview-icon green-icon">₹</div>
+                                <div className="overview-icon green-icon">{cs}</div>
                                 <div className="overview-content">
                                     <h3 className="overview-title">Closing Balance</h3>
-                                    <p className="overview-amount">₹{reportData.closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                    <p className="overview-amount">{cs}{reportData.closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                 </div>
                             </div>
 
                             <div className="overview-card">
-                                <div className="overview-icon red-icon">₹</div>
+                                <div className="overview-icon red-icon">{cs}</div>
                                 <div className="overview-content">
                                     <h3 className="overview-title">Closing Balance</h3>
-                                    <p className="overview-amount">₹{reportData.closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                    <p className="overview-amount">{cs}{reportData.closingBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                 </div>
                             </div>
                         </div>
@@ -277,28 +280,28 @@ const CashierReport = () => {
                                             <span className="item-icon green">ⓘ</span>
                                             Cash
                                         </span>
-                                        <span className="item-amount green-text">₹{reportData.paymentsReceived.cash.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        <span className="item-amount green-text">{cs}{reportData.paymentsReceived.cash.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     <div className="breakdown-item">
                                         <span className="item-label">
                                             <span className="item-icon green">ⓘ</span>
                                             Card
                                         </span>
-                                        <span className="item-amount green-text">₹{reportData.paymentsReceived.card.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        <span className="item-amount green-text">{cs}{reportData.paymentsReceived.card.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     <div className="breakdown-item">
                                         <span className="item-label">
                                             <span className="item-icon green">ⓘ</span>
                                             UPI
                                         </span>
-                                        <span className="item-amount green-text">₹{reportData.paymentsReceived.upi.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        <span className="item-amount green-text">{cs}{reportData.paymentsReceived.upi.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     <div className="breakdown-item">
                                         <span className="item-label">
                                             <span className="item-icon green">ⓘ</span>
                                             Bank Transfer
                                         </span>
-                                        <span className="item-amount green-text">₹{reportData.paymentsReceived.bankTransfer.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        <span className="item-amount green-text">{cs}{reportData.paymentsReceived.bankTransfer.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 </div>
                             </div>
@@ -312,28 +315,28 @@ const CashierReport = () => {
                                             <span className="item-icon red">ⓘ</span>
                                             Cash
                                         </span>
-                                        <span className="item-amount red-text">₹{reportData.paymentsMade.cash.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        <span className="item-amount red-text">{cs}{reportData.paymentsMade.cash.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     <div className="breakdown-item">
                                         <span className="item-label">
                                             <span className="item-icon red">ⓘ</span>
                                             Expense Paid
                                         </span>
-                                        <span className="item-amount red-text">₹{reportData.paymentsMade.expensePaid.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        <span className="item-amount red-text">{cs}{reportData.paymentsMade.expensePaid.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     <div className="breakdown-item">
                                         <span className="item-label">
                                             <span className="item-icon red">ⓘ</span>
                                             Refunds
                                         </span>
-                                        <span className="item-amount red-text">₹{reportData.paymentsMade.refunds.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        <span className="item-amount red-text">{cs}{reportData.paymentsMade.refunds.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     <div className="breakdown-item">
                                         <span className="item-label">
                                             <span className="item-icon red">ⓘ</span>
                                             Salaries
                                         </span>
-                                        <span className="item-amount red-text">₹{reportData.paymentsMade.salaries.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        <span className="item-amount red-text">{cs}{reportData.paymentsMade.salaries.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 </div>
                             </div>
@@ -371,12 +374,12 @@ const CashierReport = () => {
                                             <tr key={log.id || index}>
                                                 <td>
                                                     <div className={`log-number ${log.category === 'collection' ? 'green' : 'red'}`}>
-                                                        ₹
+                                                        {cs}
                                                     </div>
                                                 </td>
                                                 <td>{formatDisplayDate(log.date)}</td>
                                                 <td>{log.type}</td>
-                                                <td>₹{log.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                <td>{cs}{log.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                                 <td>
                                                     <div className="reference-cell">
                                                         <div>{log.by}</div>

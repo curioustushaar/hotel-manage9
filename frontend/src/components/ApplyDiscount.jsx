@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
+import { useSettings } from '../context/SettingsContext';
 import './ApplyDiscount.css';
 
 const ApplyDiscount = ({ onClose, onApply, reservation }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         roomWiseDiscount: true,
@@ -87,7 +90,7 @@ const ApplyDiscount = ({ onClose, onApply, reservation }) => {
                             className="form-select"
                         >
                             <option value="percentage">Percentage (%)</option>
-                            <option value="amount">Amount (₹)</option>
+                            <option value="amount">Amount ({cs})</option>
                         </select>
                     </div>
 

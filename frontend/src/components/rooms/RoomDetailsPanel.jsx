@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import API_URL from '../../config/api';
 import './RoomDetailsPanel.css';
+import { useSettings } from '../../context/SettingsContext';
 
 const RoomDetailsPanel = ({ roomId, isOpen, onClose, onUpdateStatus, onEdit, onQuickBook, computedStatus, canManageRooms, canBook, canManageStatus }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [room, setRoom] = useState(null);
     const [roomFacilities, setRoomFacilities] = useState([]);
     const [roomBookings, setRoomBookings] = useState([]);
@@ -192,7 +195,7 @@ const RoomDetailsPanel = ({ roomId, isOpen, onClose, onUpdateStatus, onEdit, onQ
                                             </div>
                                             <div className="info-item">
                                                 <label>Price Per Night</label>
-                                                <span className="price">₹{room.price?.toLocaleString()}</span>
+                                                <span className="price">{cs}{room.price?.toLocaleString()}</span>
                                             </div>
                                             <div className="info-item full-width">
                                                 <label>Status</label>

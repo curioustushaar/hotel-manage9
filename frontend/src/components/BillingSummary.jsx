@@ -1,4 +1,5 @@
 import { CreditCard, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 import './BillingSummary.css';
 
 const BillingSummary = ({
@@ -14,8 +15,23 @@ const BillingSummary = ({
     onTaxExemptChange = () => { },
     taxExempt = false
 }) => {
+    const { getCurrencySymbol, settings } = useSettings();
+    const cs = getCurrencySymbol();
     const paidPercentage = totalAmount > 0 ? Math.min(100, Math.round((paidAmount / totalAmount) * 100)) : 0;
     const isFullyPaid = balanceDue <= 0 && totalAmount > 0;
+
+    const roomGstPct = parseFloat(settings.roomGst) || 12;
+    const isInclusive = settings.inclusiveTax;
+    const pm = settings.paymentModes || {};
+
+    // Build enabled payment options
+    const paymentOptions = [
+        pm.cash !== false && { value: 'Cash', label: 'Cash' },
+        pm.upi !== false && { value: 'UPI', label: 'UPI / Online' },
+        pm.card !== false && { value: 'Card', label: 'Card' },
+        pm.bankTransfer && { value: 'Bank Transfer', label: 'Bank Transfer' },
+        { value: 'Cheque', label: 'Cheque' },
+    ].filter(Boolean);
 
     return (
         <div className="billing-payment-dual-container">
@@ -32,23 +48,23 @@ const BillingSummary = ({
                     <div className="card-body-left">
                         <div className="summary-item-v2">
                             <span className="label">Room Charges</span>
-                            <span className="value">₹{roomCharges.toLocaleString('en-IN')}</span>
+                            <span className="value">{cs}{roomCharges.toLocaleString('en-IN')}</span>
                         </div>
                         <div className="summary-item-v2" style={{ marginTop: '20px' }}>
-                            <span className="label">Tax (12%)</span>
-                            <span className="value">₹{tax.toLocaleString('en-IN')}</span>
+                            <span className="label">Tax ({roomGstPct}%){isInclusive ? ' (incl.)' : ''}</span>
+                            <span className="value">{cs}{tax.toLocaleString('en-IN')}</span>
                         </div>
                     </div>
 
                     <div className="card-body-right">
                         <div className="summary-item-v2 align-right">
                             <span className="label">Subtotal</span>
-                            <span className="value">₹{(roomCharges - discount).toLocaleString('en-IN')}</span>
+                            <span className="value">{cs}{(roomCharges - discount).toLocaleString('en-IN')}</span>
                         </div>
 
                         <div className="total-amount-box-v2">
                             <span className="total-label-v2">GRAND TOTAL</span>
-                            <span className="total-value-v2">₹{totalAmount.toLocaleString('en-IN')}</span>
+                            <span className="total-value-v2">{cs}{totalAmount.toLocaleString('en-IN')}</span>
                         </div>
                     </div>
                 </div>
@@ -72,17 +88,16 @@ const BillingSummary = ({
                                 value={paymentMode}
                                 onChange={(e) => onPaymentModeChange(e.target.value)}
                             >
-                                <option value="Cash">Cash</option>
-                                <option value="Card">Card</option>
-                                <option value="UPI">UPI / Online</option>
-                                <option value="Cheque">Cheque</option>
+                                {paymentOptions.map(opt => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
                             </select>
                         </div>
 
                         <div className="payment-form-group-v2">
                             <label className="input-label-v2">ADVANCE / PAID AMOUNT</label>
                             <div className="premium-input-wrapper-v2">
-                                <span className="currency-symbol-v2">₹</span>
+                                <span className="currency-symbol-v2">{cs}</span>
                                 <input
                                     type="number"
                                     className="premium-input-v2"
@@ -135,7 +150,7 @@ const BillingSummary = ({
 
                         <div className={`due-box-v2 ${balanceDue > 0 ? 'has-due' : 'is-clear'}`}>
                             <span className="due-icon">⚠️</span>
-                            <span className="due-label">DUE: ₹{balanceDue.toLocaleString('en-IN')}</span>
+                            <span className="due-label">DUE: {cs}{balanceDue.toLocaleString('en-IN')}</span>
                         </div>
                     </div>
                 </div>

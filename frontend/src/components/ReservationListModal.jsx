@@ -1,7 +1,7 @@
 import React from 'react';
 import './ReservationModal.css'; // Reusing styles
 
-const ReservationListModal = ({ table, onClose }) => {
+const ReservationListModal = ({ table, onClose, onCancel }) => {
     const reservations = table.reservations || [];
 
     // Sort by date/time
@@ -29,29 +29,60 @@ const ReservationListModal = ({ table, onClose }) => {
                                     <th style={{ padding: '10px' }}>Time</th>
                                     <th style={{ padding: '10px' }}>Guest</th>
                                     <th style={{ padding: '10px' }}>Count</th>
+                                    <th style={{ padding: '10px' }}>Source</th>
                                     <th style={{ padding: '10px' }}>Status</th>
+                                    <th style={{ padding: '10px' }}>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {reservations.map(res => (
-                                    <tr key={res.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
+                                    <tr key={res._id || res.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
                                         <td style={{ padding: '10px' }}>{res.date}</td>
                                         <td style={{ padding: '10px' }}>{res.startTime} - {res.endTime}</td>
                                         <td style={{ padding: '10px' }}>
-                                            <div style={{ fontWeight: '600' }}>{res.name}</div>
+                                            <div style={{ fontWeight: '600' }}>{res.name || res.guestName}</div>
                                             <div style={{ fontSize: '11px', color: '#666' }}>{res.phone}</div>
                                         </td>
                                         <td style={{ padding: '10px' }}>{res.guests}</td>
+                                        <td style={{ padding: '10px' }}>
+                                            <span style={{ fontSize: '11px', color: '#666' }}>{res.source || 'Phone'}</span>
+                                        </td>
                                         <td style={{ padding: '10px' }}>
                                             <span style={{
                                                 padding: '4px 8px',
                                                 borderRadius: '4px',
                                                 fontSize: '11px',
-                                                background: res.status === 'Upcoming' ? '#dbeafe' : '#f3f4f6',
-                                                color: res.status === 'Upcoming' ? '#1e40af' : '#374151'
+                                                background:
+                                                    res.status === 'Completed' ? '#dcfce7' :
+                                                        res.status === 'Cancelled' ? '#fee2e2' :
+                                                            res.status === 'No Show' ? '#fef3c7' :
+                                                                res.status === 'Upcoming' ? '#dbeafe' : '#f3f4f6',
+                                                color:
+                                                    res.status === 'Completed' ? '#166534' :
+                                                        res.status === 'Cancelled' ? '#991b1b' :
+                                                            res.status === 'No Show' ? '#92400e' :
+                                                                res.status === 'Upcoming' ? '#1e40af' : '#374151'
                                             }}>
                                                 {res.status}
                                             </span>
+                                        </td>
+                                        <td style={{ padding: '10px' }}>
+                                            {res.status === 'Upcoming' && (
+                                                <button
+                                                    onClick={() => onCancel(res._id || res.id)}
+                                                    style={{
+                                                        background: 'transparent',
+                                                        border: '1px solid #ef4444',
+                                                        color: '#ef4444',
+                                                        padding: '3px 7px',
+                                                        borderRadius: '3px',
+                                                        fontSize: '10px',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    Cancel
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

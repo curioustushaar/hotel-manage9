@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import BaseDrawer from './BaseDrawer';
+import { useSettings } from '../../context/SettingsContext';
 
 const CheckInDrawer = ({ isOpen, onClose, reservation }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [formData, setFormData] = useState({
         arrivalDate: new Date().toISOString().split('T')[0],
         checkInTime: new Date().toTimeString().slice(0, 5),
@@ -165,7 +168,7 @@ const CheckInDrawer = ({ isOpen, onClose, reservation }) => {
                         type="number"
                         value={formData.securityDeposit}
                         onChange={(e) => handleChange('securityDeposit', e.target.value)}
-                        placeholder="₹ 0"
+                        placeholder={`${cs} 0`}
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                 </div>
@@ -203,6 +206,9 @@ const CheckInDrawer = ({ isOpen, onClose, reservation }) => {
             </form>
         </BaseDrawer>
     );
+};
+
+export default CheckInDrawer;
 };
 
 export default CheckInDrawer;

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
 import soundManager from '../../utils/soundManager';
 import API_URL from '../../config/api';
 import FoodMenuDashboard from '../FoodMenu/FoodMenuDashboard';
@@ -40,12 +41,16 @@ import RoomService from '../../components/RoomService';
 import HousekeepingView from '../../components/HousekeepingView';
 import CompanySettings from '../CompanySettings/CompanySettings';
 import UniversalReport from '../Reports/UniversalReport';
+import StaffReport from '../Reports/StaffReport';
+import ReservationReport from '../Reports/ReservationReport';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { user, logout } = useAuth();
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
     // Determine initial active menu based on permissions
@@ -787,7 +792,7 @@ const AdminDashboard = () => {
             activeMenu={activeMenu}
             onMenuClick={handleMenuClick}
             onLogout={handleLogout}
-            noPadding={activeMenu === 'stay-overview' || activeMenu === 'view-order' || activeMenu === 'food-order' || activeMenu === 'reservation-card' || activeMenu === 'company'}
+            noPadding={activeMenu === 'stay-overview' || activeMenu === 'view-order' || activeMenu === 'food-order' || activeMenu === 'reservation-card' || activeMenu === 'company' || activeMenu?.startsWith('reports-')}
         >
 
 
@@ -891,8 +896,18 @@ const AdminDashboard = () => {
                 <CashierSection />
             )}
 
-            {/* Universal Reports */}
-            {activeMenu?.startsWith('reports-') && (
+            {/* Staff Report (dedicated) */}
+            {activeMenu === 'reports-staff' && (
+                <StaffReport />
+            )}
+
+            {/* Reservation Report (dedicated) */}
+            {activeMenu === 'reports-reservations' && (
+                <ReservationReport />
+            )}
+
+            {/* Universal Reports (all except staff & reservations) */}
+            {activeMenu?.startsWith('reports-') && activeMenu !== 'reports-staff' && activeMenu !== 'reports-reservations' && (
                 <UniversalReport type={activeMenu} />
             )}
 
@@ -1389,7 +1404,7 @@ const AdminDashboard = () => {
                                 </div>
 
                                 <div className="form-group">
-                                    <label>PRICE PER NIGHT (₹) *</label>
+                                    <label>PRICE PER NIGHT ({cs}) *</label>
                                     <input
                                         type="number"
                                         className="form-input"
@@ -1509,7 +1524,7 @@ const AdminDashboard = () => {
                                     <div className="pricing-info" style={{ borderRadius: '8px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', marginBottom: '1.25rem' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
                                             <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Allowed Range</span>
-                                            <span style={{ fontSize: '12px', fontWeight: '800', color: '#1e293b' }}>₹{currentPricing.minPrice} – ₹{currentPricing.maxPrice}</span>
+                                            <span style={{ fontSize: '12px', fontWeight: '800', color: '#1e293b' }}>{cs}{currentPricing.minPrice} – {cs}{currentPricing.maxPrice}</span>
                                         </div>
                                         <div className="range-bar" style={{ height: '6px', background: '#e2e8f0', borderRadius: '10px', position: 'relative', overflow: 'hidden' }}>
                                             <div style={{ height: '100%', background: '#ff4d4d', width: '100%' }}></div>
@@ -1518,7 +1533,7 @@ const AdminDashboard = () => {
                                 )}
 
                                 <div className="form-group">
-                                    <label>PRICE PER NIGHT (₹) *</label>
+                                    <label>PRICE PER NIGHT ({cs}) *</label>
                                     <select
                                         className="form-input"
                                         value={priceOption}
@@ -1536,9 +1551,9 @@ const AdminDashboard = () => {
                                         <option value="custom">Custom Price</option>
                                         {currentPricing && (
                                             <>
-                                                <option value="min">Suggested Min (₹{currentPricing.minPrice})</option>
-                                                <option value="mid">Mid Price (₹{Math.round((currentPricing.minPrice + currentPricing.maxPrice) / 2)})</option>
-                                                <option value="max">Suggested Max (₹{currentPricing.maxPrice})</option>
+                                                <option value="min">Suggested Min ({cs}{currentPricing.minPrice})</option>
+                                                <option value="mid">Mid Price ({cs}{Math.round((currentPricing.minPrice + currentPricing.maxPrice) / 2)})</option>
+                                                <option value="max">Suggested Max ({cs}{currentPricing.maxPrice})</option>
                                             </>
                                         )}
                                     </select>
@@ -1562,7 +1577,7 @@ const AdminDashboard = () => {
 
                                     {currentPricing && (roomFormData.price < currentPricing.minPrice || roomFormData.price > currentPricing.maxPrice) && (
                                         <p style={{ color: '#ef4444', fontSize: '11px', marginTop: '5px', fontWeight: '600' }}>
-                                            ⚠️ Price must be between ₹{currentPricing.minPrice} and ₹{currentPricing.maxPrice}
+                                            ⚠️ Price must be between {cs}{currentPricing.minPrice} and {cs}{currentPricing.maxPrice}
                                         </p>
                                     )}
                                 </div>

@@ -9,10 +9,12 @@ import GuestDetails from './GuestDetails';
 import RoomCharges from './RoomCharges';
 import AuditTrail from './AuditTrail';
 import API_URL from '../config/api';
+import { useSettings } from '../context/SettingsContext';
 const EditReservationModal = ({ isOpen, onClose, reservation, onRefresh }) => {
     const [activeTab, setActiveTab] = useState('folio-operations');
     const [balance, setBalance] = useState(0);
     const [loading, setLoading] = useState(false);
+    const { formatDate } = useSettings();
 
     // Initial balance calculation or updates when reservation changes
     React.useEffect(() => {
@@ -129,31 +131,19 @@ const EditReservationModal = ({ isOpen, onClose, reservation, onRefresh }) => {
                         <div className="summary-col">
                             <span className="summary-label-modal">BOOKING DATE</span>
                             <span className="summary-value-modal">
-                                {new Date(reservation.createdAt).toLocaleDateString('en-GB', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: 'numeric'
-                                })}
+                                {formatDate(reservation.createdAt)}
                             </span>
                         </div>
                         <div className="summary-col">
                             <span className="summary-label-modal">ARRIVAL</span>
                             <span className="summary-value-modal">
-                                {new Date(reservation.checkInDate).toLocaleDateString('en-GB', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: 'numeric'
-                                })}
+                                {formatDate(reservation.checkInDate)}
                             </span>
                         </div>
                         <div className="summary-col">
                             <span className="summary-label-modal">DEPARTURE</span>
                             <span className="summary-value-modal">
-                                {new Date(reservation.checkOutDate).toLocaleDateString('en-GB', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: 'numeric'
-                                })}
+                                {formatDate(reservation.checkOutDate)}
                             </span>
                         </div>
                         <div className="summary-col">

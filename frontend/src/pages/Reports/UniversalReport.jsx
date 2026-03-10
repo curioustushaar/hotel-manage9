@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import './UniversalReport.css';
 import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
 import soundManager from '../../utils/soundManager';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 
 const UniversalReport = ({ type }) => {
     const { user } = useAuth();
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [dateRange, setDateRange] = useState({
         from: new Date().toISOString().split('T')[0],
         to: new Date().toISOString().split('T')[0]
@@ -20,7 +23,7 @@ const UniversalReport = ({ type }) => {
         'reports-sales': {
             title: 'SALES REPORTS',
             tabs: ['Dine-In Orders', 'Room Service Orders', 'Take-Away Orders', 'Online Orders'],
-            filters: ['Outlet', 'Category', 'Item'],
+            filters: ['Category', 'Item'],
             columns: ['Bill No', 'Item / Category', 'Qty', 'Amount', 'Tax', 'Net']
         },
         'reports-payments': {
@@ -38,8 +41,8 @@ const UniversalReport = ({ type }) => {
         'reports-kitchen': {
             title: 'KITCHEN REPORTS',
             tabs: ['KOT Pending Time', 'Kitchen Delay', 'Preparation Time', 'Ready vs Delivered', 'Kitchen Load'],
-            filters: ['Kitchen Section'],
-            columns: ['KOT No', 'Item', 'Start Time', 'Ready Time', 'Delay']
+            filters: ['Category', 'Order Type'],
+            columns: ['KOT No', 'Item', 'Category', 'Start Time', 'Ready Time', 'Delay']
         },
         'reports-gst': {
             title: 'GST & TAX REPORTS',
@@ -55,35 +58,64 @@ const UniversalReport = ({ type }) => {
         },
         'reports-billing': {
             title: 'BILLING REPORTS',
-            tabs: ['Bill Wise', 'Split Bill', 'Voided Bills', 'Edited Bills', 'Bill History'],
-            filters: ['Bill Status', 'User'],
-            columns: ['Bill No', 'Table / Room', 'Amount', 'Status', 'Edited By']
+            tabs: ['Overview', 'Detailed Bills', 'Top Items', 'Cancelled Bills'],
+            filters: ['Order Type', 'Payment Method'],
+            columns: ['Bill No', 'Date', 'Table / Room', 'Items', 'Amt', 'Tax', 'Disc', 'Total', 'Payment', 'Staff']
         },
         'reports-reservations': {
             title: 'RESERVATION REPORTS',
             tabs: ['Upcoming', 'Today', 'Completed', 'Guest History', 'Repeat Guests'],
-            filters: ['Source', 'Segment'],
-            columns: ['Guest', 'Room', 'Check-In', 'Nights', 'Status']
+            filters: ['Source', 'Table Type'],
+            columns: ['Guest', 'Table / Area', 'Date', 'Time / Duration', 'Persons', 'Source', 'Status']
         },
         'reports-analytics': {
             title: 'ANALYTICS REPORTS',
-            tabs: ['Top Selling Items', 'Peak Hours', 'Best Table Revenue', 'Room vs Restaurant Revenue', 'Daily Profit Estimate'],
+            tabs: ['Overview'],
             filters: ['Metric'],
             columns: ['Metric', 'Value', 'Growth', 'Trend']
         }
     };
 
-    const config = reportConfig[type] || reportConfig['reports-sales'];
-    const [activeTab, setActiveTab] = useState(config.tabs[0]);
+    const [activeTab, setActiveTab] = useState((reportConfig[type] || reportConfig['reports-sales']).tabs[0]);
+
+    const getDynamicConfig = () => {
+        let base = reportConfig[type] || reportConfig['reports-sales'];
+        if (type === 'reports-billing') {
+            if (activeTab === 'Top Items') {
+                return { ...base, columns: ['#', 'Item Name', 'Category', 'Quantity Sold', 'Revenue'] };
+            } else if (activeTab === 'Cancelled Bills') {
+                return { ...base, columns: ['Bill No', 'Amount', 'Reason', 'Date'] };
+            } else if (activeTab === 'Overview') {
+                return { ...base, columns: [] }; // Hide table in overview
+            }
+        }
+        return base;
+    };
+
+    const config = getDynamicConfig();
 
     // Reset active tab when type changes
     useEffect(() => {
         setActiveTab(config.tabs[0]);
     }, [type]);
 
+    const [roomOptions, setRoomOptions] = useState({ types: [], floors: [], statuses: [] });
     const [menuItems, setMenuItems] = useState([]);
+    const [kitchenCategories, setKitchenCategories] = useState([]);
+    const [tableTypes, setTableTypes] = useState(['General', 'AC', 'Non-AC', 'Garden']);
+    const [billingSummary, setBillingSummary] = useState({ breakdowns: {}, topSelling: [], cancelledBills: [], summary: {} });
+    const [resSummary, setResSummary] = useState({ summary: {}, distributions: {}, reservationList: [] });
+    const [summaryStats, setSummaryStats] = useState({
+        totalCollections: 0,
+        totalPayouts: 0,
+        netCashFlow: 0,
+        openingBalance: 0,
+        paymentsReceived: 0,
+        paymentsCount: 0,
+        paymentMethods: { cash: 0, card: 0, upi: 0, bankTransfer: 0 }
+    });
 
-    // Fetch dynamic options if it's a sales report
+    // Fetch dynamic options based on report type
     useEffect(() => {
         if (type === 'reports-sales') {
             fetch('http://localhost:5000/api/menu/list')
@@ -94,6 +126,29 @@ const UniversalReport = ({ type }) => {
                     }
                 })
                 .catch(err => console.error("Error fetching menu:", err));
+        } else if (type === 'reports-rooms') {
+            fetch('http://localhost:5000/api/reports/rooms/options')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        setRoomOptions(data.data);
+                    }
+                })
+                .catch(err => console.error("Error fetching room options:", err));
+        } else if (type === 'reports-reservations') {
+            fetch('http://localhost:5000/api/guest-meal/tables')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const defaults = ['General', 'AC', 'Non-AC', 'Garden'];
+                        const fromDB = data.data
+                            .map(t => (t.type || '').trim())
+                            .filter(t => t.length > 1 && !t.toLowerCase().includes('burr'));
+                        const merged = [...new Set([...defaults, ...fromDB])];
+                        setTableTypes(merged);
+                    }
+                })
+                .catch(err => console.error("Error fetching table types:", err));
         }
     }, [type]);
 
@@ -101,53 +156,67 @@ const UniversalReport = ({ type }) => {
     const selectedCategory = filters['Category'] || 'All';
     const dynamicCategories = ['Starters', 'Main Course', 'Breakfast', 'Rice', 'Desserts', 'Beverages', 'Chinese', 'Continental'];
 
-    // Fallback specific items for sales reports
-    const outletOptions = ['Dine-In', 'Room Service', 'Take Away', 'Online'];
-
     const getOptionsForFilter = (filterName) => {
         if (type === 'reports-analytics' && filterName === 'Metric') {
-            if (activeTab === 'Top Selling Items') {
-                return ['All Metrics', 'Quantity Sold', 'Revenue Generated', 'Profit Margin', 'Orders Count'];
-            } else if (activeTab === 'Peak Hours') {
-                return ['All Metrics', 'Orders Count', 'Revenue', 'Avg Order Value', 'Table Occupancy'];
-            } else if (activeTab === 'Best Table Revenue') {
-                return ['All Metrics', 'Revenue', 'Orders Count', 'Avg Bill Size', 'Turnover Rate'];
-            } else if (activeTab === 'Room vs Restaurant Revenue') {
-                return ['All Metrics', 'Room Revenue', 'Restaurant Revenue', 'Contribution %', 'Profit'];
-            } else if (activeTab === 'Daily Profit Estimate') {
-                return ['All Metrics', 'Revenue', 'Expenses', 'Net Profit', 'Cash Flow'];
-            }
-            return ['All Metrics', 'Quantity Sold', 'Revenue Generated', 'Profit Margin', 'Orders Count'];
+            return ['All Metrics', 'Revenue', 'Profit', 'Orders Count', 'Avg Bill Size', 'Orders per Hour', 'Table Turnover Rate', 'Table Utilization', 'Top Selling Items', 'Customer Count', 'Repeat Customer Rate'];
         }
 
-        if (type !== 'reports-sales' && type !== 'reports-payments') {
-            return ['Option 1', 'Option 2'];
+        if (type === 'reports-rooms') {
+            if (filterName === 'Room Type') return roomOptions.types || [];
+            if (filterName === 'Floor') return roomOptions.floors || [];
+            if (filterName === 'Status') return roomOptions.statuses || [];
+            return [];
         }
 
-        if (filterName === 'Outlet') return outletOptions;
-        if (filterName === 'Category') return dynamicCategories;
-        if (filterName === 'Item') {
-            if (!menuItems.length) return ['No Items Loaded'];
-            const filtered = selectedCategory === 'All'
-                ? menuItems
-                : menuItems.filter(i => i.category === selectedCategory);
-            return filtered.map(item => item.itemName);
+        if (type === 'reports-kitchen') {
+            if (filterName === 'Category') return kitchenCategories;
+            if (filterName === 'Order Type') return ['Dine-In', 'Room Order', 'Take Away', 'Online Order'];
+            return [];
         }
 
         if (type === 'reports-payments') {
-            if (filterName === 'Cashier') return ['Dine-In', 'Room', 'Take Away', 'Delivery', 'Online Order'];
-            if (filterName === 'Payment Mode') return ['UPI', 'Card', 'Cash'];
-            if (filterName === 'Shift') return ['Morning', 'Lunch', 'Night'];
+            if (filterName === 'Payment Mode') return ['Cash', 'UPI', 'Card', 'Bank Transfer'];
+            if (filterName === 'Shift') return ['Morning', 'Evening', 'Night'];
+            if (filterName === 'Cashier') return ['Dine-In', 'Room', 'Take Away', 'Online Order'];
+            return [];
         }
 
-        return ['Option 1', 'Option 2'];
+        if (type === 'reports-billing') {
+            if (filterName === 'Order Type') return ['Dine-In', 'Take Away', 'Room Service', 'Delivery', 'Online'];
+            if (filterName === 'Payment Method') return ['Cash', 'UPI', 'Card', 'Bank Transfer', 'Add to Room'];
+            if (filterName === 'Bill Status') return ['Paid', 'Pending', 'Cancelled'];
+            return [];
+        }
+
+        if (type === 'reports-sales') {
+            if (filterName === 'Category') return dynamicCategories;
+            if (filterName === 'Item') {
+                if (!menuItems.length) return ['No Items Loaded'];
+                const filtered = selectedCategory === 'All'
+                    ? menuItems
+                    : menuItems.filter(i => i.category === selectedCategory);
+                return filtered.map(item => item.itemName);
+            }
+        }
+
+        if (type === 'reports-reservations') {
+            if (filterName === 'Source') return [
+                { label: 'All', value: 'All' },
+                { label: 'Walk In', value: 'Walk-In' },
+                { label: 'Phone Number', value: 'Phone' },
+                { label: 'Online', value: 'Online' }
+            ];
+            if (filterName === 'Table Type') return tableTypes.filter(t => t && t.trim().length > 1 && !t.toLowerCase().includes('burr'));
+        }
+
+        return [];
     };
 
     const fetchSalesReport = async (isManual = false) => {
         if (isManual) setLoading(true);
         try {
             const queryParams = {
-                outlet: activeTab === 'Dine-In Orders' ? 'Dine-In' : activeTab === 'Room Service Orders' ? 'Room Service' : activeTab === 'Take-Away Orders' ? 'Take Away' : activeTab === 'Online Orders' ? 'Online' : filters['Outlet'] || 'All',
+                outlet: activeTab === 'Dine-In Orders' ? 'Dine-In' : activeTab === 'Room Service Orders' ? 'Room Service' : activeTab === 'Take-Away Orders' ? 'Take Away' : activeTab === 'Online Orders' ? 'Online' : 'All',
                 category: filters['Category'] || 'All',
                 item: filters['Item'] || 'All',
                 startDate: dateRange.from,
@@ -161,29 +230,16 @@ const UniversalReport = ({ type }) => {
                     val1: tx.billNo,
                     val2: `${tx.itemName} / ${tx.category}`,
                     val3: tx.qty,
-                    val4: `₹${parseFloat(tx.price).toFixed(2)}`,
-                    val5: `₹${parseFloat(tx.subtotal - (tx.qty * tx.price) || 0).toFixed(2)}`,
-                    val6: `₹${parseFloat(tx.subtotal).toFixed(2)}`,
+                    val4: `${cs}${parseFloat(tx.price).toFixed(2)}`,
+                    val5: `${cs}${parseFloat(tx.subtotal - (tx.qty * tx.price) || 0).toFixed(2)}`,
+                    val6: `${cs}${parseFloat(tx.subtotal).toFixed(2)}`,
                     rawSubtotal: tx.subtotal,
                     paymentMethod: tx.paymentMethod || 'Cash'
                 }));
                 setReportData(mappedData);
 
-                // Download CSV if triggered manually
                 if (isManual && mappedData.length > 0) {
-                    const headers = config.columns.join(',');
-                    const rows = mappedData.map(row => config.columns.map((_, i) => `"${row[`val${i + 1}`] || ''}"`).join(','));
-                    const csvString = [headers, ...rows].join('\n');
-
-                    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvString], { type: 'text/csv;charset=utf-8;' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement("a");
-                    link.setAttribute("href", url);
-                    link.setAttribute("download", `Sales_Report_${new Date().toISOString().split('T')[0]}.csv`);
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
+                    downloadCSV(mappedData, `Sales_Report_${new Date().toISOString().split('T')[0]}.csv`);
                 }
             }
         } catch (error) {
@@ -207,19 +263,11 @@ const UniversalReport = ({ type }) => {
             const res = await axios.get("http://localhost:5000/api/payment-report", { params: queryParams });
             if (res.data.success) {
                 const rawData = res.data.transactions || [];
-
-                // Filter based on active tab locally
                 let filteredData = rawData;
                 if (activeTab === 'Settled Bills') {
                     filteredData = rawData.filter(d => d.status === 'Completed' || d.status === 'Settled' || d.status === 'Closed');
                 } else if (activeTab === 'Pending Bills') {
                     filteredData = rawData.filter(d => d.status === 'Pending' || d.status === 'Active');
-                } else if (activeTab === 'Cashier Collection') {
-                    // Show all collections (Settled/Closed usually represent the real collection here)
-                    filteredData = rawData;
-                } else if (activeTab === 'Discount' || activeTab === 'Refund') {
-                    // Empty array as no specific backend data for this mock at the moment
-                    filteredData = [];
                 }
 
                 const mappedData = filteredData.map((d, index) => ({
@@ -227,28 +275,14 @@ const UniversalReport = ({ type }) => {
                     val1: d.billNo,
                     val2: d.cashier,
                     val3: d.paymentMode,
-                    val4: `₹${parseFloat(d.amount).toFixed(2)}`,
+                    val4: `${cs}${parseFloat(d.amount).toFixed(2)}`,
                     val5: d.status
                 }));
                 setReportData(mappedData);
 
-                // Download CSV if triggered manually
                 if (isManual && mappedData.length > 0) {
-                    const headers = config.columns.join(',');
-                    const rows = mappedData.map(row => config.columns.map((_, i) => `"${row[`val${i + 1}`] || ''}"`).join(','));
-                    const csvString = [headers, ...rows].join('\n');
-
-                    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvString], { type: 'text/csv;charset=utf-8;' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement("a");
-                    link.setAttribute("href", url);
-                    link.setAttribute("download", `Payment_Report_${new Date().toISOString().split('T')[0]}.csv`);
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
+                    downloadCSV(mappedData, `Payment_Report_${new Date().toISOString().split('T')[0]}.csv`);
                 }
-
                 return res.data;
             }
         } catch (error) {
@@ -262,262 +296,366 @@ const UniversalReport = ({ type }) => {
         if (isManual) setLoading(true);
         try {
             const metricFilter = filters['Metric'] || 'All Metrics';
-            if (activeTab === 'Top Selling Items') {
-                setReportData([]); // Reset State First
-                const res = await axios.get("http://localhost:5000/api/reports/top-selling", {
-                    params: {
-                        startDate: dateRange.from,
-                        endDate: dateRange.to,
-                        metric: metricFilter
-                    }
-                });
-
-                if (res.data.success) {
-                    const { data, metric } = res.data;
-                    let mappedData = [];
-
-                    if (metric === 'All Metrics') {
-                        let totalQuantity = 0, totalRevenue = 0, totalProfit = 0, totalOrders = 0;
-                        data.forEach(item => {
-                            totalQuantity += item.totalQuantity || 0;
-                            totalRevenue += item.totalRevenue || 0;
-                            totalProfit += item.totalProfit || 0;
-                            totalOrders += item.totalOrders || 0;
-                        });
-                        mappedData = [
-                            { id: 1, val1: 'Total Quantity Sold', val2: totalQuantity, val3: '-', val4: '-' },
-                            { id: 2, val1: 'Total Revenue', val2: `₹${totalRevenue.toFixed(2)}`, val3: '-', val4: '-' },
-                            { id: 3, val1: 'Total Profit', val2: `₹${totalProfit.toFixed(2)}`, val3: '-', val4: '-' },
-                            { id: 4, val1: 'Total Orders', val2: totalOrders, val3: '-', val4: '-' },
-                        ];
-                    } else if (metric === 'Quantity Sold') {
-                        mappedData = data.map((item, idx) => ({ id: idx, val1: item.itemName, val2: item.totalQuantity, val3: '-', val4: '-' }));
-                    } else if (metric === 'Revenue Generated') {
-                        mappedData = data.map((item, idx) => ({ id: idx, val1: item.itemName, val2: `₹${parseFloat(item.totalRevenue).toFixed(2)}`, val3: '-', val4: '-' }));
-                    } else if (metric === 'Profit Margin') {
-                        mappedData = data.map((item, idx) => ({ id: idx, val1: item.itemName, val2: `₹${parseFloat(item.totalProfit).toFixed(2)}`, val3: `${parseFloat(item.profitPercentage).toFixed(1)}%`, val4: '-' }));
-                    } else if (metric === 'Orders Count') {
-                        mappedData = data.map((item, idx) => ({ id: idx, val1: item.itemName, val2: item.totalOrders, val3: '-', val4: '-' }));
-                    }
-
-                    setReportData(mappedData);
-
-                    // Export to CSV if Manual Generate
-                    if (isManual && mappedData.length > 0) {
-                        const headers = config.columns.join(',');
-                        const rows = mappedData.map(row => config.columns.map((_, i) => `"${row[`val${i + 1}`] || ''}"`).join(','));
-                        const csvString = [headers, ...rows].join('\n');
-
-                        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvString], { type: 'text/csv;charset=utf-8;' });
-                        const url = URL.createObjectURL(blob);
-                        const link = document.createElement("a");
-                        link.setAttribute("href", url);
-                        link.setAttribute("download", `Top_Selling_Items_${new Date().toISOString().split('T')[0]}.csv`);
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(url);
-                    }
-                }
-            } else {
-                setReportData([]);
-                const queryParams = {
-                    tab: activeTab,
+            const res = await axios.get("http://localhost:5000/api/analytics-report", {
+                params: {
                     metric: metricFilter,
                     startDate: dateRange.from,
                     endDate: dateRange.to
-                };
+                }
+            });
 
-                const res = await axios.get("http://localhost:5000/api/analytics-report", { params: queryParams });
-                if (res.data.success) {
-                    const mappedData = res.data.data.map((item, idx) => ({
-                        id: idx,
-                        val1: item.metric,
-                        val2: item.value,
-                        val3: item.growth,
-                        val4: item.trend
-                    }));
-                    setReportData(mappedData);
+            if (res.data.success) {
+                const mappedData = res.data.data.map((item, idx) => ({
+                    id: idx,
+                    val1: item.metric,
+                    val2: item.value,
+                    val3: item.growth,
+                    val4: item.trend
+                }));
+                setReportData(mappedData);
 
-                    // Export to CSV if Manual Generate
-                    if (isManual && mappedData.length > 0) {
-                        const headers = config.columns.join(',');
-                        const rows = mappedData.map(row => config.columns.map((_, i) => `"${row[`val${i + 1}`] || ''}"`).join(','));
-                        const csvString = [headers, ...rows].join('\n');
-
-                        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvString], { type: 'text/csv;charset=utf-8;' });
-                        const url = URL.createObjectURL(blob);
-                        const link = document.createElement("a");
-                        link.setAttribute("href", url);
-                        link.setAttribute("download", `Analytics_Report_${activeTab.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(url);
-                    }
+                if (isManual && mappedData.length > 0) {
+                    downloadCSV(mappedData, `Analytics_${metricFilter.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
                 }
             }
         } catch (error) {
             console.error("Error fetching analytics report:", error);
-            // Optionally, show a toast error as requested: "If backend error → show toast error"
-            // Since we don't have a toast component explicitly mentioned, we log it.
         } finally {
             if (isManual) setLoading(false);
         }
     };
 
-    const handleGenerate = () => {
-        soundManager.play('click');
-        if (type === 'reports-sales') {
-            fetchSalesReport(true); // Pass true flag to trigger CSV download
-        } else if (type === 'reports-payments') {
-            fetchPaymentReport(true); // Pass true flag to trigger CSV download
-        } else if (type === 'reports-analytics') {
-            fetchAnalyticsReport(true);
-        } else {
-            setLoading(true);
-            setTimeout(() => {
-                setLoading(false);
-                setReportData([
-                    { id: 1, val1: 'WEB-1001', val2: 'AC Deluxe', val3: '2', val4: '4500.00', val5: '225.00', val6: '4725.00' },
-                    { id: 2, val1: 'WEB-1002', val2: 'Standard', val3: '1', val4: '1500.00', val5: '75.00', val6: '1575.00' }
-                ]);
-            }, 800);
+    const fetchRoomReport = async (isManual = false) => {
+        if (isManual) setLoading(true);
+        try {
+            const queryParams = {
+                tab: activeTab,
+                roomType: filters['Room Type'] || 'All',
+                floor: filters['Floor'] || 'All',
+                status: filters['Status'] || 'All',
+                startDate: dateRange.from,
+                endDate: dateRange.to
+            };
+
+            const res = await axios.get("http://localhost:5000/api/reports/rooms", { params: queryParams });
+            if (res.data.success) {
+                const mappedData = res.data.data.map((item, idx) => ({
+                    id: idx,
+                    val1: item.roomNo,
+                    val2: item.guestName,
+                    val3: item.checkIn,
+                    val4: item.checkOut,
+                    val5: item.nights,
+                    val6: `${cs}${parseFloat(item.amount).toFixed(2)}`,
+                    rawAmount: item.amount
+                }));
+                setReportData(mappedData);
+
+                if (isManual && mappedData.length > 0) {
+                    downloadCSV(mappedData, `Room_Report_${activeTab.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+                }
+
+                if (activeTab === 'Room Revenue' || activeTab === 'Room Occupancy') {
+                    let collections = 0;
+                    mappedData.forEach(item => collections += (item.rawAmount || 0));
+                    setSummaryStats(prev => ({
+                        ...prev,
+                        totalCollections: collections,
+                        netCashFlow: collections,
+                        paymentsReceived: collections,
+                        paymentsCount: mappedData.length
+                    }));
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching room report:", error);
+        } finally {
+            if (isManual) setLoading(false);
         }
     };
 
-    // Auto-fetch and socket connection for Sales, Payment, and Analytics Reports
-    useEffect(() => {
-        if (type === 'reports-sales' || type === 'reports-payments' || type === 'reports-analytics') {
-            if (type === 'reports-sales') {
-                fetchSalesReport();
-            } else if (type === 'reports-analytics') {
-                fetchAnalyticsReport();
-            } else {
-                fetchPaymentReport(false).then((data) => {
-                    if (data && data.success) {
-                        if (activeTab === 'Cashier Collection') {
-                            setSummaryStats(prev => ({
-                                ...prev,
-                                totalCollections: data.totals.totalAmount || 0,
-                                netCashFlow: data.totals.totalAmount || 0,
-                                paymentsReceived: data.totals.totalAmount || 0,
-                                paymentsCount: data.totalTransactions || 0,
-                                paymentMethods: {
-                                    cash: data.totals.totalCash || 0,
-                                    card: data.totals.totalCard || 0,
-                                    upi: data.totals.totalUPI || 0,
-                                    bankTransfer: data.totals.totalOther || 0
-                                }
-                            }));
-                        } else {
-                            setSummaryStats(prev => ({
-                                ...prev,
-                                totalCollections: 0,
-                                netCashFlow: 0,
-                                paymentsReceived: 0,
-                                paymentsCount: 0,
-                                paymentMethods: { cash: 0, card: 0, upi: 0, bankTransfer: 0 }
-                            }));
-                        }
-                    }
+    const fetchKitchenReport = async (isManual = false) => {
+        if (isManual) setLoading(true);
+        try {
+            const queryParams = {
+                tab: activeTab,
+                category: filters['Category'] || 'All',
+                orderType: filters['Order Type'] || 'All',
+                startDate: dateRange.from,
+                endDate: dateRange.to
+            };
+
+            const res = await axios.get("http://localhost:5000/api/reports/kitchen", { params: queryParams });
+            if (res.data.success) {
+                if (res.data.categories && res.data.categories.length > 0) {
+                    setKitchenCategories(res.data.categories);
+                }
+
+                const mappedData = res.data.data.map((item, idx) => ({
+                    id: idx,
+                    val1: `KOT-${item.kotNo}`,
+                    val2: item.item,
+                    val3: item.category || '-',
+                    val4: item.startTime,
+                    val5: item.readyTime,
+                    val6: item.delay,
+                    rawAmount: item.rawAmount,
+                    paymentMethod: item.paymentMethod
+                }));
+                setReportData(mappedData);
+
+                if (isManual && mappedData.length > 0) {
+                    downloadCSV(mappedData, `Kitchen_Report_${activeTab.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+                }
+
+                let collections = 0;
+                let pm = { cash: 0, card: 0, upi: 0, bankTransfer: 0 };
+                mappedData.forEach(item => {
+                    const amount = item.rawAmount || 0;
+                    collections += amount;
+                    const method = (item.paymentMethod || 'cash').toLowerCase();
+                    if (method.includes('card')) pm.card += amount;
+                    else if (method.includes('upi')) pm.upi += amount;
+                    else if (method.includes('bank') || method.includes('transfer')) pm.bankTransfer += amount;
+                    else pm.cash += amount;
                 });
+
+                setSummaryStats(prev => ({
+                    ...prev,
+                    totalCollections: collections,
+                    netCashFlow: collections,
+                    paymentsReceived: collections,
+                    paymentsCount: mappedData.length,
+                    paymentMethods: pm
+                }));
             }
+        } catch (error) {
+            console.error("Error fetching kitchen report:", error);
+        } finally {
+            if (isManual) setLoading(false);
+        }
+    };
 
-            const socket = io("http://localhost:5000");
+    const fetchBillingReport = async (isManual = false) => {
+        if (isManual) setLoading(true);
+        try {
+            const queryParams = {
+                startDate: dateRange.from,
+                endDate: dateRange.to,
+                orderType: filters['Order Type'] || 'All',
+                paymentMethod: filters['Payment Method'] || 'All',
+                cashier: filters['Cashier'] || 'All',
+                status: filters['Bill Status'] || 'All'
+            };
 
-            socket.on("connect", () => console.log(`Connected to universal report socket for ${type}`));
-            socket.on("salesUpdated", () => {
-                console.log("Real-time update received!");
-                if (type === 'reports-sales') {
-                    fetchSalesReport();
-                } else if (type === 'reports-analytics') {
-                    fetchAnalyticsReport();
+            const res = await axios.get("http://localhost:5000/api/reports/billing", { params: queryParams });
+            if (res.data.success) {
+                const { summary, breakdowns, tableData, topSelling, cancelledBills } = res.data;
+                let mappedData = [];
+                if (activeTab === 'Top Items') {
+                    mappedData = topSelling.map((item, idx) => ({
+                        id: idx,
+                        val1: idx + 1,
+                        val2: item.name || item.itemName || 'Item',
+                        val3: item.category || '-',
+                        val4: item.qty || item.quantity || 0,
+                        val5: `${cs}${(item.revenue || 0).toFixed(2)}`
+                    }));
+                } else if (activeTab === 'Cancelled Bills') {
+                    mappedData = cancelledBills.map((item, idx) => ({
+                        id: idx,
+                        val1: item.billNo,
+                        val2: `${cs}${(item.amount || 0).toFixed(2)}`,
+                        val3: item.reason || 'Cancelled',
+                        val4: item.date || new Date().toLocaleDateString()
+                    }));
                 } else {
-                    fetchPaymentReport(false).then((data) => {
-                        if (data && data.success) {
-                            if (activeTab === 'Cashier Collection') {
-                                setSummaryStats(prev => ({
-                                    ...prev,
-                                    totalCollections: data.totals.totalAmount || 0,
-                                    netCashFlow: data.totals.totalAmount || 0,
-                                    paymentsReceived: data.totals.totalAmount || 0,
-                                    paymentsCount: data.totalTransactions || 0,
-                                    paymentMethods: {
-                                        cash: data.totals.totalCash || 0,
-                                        card: data.totals.totalCard || 0,
-                                        upi: data.totals.totalUPI || 0,
-                                        bankTransfer: data.totals.totalOther || 0
-                                    }
-                                }));
-                            } else {
-                                setSummaryStats(prev => ({
-                                    ...prev,
-                                    totalCollections: 0,
-                                    netCashFlow: 0,
-                                    paymentsReceived: 0,
-                                    paymentsCount: 0,
-                                    paymentMethods: { cash: 0, card: 0, upi: 0, bankTransfer: 0 }
-                                }));
-                            }
+                    mappedData = tableData.map((item, idx) => ({
+                        id: idx,
+                        val1: item.billNo,
+                        val2: item.date,
+                        val3: item.tableNo,
+                        val4: item.items,
+                        val5: `${cs}${item.amount.toFixed(2)}`,
+                        val6: `${cs}${item.tax.toFixed(2)}`,
+                        val7: `${cs}${item.discount.toFixed(2)}`,
+                        val8: `${cs}${item.total.toFixed(2)}`,
+                        val9: item.payment,
+                        val10: item.staff
+                    }));
+                }
+
+                if (activeTab === 'Overview') {
+                    setReportData([]);
+                } else {
+                    setReportData(mappedData);
+                }
+                setBillingSummary({ summary, breakdowns, topSelling, cancelledBills });
+
+                setSummaryStats(prev => ({
+                    ...prev,
+                    totalCollections: summary.totalRevenue || 0,
+                    netCashFlow: (summary.totalRevenue || 0) - (summary.totalPayouts || 0),
+                    paymentsReceived: summary.totalRevenue || 0,
+                    paymentsCount: summary.totalBills || 0
+                }));
+
+                if (isManual && mappedData.length > 0) {
+                    downloadCSV(mappedData, `Billing_Report_${activeTab.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching billing report:", error);
+        } finally {
+            if (isManual) setLoading(false);
+        }
+    };
+
+    const fetchReservationReport = async (isManual = false) => {
+        if (isManual) setLoading(true);
+        try {
+            const queryParams = {
+                startDate: dateRange.from,
+                endDate: dateRange.to,
+                source: filters['Source'] || 'All',
+                tableType: filters['Table Type'] || 'All',
+                tab: activeTab
+            };
+
+            const res = await axios.get("http://localhost:5000/api/reservation-report", { params: queryParams });
+            if (res.data.success) {
+                const { summary, distributions, reservationList } = res.data;
+                const mappedData = reservationList.map((item, idx) => ({
+                    id: idx,
+                    val1: item.guestName,
+                    val2: item.tableName || item.table,
+                    val3: item.date,
+                    val4: `${item.startTime || ''} ${item.endTime ? '- ' + item.endTime : ''}`,
+                    val5: item.guests,
+                    val6: item.source === 'Phone' ? 'Phone Number' : item.source === 'Walk-In' ? 'Walk In' : (item.source || 'Phone'),
+                    val7: item.status
+                }));
+
+                setReportData(mappedData);
+                setResSummary({ summary, distributions, reservationList });
+            }
+        } catch (error) {
+            console.error("Error fetching reservation report:", error);
+        } finally {
+            if (isManual) setLoading(false);
+        }
+    };
+
+    const downloadCSV = (data, filename) => {
+        const headers = config.columns.join(',');
+        const rows = data.map(row => config.columns.map((_, i) => `"${row[`val${i + 1}`] || ''}"`).join(','));
+        const csvString = [headers, ...rows].join('\n');
+        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvString], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
+    const handleGenerate = () => {
+        soundManager.play('click');
+        if (type === 'reports-sales') fetchSalesReport(true);
+        else if (type === 'reports-payments') fetchPaymentReport(true);
+        else if (type === 'reports-analytics') fetchAnalyticsReport(true);
+        else if (type === 'reports-rooms') fetchRoomReport(true);
+        else if (type === 'reports-kitchen') fetchKitchenReport(true);
+        else if (type === 'reports-billing') fetchBillingReport(true);
+        else if (type === 'reports-reservations') fetchReservationReport(true);
+    };
+
+    const handleExport = (format) => {
+        soundManager.play('success');
+        if (format === 'Excel') {
+            if (reportData.length === 0) {
+                alert("No data available to export.");
+                return;
+            }
+            downloadCSV(reportData, `${config.title.replace(/\s+/g, '_')}_${activeTab.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+        } else {
+            window.print();
+        }
+    };
+
+    useEffect(() => {
+        const triggers = [type, activeTab, filters, dateRange.from, dateRange.to];
+        if (type === 'reports-sales') fetchSalesReport();
+        else if (type === 'reports-analytics') fetchAnalyticsReport();
+        else if (type === 'reports-rooms') fetchRoomReport();
+        else if (type === 'reports-kitchen') fetchKitchenReport();
+        else if (type === 'reports-billing') fetchBillingReport();
+        else if (type === 'reports-reservations') fetchReservationReport();
+        else if (type === 'reports-payments') {
+            fetchPaymentReport(false).then(data => {
+                if (data && data.success && activeTab === 'Cashier Collection') {
+                    setSummaryStats(prev => ({
+                        ...prev,
+                        totalCollections: data.totals?.totalAmount || 0,
+                        netCashFlow: data.totals?.totalAmount || 0,
+                        paymentsReceived: data.totals?.totalAmount || 0,
+                        paymentsCount: data.totalTransactions || 0,
+                        paymentMethods: {
+                            cash: data.totals?.totalCash || 0,
+                            card: data.totals?.totalCard || 0,
+                            upi: data.totals?.totalUPI || 0,
+                            bankTransfer: data.totals?.totalOther || 0
                         }
-                    });
+                    }));
                 }
             });
-
-            return () => socket.disconnect();
         }
+
+        const socket = io("http://localhost:5000");
+        socket.on("salesUpdated", () => {
+            if (type === 'reports-sales') fetchSalesReport();
+            else if (type === 'reports-analytics') fetchAnalyticsReport();
+            else if (type === 'reports-rooms') fetchRoomReport();
+            else if (type === 'reports-kitchen') fetchKitchenReport();
+            else if (type === 'reports-billing') fetchBillingReport();
+            else if (type === 'reports-reservations') fetchReservationReport();
+        });
+        return () => socket.disconnect();
     }, [type, activeTab, filters, dateRange.from, dateRange.to]);
 
-    const [summaryStats, setSummaryStats] = useState({
-        totalCollections: 0,
-        totalPayouts: 0,
-        netCashFlow: 0,
-        openingBalance: 0,
-        paymentsReceived: 0,
-        paymentsCount: 0,
-        paymentMethods: { cash: 0, card: 0, upi: 0, bankTransfer: 0 }
-    });
-
+    // Summary processing for sales
     useEffect(() => {
-        if (type === 'reports-sales') {
+        if (type === 'reports-sales' && reportData.length > 0) {
             let collections = 0;
             let pm = { cash: 0, card: 0, upi: 0, bankTransfer: 0 };
-
             reportData.forEach(item => {
                 const amount = item.rawSubtotal || 0;
                 collections += amount;
-
                 const method = (item.paymentMethod || 'cash').toLowerCase();
                 if (method.includes('card')) pm.card += amount;
                 else if (method.includes('upi')) pm.upi += amount;
                 else if (method.includes('bank') || method.includes('transfer')) pm.bankTransfer += amount;
                 else pm.cash += amount;
             });
-
-            setSummaryStats({
+            setSummaryStats(prev => ({
+                ...prev,
                 totalCollections: collections,
-                totalPayouts: 0, // No payouts for sales
                 netCashFlow: collections,
-                openingBalance: 0, // Base register starts 0 for pure sales view
                 paymentsReceived: collections,
                 paymentsCount: reportData.length,
                 paymentMethods: pm
-            });
+            }));
         }
     }, [reportData, type]);
-
-    const handleExport = (format) => {
-        soundManager.play('success');
-        alert(`Exporting as ${format}...`);
-    };
 
     return (
         <div className="report-container">
             <header className="report-header">
                 <div className="header-top">
                     <h1>{config.title}</h1>
-                    <button className="btn-generate-top" onClick={handleGenerate}>
+                    <button className="btn-generate-top" onClick={handleGenerate} disabled={loading}>
                         {loading ? 'Generating...' : 'Generate Report'}
                     </button>
                 </div>
@@ -539,179 +677,297 @@ const UniversalReport = ({ type }) => {
                             <label>{filter}</label>
                             <select
                                 value={filters[filter] || (type === 'reports-analytics' && filter === 'Metric' ? 'All Metrics' : 'All')}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    setFilters({ ...filters, [filter]: val });
-                                    if (type === 'reports-sales' && filter === 'Outlet') {
-                                        if (val === 'Dine-In') setActiveTab('Dine-In Orders');
-                                        else if (val === 'Room Service') setActiveTab('Room Service Orders');
-                                        else if (val === 'Take Away') setActiveTab('Take-Away Orders');
-                                        else if (val === 'Online') setActiveTab('Online Orders');
-                                    }
-                                }}
+                                onChange={(e) => setFilters({ ...filters, [filter]: e.target.value })}
                             >
-                                {((type === 'reports-analytics' && filter === 'Metric') || (type === 'reports-sales' && filter === 'Outlet')) ? null : <option value="All">All {filter}s</option>}
-                                {getOptionsForFilter(filter).map((opt, idx) => (
-                                    <option key={idx} value={opt}>{opt}</option>
-                                ))}
+                                {filter !== 'Metric' && <option value="All">All {filter}s</option>}
+                                {getOptionsForFilter(filter).map((opt, idx) => {
+                                    if (typeof opt === 'object') return <option key={opt.value} value={opt.value}>{opt.label}</option>;
+                                    return opt === 'All' ? null : <option key={idx} value={opt}>{opt}</option>;
+                                })}
                             </select>
                         </div>
                     ))}
                 </div>
 
-                <div className="report-tabs-outer">
-                    <div className="report-tabs">
-                        {config.tabs.map(tab => (
-                            <button
-                                key={tab}
-                                className={`report-tab ${activeTab === tab ? 'active' : ''}`}
-                                onClick={() => setActiveTab(tab)}
-                            >
-                                {tab}
-                            </button>
-                        ))}
-                    </div>
+                <div className="header-tabs">
+                    {config.tabs.map(tab => (
+                        <button key={tab} className={`tab-item ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+                            {tab}
+                        </button>
+                    ))}
                 </div>
             </header>
 
-            <div className="report-content" key={activeTab}>
-                {/* Summary Cards */}
-                <div className="report-stats-grid">
-                    <div className="stat-card">
-                        <div className="stat-icon" style={{ backgroundColor: '#10b981' }}>💰</div>
-                        <div className="stat-info">
-                            <span className="stat-label">Total Collections</span>
-                            <span className="stat-value">₹{summaryStats.totalCollections.toFixed(2)}</span>
-                            <span className="stat-sub">Total Payments Received</span>
-                        </div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-icon" style={{ backgroundColor: '#fee2e2' }}>💸</div>
-                        <div className="stat-info">
-                            <span className="stat-label">Total Payouts</span>
-                            <span className="stat-value">₹{summaryStats.totalPayouts.toFixed(2)}</span>
-                            <span className="stat-sub">Total Payments Made</span>
-                        </div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-icon" style={{ backgroundColor: '#f59e0b' }}>📈</div>
-                        <div className="stat-info">
-                            <span className="stat-label">Net Cash Flow</span>
-                            <span className="stat-value">₹{summaryStats.netCashFlow.toFixed(2)}</span>
-                            <span className="stat-sub">Collections - Payouts</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="summary-overview-section">
-                    <h2 className="section-title">SUMMARY OVERVIEW</h2>
-                    <div className="overview-container-card">
-                        <div className="overview-sub-grid">
-                            <div className="overview-sub-card">
-                                <div className="overview-icon-box green-icon">💰</div>
-                                <div className="overview-text">
-                                    <span className="overview-label">Opening Balance</span>
-                                    <span className="overview-huge-value">₹{summaryStats.openingBalance.toFixed(2)}</span>
-                                    <span className="overview-subtext">Base Register Balance</span>
-                                </div>
+            <div className="report-content">
+                {type === 'reports-reservations' && (
+                    <div className="reservation-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '30px' }}>
+                        <div className="summary-stat-card">
+                            <div className="stat-icon" style={{ background: '#e0e7ff', color: '#4f46e5' }}>📅</div>
+                            <div className="stat-info">
+                                <span className="stat-value">{resSummary.summary?.totalReservations || 0}</span>
+                                <span className="stat-label">Total Reservations</span>
                             </div>
-                            <div className="overview-sub-card">
-                                <div className="overview-icon-box pink-icon">💸</div>
-                                <div className="overview-text">
-                                    <span className="overview-label">Payments Received</span>
-                                    <span className="overview-huge-value">₹{summaryStats.paymentsReceived.toFixed(2)}</span>
-                                    <span className="overview-subtext">Total Sales Revenue</span>
-                                    <span className="overview-count">{summaryStats.paymentsCount} payments</span>
-                                </div>
+                        </div>
+                        <div className="summary-stat-card">
+                            <div className="stat-icon" style={{ background: '#dcfce7', color: '#16a34a' }}>🕒</div>
+                            <div className="stat-info">
+                                <span className="stat-value">{resSummary.summary?.todayCount || 0}</span>
+                                <span className="stat-label">Today's Arrival</span>
                             </div>
-                            <div className="overview-sub-card">
-                                <div className="overview-icon-box green-icon">💳</div>
-                                <div className="overview-text">
-                                    <span className="overview-label">Closing Balance</span>
-                                    <span className="overview-huge-value">₹{summaryStats.netCashFlow.toFixed(2)}</span>
-                                </div>
+                        </div>
+                        <div className="summary-stat-card">
+                            <div className="stat-icon" style={{ background: '#fef3c7', color: '#d97706' }}>👎</div>
+                            <div className="stat-info">
+                                <span className="stat-value">{resSummary.summary?.noShowCount || 0}</span>
+                                <span className="stat-label">No Shows</span>
+                            </div>
+                        </div>
+                        <div className="summary-stat-card">
+                            <div className="stat-icon" style={{ background: '#fee2e2', color: '#dc2626' }}>❌</div>
+                            <div className="stat-info">
+                                <span className="stat-value">{resSummary.summary?.cancelledCount || 0}</span>
+                                <span className="stat-label">Cancellations</span>
                             </div>
                         </div>
                     </div>
-                </div>
+                )}
 
-                <div className="transaction-breakdown-section">
-                    <h2 className="section-title">TRANSACTION BREAKDOWN</h2>
-                    <div className="breakdown-grid">
-                        <div className="breakdown-column">
-                            <h3>Payments Received</h3>
-                            <div className="breakdown-items">
-                                <div className="breakdown-item received">
-                                    <span className="item-icon">ⓘ</span>
-                                    <span className="item-label">Cash</span>
-                                    <span className="item-value">₹{summaryStats.paymentMethods.cash.toFixed(2)}</span>
+                {type === 'reports-reservations' && (
+                    <div className="report-charts-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
+                        <div className="overview-container-card">
+                            <h3>⏰ Reservation Time Slots</h3>
+                            <div className="breakdown-items" style={{ padding: '20px' }}>
+                                {Object.entries(resSummary.distributions?.time || {}).map(([key, val]) => (
+                                    <div key={key} className="breakdown-item received" style={{ marginBottom: '10px' }}>
+                                        <span className="item-label">{key}</span>
+                                        <div style={{ flex: 1, height: '10px', background: '#f1f5f9', margin: '0 15px', borderRadius: '5px', overflow: 'hidden' }}>
+                                            <div style={{ height: '100%', background: '#4f46e5', width: `${resSummary.summary?.totalReservations > 0 ? (val / resSummary.summary?.totalReservations * 100) : 0}%` }}></div>
+                                        </div>
+                                        <span className="item-value">{val}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="overview-container-card">
+                            <h3>📊 Reservations by Source</h3>
+                            <div className="breakdown-items" style={{ padding: '20px' }}>
+                                {Object.entries(resSummary.distributions?.source || {}).map(([key, val]) => {
+                                    const label = key === 'Phone' ? 'Phone Number' : key === 'Walk-In' ? 'Walk In' : key;
+                                    return (
+                                        <div key={key} className="breakdown-item received" style={{ marginBottom: '10px' }}>
+                                            <div style={{ width: '12px', height: '12px', background: key === 'Walk-In' ? '#ff3b3b' : '#3b82f6', borderRadius: '2px', marginRight: '8px' }}></div>
+                                            <span className="item-label">{label}</span>
+                                            <span className="item-value">{val} ({resSummary.summary?.totalReservations > 0 ? ((val / resSummary.summary?.totalReservations) * 100).toFixed(0) : 0}%)</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {type === 'reports-billing' && activeTab === 'Overview' && (
+                    <>
+                        {/* Summary Cards */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+                            <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', border: 'none' }}>
+                                <div className="stat-icon" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: '22px' }}>🧾</div>
+                                <div className="stat-info">
+                                    <span className="stat-value" style={{ color: 'white' }}>{billingSummary.summary?.totalBills || 0}</span>
+                                    <span className="stat-label" style={{ color: 'rgba(255,255,255,0.85)' }}>Total Bills</span>
                                 </div>
-                                <div className="breakdown-item received">
-                                    <span className="item-icon">ⓘ</span>
-                                    <span className="item-label">Card</span>
-                                    <span className="item-value">₹{summaryStats.paymentMethods.card.toFixed(2)}</span>
+                            </div>
+                            <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)', color: 'white', border: 'none' }}>
+                                <div className="stat-icon" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: '22px' }}>💰</div>
+                                <div className="stat-info">
+                                    <span className="stat-value" style={{ color: 'white' }}>{cs}{(billingSummary.summary?.totalRevenue || 0).toFixed(0)}</span>
+                                    <span className="stat-label" style={{ color: 'rgba(255,255,255,0.85)' }}>Total Revenue</span>
                                 </div>
-                                <div className="breakdown-item received">
-                                    <span className="item-icon">ⓘ</span>
-                                    <span className="item-label">UPI</span>
-                                    <span className="item-value">₹{summaryStats.paymentMethods.upi.toFixed(2)}</span>
+                            </div>
+                            <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white', border: 'none' }}>
+                                <div className="stat-icon" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: '22px' }}>📊</div>
+                                <div className="stat-info">
+                                    <span className="stat-value" style={{ color: 'white' }}>{cs}{billingSummary.summary?.totalBills > 0 ? ((billingSummary.summary?.totalRevenue || 0) / billingSummary.summary?.totalBills).toFixed(0) : 0}</span>
+                                    <span className="stat-label" style={{ color: 'rgba(255,255,255,0.85)' }}>Avg Bill Value</span>
                                 </div>
-                                <div className="breakdown-item received">
-                                    <span className="item-icon">ⓘ</span>
-                                    <span className="item-label">Bank Transfer</span>
-                                    <span className="item-value">₹{summaryStats.paymentMethods.bankTransfer.toFixed(2)}</span>
+                            </div>
+                            <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%)', color: 'white', border: 'none' }}>
+                                <div className="stat-icon" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: '22px' }}>❌</div>
+                                <div className="stat-info">
+                                    <span className="stat-value" style={{ color: 'white' }}>{(billingSummary.cancelledBills || []).length}</span>
+                                    <span className="stat-label" style={{ color: 'rgba(255,255,255,0.85)' }}>Cancelled Bills</span>
                                 </div>
                             </div>
                         </div>
-                        <div className="breakdown-column">
-                            <h3>Payments Made</h3>
-                            <div className="breakdown-items">
-                                <div className="breakdown-item made">
-                                    <span className="item-icon">ⓘ</span>
-                                    <span className="item-label">Refunds</span>
-                                    <span className="item-value">₹0.00</span>
+
+                        {/* Payment Method + Order Type Breakdown */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+                            <div className="overview-container-card">
+                                <h3 style={{ margin: '0 0 16px', fontSize: '15px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ background: '#e0e7ff', borderRadius: '8px', padding: '4px 8px' }}>💳</span> Payment Method
+                                </h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                    {['Cash', 'UPI', 'Card', 'Bank Transfer', 'Add to Room'].map(method => {
+                                        const val = billingSummary.breakdowns?.payment?.[method] || 0;
+                                        const total = billingSummary.summary?.totalRevenue || 1;
+                                        const pct = total > 0 ? ((val / total) * 100).toFixed(0) : 0;
+                                        const colors = { 'Cash': '#22c55e', 'UPI': '#3b82f6', 'Card': '#8b5cf6', 'Bank Transfer': '#f59e0b', 'Add to Room': '#ef4444' };
+                                        return (
+                                            <div key={method} style={{ background: '#f8fafc', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px', border: '1px solid #e2e8f0' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>{method}</span>
+                                                    <span style={{ fontSize: '11px', fontWeight: 700, color: colors[method], background: colors[method] + '20', padding: '2px 6px', borderRadius: '4px' }}>{pct}%</span>
+                                                </div>
+                                                <span style={{ fontSize: '16px', fontWeight: 800, color: '#1e293b' }}>{cs}{val.toFixed(0)}</span>
+                                                <div style={{ height: '4px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
+                                                    <div style={{ height: '100%', background: colors[method], width: `${pct}%`, transition: 'width 0.5s ease' }}></div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="overview-container-card">
+                                <h3 style={{ margin: '0 0 16px', fontSize: '15px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ background: '#dcfce7', borderRadius: '8px', padding: '4px 8px' }}>🍽️</span> Order Type Revenue
+                                </h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {['Dine-In', 'Take Away', 'Room Service', 'Delivery', 'Online'].map(otype => {
+                                        const val = billingSummary.breakdowns?.orderType?.[otype] || 0;
+                                        const total = billingSummary.summary?.totalRevenue || 1;
+                                        const pct = total > 0 ? ((val / total) * 100).toFixed(0) : 0;
+                                        const colors = { 'Dine-In': '#6366f1', 'Take Away': '#f59e0b', 'Room Service': '#ec4899', 'Delivery': '#10b981', 'Online': '#3b82f6' };
+                                        return (
+                                            <div key={otype} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: colors[otype] + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: colors[otype] }}></div>
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#374151' }}>{otype}</span>
+                                                        <span style={{ fontSize: '13px', fontWeight: 700, color: colors[otype] }}>{cs}{val.toFixed(0)}</span>
+                                                    </div>
+                                                    <div style={{ height: '6px', background: '#e5e7eb', borderRadius: '3px', overflow: 'hidden' }}>
+                                                        <div style={{ height: '100%', background: colors[otype], width: `${pct}%`, borderRadius: '3px', transition: 'width 0.5s ease' }}></div>
+                                                    </div>
+                                                </div>
+                                                <span style={{ fontSize: '11px', color: '#9ca3af', width: '30px', textAlign: 'right' }}>{pct}%</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Top Selling Items Mini Section (Visible only in Overview) */}
+                        {(billingSummary.topSelling || []).length > 0 && (
+                            <div className="overview-container-card" style={{ marginBottom: '24px' }}>
+                                <h3 style={{ margin: '0 0 16px', fontSize: '15px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ background: '#fef3c7', borderRadius: '8px', padding: '4px 8px' }}>🏆</span> Top Selling Items Overview
+                                </h3>
+                                <div style={{ overflowX: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                                        <thead>
+                                            <tr style={{ background: '#f8fafc' }}>
+                                                <th style={{ padding: '10px 14px', textAlign: 'left', color: '#64748b', fontWeight: 600, borderBottom: '2px solid #e2e8f0' }}>#</th>
+                                                <th style={{ padding: '10px 14px', textAlign: 'left', color: '#64748b', fontWeight: 600, borderBottom: '2px solid #e2e8f0' }}>Item</th>
+                                                <th style={{ padding: '10px 14px', textAlign: 'left', color: '#64748b', fontWeight: 600, borderBottom: '2px solid #e2e8f0' }}>Category</th>
+                                                <th style={{ padding: '10px 14px', textAlign: 'right', color: '#64748b', fontWeight: 600, borderBottom: '2px solid #e2e8f0' }}>Qty Sold</th>
+                                                <th style={{ padding: '10px 14px', textAlign: 'right', color: '#64748b', fontWeight: 600, borderBottom: '2px solid #e2e8f0' }}>Revenue</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {(billingSummary.topSelling || []).slice(0, 8).map((item, i) => (
+                                                <tr key={i} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                                                    <td style={{ padding: '10px 14px', color: i < 3 ? '#f59e0b' : '#94a3b8', fontWeight: 700 }}>
+                                                        {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                                                    </td>
+                                                    <td style={{ padding: '10px 14px', color: '#1e293b', fontWeight: 600 }}>{item.name || item.itemName || 'Item'}</td>
+                                                    <td style={{ padding: '10px 14px' }}>
+                                                        <span style={{ background: '#f1f5f9', color: '#64748b', padding: '2px 8px', borderRadius: '4px', fontSize: '12px' }}>{item.category || '-'}</span>
+                                                    </td>
+                                                    <td style={{ padding: '10px 14px', textAlign: 'right', color: '#1e293b', fontWeight: 600 }}>{item.qty || item.quantity || 0}</td>
+                                                    <td style={{ padding: '10px 14px', textAlign: 'right', color: '#22c55e', fontWeight: 700 }}>{cs}{(item.revenue || 0).toFixed(0)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {['reports-sales', 'reports-rooms', 'reports-kitchen'].includes(type) && (
+                    <div className="summary-overview-section">
+                        <h2 className="section-title">SUMMARY OVERVIEW</h2>
+                        <div className="overview-container-card">
+                            <div className="overview-sub-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                                <div className="overview-sub-card">
+                                    <div className="overview-icon-box green-icon">💰</div>
+                                    <div className="overview-text">
+                                        <span className="overview-label">Total Collections</span>
+                                        <span className="overview-huge-value">{cs}{summaryStats.totalCollections.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                                <div className="overview-sub-card">
+                                    <div className="overview-icon-box pink-icon">💸</div>
+                                    <div className="overview-text">
+                                        <span className="overview-label">Payments Received</span>
+                                        <span className="overview-huge-value">{cs}{summaryStats.paymentsReceived.toFixed(2)}</span>
+                                        <span className="overview-count">{summaryStats.paymentsCount} payments</span>
+                                    </div>
+                                </div>
+                                <div className="overview-sub-card">
+                                    <div className="overview-icon-box blue-icon">💳</div>
+                                    <div className="overview-text">
+                                        <span className="overview-label">Net Cash Flow</span>
+                                        <span className="overview-huge-value">{cs}{summaryStats.netCashFlow.toFixed(2)}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                )}
 
-
-
-                <div className="report-actions">
+                <div className="report-actions" style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
                     <button onClick={() => handleExport('Excel')}>Export Excel</button>
                     <button onClick={() => handleExport('PDF')}>Export PDF</button>
                     <button onClick={() => handleExport('Print')}>Print</button>
                 </div>
 
-                <div className="report-data-card">
-                    <div className="table-responsive">
-                        <table className="report-table">
-                            <thead>
-                                <tr>
-                                    {config.columns.map((col, idx) => <th key={idx}>{col === 'Value' && type === 'reports-analytics' && filters['Metric'] && filters['Metric'] !== 'All Metrics' ? filters['Metric'] : col}</th>)}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {reportData.length > 0 ? (
-                                    reportData.map((row, idx) => (
-                                        <tr key={idx}>
-                                            {config.columns.map((col, i) => (
-                                                <td key={i}>{row[`val${i + 1}`]}</td>
-                                            ))}
-                                        </tr>
-                                    ))
-                                ) : (
+                {config.columns.length > 0 && (
+                    <div className="report-data-card" style={{ marginTop: '30px' }}>
+                        <h2 className="section-title">{activeTab.toUpperCase()} DETAILS</h2>
+                        <div className="table-responsive">
+                            <table className="report-table">
+                                <thead>
                                     <tr>
-                                        <td colSpan={config.columns.length} style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                                            {loading ? 'Fetching data...' : 'No data generated. Click "Generate Report" to view results.'}
-                                        </td>
+                                        {config.columns.map((col, idx) => <th key={idx}>{col}</th>)}
                                     </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {reportData.length > 0 ? (
+                                        reportData.map((row, idx) => (
+                                            <tr key={idx}>
+                                                {config.columns.map((_, i) => (
+                                                    <td key={i}>{row[`val${i + 1}`]}</td>
+                                                ))}
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={config.columns.length} style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                                                {loading ? 'Fetching data...' : 'No data generated. Click "Generate Report" to view results.'}
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );

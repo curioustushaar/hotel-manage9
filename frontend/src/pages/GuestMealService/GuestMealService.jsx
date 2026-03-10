@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API_URL from '../../config/api';
+import { useSettings } from '../../context/SettingsContext';
 import './GuestMealService.css';
 
 // MenuItem helper component for premium feel
@@ -60,6 +61,11 @@ const GuestMealService = () => {
             .blink-yellow-real { background-color: #fbbf24; box-shadow: 0 0 10px #fbbf24; }
             .blink-red-real { background-color: #ef4444; box-shadow: 0 0 10px #ef4444; }
             .blink-green-real { background-color: #22c55e; box-shadow: 0 0 10px #22c55e; }
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.02); }
+                100% { transform: scale(1); }
+            }
             @keyframes slideInRight {
                 from { transform: translateX(100%); opacity: 0; }
                 to { transform: translateX(0); opacity: 1; }
@@ -70,6 +76,8 @@ const GuestMealService = () => {
     }, []);
     // --- STATE MANAGEMENT ---
     const navigate = useNavigate();
+    const { settings, getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
 
     // Tables State
     const [tables, setTables] = useState([]);
@@ -88,12 +96,25 @@ const GuestMealService = () => {
     const [tableTypes, setTableTypes] = useState(['General', 'AC', 'Non-AC', 'Garden']);
     const [isAddingTableType, setIsAddingTableType] = useState(false);
     const [newTableType, setNewTableType] = useState('');
+    const [showTypeDropdown, setShowTypeDropdown] = useState(false);
+    const typeDropdownRef = useRef(null);
 
     const [newTableData, setNewTableData] = useState({
         tableName: '',
         type: '',
         capacity: ''
     });
+
+    // Close type dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (typeDropdownRef.current && !typeDropdownRef.current.contains(e.target)) {
+                setShowTypeDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Move Guest State
     const [showMoveModal, setShowMoveModal] = useState(false);
@@ -110,6 +131,7 @@ const GuestMealService = () => {
         endTime: '',
         guests: '',
         phone: '',
+        source: 'Phone',
         advancePayment: 0
     });
 
@@ -170,10 +192,12 @@ const GuestMealService = () => {
             if (data.success) {
                 setTables(data.data);
                 // Extract unique types
-                const types = [...new Set(data.data.map(t => t.type))].filter(Boolean);
+                const types = [...new Set(data.data.map(t => t.type))]
+                    .filter(t => t && !t.toLowerCase().includes('burr'));
                 // Merge with default types
                 setTableTypes(prev => {
-                    const merged = [...new Set([...prev, ...types])];
+                    const merged = [...new Set([...prev, ...types])]
+                        .filter(t => !t.toLowerCase().includes('burr'));
                     return merged;
                 });
             } else {
@@ -561,6 +585,7 @@ const GuestMealService = () => {
                 endTime: reservation.endTime,
                 guests: reservation.guests,
                 phone: reservation.phone,
+                source: reservation.source || 'Phone',
                 note: reservation.note || '',
                 advancePayment: reservation.advancePayment || 0
             });
@@ -591,6 +616,7 @@ const GuestMealService = () => {
                 endTime: endTimeStr,
                 guests: table.capacity, // Default to capacity
                 phone: '',
+                source: 'Phone',
                 advancePayment: 0
             });
         }
@@ -598,7 +624,7 @@ const GuestMealService = () => {
     };
 
     const handleReserveSubmit = async () => {
-        if (!reserveTargetTable || !reserveFormData.name || !reserveFormData.startTime || !reserveFormData.endTime) {
+        if (!reserveTargetTable || !reserveFormData.name || !reserveFormData.startTime || !reserveFormData.endTime || !reserveFormData.source) {
             alert("Please fill all required fields.");
             return;
         }
@@ -978,16 +1004,41 @@ const GuestMealService = () => {
 
     // Filter Logic
     useEffect(() => {
-        let filtered = tables.filter(t => !t.tableName.startsWith('_MERGED_'));
+        // Create working copy with dynamic status calculation and exclude merged templates
+        let tableList = tables.filter(t => !t.tableName.startsWith('_MERGED_')).map(table => {
+            const now = new Date();
+            const todayStr = now.toISOString().split('T')[0];
+            const currentH = now.getHours();
+            const currentM = now.getMinutes();
+            const currentVal = currentH * 60 + currentM;
 
-        // Filter by Status
+            // Check for current active reservation
+            const activeRes = (table.reservations || []).find(res => {
+                if (res.date !== todayStr) return false;
+                const [sH, sM] = res.startTime.split(':').map(Number);
+                const [eH, eM] = res.endTime.split(':').map(Number);
+                const startVal = sH * 60 + sM;
+                const endVal = eH * 60 + eM;
+                return currentVal >= startVal && currentVal < endVal;
+            });
+
+            let calculatedStatus = table.status;
+            // Auto-promote to Reserved if there's an active reservation and table is Available
+            if (activeRes && (table.status === 'Available' || table.status === 'Reserved')) {
+                calculatedStatus = 'Reserved';
+            }
+
+            return { ...table, calculatedStatus, activeReservation: activeRes };
+        });
+
+        // Apply Status Filter using calculatedStatus
         if (statusFilter !== 'All') {
-            filtered = filtered.filter(table => table.status === statusFilter);
+            tableList = tableList.filter(table => table.calculatedStatus === statusFilter);
         }
 
         // Filter by Type
         if (typeFilter !== 'All') {
-            filtered = filtered.filter(table => table.type === typeFilter);
+            tableList = tableList.filter(table => table.type === typeFilter);
         }
 
         // --- Time Availability Filter Logic ---
@@ -996,7 +1047,7 @@ const GuestMealService = () => {
             const now = new Date();
             const isSelectedTimeNearNow = Math.abs(selectedTimeStamp - now.getTime()) < 30 * 60 * 1000;
 
-            filtered = filtered.filter(table => {
+            tableList = tableList.filter(table => {
                 const hasConflict = (table.reservations || []).some(res => {
                     if (res.date !== appliedDate) return false;
                     const [startH, startM] = res.startTime.split(':').map(Number);
@@ -1016,7 +1067,7 @@ const GuestMealService = () => {
 
         // Search Table or User
         if (searchQuery) {
-            filtered = filtered.filter(table => {
+            tableList = tableList.filter(table => {
                 const query = searchQuery.toLowerCase();
                 const tableMatch = table.tableName.toLowerCase().includes(query);
                 const guestMatch = table.reservation?.name?.toLowerCase().includes(query);
@@ -1028,7 +1079,7 @@ const GuestMealService = () => {
                 return tableMatch || guestMatch || phoneMatch || allReservationsMatch;
             });
         }
-        setFilteredTables(filtered);
+        setFilteredTables(tableList);
 
         // Update stats
         const todayStr = new Date().toISOString().split('T')[0];
@@ -1077,7 +1128,7 @@ const GuestMealService = () => {
             available: availableCount,
             running: tables.filter(t => t.status === 'Running').length,
             billed: tables.filter(t => t.status === 'Billed').length,
-            reserved: tables.filter(t => t.status === 'Reserved').length,
+            reserved: tableList.filter(t => t.calculatedStatus === 'Reserved').length,
             upcomingCount: upcomingCount,
             revenue: prev.revenue
         }));
@@ -1092,6 +1143,10 @@ const GuestMealService = () => {
     };
 
     const handleTableClick = async (table) => {
+        if (!settings.posEnabled) {
+            alert('POS is disabled. Cannot create orders. Enable POS from Company Settings.');
+            return;
+        }
         // If table is Available, make it Running (Check-in / Walk-in)
         // If table is Reserved, check time window
         if (table.status === 'Reserved') {
@@ -1246,7 +1301,7 @@ const GuestMealService = () => {
                     </div>
                     <div style={{ background: '#eff6ff', padding: '20px', borderRadius: '12px', border: '1px solid #dbeafe' }}>
                         <div style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '600' }}>Revenue Today</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#111827', marginTop: '8px' }}>₹{Math.floor(stats.revenue + tables.reduce((acc, t) => acc + (t.amount || 0), 0))}</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#111827', marginTop: '8px' }}>{cs}{Math.floor(stats.revenue + tables.reduce((acc, t) => acc + (t.amount || 0), 0))}</div>
                     </div>
                 </div>
             </div>
@@ -1442,129 +1497,249 @@ const GuestMealService = () => {
             }
 
             {/* Add Table Modal */}
-            {
-                showAddTableModal && (
-                    <div className="sidebar-overlay" style={{ opacity: 1, zIndex: 1000 }} onClick={() => setShowAddTableModal(false)}>
-                        <div className="modal-content" style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            background: 'white',
-                            padding: '24px',
-                            borderRadius: '12px',
-                            width: '400px',
-                            maxWidth: '90%'
-                        }} onClick={e => e.stopPropagation()}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                <h2 style={{ margin: 0 }}>Add New Table</h2>
-                                <button onClick={() => setShowAddTableModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>×</button>
-                            </div>
+            {showAddTableModal && (
+                <div
+                    style={{
+                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        backdropFilter: 'blur(4px)'
+                    }}
+                    onClick={() => setShowAddTableModal(false)}
+                >
+                    <div
+                        style={{
+                            background: 'white', borderRadius: '16px', width: '420px', maxWidth: '92vw',
+                            boxShadow: '0 20px 60px rgba(0,0,0,0.2)', overflow: 'visible'
+                        }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div style={{
+                            padding: '20px 24px', borderBottom: '1px solid #f0f0f0',
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                        }}>
+                            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#111827' }}>Add New Table</h2>
+                            <button
+                                onClick={() => setShowAddTableModal(false)}
+                                style={{
+                                    background: '#f3f4f6', border: 'none', width: '32px', height: '32px',
+                                    borderRadius: '8px', fontSize: '16px', cursor: 'pointer', color: '#6b7280',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s'
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.color = '#ef4444'; }}
+                                onMouseLeave={e => { e.currentTarget.style.background = '#f3f4f6'; e.currentTarget.style.color = '#6b7280'; }}
+                            >✕</button>
+                        </div>
 
-                            <div className="form-group" style={{ marginBottom: '16px' }}>
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Table Name/Number</label>
+                        {/* Body */}
+                        <div style={{ padding: '24px' }}>
+                            {/* Table Name */}
+                            <div style={{ marginBottom: '18px' }}>
+                                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.8rem', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    Table Name / Number
+                                </label>
                                 <input
                                     type="text"
-                                    className="form-input"
                                     placeholder="e.g., T15, VIP-1"
                                     value={newTableData.tableName}
                                     onChange={e => setNewTableData({ ...newTableData, tableName: e.target.value })}
-                                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}
+                                    style={{
+                                        width: '100%', padding: '11px 14px', borderRadius: '10px',
+                                        border: '1.5px solid #e5e7eb', fontSize: '0.95rem', outline: 'none',
+                                        transition: 'border-color 0.2s', boxSizing: 'border-box'
+                                    }}
+                                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                                    onBlur={e => e.target.style.borderColor = '#e5e7eb'}
                                 />
                             </div>
 
-                            <div className="form-group" style={{ marginBottom: '16px' }}>
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Capacity</label>
+                            {/* Capacity */}
+                            <div style={{ marginBottom: '18px' }}>
+                                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.8rem', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    Capacity
+                                </label>
                                 <input
                                     type="number"
-                                    className="form-input"
                                     placeholder="e.g., 4"
+                                    min="1"
                                     value={newTableData.capacity}
                                     onChange={e => setNewTableData({ ...newTableData, capacity: e.target.value })}
-                                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}
+                                    style={{
+                                        width: '100%', padding: '11px 14px', borderRadius: '10px',
+                                        border: '1.5px solid #e5e7eb', fontSize: '0.95rem', outline: 'none',
+                                        transition: 'border-color 0.2s', boxSizing: 'border-box'
+                                    }}
+                                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                                    onBlur={e => e.target.style.borderColor = '#e5e7eb'}
                                 />
                             </div>
 
-                            <div className="form-group" style={{ marginBottom: '24px' }}>
-                                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Table Type</label>
+                            {/* Table Type */}
+                            <div style={{ marginBottom: '24px' }}>
+                                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.8rem', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    Table Type
+                                </label>
                                 {!isAddingTableType ? (
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <select
-                                            value={newTableData.type}
-                                            onChange={e => setNewTableData({ ...newTableData, type: e.target.value })}
-                                            style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}
-                                        >
-                                            <option value="">Select Type</option>
-                                            {tableTypes.map(type => (
-                                                <option key={type} value={type}>{type}</option>
-                                            ))}
-                                        </select>
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+                                        <div ref={typeDropdownRef} style={{ flex: 1, position: 'relative' }}>
+                                            <div
+                                                onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                                                style={{
+                                                    padding: '11px 14px', borderRadius: '10px',
+                                                    border: showTypeDropdown ? '1.5px solid #3b82f6' : '1.5px solid #e5e7eb',
+                                                    background: 'white', cursor: 'pointer',
+                                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                    transition: 'border-color 0.2s'
+                                                }}
+                                            >
+                                                <span style={{ color: newTableData.type ? '#111827' : '#9ca3af', fontSize: '0.95rem' }}>
+                                                    {newTableData.type || 'Select Type'}
+                                                </span>
+                                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ transform: showTypeDropdown ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
+                                                    <path d="M2 4L6 8L10 4" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
+                                            </div>
+                                            {showTypeDropdown && (
+                                                <div style={{
+                                                    position: 'absolute', top: 'calc(100% + 6px)',
+                                                    left: 0, right: 0, background: 'white',
+                                                    border: '1px solid #e5e7eb', borderRadius: '12px',
+                                                    boxShadow: '0 12px 36px rgba(0,0,0,0.15)',
+                                                    zIndex: 9999, maxHeight: '220px', overflowY: 'auto',
+                                                    padding: '4px'
+                                                }}>
+                                                    {tableTypes.map(type => {
+                                                        const isDefault = ['General', 'AC', 'Non-AC', 'Garden'].includes(type);
+                                                        const isSelected = newTableData.type === type;
+                                                        return (
+                                                            <div
+                                                                key={type}
+                                                                style={{
+                                                                    padding: '9px 12px', cursor: 'pointer',
+                                                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                                    borderRadius: '8px', margin: '1px 0',
+                                                                    background: isSelected ? '#eff6ff' : 'transparent',
+                                                                    color: isSelected ? '#2563eb' : '#374151',
+                                                                    fontWeight: isSelected ? 600 : 400,
+                                                                    fontSize: '0.93rem', transition: 'all 0.12s'
+                                                                }}
+                                                                onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = '#f9fafb'; }}
+                                                                onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+                                                            >
+                                                                <span
+                                                                    style={{ flex: 1 }}
+                                                                    onClick={() => { setNewTableData({ ...newTableData, type }); setShowTypeDropdown(false); }}
+                                                                >
+                                                                    {isSelected && <span style={{ marginRight: '6px' }}>✓</span>}
+                                                                    {type}
+                                                                </span>
+                                                                <span
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setTableTypes(tableTypes.filter(t => t !== type));
+                                                                        if (newTableData.type === type) {
+                                                                            setNewTableData({ ...newTableData, type: '' });
+                                                                        }
+                                                                    }}
+                                                                    style={{
+                                                                        width: '24px', height: '24px', display: 'flex',
+                                                                        alignItems: 'center', justifyContent: 'center',
+                                                                        borderRadius: '6px', color: '#d1d5db',
+                                                                        fontSize: '13px', cursor: 'pointer',
+                                                                        transition: 'all 0.15s', flexShrink: 0
+                                                                    }}
+                                                                    onMouseEnter={e => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.color = '#ef4444'; }}
+                                                                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#d1d5db'; }}
+                                                                    title={`Delete "${type}"`}
+                                                                >✕</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
                                         <button
                                             onClick={() => setIsAddingTableType(true)}
-                                            style={{ padding: '0 12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '18px' }}
-                                            title="Add New Type"
-                                        >
-                                            +
-                                        </button>
-                                        <button
-                                            style={{ padding: '0 12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px' }}
-                                            onClick={() => {
-                                                if (newTableData.type && !['General', 'AC', 'Non-AC', 'Garden'].includes(newTableData.type)) {
-                                                    setTableTypes(tableTypes.filter(t => t !== newTableData.type));
-                                                    setNewTableData({ ...newTableData, type: '' });
-                                                } else {
-                                                    alert('Select a custom type to remove');
-                                                }
+                                            style={{
+                                                padding: '0 14px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                                                color: 'white', border: 'none', borderRadius: '10px',
+                                                cursor: 'pointer', fontSize: '18px', fontWeight: 600,
+                                                transition: 'all 0.15s', boxShadow: '0 2px 8px rgba(59,130,246,0.3)'
                                             }}
-                                            title="Remove Selected Type"
-                                        >
-                                            ✕
-                                        </button>
+                                            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                                            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                                            title="Add New Type"
+                                        >+</button>
                                     </div>
                                 ) : (
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         <input
                                             type="text"
-                                            placeholder="New type..."
+                                            placeholder="Enter new type..."
                                             value={newTableType}
                                             onChange={e => setNewTableType(e.target.value)}
                                             autoFocus
-                                            style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid #ddd' }}
+                                            style={{
+                                                flex: 1, padding: '11px 14px', borderRadius: '10px',
+                                                border: '1.5px solid #3b82f6', fontSize: '0.95rem', outline: 'none',
+                                                boxSizing: 'border-box'
+                                            }}
                                         />
                                         <button
                                             onClick={handleAddTableType}
-                                            style={{ padding: '0 12px', background: '#22c55e', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
-                                        >
-                                            ✓
-                                        </button>
+                                            style={{
+                                                padding: '0 14px', background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                                                color: 'white', border: 'none', borderRadius: '10px',
+                                                cursor: 'pointer', fontSize: '16px', fontWeight: 600,
+                                                boxShadow: '0 2px 8px rgba(34,197,94,0.3)'
+                                            }}
+                                        >✓</button>
                                         <button
                                             onClick={() => setIsAddingTableType(false)}
-                                            style={{ padding: '0 12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
-                                        >
-                                            ✕
-                                        </button>
+                                            style={{
+                                                padding: '0 14px', background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                                                color: 'white', border: 'none', borderRadius: '10px',
+                                                cursor: 'pointer', fontSize: '14px', fontWeight: 600,
+                                                boxShadow: '0 2px 8px rgba(239,68,68,0.3)'
+                                            }}
+                                        >✕</button>
                                     </div>
                                 )}
                             </div>
+                        </div>
 
-                            <div style={{ display: 'flex', gap: '12px' }}>
-                                <button
-                                    onClick={handleCreateTable}
-                                    style={{ flex: 1, padding: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
-                                >
-                                    Create Table
-                                </button>
-                                <button
-                                    onClick={() => setShowAddTableModal(false)}
-                                    style={{ flex: 1, padding: '12px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
+                        {/* Footer */}
+                        <div style={{
+                            padding: '16px 24px', borderTop: '1px solid #f0f0f0',
+                            display: 'flex', gap: '12px'
+                        }}>
+                            <button
+                                onClick={() => setShowAddTableModal(false)}
+                                style={{
+                                    flex: 1, padding: '12px', background: '#f3f4f6', color: '#374151',
+                                    border: 'none', borderRadius: '10px', cursor: 'pointer',
+                                    fontWeight: 600, fontSize: '0.95rem', transition: 'all 0.15s'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#e5e7eb'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#f3f4f6'}
+                            >Cancel</button>
+                            <button
+                                onClick={handleCreateTable}
+                                style={{
+                                    flex: 1, padding: '12px',
+                                    background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                                    color: 'white', border: 'none', borderRadius: '10px',
+                                    cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem',
+                                    boxShadow: '0 4px 12px rgba(59,130,246,0.3)', transition: 'all 0.15s'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                            >Create Table</button>
                         </div>
                     </div>
-                )
-            }
+                </div>
+            )}
 
             {/* Split Table Modal */}
             {
@@ -1810,7 +1985,7 @@ const GuestMealService = () => {
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '8px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                                     <div className="form-group">
                                         <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#4b5563' }}>Guests Count</label>
                                         <input
@@ -1821,14 +1996,28 @@ const GuestMealService = () => {
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#4b5563' }}>Special Note</label>
-                                        <input
-                                            type="text" className="form-input" placeholder="e.g. Birthday"
-                                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                                            value={reserveFormData.note || ''}
-                                            onChange={e => setReserveFormData({ ...reserveFormData, note: e.target.value })}
-                                        />
+                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#4b5563' }}>Reservation Source</label>
+                                        <select
+                                            className="form-select"
+                                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '1rem', background: '#fff' }}
+                                            value={reserveFormData.source}
+                                            onChange={e => setReserveFormData({ ...reserveFormData, source: e.target.value })}
+                                        >
+                                            <option value="Phone">Phone Number</option>
+                                            <option value="Walk-In">Walk In</option>
+                                            <option value="Online">Online</option>
+                                        </select>
                                     </div>
+                                </div>
+
+                                <div className="form-group" style={{ marginBottom: '16px' }}>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#4b5563' }}>Special Note</label>
+                                    <input
+                                        type="text" className="form-input" placeholder="e.g. Birthday"
+                                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                                        value={reserveFormData.note || ''}
+                                        onChange={e => setReserveFormData({ ...reserveFormData, note: e.target.value })}
+                                    />
                                 </div>
 
                                 <div className="form-group" style={{ marginBottom: '24px' }}>
@@ -1837,7 +2026,7 @@ const GuestMealService = () => {
                                         {reserveFormData.advancePayment > 0 && <span style={{ color: '#10b981', fontSize: '0.8rem' }}>Amount Added ✅</span>}
                                     </label>
                                     <div style={{ position: 'relative' }}>
-                                        <span style={{ position: 'absolute', left: '12px', top: '10px', color: '#6b7280', fontSize: '1.1rem', fontWeight: '700' }}>₹</span>
+                                        <span style={{ position: 'absolute', left: '12px', top: '10px', color: '#6b7280', fontSize: '1.1rem', fontWeight: '700' }}>{cs}</span>
                                         <input
                                             type="number"
                                             className="form-input"
@@ -2047,8 +2236,8 @@ const GuestMealService = () => {
                                                     <div>
                                                         <div style={{ fontWeight: '700', color: '#111827', fontSize: '1rem' }}>{res.startTime || 'N/A'} - {res.name || 'Guest'}</div>
                                                         <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                                                            {res.guests || 0} Guests • {res.phone || 'No Phone'} {res.date && `• ${res.date}`}
-                                                            {res.advancePayment > 0 && <span style={{ color: '#10b981', fontWeight: '800', marginLeft: '8px' }}>• Advance: ₹{res.advancePayment}</span>}
+                                                            {res.guests || 0} Guests • {res.source || 'Phone'} • {res.phone || 'No Phone'} {res.date && `• ${res.date}`}
+                                                            {res.advancePayment > 0 && <span style={{ color: '#10b981', fontWeight: '800', marginLeft: '8px' }}>• Advance: {cs}{res.advancePayment}</span>}
                                                         </div>
                                                         {res.note && <div style={{ fontSize: '0.8rem', color: '#dc2626', marginTop: '4px' }}>Note: {res.note}</div>}
                                                     </div>
@@ -2185,7 +2374,7 @@ const GuestMealService = () => {
                                                     </div>
                                                     {match.advancePayment > 0 && (
                                                         <div style={{ color: '#166534', fontWeight: '900', fontSize: '1rem' }}>
-                                                            ₹{match.advancePayment} <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>Paid</span>
+                                                            {cs}{match.advancePayment} <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>Paid</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -2287,7 +2476,7 @@ const GuestMealService = () => {
                                     <div style={{ height: '1px', background: '#e5e7eb', margin: '8px 0' }}></div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', alignItems: 'center' }}>
                                         <span style={{ color: '#111827', fontWeight: '600' }}>Total Amount</span>
-                                        <span style={{ fontWeight: '900', color: '#dc2626', fontSize: '1.5rem' }}>₹{closeTableData.amount}</span>
+                                        <span style={{ fontWeight: '900', color: '#dc2626', fontSize: '1.5rem' }}>{cs}{closeTableData.amount}</span>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', background: '#f0fdf4', padding: '10px', borderRadius: '8px', fontSize: '0.9rem', fontWeight: '600' }}>
@@ -2311,6 +2500,8 @@ const GuestMealService = () => {
 const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToCashier }) => {
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef(null);
+    const { settings, getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
 
     // Helper logic to find nearest upcoming reservation
     const getNextReservation = () => {
@@ -2373,22 +2564,21 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
         switch (status) {
             case 'Available': return { badge: '#10b981', bg: '#fff', border: '#e5e7eb' };
             case 'Reserved': return { badge: '#f97316', bg: '#fff7ed', border: '#fdba74' };
-            case 'Running': return { badge: '#10b981', bg: '#f0fdf4', border: '#bcfced' }; // Light green as requested
-            case 'Occupied': return { badge: '#fbbf24', bg: '#fffbeb', border: '#fde68a' }; // Amber/Yellow
+            case 'Running': return { badge: '#10b981', bg: '#f0fdf4', border: '#bcfced' };
+            case 'Occupied': return { badge: '#fbbf24', bg: '#fffbeb', border: '#fde68a' };
             case 'Billed': return { badge: '#ef4444', bg: '#fef2f2', border: '#fecaca' };
             default: return { badge: '#6b7280', bg: '#fff', border: '#e5e7eb' };
         }
     };
 
-    const styles = getStatusStyles(table.status);
+    const statusToUse = table.calculatedStatus || table.status;
+    const styles = getStatusStyles(statusToUse);
 
-    // Live Timer for Running/Billed tables
     const [elapsedTime, setElapsedTime] = useState(table.duration || 0);
 
     useEffect(() => {
         let interval;
-        if (table.status === 'Running' || table.status === 'Billed') {
-            // Calculate initial elapsed time based on orderStartTime
+        if (statusToUse === 'Running' || statusToUse === 'Billed') {
             if (table.orderStartTime) {
                 const startTime = new Date(table.orderStartTime).getTime();
                 const now = new Date().getTime();
@@ -2408,21 +2598,26 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
             setElapsedTime(0);
         }
         return () => clearInterval(interval);
-    }, [table.status, table.orderStartTime]);
+    }, [statusToUse, table.orderStartTime]);
 
-    // Format duration helper (local scope or use prop if suitable, but local is better for live update)
     const formatLiveDuration = (seconds) => {
         if (!seconds) return '0m';
         const h = Math.floor(seconds / 3600);
         const m = Math.floor((seconds % 3600) / 60);
-        // const s = seconds % 60; // User probably cares about minutes mostly, but seconds show liveness. Let's show mins for compactness or H:M
         if (h > 0) return `${h}h ${m}m`;
         return `${m}m`;
     };
 
+    // Helper for source labels
+    const getSourceLabel = (src) => {
+        if (src === 'Phone') return 'Phone Number';
+        if (src === 'Walk-In') return 'Walk In';
+        return src || 'Phone';
+    };
+
     return (
         <div
-            className={`table-item ${table.status.toLowerCase()}`}
+            className={`table-item ${statusToUse.toLowerCase()}`}
             onClick={onCardClick}
             style={{
                 background: styles.bg,
@@ -2431,17 +2626,15 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                 boxShadow: showMenu ? '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' : '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
                 padding: '16px',
                 position: 'relative',
-                zIndex: showMenu ? 50 : 1, // Elevate card when menu is open
+                zIndex: showMenu ? 50 : 1,
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 cursor: 'pointer',
                 transform: showMenu ? 'translateY(-2px)' : 'none'
             }}
         >
-            {/* Blinking Status Dot */}
-            {table.status !== 'Available' && table.status !== 'Reserved' && table.orderStatus === 'Pending' && <div className="blink-dot blink-yellow-real" title="Order Pending"></div>}
-            {table.status !== 'Available' && table.status !== 'Reserved' && (table.orderStatus === 'Preparing' || table.orderStatus === 'Ready') && <div className="blink-dot blink-red-real" title="Preparing"></div>}
-            {table.status !== 'Available' && table.status !== 'Reserved' && table.orderStatus === 'Served' && <div className="blink-dot blink-green-real" title="Ready / Served"></div>}
-            {/* 'Pending Payment' - NO blink (already sent to cashier) */}
+            {statusToUse !== 'Available' && statusToUse !== 'Reserved' && table.orderStatus === 'Pending' && <div className="blink-dot blink-yellow-real" title="Order Pending"></div>}
+            {statusToUse !== 'Available' && statusToUse !== 'Reserved' && (table.orderStatus === 'Preparing' || table.orderStatus === 'Ready') && <div className="blink-dot blink-red-real" title="Preparing"></div>}
+            {statusToUse !== 'Available' && statusToUse !== 'Reserved' && table.orderStatus === 'Served' && <div className="blink-dot blink-green-real" title="Ready / Served"></div>}
 
             <div className="table-topbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2455,7 +2648,7 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                         fontWeight: '700',
                         textTransform: 'uppercase'
                     }}>
-                        {table.status}
+                        {statusToUse}
                     </span>
                 </div>
 
@@ -2484,16 +2677,22 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                                 {(table.status === 'Available' || table.status === 'Reserved') && (
                                     <>
                                         <MenuItem icon="🚶" label="Walk-in" color="#10b981" weight="600" onClick={(e) => handleAction('Walk-in', e)} />
-                                        <MenuItem icon="✂" label="Split Table" onClick={(e) => handleAction('Split Table', e)} />
+                                        {settings.billingRules?.splitBill !== false && (
+                                            <MenuItem icon="✂" label="Split Table" onClick={(e) => handleAction('Split Table', e)} />
+                                        )}
                                         <MenuItem icon="↔" label="Move Guests" onClick={(e) => handleAction('Move Guests', e)} />
-                                        <MenuItem icon="🔗" label="Merge Table" onClick={(e) => handleAction('Merge Table', e)} />
+                                        {settings.billingRules?.mergeTable !== false && (
+                                            <MenuItem icon="🔗" label="Merge Table" onClick={(e) => handleAction('Merge Table', e)} />
+                                        )}
                                     </>
                                 )}
 
                                 {table.status === 'Running' && (
                                     <>
                                         <MenuItem icon="↔" label="Move Guests" onClick={(e) => handleAction('Move Guests', e)} />
-                                        <MenuItem icon="🔗" label="Merge Table" onClick={(e) => handleAction('Merge Table', e)} />
+                                        {settings.billingRules?.mergeTable !== false && (
+                                            <MenuItem icon="🔗" label="Merge Table" onClick={(e) => handleAction('Merge Table', e)} />
+                                        )}
                                         {(table.amount === 0 || !table.currentOrderId) && (
                                             <MenuItem icon="↺" label="Release Table" color="#dc2626" onClick={(e) => handleAction('Release Table', e)} />
                                         )}
@@ -2524,27 +2723,52 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                 </div>
 
                 <div className="table-metrics" style={{ minHeight: '60px' }}>
-                    {table.status === 'Available' ? (
+                    {statusToUse === 'Available' ? (
                         <>
                             <div style={{ color: '#10b981', fontSize: '0.9rem', fontWeight: '600', marginBottom: '4px' }}>Ready for guests</div>
-                            {nextRes && (
-                                <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '8px', padding: '4px 8px', background: '#f9fafb', borderRadius: '6px', border: '1px dashed #e5e7eb' }}>
-                                    Next: <span style={{ fontWeight: '700', color: '#4b5563' }}>{nextRes.startTime} {nextRes.name}</span>
-                                </div>
-                            )}
+                            {nextRes && (() => {
+                                const now = new Date();
+                                const [h, m] = nextRes.startTime.split(':').map(Number);
+                                const nextVal = h * 60 + m;
+                                const currVal = now.getHours() * 60 + now.getMinutes();
+                                const diff = nextVal - currVal;
+                                const isNear = diff > 0 && diff <= 30;
+
+                                return (
+                                    <div style={{
+                                        fontSize: '0.8rem',
+                                        color: isNear ? '#dc2626' : '#6b7280',
+                                        marginTop: '8px',
+                                        padding: '6px 10px',
+                                        background: isNear ? '#fef2f2' : '#f9fafb',
+                                        borderRadius: '8px',
+                                        border: isNear ? '1px solid #fecaca' : '1px dashed #e5e7eb',
+                                        animation: isNear ? 'pulse 2s infinite' : 'none'
+                                    }}>
+                                        {isNear ? '⚠️ Arriving Soon: ' : 'Next: '}
+                                        <span style={{ fontWeight: '800', color: isNear ? '#b91c1c' : '#4b5563' }}>
+                                            {nextRes.startTime} ({diff}m)
+                                        </span>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: '600', opacity: 0.8 }}>{nextRes.name} ({getSourceLabel(nextRes.source)})</div>
+                                    </div>
+                                );
+                            })()}
                         </>
-                    ) : table.status === 'Reserved' ? (
-                        <div style={{ padding: '8px', background: '#fff7ed', borderRadius: '8px' }}>
-                            <div style={{ fontSize: '0.8rem', color: '#c2410c', fontWeight: '700' }}>Active Reservation</div>
-                            <div style={{ fontSize: '0.95rem', fontWeight: '800', color: '#111827', marginTop: '2px' }}>
-                                {table.reservation?.startTime} - {table.reservation?.name}
+                    ) : statusToUse === 'Reserved' ? (
+                        <div style={{ padding: '10px', background: '#fff7ed', borderRadius: '12px', border: '1px solid #ffedd5' }}>
+                            <div style={{ fontSize: '0.75rem', color: '#c2410c', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Reservation Active</div>
+                            <div style={{ fontSize: '1.1rem', fontWeight: '900', color: '#111827', marginTop: '4px' }}>
+                                {table.activeReservation?.startTime} - {table.activeReservation?.endTime}
+                            </div>
+                            <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#9a3412', marginTop: '2px' }}>
+                                {table.activeReservation?.name} ({getSourceLabel(table.activeReservation?.source)})
                             </div>
                         </div>
                     ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                             <div style={{ padding: '6px', background: '#fff', borderRadius: '8px', border: '1px solid #f3f4f6' }}>
                                 <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Amount</div>
-                                <div style={{ fontSize: '0.9rem', fontWeight: '700' }}>₹{table.amount || table.runningOrderAmount || 0}</div>
+                                <div style={{ fontSize: '0.9rem', fontWeight: '700' }}>{cs}{table.amount || table.runningOrderAmount || 0}</div>
                             </div>
                             <div style={{ padding: '6px', background: '#fff', borderRadius: '8px', border: '1px solid #f3f4f6' }}>
                                 <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>Time</div>
@@ -2559,7 +2783,6 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                 marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f3f4f6',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px'
             }}>
-                {/* Manage Order (Always visible or conditional?) - User wants it side by side */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} onClick={onCardClick}>
                     <span style={{ color: '#dc2626', fontWeight: '700', fontSize: '0.9rem' }}>
                         {(table.status === 'Available' || table.status === 'Occupied') ? 'Tap to Order' : 'Manage Order'}
@@ -2567,8 +2790,7 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                     <span style={{ fontSize: '1.2rem', color: '#dc2626', fontWeight: '800' }}>→</span>
                 </div>
 
-                {/* Send Button */}
-                {(table.status === 'Running') && (
+                {(statusToUse === 'Running') && (
                     <button
                         onClick={(e) => onSendToCashier(e, table)}
                         title="Send final bill to cashier"

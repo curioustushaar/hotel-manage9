@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import './FormStyles.css';
+import { useSettings } from '../../context/SettingsContext';
 
 const PrintSummaryForm = ({ booking, onSubmit }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [printType, setPrintType] = useState('A4');
 
     const printOptions = ['A4', 'A5', 'Thermal', 'Dot Matrix', '3 inch', '2 inch'];
@@ -75,12 +78,12 @@ ${b.email ? `<div class="info-row"><span class="info-label">Email</span><span cl
 <div class="info-row"><span class="info-label">Check-out</span><span class="info-value">${formatDate(b.checkOutDate)}${b.checkOutTime ? ' ' + b.checkOutTime : ''}</span></div>
 <div class="info-row"><span class="info-label">Nights</span><span class="info-value">${nights}</span></div>
 <div class="info-row"><span class="info-label">Occupancy</span><span class="info-value">${adults} Adult(s), ${children} Child(ren)</span></div>
-<div class="info-row"><span class="info-label">Rate/Night</span><span class="info-value">₹${(b.pricePerNight || 0).toLocaleString('en-IN')}</span></div>
+<div class="info-row"><span class="info-label">Rate/Night</span><span class="info-value">${cs}${(b.pricePerNight || 0).toLocaleString('en-IN')}</span></div>
 
 <hr class="divider">
-<div class="total-row"><span>Total Amount</span><span>₹${(b.totalAmount || 0).toLocaleString('en-IN')}</span></div>
-${(b.advancePaid || 0) > 0 ? `<div class="info-row" style="color:green;font-weight:600"><span class="info-label">Paid</span><span class="info-value">₹${(b.advancePaid || 0).toLocaleString('en-IN')}</span></div>` : ''}
-${(b.remainingAmount || 0) > 0 ? `<div class="info-row" style="color:#dc2626;font-weight:600"><span class="info-label">Balance Due</span><span class="info-value">₹${(b.remainingAmount || 0).toLocaleString('en-IN')}</span></div>` : ''}
+<div class="total-row"><span>Total Amount</span><span>${cs}${(b.totalAmount || 0).toLocaleString('en-IN')}</span></div>
+${(b.advancePaid || 0) > 0 ? `<div class="info-row" style="color:green;font-weight:600"><span class="info-label">Paid</span><span class="info-value">${cs}${(b.advancePaid || 0).toLocaleString('en-IN')}</span></div>` : ''}
+${(b.remainingAmount || 0) > 0 ? `<div class="info-row" style="color:#dc2626;font-weight:600"><span class="info-label">Balance Due</span><span class="info-value">${cs}${(b.remainingAmount || 0).toLocaleString('en-IN')}</span></div>` : ''}
 
 <hr class="divider">
 <div class="footer">Thank you for choosing Bireena Athithi Hotel!<br>Generated: ${new Date().toLocaleString('en-IN')}</div>
@@ -125,7 +128,7 @@ ${(b.remainingAmount || 0) > 0 ? `<div class="info-row" style="color:#dc2626;fon
                         <div><span className="text-gray-400">Check-in</span><p className="font-semibold text-gray-800">{formatDate(b.checkInDate)}</p></div>
                         <div><span className="text-gray-400">Check-out</span><p className="font-semibold text-gray-800">{formatDate(b.checkOutDate)}</p></div>
                         <div><span className="text-gray-400">Nights</span><p className="font-semibold text-gray-800">{nights}</p></div>
-                        <div><span className="text-gray-400">Total</span><p className="font-bold text-gray-900">₹{(b.totalAmount || 0).toLocaleString('en-IN')}</p></div>
+                        <div><span className="text-gray-400">Total</span><p className="font-bold text-gray-900">{cs}{(b.totalAmount || 0).toLocaleString('en-IN')}</p></div>
                     </div>
                 </div>
 

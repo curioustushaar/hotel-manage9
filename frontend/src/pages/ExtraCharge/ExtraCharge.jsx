@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import './ExtraCharge.css';
 import API_URL from '../../config/api';
+import { useSettings } from '../../context/SettingsContext';
 
 const ExtraCharge = () => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [charges, setCharges] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -99,7 +102,7 @@ const ExtraCharge = () => {
                                     <td>{index + 1}</td>
                                     <td>{charge.name}</td>
                                     <td>{charge.chargeType}</td>
-                                    <td>₹ {charge.amount}</td>
+                                    <td>{cs} {charge.amount}</td>
                                     <td>
                                         <label className="checkbox-container">
                                             <input type="checkbox" checked={charge.taxApplicable} readOnly />
@@ -142,7 +145,7 @@ const ExtraCharge = () => {
                                 </select>
                             </div>
                             <div className="form-group">
-                                <label>Amount (₹)</label>
+                                <label>Amount ({cs})</label>
                                 <input type="number" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} required />
                             </div>
                             <div className="form-group checkbox-group">

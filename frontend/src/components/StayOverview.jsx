@@ -4,9 +4,12 @@ import API_URL from '../config/api';
 import RoomDetailsPanel from './rooms/RoomDetailsPanel';
 import './StayOverview.css';
 import './StayOverviewModals.css';
+import { useSettings } from '../context/SettingsContext';
 
 const StayOverview = () => {
     const navigate = useNavigate();
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [rooms, setRooms] = useState([]);
     const [reservations, setReservations] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -233,7 +236,7 @@ const StayOverview = () => {
                 // Log room prices for debugging
                 console.log('💰 Room Prices Loaded:');
                 updatedRooms.forEach(r => {
-                    console.log(`  Room ${r.roomNumber} (${r.roomType}): ₹${r.price || 'NOT SET'}`);
+                    console.log(`  Room ${r.roomNumber} (${r.roomType}): ${cs}${r.price || 'NOT SET'}`);
                 });
             }
 
@@ -472,7 +475,7 @@ const StayOverview = () => {
                                             <td key={idx} className="category-data_cell">
                                                 <div className="info-box">
                                                     <div className="mini-num">{catRooms.length}</div>
-                                                    <div className="mini-price">₹{avgPrice.toFixed(2)}</div>
+                                                    <div className="mini-price">{cs}{avgPrice.toFixed(2)}</div>
                                                 </div>
                                             </td>
                                         );

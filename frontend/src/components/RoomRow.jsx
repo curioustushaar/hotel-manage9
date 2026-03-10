@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import API_URL from '../config/api';
+import { useSettings } from '../context/SettingsContext';
 
 const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = [], readOnly = false, checkInDate = new Date().toISOString().split('T')[0], nights = 1 }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const prevCategoryId = useRef(room.categoryId);
 
     const handleChange = (field, value) => {
@@ -177,7 +180,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                         {mealTypes && mealTypes.length > 0 ? (
                             mealTypes.map(mt => (
                                 <option key={mt._id} value={mt.shortCode}>
-                                    {mt.shortCode} ({mt.name}) - ₹{mt.price}
+                                    {mt.shortCode} ({mt.name}) - {cs}{mt.price}
                                 </option>
                             ))
                         ) : (
@@ -248,7 +251,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                     <input
                         type="text"
                         disabled
-                        value={`₹${((room.ratePerNight - room.discount) * nights).toFixed(2)}`}
+                        value={`${cs}${((room.ratePerNight - room.discount) * nights).toFixed(2)}`}
                         className="total-field"
                     />
                 </div>

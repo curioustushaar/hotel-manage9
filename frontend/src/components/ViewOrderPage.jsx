@@ -5,10 +5,13 @@ import API_URL_CONFIG from '../config/api';
 import './ViewOrderPage.css';
 import ItemStockStatus from './ItemStockStatus';
 import OutletCurrentStatus from './OutletCurrentStatus';
+import { useSettings } from '../context/SettingsContext';
 
 const ViewOrderPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     // Top Tabs State
     const [activeTab, setActiveTab] = useState('KOT View');
     const [activeFilter, setActiveFilter] = useState('All');
@@ -364,7 +367,7 @@ const ViewOrderPage = () => {
                                                         <span className="item-name-qty">
                                                             {item.name} {item.quantity > 1 ? `×${item.quantity}` : ''}
                                                         </span>
-                                                        <span className="item-price">₹{item.price * item.quantity}</span>
+                                                        <span className="item-price">{cs}{item.price * item.quantity}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -479,11 +482,11 @@ const ViewOrderPage = () => {
                             <div className="receipt-totals">
                                 <div className="total-row">
                                     <span>Subtotal</span>
-                                    <span>₹ {selectedOrderForBill.amount}.00</span>
+                                    <span>{cs} {selectedOrderForBill.amount}.00</span>
                                 </div>
                                 <div className="total-row grand-total">
                                     <span>NET PAYABLE</span>
-                                    <span>₹ {selectedOrderForBill.amount}.00</span>
+                                    <span>{cs} {selectedOrderForBill.amount}.00</span>
                                 </div>
                             </div>
                             <div className="receipt-footer">

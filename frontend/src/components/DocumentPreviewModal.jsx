@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import jsPDF from 'jspdf';
+import { useSettings } from '../context/SettingsContext';
 import './DocumentPreviewModal.css';
 
 const DocumentPreviewModal = ({ isOpen, onClose, documentType, data }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     if (!isOpen || !data) return null;
 
     const handlePrint = () => {
@@ -97,8 +100,8 @@ const DocumentPreviewModal = ({ isOpen, onClose, documentType, data }) => {
                 data.items.forEach(item => {
                     doc.text(item.name, 20, y);
                     doc.text(item.quantity.toString(), 100, y);
-                    doc.text(`₹${item.price}`, 130, y);
-                    doc.text(`₹${(item.price * item.quantity).toFixed(2)}`, 190, y, { align: 'right' });
+                    doc.text(`${cs}${item.price}`, 130, y);
+                    doc.text(`${cs}${(item.price * item.quantity).toFixed(2)}`, 190, y, { align: 'right' });
                     y += 7;
                 });
 
@@ -107,11 +110,11 @@ const DocumentPreviewModal = ({ isOpen, onClose, documentType, data }) => {
                 y += 8;
 
                 doc.text('Subtotal:', 130, y);
-                doc.text(`₹${data.subtotal.toFixed(2)}`, 190, y, { align: 'right' });
+                doc.text(`${cs}${data.subtotal.toFixed(2)}`, 190, y, { align: 'right' });
                 y += 7;
 
                 doc.text('Tax (5%):', 130, y);
-                doc.text(`₹${data.tax.toFixed(2)}`, 190, y, { align: 'right' });
+                doc.text(`${cs}${data.tax.toFixed(2)}`, 190, y, { align: 'right' });
                 y += 7;
 
                 doc.setLineWidth(0.3);
@@ -121,7 +124,7 @@ const DocumentPreviewModal = ({ isOpen, onClose, documentType, data }) => {
                 doc.setFontSize(12);
                 doc.setFont(undefined, 'bold');
                 doc.text('Grand Total:', 130, y);
-                doc.text(`₹${data.total.toFixed(2)}`, 190, y, { align: 'right' });
+                doc.text(`${cs}${data.total.toFixed(2)}`, 190, y, { align: 'right' });
             }
 
             // Generate filename
@@ -152,7 +155,7 @@ const DocumentPreviewModal = ({ isOpen, onClose, documentType, data }) => {
                 {/* Document Content - Scrollable */}
                 <div className="document-content">
                     {documentType === 'kot' && <KOTTemplate data={data} />}
-                    {(documentType === 'bill' || documentType === 'order') && <BillTemplate data={data} />}
+                    {(documentType === 'bill' || documentType === 'order') && <BillTemplate data={data} cs={cs} />}
                 </div>
 
                 {/* Action Buttons */}
@@ -222,7 +225,7 @@ const KOTTemplate = ({ data }) => (
 );
 
 // Bill/Order Template Component
-const BillTemplate = ({ data }) => (
+const BillTemplate = ({ data, cs }) => (
     <div className="bill-document">
         <div className="doc-row">
             <span><strong>Bill No:</strong> {data.billNumber}</span>
@@ -252,8 +255,8 @@ const BillTemplate = ({ data }) => (
                     <tr key={index}>
                         <td>{item.name}</td>
                         <td style={{ textAlign: 'center' }}>{item.quantity}</td>
-                        <td style={{ textAlign: 'right' }}>₹{item.price}</td>
-                        <td style={{ textAlign: 'right' }}>₹{(item.price * item.quantity).toFixed(2)}</td>
+                        <td style={{ textAlign: 'right' }}>{cs}{item.price}</td>
+                        <td style={{ textAlign: 'right' }}>{cs}{(item.price * item.quantity).toFixed(2)}</td>
                     </tr>
                 ))}
             </tbody>
@@ -264,15 +267,15 @@ const BillTemplate = ({ data }) => (
         <div className="totals-section">
             <div className="total-row">
                 <span>Subtotal:</span>
-                <span>₹{data.subtotal.toFixed(2)}</span>
+                <span>{cs}{data.subtotal.toFixed(2)}</span>
             </div>
             <div className="total-row">
                 <span>Tax (5%):</span>
-                <span>₹{data.tax.toFixed(2)}</span>
+                <span>{cs}{data.tax.toFixed(2)}</span>
             </div>
             <div className="total-row grand-total">
                 <span>Grand Total:</span>
-                <span>₹{data.total.toFixed(2)}</span>
+                <span>{cs}{data.total.toFixed(2)}</span>
             </div>
         </div>
 

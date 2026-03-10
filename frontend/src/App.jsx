@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { SettingsProvider } from './context/SettingsContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import { MODULES, ROLES } from './config/rbac'
 import Navbar from './components/Navbar'
@@ -288,11 +289,13 @@ const AppRoutes = () => {
 
 function App() {
   return (
+    <SettingsProvider>
     <AuthProvider>
       <Router>
         <AppRoutes />
       </Router>
     </AuthProvider>
+    </SettingsProvider>
   )
 }
 

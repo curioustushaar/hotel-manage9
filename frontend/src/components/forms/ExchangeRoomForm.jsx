@@ -2,8 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { Calendar, ChevronRight, X, LayoutGrid, CheckCircle2 } from 'lucide-react';
 import API_URL from '../../config/api';
+import { useSettings } from '../../context/SettingsContext';
 
 const ExchangeRoomForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [reservation, setReservation] = useState(null);
     const [availableRooms, setAvailableRooms] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -216,7 +219,7 @@ const ExchangeRoomForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
                             <div style={{ fontSize: '15px', color: '#475569', fontWeight: '500' }}>Rate per Night</div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <span style={{ fontWeight: '700', color: '#0f172a', fontSize: '15px' }}>
-                                    ₹{reservation.ratePerNight?.toLocaleString() || '0'}
+                                    {cs}{reservation.ratePerNight?.toLocaleString() || '0'}
                                 </span>
                                 <ChevronRight size={16} color="#cbd5e1" />
                             </div>
@@ -317,7 +320,7 @@ const ExchangeRoomForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
                     }}>
                         <label style={{ fontSize: '15px', fontWeight: '500', color: '#64748b' }}>New Rate Per Night</label>
                         <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>
-                            ₹{adjustment.newPrice?.toLocaleString() || '0'}
+                            {cs}{adjustment.newPrice?.toLocaleString() || '0'}
                         </div>
                     </div>
                 </div>
@@ -337,9 +340,9 @@ const ExchangeRoomForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
                         <CheckCircle2 size={24} color={adjustment.total > 0 ? '#f97316' : '#22c55e'} fill="#fff" />
                         <div style={{ fontSize: '13px', color: adjustment.total > 0 ? '#9a3412' : '#14532d', fontWeight: '600', lineHeight: '1.5' }}>
                             <span style={{ display: 'block' }}>
-                                ₹{Math.abs(adjustment.diff).toLocaleString()} {adjustment.diff > 0 ? 'more' : 'less'} per night.
+                                {cs}{Math.abs(adjustment.diff).toLocaleString()} {adjustment.diff > 0 ? 'more' : 'less'} per night.
                             </span>
-                            Total ₹{Math.abs(adjustment.total).toLocaleString()} will be {adjustment.total > 0 ? 'added' : 'reduced'} for {adjustment.nights} nights.
+                            Total {cs}{Math.abs(adjustment.total).toLocaleString()} will be {adjustment.total > 0 ? 'added' : 'reduced'} for {adjustment.nights} nights.
                         </div>
                     </div>
                 )}
@@ -406,7 +409,7 @@ const ExchangeRoomForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
                     padding: '10px 0'
                 }}>
                     <div style={{ fontSize: '15px', color: '#1e293b', fontWeight: '700' }}>
-                        ₹{adjustment.oldTotal.toLocaleString()} {adjustment.total >= 0 ? '+' : '-'} ₹{Math.abs(adjustment.total).toLocaleString()}
+                        {cs}{adjustment.oldTotal.toLocaleString()} {adjustment.total >= 0 ? '+' : '-'} {cs}{Math.abs(adjustment.total).toLocaleString()}
                         <span style={{
                             fontSize: '11px',
                             color: adjustment.total > 0 ? '#ea580c' : '#166534',
@@ -419,7 +422,7 @@ const ExchangeRoomForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
                         <span style={{ margin: '0 8px', color: '#94a3b8' }}>=</span>
                     </div>
                     <div style={{ fontSize: '24px', fontWeight: '900', color: adjustment.total > 0 ? '#c2410c' : '#15803d' }}>
-                        ₹{(adjustment.oldTotal + adjustment.total).toLocaleString()}
+                        {cs}{(adjustment.oldTotal + adjustment.total).toLocaleString()}
                     </div>
                 </div>
 
@@ -474,10 +477,10 @@ const ExchangeRoomForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
                 fontWeight: '700',
                 color: '#475569'
             }}>
-                ₹{adjustment.oldTotal.toLocaleString()} {adjustment.total >= 0 ? '+' : '-'} <span style={{ color: '#059669', margin: '0 4px' }}>
-                    ₹{Math.abs(adjustment.total).toLocaleString()} ({adjustment.total > 0 ? 'Upgrade' : 'Downgrade'})
+                {cs}{adjustment.oldTotal.toLocaleString()} {adjustment.total >= 0 ? '+' : '-'} <span style={{ color: '#059669', margin: '0 4px' }}>
+                    {cs}{Math.abs(adjustment.total).toLocaleString()} ({adjustment.total > 0 ? 'Upgrade' : 'Downgrade'})
                 </span>
-                = ₹{(adjustment.oldTotal + adjustment.total).toLocaleString()}
+                = {cs}{(adjustment.oldTotal + adjustment.total).toLocaleString()}
             </div>
         </div>
     );

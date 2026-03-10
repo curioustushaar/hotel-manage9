@@ -2,17 +2,17 @@
 
 .report-container {
     background: linear-gradient(to bottom, #fff5f5, #ffffff);
-    /* Halka Pink like payment logs */
     min-height: 100vh;
     padding-bottom: 30px;
     font-family: 'Inter', sans-serif;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* HEADER STYLES */
 .report-header {
     background: #fff5f5;
-    /* Theme pink background */
-    padding: 20px 40px;
+    padding: 20px 28px;
     border-bottom: 1px solid #fee2e2;
     display: flex;
     flex-direction: column;
@@ -155,11 +155,11 @@
 
 .report-content {
     width: 100%;
-    /* Full screen width */
     max-width: 100%;
-    margin: 20px 0;
-    padding: 0 40px;
+    margin: 0;
+    padding: 20px 28px;
     animation: fadeSlideUp 0.4s ease-out forwards;
+    box-sizing: border-box;
 }
 
 /* STAT CARDS */
@@ -173,14 +173,19 @@
 
 .stat-card {
     background: white;
-    padding: 16px 20px;
-    /* Reduced padding */
-    border-radius: 12px;
+    padding: 20px 24px;
+    border-radius: 14px;
     border: 1px solid #fee2e2;
     display: flex;
     align-items: center;
-    gap: 15px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    gap: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s;
+}
+
+.stat-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
 }
 
 .stat-icon {
@@ -224,6 +229,8 @@
     border: 1px solid #fee2e2;
     margin-bottom: 25px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .overview-sub-grid {
@@ -304,12 +311,15 @@
     border: 1px solid #fee2e2;
     margin-bottom: 25px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .breakdown-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 30px;
+    width: 100%;
 }
 
 .breakdown-column h3 {
@@ -385,43 +395,62 @@
     background: white;
     border-radius: 12px;
     border: 1px solid #fee2e2;
-    overflow: hidden;
+    overflow-x: auto;
     margin-top: 15px;
+}
+
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
 }
 
 .report-table th {
     background: #fff5f5;
-    padding: 12px 20px;
-    font-size: 10px;
+    padding: 14px 24px;
+    font-size: 11px;
+    font-weight: 800;
     color: #991b1b;
     text-align: left;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border-bottom: 1px solid #fee2e2;
+    letter-spacing: 0.06em;
+    border-bottom: 2px solid #fecaca;
+    white-space: nowrap;
 }
 
 .report-table td {
-    padding: 12px 20px;
-    font-size: 13px;
-    border-bottom: 1px solid #fff5f5;
+    padding: 14px 24px;
+    font-size: 14px;
+    color: #1e293b;
+    border-bottom: 1px solid #fef2f2;
+}
+
+.report-table tbody tr:hover {
+    background: #fff5f5;
 }
 
 .report-actions {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     justify-content: flex-end;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 
 .report-actions button {
     background: white;
-    border: 1px solid #e2e8f0;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
+    border: 1.5px solid #e2e8f0;
+    padding: 9px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
     color: #475569;
     cursor: pointer;
+    transition: all 0.15s;
+}
+
+.report-actions button:hover {
+    border-color: #dc2626;
+    color: #dc2626;
+    background: #fff5f5;
 }
 
 .control-group-header {

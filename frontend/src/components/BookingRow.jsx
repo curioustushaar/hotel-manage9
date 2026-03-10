@@ -1,6 +1,8 @@
 import StatusBadge from './StatusBadge';
+import { useSettings } from '../context/SettingsContext';
 
 const BookingRow = ({ booking, onEdit, onDelete, onMoreOptions }) => {
+    const { formatDate } = useSettings();
     return (
         <tr key={booking._id || booking.id}>
             {/* CELL 1: Booking ID - text-left */}
@@ -25,7 +27,7 @@ const BookingRow = ({ booking, onEdit, onDelete, onMoreOptions }) => {
 
             {/* CELL 5: Check-in Date - text-center */}
             <td className="text-center check-in-date">
-                {booking.checkInDate ? new Date(booking.checkInDate).toLocaleDateString('en-IN') : '—'}
+                {booking.checkInDate ? formatDate(booking.checkInDate) : '—'}
             </td>
 
             {/* CELL 6: Status Badge - text-center */}

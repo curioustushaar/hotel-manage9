@@ -1,20 +1,21 @@
 import { useState } from 'react';
 import './FormStyles.css';
+import { useSettings } from '../../context/SettingsContext';
 
 const PrintInvoiceForm = ({ booking, onSubmit, onCancel }) => {
     const [printType, setPrintType] = useState('A4');
+    const { settings, getCurrencySymbol, getFullAddress, formatDate: settingsFormatDate } = useSettings();
 
     const printOptions = ['A4', 'A5', 'Thermal', 'Dot Matrix', '3 inch', '2 inch'];
 
     const formatDate = (date) => {
         if (!date) return 'N/A';
-        try {
-            return new Date(date).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        } catch { return 'N/A'; }
+        return settingsFormatDate(date);
     };
 
     const b = booking || {};
-    const taxRate = 0.12;
+    const taxRate = (parseFloat(settings.roomGst) || 12) / 100;
+    const cs = getCurrencySymbol();
     const subtotal = b.totalAmount || 0;
     const tax = Math.round(subtotal * taxRate);
     const grandTotal = subtotal + tax;
@@ -68,14 +69,14 @@ td { padding: ${isReceipt ? '3px 2px' : '8px 10px'}; font-size: ${isReceipt ? '1
 @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style></head>
 <body>
-<div class="hotel-name">Bireena Athithi Hotel</div>
-<div class="hotel-addr">123 Hotel Street, City, State 12345 | +91-1234-567890 | info@bireena-athithi.com</div>
-<div class="gst-no">GSTIN: 22AACCU1234H1Z0</div>
+<div class="hotel-name">${settings.name || 'Hotel'}</div>
+<div class="hotel-addr">${getFullAddress()}${settings.phone ? ' | ' + settings.phone : ''}</div>
+<div class="gst-no">GSTIN: ${settings.gstNumber || 'N/A'}</div>
 <hr class="divider">
 <div class="inv-title">Tax Invoice</div>
 <hr class="divider">
 
-<div class="row"><span class="label">Invoice No:</span><span class="val">${b.bookingId || 'INV-' + Date.now()}</span></div>
+<div class="row"><span class="label">Invoice No:</span><span class="val">${settings.invoicePrefix || settings.billingInvoicePrefix || 'INV-'}${b.bookingId || Date.now()}</span></div>
 <div class="row"><span class="label">Date:</span><span class="val">${new Date().toLocaleDateString('en-IN')}</span></div>
 <hr class="divider-thin">
 <div class="section-title">Bill To</div>
@@ -90,18 +91,18 @@ ${b.email ? `<div class="row"><span class="label">Email:</span><span class="val"
 <tr>
 <td>Room Charges - ${b.roomType || 'Room'}<br><span style="font-size:${isReceipt ? '9px' : '11px'};color:#666">Room ${b.roomNumber || 'TBA'} | ${formatDate(b.checkInDate)} → ${formatDate(b.checkOutDate)}</span></td>
 <td class="text-right">${nights} Night${nights > 1 ? 's' : ''}</td>
-<td class="text-right">₹${(b.pricePerNight || 0).toLocaleString('en-IN')}</td>
-<td class="text-right">₹${subtotal.toLocaleString('en-IN')}</td>
+<td class="text-right">${cs}${(b.pricePerNight || 0).toLocaleString('en-IN')}</td>
+<td class="text-right">${cs}${subtotal.toLocaleString('en-IN')}</td>
 </tr>
 </tbody>
 </table>
 
 <div class="total-box">
-<div class="total-row"><span>Subtotal:</span><span>₹${subtotal.toLocaleString('en-IN')}</span></div>
-<div class="total-row"><span>GST (12%):</span><span>₹${tax.toLocaleString('en-IN')}</span></div>
-<div class="total-row grand-total"><span>Grand Total:</span><span>₹${grandTotal.toLocaleString('en-IN')}</span></div>
-${(b.advancePaid || 0) > 0 ? `<div class="total-row paid"><span>Paid:</span><span>₹${(b.advancePaid || 0).toLocaleString('en-IN')}</span></div>` : ''}
-${(b.remainingAmount || 0) > 0 ? `<div class="total-row due"><span>Balance Due:</span><span>₹${(b.remainingAmount || 0).toLocaleString('en-IN')}</span></div>` : ''}
+<div class="total-row"><span>Subtotal:</span><span>${cs}${subtotal.toLocaleString('en-IN')}</span></div>
+<div class="total-row"><span>${settings.taxType || 'GST'} (${(taxRate * 100).toFixed(0)}%):</span><span>${cs}${tax.toLocaleString('en-IN')}</span></div>
+<div class="total-row grand-total"><span>Grand Total:</span><span>${cs}${grandTotal.toLocaleString('en-IN')}</span></div>
+${(b.advancePaid || 0) > 0 ? `<div class="total-row paid"><span>Paid:</span><span>${cs}${(b.advancePaid || 0).toLocaleString('en-IN')}</span></div>` : ''}
+${(b.remainingAmount || 0) > 0 ? `<div class="total-row due"><span>Balance Due:</span><span>${cs}${(b.remainingAmount || 0).toLocaleString('en-IN')}</span></div>` : ''}
 </div>
 
 <div class="terms">
@@ -111,7 +112,7 @@ ${(b.remainingAmount || 0) > 0 ? `<div class="total-row due"><span>Balance Due:<
 <p>3. Payment at checkout</p>
 </div>
 <hr class="divider">
-<div class="footer">Thank you for your business! | Generated: ${new Date().toLocaleString('en-IN')}</div>
+<div class="footer">${settings.thankYouMessage || 'Thank you for your business!'} | Generated: ${new Date().toLocaleString('en-IN')}</div>
 </body></html>`;
     };
 
@@ -146,11 +147,11 @@ ${(b.remainingAmount || 0) > 0 ? `<div class="total-row due"><span>Balance Due:<
                         <div><span className="text-gray-400">Check-out</span><p className="font-semibold text-gray-800">{formatDate(b.checkOutDate)}</p></div>
                     </div>
                     <div className="border-t border-gray-200 pt-2 space-y-1 text-[12px]">
-                        <div className="flex justify-between"><span className="text-gray-400">Subtotal</span><span className="font-semibold text-gray-800">₹{subtotal.toLocaleString('en-IN')}</span></div>
-                        <div className="flex justify-between"><span className="text-gray-400">GST (12%)</span><span className="font-semibold text-gray-800">₹{tax.toLocaleString('en-IN')}</span></div>
-                        <div className="flex justify-between text-sm font-bold pt-1 border-t border-gray-200"><span className="text-gray-900">Grand Total</span><span className="text-gray-900">₹{grandTotal.toLocaleString('en-IN')}</span></div>
-                        {(b.advancePaid || 0) > 0 && <div className="flex justify-between text-[12px]"><span className="text-green-600">Paid</span><span className="font-semibold text-green-600">₹{(b.advancePaid || 0).toLocaleString('en-IN')}</span></div>}
-                        {(b.remainingAmount || 0) > 0 && <div className="flex justify-between text-[12px]"><span className="text-red-600">Balance</span><span className="font-semibold text-red-600">₹{(b.remainingAmount || 0).toLocaleString('en-IN')}</span></div>}
+                        <div className="flex justify-between"><span className="text-gray-400">Subtotal</span><span className="font-semibold text-gray-800">{cs}{subtotal.toLocaleString('en-IN')}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-400">{settings.taxType || 'GST'} ({(taxRate * 100).toFixed(0)}%)</span><span className="font-semibold text-gray-800">{cs}{tax.toLocaleString('en-IN')}</span></div>
+                        <div className="flex justify-between text-sm font-bold pt-1 border-t border-gray-200"><span className="text-gray-900">Grand Total</span><span className="text-gray-900">{cs}{grandTotal.toLocaleString('en-IN')}</span></div>
+                        {(b.advancePaid || 0) > 0 && <div className="flex justify-between text-[12px]"><span className="text-green-600">Paid</span><span className="font-semibold text-green-600">{cs}{(b.advancePaid || 0).toLocaleString('en-IN')}</span></div>}
+                        {(b.remainingAmount || 0) > 0 && <div className="flex justify-between text-[12px]"><span className="text-red-600">Balance</span><span className="font-semibold text-red-600">{cs}{(b.remainingAmount || 0).toLocaleString('en-IN')}</span></div>}
                     </div>
                 </div>
 

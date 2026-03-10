@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import './CompanySettings.css';
 import API_URL from '../../config/api';
+import { useSettings } from '../../context/SettingsContext';
+import { useAuth } from '../../context/AuthContext';
 
 const CompanySettings = () => {
+    const { settings: globalSettings, fetchSettings: refreshGlobal, getCurrencySymbol } = useSettings();
+    const { user } = useAuth();
+    const cs = getCurrencySymbol();
     const [activeTab, setActiveTab] = useState('General');
     const [hotelData, setHotelData] = useState({
-        hotelName: 'Bireena Atithi',
-        gstNumber: '22AAAAA0000A125',
+        hotelName: '',
+        gstNumber: '',
         logoUrl: null,
-        address: '123, MG Road',
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        pin: '400050',
+        address: '',
+        city: '',
+        state: '',
+        pin: '',
         currency: 'INR (₹)',
         taxType: 'GST',
         cgst: '2.5',
@@ -27,10 +32,9 @@ const CompanySettings = () => {
         timezone: '(GMT+05:30) Kolkata',
         dateFormat: 'DD/MM/YYYY',
         timeFormat: '12 Hour',
-        // Billing Setup fields
         billingInvoicePrefix: 'ATITHI',
         startingInvoiceNumber: '1001',
-        panNumber: 'ABCPA1234A',
+        panNumber: '',
         autoGenerateInvoice: true,
         billPrintFormat: 'Hotel Invoice',
         roomGst: '12',
@@ -41,14 +45,11 @@ const CompanySettings = () => {
             cash: true,
             upi: true,
             card: true,
-            bankTransfer: true,
-            wallet: true,
-            creditAllowed: true
+            bankTransfer: true
         },
         billingRules: {
             autoPost: true,
             mandatorySettlement: true,
-            partialPayment: true,
             splitBill: true,
             mergeTable: true,
             addToRoom: true
@@ -59,6 +60,64 @@ const CompanySettings = () => {
             couponEnabled: true
         }
     });
+    const [saving, setSaving] = useState(false);
+
+    // Load settings from API on mount
+    useEffect(() => {
+        const loadSettings = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/hotel/settings`);
+                const data = await res.json();
+                if (data.success && data.data) {
+                    const s = data.data;
+                    setHotelData(prev => ({
+                        ...prev,
+                        hotelName: s.name || prev.hotelName,
+                        gstNumber: s.gstNumber || prev.gstNumber,
+                        logoUrl: s.logoUrl || prev.logoUrl,
+                        address: s.address || prev.address,
+                        city: s.city || prev.city,
+                        state: s.state || prev.state,
+                        pin: s.pin || prev.pin,
+                        currency: s.currency || prev.currency,
+                        taxType: s.taxType || prev.taxType,
+                        cgst: String(s.cgst ?? prev.cgst),
+                        sgst: String(s.sgst ?? prev.sgst),
+                        serviceCharge: String(s.serviceCharge ?? prev.serviceCharge),
+                        invoicePrefix: s.invoicePrefix || prev.invoicePrefix,
+                        thankYouMessage: s.thankYouMessage || prev.thankYouMessage,
+                        enableRoomPosting: s.enableRoomPosting ?? prev.enableRoomPosting,
+                        posEnabled: s.posEnabled ?? prev.posEnabled,
+                        displayLogoOnBill: s.displayLogoOnBill ?? prev.displayLogoOnBill,
+                        printKOTHeader: s.printKOTHeader ?? prev.printKOTHeader,
+                        autoIncrementInvoice: s.autoIncrementInvoice ?? prev.autoIncrementInvoice,
+                        timezone: s.timezone || prev.timezone,
+                        dateFormat: s.dateFormat || prev.dateFormat,
+                        timeFormat: s.timeFormat || prev.timeFormat,
+                        billingInvoicePrefix: s.billingInvoicePrefix || prev.billingInvoicePrefix,
+                        startingInvoiceNumber: s.startingInvoiceNumber || prev.startingInvoiceNumber,
+                        panNumber: s.panNumber || prev.panNumber,
+                        autoGenerateInvoice: s.autoGenerateInvoice ?? prev.autoGenerateInvoice,
+                        billPrintFormat: s.billPrintFormat || prev.billPrintFormat,
+                        roomGst: String(s.roomGst ?? prev.roomGst),
+                        foodGst: String(s.foodGst ?? prev.foodGst),
+                        roomServiceCharge: String(s.roomServiceCharge ?? prev.roomServiceCharge),
+                        inclusiveTax: s.inclusiveTax ?? prev.inclusiveTax,
+                        paymentModes: s.paymentModes || prev.paymentModes,
+                        billingRules: s.billingRules || prev.billingRules,
+                        discountRules: s.discountRules ? {
+                            maxDiscount: String(s.discountRules.maxDiscount ?? prev.discountRules.maxDiscount),
+                            managerApproval: s.discountRules.managerApproval ?? prev.discountRules.managerApproval,
+                            couponEnabled: s.discountRules.couponEnabled ?? prev.discountRules.couponEnabled
+                        } : prev.discountRules
+                    }));
+                }
+            } catch (err) {
+                console.error('Error loading settings:', err);
+            }
+        };
+        loadSettings();
+    }, []);
 
     // Rooms Management State
     const [rooms, setRooms] = useState([]);
@@ -164,8 +223,68 @@ const CompanySettings = () => {
         }
     };
 
-    const handleSave = () => {
-        alert('Changes saved successfully!');
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            const token = user?.token;
+            const payload = {
+                name: hotelData.hotelName,
+                address: hotelData.address,
+                city: hotelData.city,
+                state: hotelData.state,
+                pin: hotelData.pin,
+                gstNumber: hotelData.gstNumber,
+                logoUrl: hotelData.logoUrl,
+                currency: hotelData.currency,
+                timezone: hotelData.timezone,
+                dateFormat: hotelData.dateFormat,
+                timeFormat: hotelData.timeFormat,
+                taxType: hotelData.taxType,
+                cgst: parseFloat(hotelData.cgst) || 0,
+                sgst: parseFloat(hotelData.sgst) || 0,
+                serviceCharge: parseFloat(hotelData.serviceCharge) || 0,
+                roomGst: parseFloat(hotelData.roomGst) || 0,
+                foodGst: parseFloat(hotelData.foodGst) || 0,
+                roomServiceCharge: parseFloat(hotelData.roomServiceCharge) || 0,
+                inclusiveTax: hotelData.inclusiveTax,
+                invoicePrefix: hotelData.invoicePrefix,
+                billingInvoicePrefix: hotelData.billingInvoicePrefix,
+                startingInvoiceNumber: hotelData.startingInvoiceNumber,
+                panNumber: hotelData.panNumber,
+                autoGenerateInvoice: hotelData.autoGenerateInvoice,
+                autoIncrementInvoice: hotelData.autoIncrementInvoice,
+                billPrintFormat: hotelData.billPrintFormat,
+                thankYouMessage: hotelData.thankYouMessage,
+                enableRoomPosting: hotelData.enableRoomPosting,
+                posEnabled: hotelData.posEnabled,
+                displayLogoOnBill: hotelData.displayLogoOnBill,
+                printKOTHeader: hotelData.printKOTHeader,
+                paymentModes: hotelData.paymentModes,
+                billingRules: hotelData.billingRules,
+                discountRules: {
+                    maxDiscount: parseFloat(hotelData.discountRules.maxDiscount) || 0,
+                    managerApproval: hotelData.discountRules.managerApproval,
+                    couponEnabled: hotelData.discountRules.couponEnabled
+                }
+            };
+            const res = await fetch(`${API_URL}/api/hotel/settings`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.success) {
+                await refreshGlobal();
+                alert('Settings saved successfully!');
+            } else {
+                alert(data.message || 'Failed to save settings');
+            }
+        } catch (err) {
+            console.error('Error saving settings:', err);
+            alert('Error saving settings. Please try again.');
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
@@ -252,7 +371,7 @@ const CompanySettings = () => {
                                                     {room.roomType === 'Deluxe Room' ? '🏨' : '🛏️'} {room.roomType}
                                                 </td>
                                                 <td className="tariff-cell">
-                                                    ₹ {room.price} <span className="per-night">/ Night</span>
+                                                    {cs} {room.price} <span className="per-night">/ Night</span>
                                                 </td>
                                                 <td className="status-cell">
                                                     <span className={`status-pill available`}>
@@ -452,10 +571,12 @@ const CompanySettings = () => {
                                     <label>Room GST %</label>
                                     <div className="input-with-symbol-right">
                                         <input
-                                            type="text"
+                                            type="number"
                                             name="roomGst"
                                             value={hotelData.roomGst}
                                             onChange={handleInputChange}
+                                            min="0"
+                                            max="50"
                                         />
                                         <span className="symbol-box">%</span>
                                     </div>
@@ -464,10 +585,12 @@ const CompanySettings = () => {
                                     <label>Food GST %</label>
                                     <div className="input-with-symbol-right">
                                         <input
-                                            type="text"
+                                            type="number"
                                             name="foodGst"
                                             value={hotelData.foodGst}
                                             onChange={handleInputChange}
+                                            min="0"
+                                            max="50"
                                         />
                                         <span className="symbol-box">%</span>
                                     </div>
@@ -476,10 +599,12 @@ const CompanySettings = () => {
                                     <label>Service Charge %</label>
                                     <div className="input-with-symbol-right">
                                         <input
-                                            type="text"
+                                            type="number"
                                             name="roomServiceCharge"
                                             value={hotelData.roomServiceCharge}
                                             onChange={handleInputChange}
+                                            min="0"
+                                            max="100"
                                         />
                                         <span className="symbol-box">%</span>
                                     </div>
@@ -501,9 +626,7 @@ const CompanySettings = () => {
                                     { label: 'Cash', icon: '💵', key: 'cash' },
                                     { label: 'UPI', icon: '📱', key: 'upi' },
                                     { label: 'Card', icon: '💳', key: 'card' },
-                                    { label: 'Bank Transfer', icon: '🏦', key: 'bankTransfer' },
-                                    { label: 'Wallet', icon: '📁', key: 'wallet' },
-                                    { label: 'Credit Allowed', icon: '🏪', key: 'creditAllowed' }
+                                    { label: 'Bank Transfer', icon: '🏦', key: 'bankTransfer' }
                                 ].map((mode, i) => (
                                     <div key={i} className="billing-field-row special">
                                         <div className="label-with-icon">
@@ -528,8 +651,7 @@ const CompanySettings = () => {
                                 <h3 className="card-header-icon"><span className="red-icon">🛏️</span> Room Billing Rules</h3>
                                 {[
                                     { label: 'Auto Post to Room Folio', key: 'autoPost' },
-                                    { label: 'Checkout Mandatory Settlement', key: 'mandatorySettlement' },
-                                    { label: 'Partial Payment Allowed', key: 'partialPayment' }
+                                    { label: 'Checkout Mandatory Settlement', key: 'mandatorySettlement' }
                                 ].map((rule, i) => (
                                     <div key={i} className="billing-field-row special">
                                         <div className="label-with-check">
@@ -758,10 +880,12 @@ const CompanySettings = () => {
                                             <div className="input-with-symbol">
                                                 <span className="percent">%</span>
                                                 <input
-                                                    type="text"
+                                                    type="number"
                                                     name="cgst"
                                                     value={hotelData.cgst}
                                                     onChange={handleInputChange}
+                                                    min="0"
+                                                    max="50"
                                                 />
                                             </div>
                                         </div>
@@ -770,10 +894,12 @@ const CompanySettings = () => {
                                             <div className="input-with-symbol">
                                                 <span className="percent">%</span>
                                                 <input
-                                                    type="text"
+                                                    type="number"
                                                     name="sgst"
                                                     value={hotelData.sgst}
                                                     onChange={handleInputChange}
+                                                    min="0"
+                                                    max="50"
                                                 />
                                             </div>
                                         </div>
@@ -783,10 +909,12 @@ const CompanySettings = () => {
                                         <div className="input-with-symbol">
                                             <span className="percent">%</span>
                                             <input
-                                                type="text"
+                                                type="number"
                                                 name="serviceCharge"
                                                 value={hotelData.serviceCharge}
                                                 onChange={handleInputChange}
+                                                min="0"
+                                                max="100"
                                             />
                                         </div>
                                     </div>

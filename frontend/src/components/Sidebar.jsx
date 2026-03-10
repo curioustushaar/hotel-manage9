@@ -114,6 +114,7 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
                 { id: 'hotel-customer', label: 'Hotel Customer', iconVal: <Icons.Dot /> },
                 { id: 'housekeeping-config', label: 'House Keeping', iconVal: <Icons.Dot /> },
                 { id: 'maintenance-block', label: 'Maintenance Block', iconVal: <Icons.Dot /> },
+                { id: 'table-management', label: 'Table Management', iconVal: <Icons.Dot /> },
                 { id: 'screen-field-rule', label: 'Screen Field Rule', iconVal: <Icons.Dot /> },
                 { id: 'company', label: 'Company', iconVal: <Icons.Dot /> },
                 { id: MODULES.FOOD_MENU, label: 'Food Menu', iconVal: <Icons.Dot /> }

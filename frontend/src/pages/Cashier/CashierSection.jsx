@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
 import API_URL from '../../config/api';
 import './CashierSection.css';
 
 const CashierSection = () => {
     const { user } = useAuth();
+    const { settings, getCurrencySymbol, formatDate, formatTime } = useSettings();
+    const cs = getCurrencySymbol();
     const navigate = useNavigate();
     const location = useLocation();
     const [selectedOrder, setSelectedOrder] = useState(null);
@@ -128,12 +131,12 @@ const CashierSection = () => {
                 console.log(`[CashierSection] Fetched ${data.data.length} pending orders:`, data.data);
                 const mappedOrders = data.data.map(order => ({
                     id: order._id,
-                    type: (order.orderType === 'Table Order' || order.orderType === 'Direct Payment') ? 'Table' :
+                    type: (order.orderType === 'Table Order' || order.orderType === 'Dine-In' || order.orderType === 'Direct Payment') ? 'Table' :
                         (order.orderType === 'Room Service' || order.orderType === 'Post to Room' || order.orderType === 'Room Order') ? 'Room' :
-                            order.orderType === 'Take Away' ? 'Take Away' : 'Table',
-                    name: (order.orderType === 'Table Order' || order.orderType === 'Direct Payment') ? `Table ${order.tableNumber}` :
-                        (order.orderType === 'Room Service' || order.orderType === 'Post to Room' || order.orderType === 'Room Order') ? `Room ${order.roomNumber}` :
-                            order.orderType === 'Take Away' ? `Take Away` : `Table ${order.tableNumber}`,
+                            (order.orderType === 'Take Away' || order.orderType === 'Delivery' || order.orderType === 'Online') ? order.orderType : 'Table',
+                    name: (order.orderType === 'Table Order' || order.orderType === 'Dine-In' || order.orderType === 'Direct Payment') ? `Table ${order.tableNumber || 'Walk-In'}` :
+                        (order.orderType === 'Room Service' || order.orderType === 'Post to Room' || order.orderType === 'Room Order') ? `Room ${order.roomNumber || 'Unknown'}` :
+                            (order.orderType === 'Take Away' || order.orderType === 'Delivery' || order.orderType === 'Online') ? order.orderType : `Table ${order.tableNumber || ''}`,
                     guest: `${order.guestName || 'Guest'}${order.guestPhone ? ` - ${order.guestPhone}` : ''}`,
                     amount: order.finalAmount || 0,
                     status: 'Pending',
@@ -144,7 +147,7 @@ const CashierSection = () => {
                         price: item.price,
                         amount: item.subtotal
                     })),
-                    billNo: `#${order._id.toString().substr(-6).toUpperCase()}`,
+                    billNo: `${settings.invoicePrefix || settings.billingInvoicePrefix || '#'}${order._id.toString().substr(-6).toUpperCase()}`,
                     kotInfo: `KOT - ${order._id.toString().substr(-4)}`
                 }));
 
@@ -179,10 +182,9 @@ const CashierSection = () => {
             const data = await response.json();
 
             if (data.success) {
-                // Remove processed order from pending list
+                // Remove processed order from pending list but keep selectedOrder for printing
                 const updatedOrders = orders.filter(o => o.id !== orderId);
                 setOrders(updatedOrders);
-                setSelectedOrder(null);
 
                 // Remove from tracked orders as well
                 if (trackedOrders) {
@@ -196,12 +198,6 @@ const CashierSection = () => {
                     [mode.toLowerCase()]: (prev[mode.toLowerCase()] || 0) + amount,
                     pending: Math.max(0, prev.pending - 1)
                 }));
-
-                if (type === 'Add to Room') {
-                    alert(`✅ Successfully Added to Folio!\n\nTarget Room: ${roomNumber} \nAmount Posted: ₹${amount}`);
-                } else {
-                    alert(`✅ Payment Processed Successfully!\n\nBill Amount: ₹${amount} \nPayment Mode: ${mode} \nStatus: Settled`);
-                }
             } else {
                 alert('Failed to settle order: ' + data.message);
             }
@@ -222,6 +218,10 @@ const CashierSection = () => {
     };
 
     const handleNewOrderClick = () => {
+        if (!settings.posEnabled) {
+            alert('POS is disabled. Cannot create orders. Enable POS from Company Settings.');
+            return;
+        }
         setShowNewOrderModal(true);
     };
 
@@ -258,7 +258,7 @@ const CashierSection = () => {
             if (data.success) {
                 const query = trackQuery.toLowerCase();
                 const matched = data.data.filter(o =>
-                    o.orderType === 'Take Away' && // Stick to Take Away as requested
+                    ['Take Away', 'Delivery', 'Online', 'Room Service'].includes(o.orderType) &&
                     !['Closed', 'Cancelled', 'Completed', 'Settled'].includes(o.status) &&
                     (
                         (o.guestPhone && o.guestPhone.includes(query)) ||
@@ -335,25 +335,25 @@ const CashierSection = () => {
                     <div className="stat-card total">
                         <div className="stat-card-inner">
                             <span className="stat-label">TOTAL COLLECTION TODAY</span>
-                            <span className="stat-value">₹{stats.totalCollection.toFixed(2)}</span>
+                            <span className="stat-value">{cs}{stats.totalCollection.toFixed(2)}</span>
                         </div>
                     </div>
                     <div className="stat-card cash">
                         <div className="stat-card-inner">
                             <span className="stat-label">CASH COLLECTION</span>
-                            <span className="stat-value">₹{stats.cash.toFixed(2)}</span>
+                            <span className="stat-value">{cs}{stats.cash.toFixed(2)}</span>
                         </div>
                     </div>
                     <div className="stat-card upi">
                         <div className="stat-card-inner">
                             <span className="stat-label">UPI COLLECTION</span>
-                            <span className="stat-value">₹{stats.upi.toFixed(2)}</span>
+                            <span className="stat-value">{cs}{stats.upi.toFixed(2)}</span>
                         </div>
                     </div>
                     <div className="stat-card card-pay">
                         <div className="stat-card-inner">
                             <span className="stat-label">CARD COLLECTION</span>
-                            <span className="stat-value">₹{stats.card.toFixed(2)}</span>
+                            <span className="stat-value">{cs}{stats.card.toFixed(2)}</span>
                         </div>
                     </div>
                     <div className="stat-card pending">
@@ -408,7 +408,7 @@ const CashierSection = () => {
                                             <span className="order-kot">{order.kotInfo}</span>
                                         </div>
                                         <div className="order-item-right">
-                                            <span className="order-amount">₹ {order.amount}</span>
+                                            <span className="order-amount">{cs} {order.amount}</span>
                                         </div>
                                     </div>
                                 ))
@@ -437,7 +437,7 @@ const CashierSection = () => {
                 <div className="modal-overlay-custom">
                     <div className="modal-content-custom" style={{ width: '500px' }}>
                         <div className="modal-header-custom">
-                            <h3>Track Take Away Order</h3>
+                            <h3>Track Order</h3>
                             <button className="close-btn-custom" onClick={() => { setShowTrackModal(false); setTrackedOrders(null); setTrackQuery(''); }}>×</button>
                         </div>
                         <div className="modal-body-custom">
@@ -462,7 +462,7 @@ const CashierSection = () => {
                                     </div>
                                 ) : trackedOrders.length === 0 ? (
                                     <div className="placeholder-text" style={{ textAlign: 'center', color: '#ef4444', marginTop: '40px' }}>
-                                        No active Take Away orders found.
+                                        No active orders found matching your search.
                                     </div>
                                 ) : (
                                     <div className="tracked-orders-list">
@@ -472,7 +472,7 @@ const CashierSection = () => {
                                                 <div key={order._id} className="track-card">
                                                     <div className="track-card-header">
                                                         <span className="track-id">#{order._id.substr(-6).toUpperCase()}</span>
-                                                        <span className="track-amount">₹{order.finalAmount}</span>
+                                                        <span className="track-amount">{cs}{order.finalAmount}</span>
                                                     </div>
                                                     <div className="track-guest">{order.guestName} ({order.guestPhone || 'No Phone'})</div>
 
@@ -548,6 +548,8 @@ const CashierSection = () => {
 };
 
 const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checkedInRooms = [] }) => {
+    const { settings, getCurrencySymbol, formatDate } = useSettings();
+    const cs = getCurrencySymbol();
     // State for payment interactions
     const [paymentMode, setPaymentMode] = useState('Cash');
     const [paymentType, setPaymentType] = useState('Direct Payment');
@@ -555,13 +557,23 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
     const [returnAmount, setReturnAmount] = useState(0);
     const [targetRoom, setTargetRoom] = useState('');
     const [selectedBooking, setSelectedBooking] = useState(null);
+    const [isTendered, setIsTendered] = useState(false);
+    const [showPrintDropdown, setShowPrintDropdown] = useState(false);
+    const [showEditBill, setShowEditBill] = useState(false);
+    const [editItems, setEditItems] = useState([]);
+    const printDropdownRef = useRef(null);
 
     // Initial state reset when order changes
     useEffect(() => {
         if (order) {
-            setPaymentMode('Cash');
+            const firstMode = settings.paymentModes?.upi ? 'UPI' : settings.paymentModes?.card ? 'Card' : 'Cash';
+            const defaultPayMode = settings.paymentModes?.cash !== false ? 'Cash' : firstMode;
+            setPaymentMode(defaultPayMode);
             setPaymentType('Direct Payment');
             setReceivedAmount(order.amount.toString());
+            setIsTendered(false);
+            setShowPrintDropdown(false);
+            setShowEditBill(false);
 
             // Pre-fill room number if it's a Room order
             if (order.type === 'Room' && order.name.includes('Room')) {
@@ -578,8 +590,22 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
             setReturnAmount(0);
             setTargetRoom('');
             setSelectedBooking(null);
+            setIsTendered(false);
+            setShowPrintDropdown(false);
+            setShowEditBill(false);
         }
     }, [order, checkedInRooms]);
+
+    // Close print dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (printDropdownRef.current && !printDropdownRef.current.contains(e.target)) {
+                setShowPrintDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Calculate Return Amount
     useEffect(() => {
@@ -596,8 +622,24 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
         }
     }, [receivedAmount, order]);
 
-    const handlePrintBill = () => {
+    const printFormats = [
+        { key: 'a4', label: 'A4', icon: '📄', pageSize: '210mm 297mm', bodyWidth: '190mm' },
+        { key: 'a5', label: 'A5', icon: '📃', pageSize: '148mm 210mm', bodyWidth: '130mm' },
+        { key: 'thermal', label: 'Thermal', icon: '🧾', pageSize: '80mm auto', bodyWidth: '72mm' },
+        { key: 'dotmatrix', label: 'Dot Matrix', icon: '🖨️', pageSize: '210mm auto', bodyWidth: '190mm' },
+        { key: '3inch', label: '3 inch', icon: '📜', pageSize: '76mm auto', bodyWidth: '68mm' },
+        { key: '2inch', label: '2 inch', icon: '🔖', pageSize: '58mm auto', bodyWidth: '50mm' },
+    ];
+
+    const handlePrintBill = (format = 'thermal') => {
         if (!order) return;
+        setShowPrintDropdown(false);
+
+        const fmt = printFormats.find(f => f.key === format) || printFormats[2];
+        const isNarrow = ['thermal', '3inch', '2inch'].includes(format);
+        const fontSize = format === '2inch' ? '9px' : format === '3inch' ? '10px' : '11px';
+        const logoSize = isNarrow ? '16px' : '24px';
+        const windowWidth = isNarrow ? 350 : 700;
 
         const invoiceContent = `
     <!DOCTYPE html>
@@ -606,18 +648,18 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                 <title>Invoice ${order.billNo}</title>
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Libre+Barcode+39+Text&display=swap" rel="stylesheet">
                     <style>
-                        @page { size: 80mm auto; margin: 0; }
+                        @page { size: ${fmt.pageSize}; margin: ${isNarrow ? '0' : '10mm'}; }
                         body {
-                            font-family: 'Inter', sans-serif;
-                            width: 72mm;
-                            margin: 4mm auto;
+                            font-family: ${format === 'dotmatrix' ? "'Courier New', monospace" : "'Inter', sans-serif"};
+                            width: ${fmt.bodyWidth};
+                            margin: ${isNarrow ? '4mm' : '10mm'} auto;
                             background: white;
                             color: #000;
-                            font-size: 11px;
+                            font-size: ${fontSize};
                             line-height: 1.4;
                         }
                         .header { text-align: center; margin-bottom: 12px; }
-                        .logo-area { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 2px; }
+                        .logo-area { font-size: ${logoSize}; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 2px; }
                         .subtitle { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #444; margin-bottom: 8px; }
                         .contact-info { font-size: 9px; color: #666; line-height: 1.2; }
                         
@@ -662,11 +704,11 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
             </head>
             <body>
                 <div class="header">
-                    <div class="logo-area">BAREENA ATITHI</div>
+                    <div class="logo-area">${settings.name || 'Hotel'}</div>
                     <div class="subtitle">Premium Hospitality</div>
                     <div class="contact-info">
-                        Near Railway Station, City Center<br>
-                        Ph: +91-9876543210 | GSTIN: 22AAAAA0000A1Z5
+                        ${[settings.address, settings.city, settings.state, settings.pin].filter(Boolean).join(', ')}<br>
+                        ${settings.phone ? 'Ph: ' + settings.phone + ' | ' : ''}GSTIN: ${settings.gstNumber || 'N/A'}
                     </div>
                 </div>
 
@@ -709,15 +751,19 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                 <div class="totals">
                     <div class="total-row">
                         <span>Subtotal</span>
-                        <span>₹ ${order.items.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</span>
+                        <span>${cs} ${order.items.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</span>
                     </div>
-                    <div class="total-row">
-                        <span>Taxes (Included)</span>
-                        <span>₹ 0.00</span>
-                    </div>
+                    ${parseFloat(settings.foodGst) > 0 ? `<div class="total-row">
+                        <span>Food GST (${settings.foodGst}%)${settings.inclusiveTax ? ' (incl.)' : ''}</span>
+                        <span>${cs} ${settings.inclusiveTax ? Math.round(order.items.reduce((s,i)=>s+i.amount,0) - order.items.reduce((s,i)=>s+i.amount,0)*100/(100+parseFloat(settings.foodGst||0)+parseFloat(settings.roomServiceCharge||0))).toFixed(2) : Math.round(order.items.reduce((s,i)=>s+i.amount,0)*parseFloat(settings.foodGst)/100).toFixed(2)}</span>
+                    </div>` : ''}
+                    ${!settings.inclusiveTax && parseFloat(settings.roomServiceCharge) > 0 ? `<div class="total-row">
+                        <span>Service Charge (${settings.roomServiceCharge}%)</span>
+                        <span>${cs} ${Math.round(order.items.reduce((s,i)=>s+i.amount,0)*parseFloat(settings.roomServiceCharge)/100).toFixed(2)}</span>
+                    </div>` : ''}
                     <div class="grand-total">
                         <span>NET PAYABLE</span>
-                        <span>₹ ${order.amount.toFixed(2)}</span>
+                        <span>${cs} ${order.amount.toFixed(2)}</span>
                     </div>
                 </div>
 
@@ -728,13 +774,13 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                 </div>` : ''}
 
                 <div class="footer">
-                    <div class="thanks">Thank You!</div>
+                    <div class="thanks">${settings.thankYouMessage || 'Thank You!'}</div>
                     <div class="visit-again">We hope to see you again soon.</div>
                     <div class="barcode">${order.billNo.replace('#', '')}</div>
                 </div>
 
                 <div class="timestamp">
-                    Printed on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    Printed on: ${formatDate(new Date().toISOString())} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </div>
 
                 <script>
@@ -747,7 +793,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
         </html>
 `;
 
-        const printWindow = window.open('', '_blank', 'height=600,width=450');
+        const printWindow = window.open('', '_blank', `height=600,width=${windowWidth}`);
         printWindow.document.write(invoiceContent);
         printWindow.document.close();
     };
@@ -784,6 +830,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
 
         // Trigger completion callback
         onPaymentComplete(order.id, order.amount, paymentMode, paymentType, targetRoom);
+        setIsTendered(true);
     };
 
     // If no order is selected, show empty state with same structure
@@ -843,7 +890,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                                         <tr key={idx}>
                                             <td align="left">{item.name}</td>
                                             <td align="center">× {item.qty}</td>
-                                            <td align="right">₹ {item.amount}</td>
+                                            <td align="right">{cs} {item.amount}</td>
                                         </tr>
                                     ))
                                 ) : (
@@ -861,20 +908,47 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                 </div>
 
                 {/* Summary Totals */}
-                <div className="bill-summary-panel">
-                    <div className="summary-row-modern">
-                        <span>Subtotal</span>
-                        <span>₹ {displayOrder.items.reduce((s, i) => s + i.amount, 0).toFixed(0)}</span>
-                    </div>
-                    <div className="summary-row-modern">
-                        <span>Tax (5%)</span>
-                        <span>₹ {(displayOrder.amount * 0.05).toFixed(0)}</span>
-                    </div>
-                    <div className="summary-row-modern grand-total-highlight">
-                        <span>Grand Total</span>
-                        <span>₹ {displayOrder.amount.toFixed(1)}</span>
-                    </div>
-                </div>
+                {(() => {
+                    const subtotal = displayOrder.items.reduce((s, i) => s + i.amount, 0);
+                    const foodGstPct = parseFloat(settings.foodGst) || 0;
+                    const svcChargePct = parseFloat(settings.roomServiceCharge) || 0;
+                    const isInclusive = settings.inclusiveTax;
+                    let taxAmt = 0, svcAmt = 0, grandTotal = subtotal;
+                    if (!isInclusive && subtotal > 0) {
+                        taxAmt = Math.round(subtotal * foodGstPct / 100);
+                        svcAmt = Math.round(subtotal * svcChargePct / 100);
+                        grandTotal = subtotal + taxAmt + svcAmt;
+                    } else if (isInclusive && subtotal > 0) {
+                        // extract from inclusive price
+                        const rate = foodGstPct + svcChargePct;
+                        taxAmt = Math.round(subtotal - subtotal * 100 / (100 + rate));
+                        grandTotal = subtotal;
+                    }
+                    return (
+                        <div className="bill-summary-panel">
+                            <div className="summary-row-modern">
+                                <span>Subtotal</span>
+                                <span>{cs} {subtotal.toFixed(0)}</span>
+                            </div>
+                            {foodGstPct > 0 && (
+                                <div className="summary-row-modern">
+                                    <span>Food GST ({foodGstPct}%){isInclusive ? ' (incl.)' : ''}</span>
+                                    <span>{cs} {taxAmt.toFixed(0)}</span>
+                                </div>
+                            )}
+                            {svcChargePct > 0 && !isInclusive && (
+                                <div className="summary-row-modern">
+                                    <span>Service Charge ({svcChargePct}%)</span>
+                                    <span>{cs} {svcAmt.toFixed(0)}</span>
+                                </div>
+                            )}
+                            <div className="summary-row-modern grand-total-highlight">
+                                <span>Grand Total</span>
+                                <span>{cs} {(order ? order.amount : grandTotal).toFixed(0)}</span>
+                            </div>
+                        </div>
+                    );
+                })()}
             </div>
 
             {/* RIGHT PANEL: Payment Section */}
@@ -882,42 +956,58 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                 <h3 className="payment-section-title">Payment Section</h3>
 
                 <div className="payment-modes-modern">
-                    <button
-                        className={`mode-btn-modern ${(paymentType === 'Direct Payment' && paymentMode === 'Cash') ? 'active' : ''}`}
-                        onClick={() => { setPaymentType('Direct Payment'); setPaymentMode('Cash'); }}
-                    >
-                        💵 Cash
-                    </button>
-                    <button
-                        className={`mode-btn-modern ${(paymentType === 'Direct Payment' && paymentMode === 'UPI') ? 'active' : ''}`}
-                        onClick={() => { setPaymentType('Direct Payment'); setPaymentMode('UPI'); }}
-                    >
-                        📱 UPI
-                    </button>
-                    <button
-                        className={`mode-btn-modern ${(paymentType === 'Direct Payment' && paymentMode === 'Card') ? 'active' : ''}`}
-                        onClick={() => { setPaymentType('Direct Payment'); setPaymentMode('Card'); }}
-                    >
-                        💳 Card
-                    </button>
-                    <button
-                        className={`mode-btn-modern ${paymentType === 'Add to Room' ? 'active' : ''}`}
-                        onClick={() => { setPaymentType('Add to Room'); setPaymentMode('Room'); }}
-                    >
-                        💼 Room Folio
-                    </button>
+                    {settings.paymentModes?.cash !== false && (
+                        <button
+                            className={`mode-btn-modern ${(paymentType === 'Direct Payment' && paymentMode === 'Cash') ? 'active' : ''}`}
+                            onClick={() => { setPaymentType('Direct Payment'); setPaymentMode('Cash'); }}
+                        >
+                            💵 Cash
+                        </button>
+                    )}
+                    {settings.paymentModes?.upi !== false && (
+                        <button
+                            className={`mode-btn-modern ${(paymentType === 'Direct Payment' && paymentMode === 'UPI') ? 'active' : ''}`}
+                            onClick={() => { setPaymentType('Direct Payment'); setPaymentMode('UPI'); }}
+                        >
+                            📱 UPI
+                        </button>
+                    )}
+                    {settings.paymentModes?.card !== false && (
+                        <button
+                            className={`mode-btn-modern ${(paymentType === 'Direct Payment' && paymentMode === 'Card') ? 'active' : ''}`}
+                            onClick={() => { setPaymentType('Direct Payment'); setPaymentMode('Card'); }}
+                        >
+                            💳 Card
+                        </button>
+                    )}
+                    {settings.paymentModes?.bankTransfer && (
+                        <button
+                            className={`mode-btn-modern ${(paymentType === 'Direct Payment' && paymentMode === 'Bank Transfer') ? 'active' : ''}`}
+                            onClick={() => { setPaymentType('Direct Payment'); setPaymentMode('Bank Transfer'); }}
+                        >
+                            🏦 Bank
+                        </button>
+                    )}
+                    {settings.billingRules?.addToRoom && (
+                        <button
+                            className={`mode-btn-modern ${paymentType === 'Add to Room' ? 'active' : ''}`}
+                            onClick={() => { setPaymentType('Add to Room'); setPaymentMode('Room'); }}
+                        >
+                            💼 Room Folio
+                        </button>
+                    )}
                 </div>
 
                 <div className="total-indicator-strip">
                     <span>Grand Total</span>
-                    <span className="big-sum">₹{displayOrder.amount.toFixed(2)}</span>
+                    <span className="big-sum">{cs}{displayOrder.amount.toFixed(2)}</span>
                 </div>
 
                 {paymentType === 'Direct Payment' ? (
                     <div className="payment-input-modern">
                         <label>Received Amount</label>
                         <div className="input-box-wrap">
-                            <span>₹</span>
+                            <span>{cs}</span>
                             <input
                                 type="number"
                                 placeholder="0.00"
@@ -932,7 +1022,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                         <div className="payment-input-modern">
                             <label>Room Number</label>
                             <div className="input-box-wrap">
-                                <span>₹</span>
+                                <span>🏨</span>
                                 <select
                                     className="folio-room-select"
                                     value={targetRoom}
@@ -977,14 +1067,14 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
 
                         {selectedBooking && (
                             <div className="folio-balance-info">
-                                Outstanding Room Balance: ₹{(selectedBooking.balanceAmount || 0).toFixed(2)}
+                                Outstanding Room Balance: {cs}{(selectedBooking.balanceAmount || 0).toFixed(2)}
                             </div>
                         )}
 
                         {selectedBooking && !isPlaceholder && (
                             <div className="folio-confirm-banner">
                                 <span className="info-icon">ℹ️</span>
-                                <p>Are you sure you want to transfer ₹{displayOrder.amount.toFixed(2)} to Room {targetRoom} Folio?</p>
+                                <p>Are you sure you want to transfer {cs}{displayOrder.amount.toFixed(2)} to Room {targetRoom} Folio?</p>
                             </div>
                         )}
                     </div>
@@ -992,25 +1082,132 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
 
                 <div className="return-amount-box-modern">
                     <span className="label">Return Amount</span>
-                    <span className="value">₹{returnAmount.toFixed(2)}</span>
+                    <span className="value">{cs}{returnAmount.toFixed(2)}</span>
                 </div>
 
                 <div className="quick-actions-modern">
-                    <button className="q-btn" onClick={handlePrintBill} disabled={isPlaceholder}>🖨️ Print Bill</button>
+                    <div className="print-dropdown-wrapper" ref={printDropdownRef}>
+                        <button
+                            className={`q-btn print-btn-main ${isTendered ? 'print-ready' : ''}`}
+                            onClick={() => isTendered && setShowPrintDropdown(!showPrintDropdown)}
+                            disabled={isPlaceholder || !isTendered}
+                            title={!isTendered ? 'Click Tender first to enable printing' : 'Select print format'}
+                        >
+                            🖨️ Print Bill {showPrintDropdown ? '▲' : '▼'}
+                        </button>
+                        {showPrintDropdown && (
+                            <div className="print-format-dropdown">
+                                <div className="print-dropdown-header">Select Print Format</div>
+                                {printFormats.map(fmt => (
+                                    <button
+                                        key={fmt.key}
+                                        className="print-format-option"
+                                        onClick={() => handlePrintBill(fmt.key)}
+                                    >
+                                        <span className="pf-icon">{fmt.icon}</span>
+                                        <span className="pf-label">{fmt.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <button className="q-btn" onClick={() => { setEditItems(order ? order.items.map(i => ({ ...i })) : []); setShowEditBill(true); }} disabled={isPlaceholder}>✏️ Edit Bill</button>
                     <button className="q-btn" onClick={handleSendSMS} disabled={isPlaceholder}>💬 SMS</button>
                     <button className="q-btn" onClick={handleEmailBill} disabled={isPlaceholder}>📧 Email</button>
                 </div>
 
+                {/* Edit Bill Modal */}
+                {showEditBill && order && (
+                    <div className="edit-bill-overlay" onClick={() => setShowEditBill(false)}>
+                        <div className="edit-bill-modal" onClick={e => e.stopPropagation()}>
+                            <div className="edit-bill-header">
+                                <h3>✏️ Edit Bill - {order.billNo}</h3>
+                                <button className="edit-bill-close" onClick={() => setShowEditBill(false)}>✕</button>
+                            </div>
+                            <div className="edit-bill-body">
+                                <table className="edit-bill-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Item</th>
+                                            <th>Qty</th>
+                                            <th>Rate</th>
+                                            <th>Amount</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {editItems.map((item, idx) => (
+                                            <tr key={idx}>
+                                                <td>{item.name}</td>
+                                                <td>
+                                                    <div className="edit-qty-controls">
+                                                        <button onClick={() => {
+                                                            const updated = [...editItems];
+                                                            if (updated[idx].qty > 1) {
+                                                                const rate = updated[idx].amount / updated[idx].qty;
+                                                                updated[idx].qty -= 1;
+                                                                updated[idx].amount = rate * updated[idx].qty;
+                                                                setEditItems(updated);
+                                                            }
+                                                        }}>−</button>
+                                                        <span>{item.qty}</span>
+                                                        <button onClick={() => {
+                                                            const updated = [...editItems];
+                                                            const rate = updated[idx].amount / updated[idx].qty;
+                                                            updated[idx].qty += 1;
+                                                            updated[idx].amount = rate * updated[idx].qty;
+                                                            setEditItems(updated);
+                                                        }}>+</button>
+                                                    </div>
+                                                </td>
+                                                <td>{cs}{(item.amount / item.qty).toFixed(2)}</td>
+                                                <td>{cs}{item.amount.toFixed(2)}</td>
+                                                <td>
+                                                    <button className="edit-remove-btn" onClick={() => {
+                                                        setEditItems(editItems.filter((_, i) => i !== idx));
+                                                    }}>🗑️</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                <div className="edit-bill-total">
+                                    <span>New Total:</span>
+                                    <span>{cs}{editItems.reduce((s, i) => s + i.amount, 0).toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <div className="edit-bill-footer">
+                                <button className="edit-bill-cancel" onClick={() => setShowEditBill(false)}>Cancel</button>
+                                <button className="edit-bill-save" onClick={() => {
+                                    if (order) {
+                                        order.items = editItems;
+                                        order.amount = editItems.reduce((s, i) => s + i.amount, 0);
+                                        setReceivedAmount(order.amount.toString());
+                                        setIsTendered(false);
+                                    }
+                                    setShowEditBill(false);
+                                }}>Save Changes</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <button
-                    className="btn-tender-main"
-                    disabled={isPlaceholder || (paymentType === 'Add to Room' && !selectedBooking)}
+                    className={`btn-tender-main ${isTendered ? 'tendered-success' : ''}`}
+                    disabled={isPlaceholder || isTendered || (paymentType === 'Add to Room' && !selectedBooking)}
                     onClick={handleTender}
                 >
-                    {paymentType === 'Add to Room' ? 'Post to Room Folio' : `Tender ₹ ${displayOrder.amount.toFixed(0)}`}
+                    {isTendered
+                        ? '✅ Payment Settled — Select Print Format'
+                        : paymentType === 'Add to Room' ? 'Post to Room Folio' : `Tender ${cs} ${displayOrder.amount.toFixed(0)}`
+                    }
                 </button>
 
                 <div className="room-posting-section">
                     <h4>Room Posting Today</h4>
+                    {settings.billingRules?.autoPost === false && (
+                        <p style={{ fontSize: '0.8rem', color: '#ef4444', margin: '4px 0 8px' }}>Auto Post to Folio is disabled in settings</p>
+                    )}
                     <div className="room-actions-row">
                         <button className="ra-btn" onClick={() => onRoomPostingAction('Print')}>💼</button>
                         <button className="ra-btn" onClick={() => onRoomPostingAction('SMS')}>💬 SMS</button>

@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import InvoiceGenerator from './InvoiceGenerator';
+import { useSettings } from '../context/SettingsContext';
 
 const InvoiceView = ({ invoice, onClose, onPrint, isModal = false }) => {
     const [isDownloading, setIsDownloading] = useState(false);
     const [isPrinting, setIsPrinting] = useState(false);
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
 
     if (!invoice) return null;
 
@@ -31,7 +34,7 @@ const InvoiceView = ({ invoice, onClose, onPrint, isModal = false }) => {
     };
 
     const roomDetailsText = invoice.rooms
-        .map(room => `${room.categoryId.replace(/-/g, ' ')} (₹${room.ratePerNight}/night)`)
+        .map(room => `${room.categoryId.replace(/-/g, ' ')} (${cs}${room.ratePerNight}/night)`)
         .join(', ');
 
     return (
@@ -115,25 +118,25 @@ const InvoiceView = ({ invoice, onClose, onPrint, isModal = false }) => {
                     <div className="invoice-charges-table">
                         <div className="charges-row">
                             <span className="charge-label">Room Charges ({invoice.nights} nights)</span>
-                            <span className="charge-value">₹{formattedInvoice.roomChargesFormatted}</span>
+                            <span className="charge-value">{cs}{formattedInvoice.roomChargesFormatted}</span>
                         </div>
                         {invoice.discounts > 0 && (
                             <div className="charges-row discount">
                                 <span className="charge-label">Discount</span>
-                                <span className="charge-value">-₹{formattedInvoice.discountsFormatted}</span>
+                                <span className="charge-value">-{cs}{formattedInvoice.discountsFormatted}</span>
                             </div>
                         )}
                         <div className="charges-row subtotal">
                             <span className="charge-label">Subtotal</span>
-                            <span className="charge-value">₹{formattedInvoice.subtotalFormatted}</span>
+                            <span className="charge-value">{cs}{formattedInvoice.subtotalFormatted}</span>
                         </div>
                         <div className="charges-row">
                             <span className="charge-label">Tax (12%)</span>
-                            <span className="charge-value">₹{formattedInvoice.taxesFormatted}</span>
+                            <span className="charge-value">{cs}{formattedInvoice.taxesFormatted}</span>
                         </div>
                         <div className="charges-row total">
                             <span className="charge-label">Total Amount</span>
-                            <span className="charge-value">₹{formattedInvoice.totalAmountFormatted}</span>
+                            <span className="charge-value">{cs}{formattedInvoice.totalAmountFormatted}</span>
                         </div>
                     </div>
                 </div>
@@ -146,18 +149,18 @@ const InvoiceView = ({ invoice, onClose, onPrint, isModal = false }) => {
                     <div className="invoice-payment">
                         <div className="payment-row">
                             <span className="payment-label">Total Amount</span>
-                            <span className="payment-value">₹{formattedInvoice.totalAmountFormatted}</span>
+                            <span className="payment-value">{cs}{formattedInvoice.totalAmountFormatted}</span>
                         </div>
                         <div className="payment-row">
                             <span className="payment-label">Paid Amount</span>
-                            <span className="payment-value paid">₹{formattedInvoice.paidAmountFormatted}</span>
+                            <span className="payment-value paid">{cs}{formattedInvoice.paidAmountFormatted}</span>
                         </div>
                         <div className="payment-row balance">
                             <span className="payment-label">
                                 {invoice.balanceAmount > 0 ? 'Balance Due' : '✓ Fully Paid'}
                             </span>
                             <span className={`payment-value ${invoice.balanceAmount > 0 ? 'due' : 'paid'}`}>
-                                ₹{formattedInvoice.balanceAmountFormatted}
+                                {cs}{formattedInvoice.balanceAmountFormatted}
                             </span>
                         </div>
                         <div className="payment-row">

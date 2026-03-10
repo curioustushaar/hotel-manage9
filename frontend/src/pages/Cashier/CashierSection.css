@@ -18,6 +18,11 @@
     --border-color: #e8ecf1;
     --text-main: #1a1d26;
     --text-muted: #8c8c8c;
+    --accent-blue: #3b82f6;
+    --accent-green: #10b981;
+    --accent-purple: #8b5cf6;
+    --accent-orange: #f59e0b;
+    --accent-red: #ef4444;
     --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04);
     --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
     --font-family: 'Inter', 'Poppins', -apple-system, sans-serif;
@@ -794,6 +799,303 @@
     cursor: not-allowed;
 }
 
+/* Print Dropdown */
+.cashier-container .print-dropdown-wrapper {
+    position: relative;
+    flex: 1;
+}
+
+.cashier-container .print-btn-main {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.cashier-container .print-btn-main.print-ready {
+    background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+    border-color: #34d399;
+    color: #059669;
+}
+
+.cashier-container .print-format-dropdown {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    width: 220px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.08);
+    z-index: 100;
+    overflow: hidden;
+    animation: printDropdownSlide 0.2s ease;
+}
+
+@keyframes printDropdownSlide {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.cashier-container .print-dropdown-header {
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #f1f5f9;
+    background: #f8fafc;
+}
+
+.cashier-container .print-format-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 14px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    transition: all 0.15s ease;
+    font-family: var(--font-family);
+}
+
+.cashier-container .print-format-option:hover {
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+    color: #dc2626;
+}
+
+.cashier-container .print-format-option .pf-icon {
+    font-size: 18px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    border-radius: 8px;
+}
+
+.cashier-container .print-format-option:hover .pf-icon {
+    background: #fecaca;
+}
+
+.cashier-container .print-format-option .pf-label {
+    flex: 1;
+    text-align: left;
+}
+
+/* Edit Bill Modal */
+.cashier-container .edit-bill-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.cashier-container .edit-bill-modal {
+    background: #ffffff;
+    border-radius: 16px;
+    width: 500px;
+    max-width: 92vw;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    animation: modalSlide 0.25s ease;
+}
+
+@keyframes modalSlide {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cashier-container .edit-bill-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.cashier-container .edit-bill-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.cashier-container .edit-bill-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: #f1f5f9;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+
+.cashier-container .edit-bill-close:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.cashier-container .edit-bill-body {
+    padding: 18px 22px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.cashier-container .edit-bill-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.cashier-container .edit-bill-table th {
+    text-align: left;
+    padding: 8px 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.cashier-container .edit-bill-table td {
+    padding: 10px 6px;
+    font-size: 13px;
+    color: #334155;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+.cashier-container .edit-qty-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cashier-container .edit-qty-controls button {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    color: #475569;
+}
+
+.cashier-container .edit-qty-controls button:hover {
+    background: #e2e8f0;
+    border-color: #cbd5e1;
+}
+
+.cashier-container .edit-qty-controls span {
+    font-weight: 700;
+    min-width: 20px;
+    text-align: center;
+}
+
+.cashier-container .edit-remove-btn {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.15s;
+}
+
+.cashier-container .edit-remove-btn:hover {
+    background: #fee2e2;
+}
+
+.cashier-container .edit-bill-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    padding: 14px 0;
+    border-top: 2px solid #1e293b;
+    font-size: 16px;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.cashier-container .edit-bill-footer {
+    display: flex;
+    gap: 10px;
+    padding: 16px 22px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.cashier-container .edit-bill-cancel {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: var(--font-family);
+}
+
+.cashier-container .edit-bill-cancel:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.cashier-container .edit-bill-save {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: var(--font-family);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
+.cashier-container .edit-bill-save:hover {
+    box-shadow: 0 6px 18px rgba(239, 68, 68, 0.35);
+    transform: translateY(-1px);
+}
+
 .cashier-container .btn-tender-main {
     padding: 16px;
     background: linear-gradient(135deg, #ef4444, #dc2626);
@@ -818,6 +1120,14 @@
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
+}
+
+.cashier-container .btn-tender-main.tendered-success {
+    background: linear-gradient(135deg, #059669, #047857);
+    box-shadow: 0 6px 20px rgba(5, 150, 105, 0.25);
+    opacity: 1;
+    font-size: 13px;
+    letter-spacing: 0.2px;
 }
 
 .cashier-container .room-posting-section {

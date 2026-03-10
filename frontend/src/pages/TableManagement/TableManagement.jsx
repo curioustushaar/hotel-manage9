@@ -2,9 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import './TableManagement.css';
 import ReservationModal from '../../components/ReservationModal';
 import ReservationListModal from '../../components/ReservationListModal';
+import { useSettings } from '../../context/SettingsContext';
 import API_URL_CONFIG from '../../config/api';
 
 const TableManagement = () => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     // Tables Data
     const [tables, setTables] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -23,6 +26,19 @@ const TableManagement = () => {
         type: 'General'
     });
     const [newTableType, setNewTableType] = useState('');
+    const [showTypeDropdown, setShowTypeDropdown] = useState(false);
+    const typeDropdownRef = useRef(null);
+
+    // Close type dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (typeDropdownRef.current && !typeDropdownRef.current.contains(e.target)) {
+                setShowTypeDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Open Add Table Modal
     const openAddTableModal = () => {
@@ -255,6 +271,36 @@ const TableManagement = () => {
         }
     };
 
+    // Handle Cancel Reservation
+    const handleCancelReservation = async (reservationId) => {
+        if (!window.confirm('Are you sure you want to cancel this reservation?')) return;
+
+        try {
+            const tableId = selectedTableForList._id;
+            const response = await fetch(`${API_URL_CONFIG}/api/tables/${tableId}/reserve/${reservationId}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                alert('Reservation cancelled successfully');
+                fetchTables();
+                // Update local list to reflect change immediately in modal
+                setSelectedTableForList(prev => ({
+                    ...prev,
+                    reservations: prev.reservations.map(r =>
+                        r._id === reservationId ? { ...r, status: 'Cancelled' } : r
+                    )
+                }));
+            } else {
+                alert(`Failed to cancel: ${data.message}`);
+            }
+        } catch (error) {
+            console.error('Error cancelling reservation:', error);
+            alert('Error cancelling reservation.');
+        }
+    };
+
     // Handle Add New Type
     const handleAddNewType = () => {
         if (newTableType.trim()) {
@@ -268,6 +314,19 @@ const TableManagement = () => {
     // Handle Cancel New Type
     const handleCancelNewType = () => {
         setNewTableType('');
+    };
+
+    // Handle Delete Table Type from dropdown
+    const handleDeleteTableType = (typeToDelete) => {
+        const tablesWithType = tables.filter(t => (t.type || 'General') === typeToDelete);
+        if (tablesWithType.length > 0) {
+            alert(`Cannot delete "${typeToDelete}" type because ${tablesWithType.length} table(s) are using it. Remove or reassign those tables first.`);
+            return;
+        }
+        setAvailableTypes(prev => prev.filter(t => t !== typeToDelete));
+        if (newTableData.type === typeToDelete) {
+            setNewTableData({ ...newTableData, type: 'General' });
+        }
     };
 
     // Handle Add Table Submit
@@ -405,7 +464,7 @@ const TableManagement = () => {
                 </div>
                 <div className="stat-card revenue">
                     <span className="stat-label">Revenue Today</span>
-                    <span className="stat-value">₹{stats.revenue}</span>
+                    <span className="stat-value">{cs}{stats.revenue}</span>
                 </div>
             </div>
 
@@ -531,19 +590,44 @@ const TableManagement = () => {
                                 <label>TABLE TYPE</label>
                                 {newTableType === '' ? (
                                     <div className="type-select-group">
-                                        <select
-                                            className="form-select"
-                                            value={newTableData.type}
-                                            onChange={(e) => setNewTableData({ ...newTableData, type: e.target.value })}
-                                        >
-                                            <option value="General">General</option>
-                                            <option value="AC">AC</option>
-                                            <option value="Non-AC">Non-AC</option>
-                                            <option value="Garden">Garden</option>
-                                            {tableTypes.filter(t => !['General', 'AC', 'Non-AC', 'Garden'].includes(t)).map(type => (
-                                                <option key={type} value={type}>{type}</option>
-                                            ))}
-                                        </select>
+                                        <div className="custom-type-dropdown" ref={typeDropdownRef}>
+                                            <div
+                                                className="custom-type-dropdown-selected"
+                                                onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                                            >
+                                                <span>{newTableData.type || 'Select Type'}</span>
+                                                <span className="dropdown-arrow">{showTypeDropdown ? '▲' : '▼'}</span>
+                                            </div>
+                                            {showTypeDropdown && (
+                                                <div className="custom-type-dropdown-options">
+                                                    {['General', 'AC', 'Non-AC', 'Garden'].map(type => (
+                                                        <div
+                                                            key={type}
+                                                            className={`custom-type-option${newTableData.type === type ? ' selected' : ''}`}
+                                                            onClick={() => { setNewTableData({ ...newTableData, type }); setShowTypeDropdown(false); }}
+                                                        >
+                                                            <span>{type}</span>
+                                                        </div>
+                                                    ))}
+                                                    {tableTypes.filter(t => !['General', 'AC', 'Non-AC', 'Garden'].includes(t)).map(type => (
+                                                        <div
+                                                            key={type}
+                                                            className={`custom-type-option${newTableData.type === type ? ' selected' : ''}`}
+                                                        >
+                                                            <span onClick={() => { setNewTableData({ ...newTableData, type }); setShowTypeDropdown(false); }}>{type}</span>
+                                                            <button
+                                                                type="button"
+                                                                className="type-delete-btn"
+                                                                onClick={(e) => { e.stopPropagation(); handleDeleteTableType(type); }}
+                                                                title={`Delete ${type}`}
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                         <button
                                             type="button"
                                             className="add-type-btn"
@@ -618,6 +702,7 @@ const TableManagement = () => {
                 <ReservationListModal
                     table={selectedTableForList}
                     onClose={() => setShowReservationListModal(false)}
+                    onCancel={handleCancelReservation}
                 />
             )}
 
@@ -769,7 +854,7 @@ const TableCard = ({ table, onMenuAction }) => {
                 </div>
 
                 <div className="info-row">
-                    <span className="amount">₹ {table.runningOrderAmount || 0}</span>
+                    <span className="amount">{cs} {table.runningOrderAmount || 0}</span>
                     <span className="duration">{timeInfo}</span>
                 </div>
             </div>

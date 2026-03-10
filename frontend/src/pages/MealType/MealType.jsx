@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import './MealType.css';
 import API_URL from '../../config/api';
+import { useSettings } from '../../context/SettingsContext';
 
 const MealType = () => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [mealTypes, setMealTypes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -160,7 +163,7 @@ const MealType = () => {
                                     <td>{index + 1}</td>
                                     <td>{meal.name}</td>
                                     <td>{meal.shortCode}</td>
-                                    <td>₹ {meal.price || 0}</td>
+                                    <td>{cs} {meal.price || 0}</td>
                                     <td>
                                         {meal.includedMeals.length > 0 ? meal.includedMeals.map(m => (
                                             <div key={m} className="meal-tag">✓ {m}</div>

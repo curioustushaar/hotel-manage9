@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Bell, Search, Plus, ArrowLeft, Utensils, CheckCircle } from 'lucide-react';
 import API_URL from '../config/api';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import './RoomService.css';
 
 const RoomService = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { settings } = useSettings();
 
     // Permission Check
     const hasAccess = user?.role !== 'staff' || (user?.permissions?.includes('Room Service') || user?.permissions?.includes('Rooms (Room Service)'));
@@ -249,6 +251,12 @@ const RoomService = () => {
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="rs-search-field"
                     />
+                    {searchQuery && (
+                        <button
+                            className="rs-search-clear"
+                            onClick={() => setSearchQuery('')}
+                        >✕</button>
+                    )}
                 </div>
                 <div className="rs-filter-pills">
                     {[
@@ -297,21 +305,23 @@ const RoomService = () => {
                                         </div>
                                         <div className="rs-room-meta">
                                             <h3 className="rs-room-type-name">{room.roomType || 'Standard Room'}</h3>
-                                            {!roomOrder && (
-                                                <button
-                                                    className="rs-add-order-plus"
-                                                    onClick={() => navigate('/admin/dashboard', {
+                                            <button
+                                                className="rs-add-order-plus"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigate('/admin/dashboard', {
                                                         state: {
                                                             activeMenu: 'food-order',
                                                             orderMode: 'roomservice',
                                                             room: { ...room, id: room._id, source: 'room-service' },
                                                             source: 'room-service'
                                                         }
-                                                    })}
-                                                >
-                                                    <Plus size={14} />
-                                                </button>
-                                            )}
+                                                    });
+                                                }}
+                                                title="Add Food Order"
+                                            >
+                                                <Plus size={14} />
+                                            </button>
                                         </div>
                                     </div>
                                     <div className="rs-order-status-tag">
@@ -360,14 +370,20 @@ const RoomService = () => {
                                     ) : (
                                         <button
                                             className="rs-place-order-footer-btn"
-                                            onClick={() => navigate('/admin/dashboard', {
-                                                state: {
-                                                    activeMenu: 'food-order',
-                                                    orderMode: 'roomservice',
-                                                    room: { ...room, id: room._id, source: 'room-service' },
-                                                    source: 'room-service'
+                                            onClick={() => {
+                                                if (!settings.posEnabled) {
+                                                    alert('POS is disabled. Cannot create orders. Enable POS from Company Settings.');
+                                                    return;
                                                 }
-                                            })}
+                                                navigate('/admin/dashboard', {
+                                                    state: {
+                                                        activeMenu: 'food-order',
+                                                        orderMode: 'roomservice',
+                                                        room: { ...room, id: room._id, source: 'room-service' },
+                                                        source: 'room-service'
+                                                    }
+                                                });
+                                            }}
                                         >
                                             Place Order
                                         </button>

@@ -1,8 +1,11 @@
 // Simplified Food Menu Component for Dashboard Integration
 import React, { useState, useEffect } from 'react';
 import API_URL from '../../config/api';
+import { useSettings } from '../../context/SettingsContext';
 
 const FoodMenuDashboard = () => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [showAddForm, setShowAddForm] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
@@ -207,7 +210,7 @@ const FoodMenuDashboard = () => {
                             </select>
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600 }}>Price (₹) *</label>
+                            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600 }}>Price ({cs}) *</label>
                             <input name="price" type="number" required style={{
                                 width: '100%',
                                 padding: '10px',
@@ -309,7 +312,7 @@ const FoodMenuDashboard = () => {
                                         <td style={{ padding: '12px' }}>{item.itemName}</td>
                                         <td style={{ padding: '12px' }}>{getCategoryWithIcon(item.category)}</td>
                                         <td style={{ padding: '12px' }}>{item.description || '---'}</td>
-                                        <td style={{ padding: '12px' }}>₹{item.price}</td>
+                                        <td style={{ padding: '12px' }}>{cs}{item.price}</td>
                                         <td style={{ padding: '12px' }}>
                                             <span style={{
                                                 backgroundColor: item.status === 'Active' ? '#d1fae5' : '#fee2e2',
@@ -469,7 +472,7 @@ const FoodMenuDashboard = () => {
 
                             <div style={{ marginBottom: '15px' }}>
                                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600, color: '#374151' }}>
-                                    PRICE (₹)
+                                    PRICE ({cs})
                                 </label>
                                 <input
                                     name="price"

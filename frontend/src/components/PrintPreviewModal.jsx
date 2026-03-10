@@ -1,7 +1,10 @@
 import React from 'react';
 import './PrintPreviewModal.css';
+import { useSettings } from '../context/SettingsContext';
 
 const PrintPreviewModal = ({ isOpen, onClose, onPrint, type, booking }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     if (!isOpen || !booking) return null;
 
     // Define title and description based on type
@@ -85,7 +88,7 @@ const PrintPreviewModal = ({ isOpen, onClose, onPrint, type, booking }) => {
 
                         <div className="total-amount-section">
                             <span className="amount-label">Total Amount Paid:</span>
-                            <span className="amount-value">₹ {(booking.paidAmount || 0).toLocaleString('en-IN')}</span>
+                            <span className="amount-value">{cs} {(booking.paidAmount || 0).toLocaleString('en-IN')}</span>
                         </div>
                     </div>
                 </div>

@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import './FormStyles.css';
+import { useSettings } from '../../context/SettingsContext';
 
 const CancelReservationForm = ({ booking, onSubmit, onCancel }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [formData, setFormData] = useState({
         reason: '',
         cancellationCharges: 0,
@@ -29,7 +32,7 @@ const CancelReservationForm = ({ booking, onSubmit, onCancel }) => {
         const advancePaid = booking.advancePaid || 0;
 
         if (refund > advancePaid) {
-            alert(`Refund amount cannot exceed advance paid (₹${advancePaid})`);
+            alert(`Refund amount cannot exceed advance paid (${cs}${advancePaid})`);
             return;
         }
 
@@ -64,7 +67,7 @@ const CancelReservationForm = ({ booking, onSubmit, onCancel }) => {
             </div>
 
             <div className="form-group">
-                <label className="form-label">Cancellation Charges (₹)</label>
+                <label className="form-label">Cancellation Charges ({cs})</label>
                 <input
                     type="number"
                     name="cancellationCharges"
@@ -78,7 +81,7 @@ const CancelReservationForm = ({ booking, onSubmit, onCancel }) => {
             </div>
 
             <div className="form-group">
-                <label className="form-label">Refund Amount (₹)</label>
+                <label className="form-label">Refund Amount ({cs})</label>
                 <input
                     type="number"
                     name="refundAmount"
@@ -88,7 +91,7 @@ const CancelReservationForm = ({ booking, onSubmit, onCancel }) => {
                     min="0"
                     max={booking.advancePaid || 0}
                     step="0.01"
-                    placeholder={`Max: ₹${booking.advancePaid || 0}`}
+                    placeholder={`Max: ${cs}${booking.advancePaid || 0}`}
                 />
             </div>
 

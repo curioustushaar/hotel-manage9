@@ -11,6 +11,9 @@ const hotelSchema = new mongoose.Schema({
         required: [true, 'Address is required'],
         trim: true
     },
+    city: { type: String, trim: true, default: '' },
+    state: { type: String, trim: true, default: '' },
+    pin: { type: String, trim: true, default: '' },
     gstNumber: {
         type: String,
         trim: true
@@ -18,6 +21,67 @@ const hotelSchema = new mongoose.Schema({
     phone: {
         type: String
     },
+    logoUrl: { type: String, default: null },
+
+    // Regional Settings
+    currency: { type: String, default: 'INR (₹)' },
+    timezone: { type: String, default: '(GMT+05:30) Kolkata' },
+    dateFormat: { type: String, default: 'DD/MM/YYYY' },
+    timeFormat: { type: String, default: '12 Hour' },
+
+    // Tax Settings
+    taxType: { type: String, default: 'GST' },
+    cgst: { type: Number, default: 2.5 },
+    sgst: { type: Number, default: 2.5 },
+    serviceCharge: { type: Number, default: 10 },
+    roomGst: { type: Number, default: 12 },
+    foodGst: { type: Number, default: 5 },
+    roomServiceCharge: { type: Number, default: 5 },
+    inclusiveTax: { type: Boolean, default: true },
+
+    // Invoice & Billing
+    invoicePrefix: { type: String, default: 'INV-2026-' },
+    billingInvoicePrefix: { type: String, default: 'ATITHI' },
+    startingInvoiceNumber: { type: String, default: '1001' },
+    panNumber: { type: String, default: '' },
+    autoGenerateInvoice: { type: Boolean, default: true },
+    autoIncrementInvoice: { type: Boolean, default: true },
+    billPrintFormat: { type: String, default: 'Hotel Invoice' },
+    thankYouMessage: { type: String, default: 'Thank you for visiting our hotel!' },
+
+    // Feature Toggles
+    enableRoomPosting: { type: Boolean, default: true },
+    posEnabled: { type: Boolean, default: true },
+    displayLogoOnBill: { type: Boolean, default: true },
+    printKOTHeader: { type: Boolean, default: true },
+
+    // Payment Modes
+    paymentModes: {
+        cash: { type: Boolean, default: true },
+        upi: { type: Boolean, default: true },
+        card: { type: Boolean, default: true },
+        bankTransfer: { type: Boolean, default: true },
+        wallet: { type: Boolean, default: true },
+        creditAllowed: { type: Boolean, default: true }
+    },
+
+    // Billing Rules
+    billingRules: {
+        autoPost: { type: Boolean, default: true },
+        mandatorySettlement: { type: Boolean, default: true },
+        partialPayment: { type: Boolean, default: true },
+        splitBill: { type: Boolean, default: true },
+        mergeTable: { type: Boolean, default: true },
+        addToRoom: { type: Boolean, default: true }
+    },
+
+    // Discount Rules
+    discountRules: {
+        maxDiscount: { type: Number, default: 25 },
+        managerApproval: { type: Boolean, default: true },
+        couponEnabled: { type: Boolean, default: true }
+    },
+
     isActive: {
         type: Boolean,
         default: true

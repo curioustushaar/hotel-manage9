@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import API_URL from '../../config/api';
+import { useSettings } from '../../context/SettingsContext';
 import './FoodMenu.css';
 
 // Food Menu Management - Updated with Icons
 const FoodMenu = () => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [showAddForm, setShowAddForm] = useState(false);
     const [menuItems, setMenuItems] = useState([]);
     const [editingItem, setEditingItem] = useState(null);
@@ -247,7 +250,7 @@ const FoodMenu = () => {
                                         <td>{item.itemName}</td>
                                         <td>{getCategoryWithIcon(item.category)}</td>
                                         <td>{item.description || '---'}</td>
-                                        <td>₹{item.price.toFixed(2)}</td>
+                                        <td>{cs}{item.price.toFixed(2)}</td>
                                         <td>
                                             <span className={`status-badge ${item.status.toLowerCase()}`}>
                                                 {item.status}
@@ -423,7 +426,7 @@ const AddItemForm = ({ onSubmit, onCancel }) => {
                         </select>
                     </div>
                     <div className="form-group">
-                        <label>PRICE (₹)</label>
+                        <label>PRICE ({cs})</label>
                         <input
                             type="number"
                             step="0.01"
@@ -537,7 +540,7 @@ const EditItemModal = ({ item, onSave, onCancel }) => {
                         </select>
                     </div>
                     <div className="form-group">
-                        <label>PRICE (₹)</label>
+                        <label>PRICE ({cs})</label>
                         <input
                             type="number"
                             step="0.01"

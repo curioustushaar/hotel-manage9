@@ -4,11 +4,14 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { motion, AnimatePresence } from 'framer-motion';
 import API_URL_CONFIG from '../config/api';
+import { useSettings } from '../context/SettingsContext';
 import './FoodOrderPage.css';
 
 const FoodOrderPage = ({ onClose, room: roomProp }) => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { settings, getCurrencySymbol, getFullAddress } = useSettings();
+    const cs = getCurrencySymbol();
     const { room: roomState, source, orderMode } = location.state || {};
 
     // Prefer prop over state (prop comes from AdminDashboard posGuestDetails)
@@ -315,6 +318,10 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
 
     // Handlers
     const saveOrderToBackend = async () => {
+        if (!settings.posEnabled) {
+            alert('POS is currently disabled. Please enable POS from Company Settings to create orders.');
+            return false;
+        }
         try {
             // Robust check: allow missing room for takeaway and room service
             const effectiveRoom = room ||
@@ -464,7 +471,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
     const handleTenderSubmit = async () => {
         const success = await saveOrderToBackend();
         if (success) {
-            addToast(`Payment of ₹${total} received via ${paymentMethod}`);
+            addToast(`Payment of ${cs}${total} received via ${paymentMethod}`);
             // Success logic - we can either close or stay to show SMS/Email
         } else {
             addToast('Error processing payment');
@@ -499,13 +506,12 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
         setValidationErrors({ ...validationErrors, phone: null });
 
         // Generate dynamic mall-style message content
-        const hotelName = "BAREENA ATHITHI";
+        const hotelName = settings.name || "Hotel";
         const billNo = orderId ? orderId.toString().slice(-6).toUpperCase() : 'N/A';
         const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
         const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-        // Exact mall-style compact format requested
-        const smsContent = `${hotelName}\nBill #${billNo}\nAmt ₹${total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\n${dateStr} ${timeStr}\nThank you visit again`;
+        const smsContent = `${hotelName}\nBill #${billNo}\nAmt ${getCurrencySymbol()}${total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\n${dateStr} ${timeStr}\n${settings.thankYouMessage || 'Thank you visit again'}`;
 
         try {
             const savedUser = localStorage.getItem('authUser');
@@ -612,6 +618,12 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
             transition={{ duration: 0.4, ease: "easeOut" }}
             className="pos-layout-wrapper"
         >
+            {!settings.posEnabled && (
+                <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '8px', padding: '12px 20px', margin: '10px 20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '20px' }}>⚠️</span>
+                    <span style={{ color: '#991b1b', fontWeight: 600 }}>POS is disabled. Order creation is blocked. Enable POS from Company Settings.</span>
+                </div>
+            )}
             <div className="pos-container">
                 {/* LEFT PANEL (60%) */}
                 <div className="pos-left-panel">
@@ -722,7 +734,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                                                 <div className="pos-card-qty-available">
                                                     {isOutOfStock ? 'Unavailable' : 'Available'}
                                                 </div>
-                                                <div className="pos-card-price">₹{item.price}</div>
+                                                <div className="pos-card-price">{cs}{item.price}</div>
                                             </div>
                                         </div>
                                     );
@@ -841,7 +853,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                                                     <button className="pos-qty-btn plus" onClick={() => updateQuantity(item.id, 1)}>+</button>
                                                 </div>
                                             </td>
-                                            <td style={{ textAlign: 'right' }} className="pos-cart-price">₹{item.price * item.quantity}</td>
+                                            <td style={{ textAlign: 'right' }} className="pos-cart-price">{cs}{item.price * item.quantity}</td>
                                         </tr>
                                     ))
                                 )}
@@ -890,13 +902,13 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
 
                         <div className="pos-total-row">
                             <span>Subtotal</span>
-                            <span>₹{subtotal.toFixed(2)}</span>
+                            <span>{cs}{subtotal.toFixed(2)}</span>
                         </div>
 
                         {isTaxApplied && (
                             <div className="pos-total-row">
                                 <span>Tax ({taxRate}%)</span>
-                                <span>₹{taxAmount.toFixed(2)}</span>
+                                <span>{cs}{taxAmount.toFixed(2)}</span>
                             </div>
                         )}
 
@@ -907,7 +919,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                                     {isTaxApplied ? `Incl. ${taxRate}% Tax` : 'Zero Tax'}
                                 </span>
                             </div>
-                            <span style={{ fontSize: '1.4rem', color: '#dc2626' }}>₹{total.toFixed(2)}</span>
+                            <span style={{ fontSize: '1.4rem', color: '#dc2626' }}>{cs}{total.toFixed(2)}</span>
                         </div>
 
                         {/* ACTION BAR */}
@@ -1080,13 +1092,13 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
 
                                 <div className="tender-total-display">
                                     <span className="label">Grand Total</span>
-                                    <span className="value">₹{total.toFixed(2)}</span>
+                                    <span className="value">{cs}{total.toFixed(2)}</span>
                                 </div>
 
                                 <div className="received-input-wrapper">
                                     <label>RECEIVED AMOUNT</label>
                                     <div className="input-group">
-                                        <span className="currency">₹</span>
+                                        <span className="currency">{cs}</span>
                                         <input
                                             type="number"
                                             placeholder="0.00"
@@ -1099,7 +1111,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
 
                                 <div className="return-amount-row">
                                     <span className="label">Return Amount</span>
-                                    <span className="value">₹{Math.max(0, (Number(receivedAmount) - total)).toFixed(2)}</span>
+                                    <span className="value">{cs}{Math.max(0, (Number(receivedAmount) - total)).toFixed(2)}</span>
                                 </div>
 
                                 <div className="tender-utility-btns">
@@ -1115,7 +1127,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                                 </div>
 
                                 <button className="main-tender-btn" onClick={handleTenderSubmit}>
-                                    Tender ₹{total}
+                                    Tender {cs}{total}
                                 </button>
 
                                 <div className="room-posting-section">
@@ -1190,11 +1202,11 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                                         whiteSpace: 'pre-wrap',
                                         fontFamily: 'monospace'
                                     }}>
-                                        {`BAREENA ATHITHI
+                                        {`${settings.name || 'Hotel'}
 Bill #${orderId ? orderId.toString().slice(-6).toUpperCase() : 'N/A'}
-Amt ₹${total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+Amt ${getCurrencySymbol()}${total.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
 ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}
-Thank you visit again`}
+${settings.thankYouMessage || 'Thank you visit again'}`}
                                     </div>
                                 </div>
                             </div>
@@ -1249,8 +1261,8 @@ Thank you visit again`}
                                 </div>
                                 <div className="template-preview">
                                     <strong>Preview:</strong>
-                                    <p>Subject: Payment Receipt – BAREENA ATHITHI</p>
-                                    <p>Dear {emailModal.name || 'Customer'}, We have received your payment of ₹{total}. Thank you for choosing BAREENA ATHITHI.</p>
+                                    <p>Subject: Payment Receipt – {settings.name || 'Hotel'}</p>
+                                    <p>Dear {emailModal.name || 'Customer'}, We have received your payment of {getCurrencySymbol()}{total}. Thank you for choosing {settings.name || 'Hotel'}.</p>
                                 </div>
                             </div>
                             <div className="pos-modal-footer">
@@ -1280,7 +1292,7 @@ Thank you visit again`}
                             <div className="pos-modal-body" style={{ background: '#fff' }}>
                                 {printModal === 'BILL' ? (
                                     <div className="pos-preview-bill-v2" style={{ padding: '20px', width: '100%' }}>
-                                        <h2 style={{ textAlign: 'center', margin: '0' }}>BAREENA ATHITHI</h2>
+                                        <h2 style={{ textAlign: 'center', margin: '0' }}>{settings.name || 'Hotel'}</h2>
                                         <p style={{ textAlign: 'center', marginBottom: '15px' }}>Receipt / Bill</p>
                                         <div style={{ fontSize: '13px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
                                             <p>Room: {room?.roomNumber}</p>
@@ -1288,10 +1300,10 @@ Thank you visit again`}
                                         </div>
                                         <table style={{ width: '100%', marginTop: '10px', fontSize: '13px' }}>
                                             <thead><tr style={{ borderBottom: '1px solid #eee' }}><th align="left">Item</th><th>Qty</th><th align="right">Total</th></tr></thead>
-                                            <tbody>{cart.map(item => <tr key={item.id}><td>{item.name}</td><td align="center">{item.quantity}</td><td align="right">₹{item.price * item.quantity}</td></tr>)}</tbody>
+                                            <tbody>{cart.map(item => <tr key={item.id}><td>{item.name}</td><td align="center">{item.quantity}</td><td align="right">{getCurrencySymbol()}{item.price * item.quantity}</td></tr>)}</tbody>
                                         </table>
                                         <div style={{ borderTop: '2px solid #333', marginTop: '15px', paddingTop: '10px', textAlign: 'right' }}>
-                                            <h3 style={{ margin: '0' }}>Total: ₹{total.toFixed(2)}</h3>
+                                            <h3 style={{ margin: '0' }}>Total: {getCurrencySymbol()}{total.toFixed(2)}</h3>
                                             {billComment && <p style={{ marginTop: '15px', fontStyle: 'italic', background: '#f8f9fa', padding: '10px', textAlign: 'left', border: '1px solid #eee', fontSize: '12px' }}><strong>Note:</strong> {billComment}</p>}
                                         </div>
                                     </div>

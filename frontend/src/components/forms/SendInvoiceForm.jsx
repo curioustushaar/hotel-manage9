@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import './FormStyles.css';
 import API_URL from '../../config/api';
+import { useSettings } from '../../context/SettingsContext';
 
 const SendInvoiceForm = ({ booking, onSubmit, onCancel }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [formData, setFormData] = useState({
         email: booking.email || '',
         subject: `Invoice for Booking ${booking.bookingId}`,
-        message: `Dear ${booking.guestName},\n\nThank you for choosing Bireena Athithi Hotel. Please find your booking invoice attached.\n\nBooking Details:\n- Booking ID: ${booking.bookingId}\n- Check-In: ${new Date(booking.checkInDate).toLocaleDateString('en-IN')}\n- Check-Out: ${new Date(booking.checkOutDate).toLocaleDateString('en-IN')}\n- Total Amount: ₹${(booking.totalAmount || 0).toLocaleString('en-IN')}\n\nIf you have any questions, please don't hesitate to contact us.\n\nBest regards,\nBireena Athithi Hotel Team`,
+        message: `Dear ${booking.guestName},\n\nThank you for choosing Bireena Athithi Hotel. Please find your booking invoice attached.\n\nBooking Details:\n- Booking ID: ${booking.bookingId}\n- Check-In: ${new Date(booking.checkInDate).toLocaleDateString('en-IN')}\n- Check-Out: ${new Date(booking.checkOutDate).toLocaleDateString('en-IN')}\n- Total Amount: ${cs}${(booking.totalAmount || 0).toLocaleString('en-IN')}\n\nIf you have any questions, please don't hesitate to contact us.\n\nBest regards,\nBireena Athithi Hotel Team`,
         includeGRC: false,
         includeSummary: true
     });
@@ -162,9 +165,9 @@ const SendInvoiceForm = ({ booking, onSubmit, onCancel }) => {
                             <p><strong>Room:</strong> {booking.roomType} ({booking.roomNumber || 'TBA'})</p>
                             <p><strong>Duration:</strong> {new Date(booking.checkInDate).toLocaleDateString('en-IN')} to {new Date(booking.checkOutDate).toLocaleDateString('en-IN')} ({booking.numberOfNights} nights)</p>
                             <hr style={{ margin: '10px 0', borderColor: '#bfdbfe' }} />
-                            <p><strong>Total Amount:</strong> ₹{(booking.totalAmount || 0).toLocaleString('en-IN')}</p>
-                            <p style={{ color: '#16a34a' }}><strong>Paid:</strong> ₹{(booking.advancePaid || 0).toLocaleString('en-IN')}</p>
-                            <p style={{ color: '#dc2626' }}><strong>Balance:</strong> ₹{(booking.remainingAmount || 0).toLocaleString('en-IN')}</p>
+                            <p><strong>Total Amount:</strong> {cs}{(booking.totalAmount || 0).toLocaleString('en-IN')}</p>
+                            <p style={{ color: '#16a34a' }}><strong>Paid:</strong> {cs}{(booking.advancePaid || 0).toLocaleString('en-IN')}</p>
+                            <p style={{ color: '#dc2626' }}><strong>Balance:</strong> {cs}{(booking.remainingAmount || 0).toLocaleString('en-IN')}</p>
                         </div>
                     </div>
 

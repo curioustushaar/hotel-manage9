@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import API_URL from '../../config/api';
+import { useSettings } from '../../context/SettingsContext';
 import './Rooms.css';
 
 const Rooms = () => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const navigate = useNavigate();
     const [rooms, setRooms] = useState([]);
     const [filteredRooms, setFilteredRooms] = useState([]);
@@ -492,7 +495,7 @@ const Rooms = () => {
                                             </p>
                                         )}
                                         <p className="room-capacity">Capacity: {room.capacity} persons</p>
-                                        <p className="room-price">₹{room.price}/night</p>
+                                        <p className="room-price">{cs}{room.price}/night</p>
                                     </div>
                                     <div className="room-card-footer">
                                         <span className={`room-status ${getStatusClass(room.status)}`}>
@@ -522,7 +525,7 @@ const Rooms = () => {
                                         </div>
                                         <div className="room-list-price">
                                             <span className="label">Price</span>
-                                            <span className="value">₹{room.price}/night</span>
+                                            <span className="value">{cs}{room.price}/night</span>
                                         </div>
                                         <div className="room-list-status">
                                             <span className={`room-status ${getStatusClass(room.status)}`}>
@@ -690,7 +693,7 @@ const Rooms = () => {
                             </div>
 
                             <div className="form-group">
-                                <label>PRICE PER NIGHT (₹) *</label>
+                                <label>PRICE PER NIGHT ({cs}) *</label>
                                 <input
                                     type="number"
                                     className="form-input"
@@ -856,7 +859,7 @@ const Rooms = () => {
                             </div>
 
                             <div className="form-group">
-                                <label>PRICE PER NIGHT (₹) *</label>
+                                <label>PRICE PER NIGHT ({cs}) *</label>
                                 <input
                                     type="number"
                                     className="form-input"

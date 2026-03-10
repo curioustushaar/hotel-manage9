@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
 import API_URL from '../../config/api';
 import { Users, User, Calendar, DollarSign, Plus, Edit2, Search, Briefcase, FileText, CheckCircle, X, Shield, Trash2, Check, Lock } from 'lucide-react';
 import './CRMModel.css';
 
 const CRMModel = () => {
     const { user } = useAuth();
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [staffData, setStaffData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -141,10 +144,7 @@ const CRMModel = () => {
     const fetchStaff = async () => {
         try {
             setLoading(true);
-            const token = localStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/api/staff`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await axios.get(`${API_URL}/api/staff`);
             setStaffData(response.data);
             setLoading(false);
         } catch (error) {
@@ -168,11 +168,9 @@ const CRMModel = () => {
     // Generic Update Handler
     const handleQuickUpdate = async (staffId, field, value) => {
         try {
-            const token = localStorage.getItem('token');
-            const headers = { Authorization: `Bearer ${token}` };
             // Optimistic UI update first
             setStaffData(prev => prev.map(s => s._id === staffId ? { ...s, [field]: value } : s));
-            await axios.put(`${API_URL}/api/staff/${staffId}`, { [field]: value }, { headers });
+            await axios.put(`${API_URL}/api/staff/${staffId}`, { [field]: value });
             setSuccessMsg(`${field} updated!`);
         } catch (error) {
             console.error(`Error updating ${field}:`, error);
@@ -210,10 +208,7 @@ const CRMModel = () => {
     // Delete staff
     const handleDeleteStaff = async (staffId) => {
         try {
-            const token = localStorage.getItem('token');
-            await axios.delete(`${API_URL}/api/staff/${staffId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await axios.delete(`${API_URL}/api/staff/${staffId}`);
             setStaffData(prev => prev.filter(s => s._id !== staffId));
             setShowDeleteConfirm(null);
             setSuccessMsg('Staff deleted!');
@@ -254,8 +249,6 @@ const CRMModel = () => {
         e.preventDefault();
         setError('');
         try {
-            const token = localStorage.getItem('token');
-            const headers = { Authorization: `Bearer ${token}` };
             const payload = {
                 fullName: formData.fullName, email: formData.email,
                 phone: formData.phone, role: formData.role,
@@ -268,11 +261,11 @@ const CRMModel = () => {
             if (formData.password) payload.password = formData.password;
 
             if (editingStaff) {
-                await axios.put(`${API_URL}/api/staff/${editingStaff._id}`, payload, { headers });
+                await axios.put(`${API_URL}/api/staff/${editingStaff._id}`, payload);
                 setSuccessMsg('Staff updated!');
             } else {
                 if (!formData.password) { setError('Password is required'); return; }
-                await axios.post(`${API_URL}/api/staff`, payload, { headers });
+                await axios.post(`${API_URL}/api/staff`, payload);
                 setSuccessMsg('Staff added!');
             }
             setShowModal(false);
@@ -384,7 +377,7 @@ const CRMModel = () => {
                 <div className="crm-stat-card">
                     <div className="crm-stat-icon-wrapper" style={{background: '#ffedd5', color: '#c2410c'}}><DollarSign size={24} /></div>
                     <div className="crm-stat-content">
-                        <h3 className="crm-stat-value">₹{totalPayroll.toLocaleString('en-IN')}</h3>
+                        <h3 className="crm-stat-value">{cs}{totalPayroll.toLocaleString('en-IN')}</h3>
                         <p className="crm-stat-label">Total Payroll</p>
                         <span className="crm-stat-subtext">This Month (Est.)</span>
                     </div>
@@ -526,7 +519,7 @@ const CRMModel = () => {
                                     {/* Salary - Clickable */}
                                     <td>
                                         <span className="salary-cell" onClick={() => { setSalaryEditStaff(staff); setSalaryEditValue(staff.salary || 0); setShowSalaryModal(true); }} title="Click to edit salary">
-                                            ₹{(staff.salary || 0).toLocaleString()}
+                                            {cs}{(staff.salary || 0).toLocaleString()}
                                             <Edit2 size={12} className="salary-edit-icon" />
                                         </span>
                                     </td>
@@ -720,7 +713,7 @@ const CRMModel = () => {
                                         </select>
                                     </div>
                                     <div className="form-group">
-                                        <label>Salary (₹ / Month)</label>
+                                        <label>Salary ({cs} / Month)</label>
                                         <input type="number" name="salary" className="form-input" value={formData.salary} onChange={handleInputChange} placeholder="0" min="0" />
                                     </div>
                                     <div className="form-group">
@@ -851,11 +844,11 @@ const CRMModel = () => {
                                 </div>
                                 <div className="summary-box">
                                     <h3>Total Monthly Payout</h3>
-                                    <span>₹{filteredStaff.reduce((sum, s) => sum + (Number(s.salary) || 0), 0).toLocaleString('en-IN')}</span>
+                                    <span>{cs}{filteredStaff.reduce((sum, s) => sum + (Number(s.salary) || 0), 0).toLocaleString('en-IN')}</span>
                                 </div>
                                 <div className="summary-box">
                                     <h3>Average Salary</h3>
-                                    <span>₹{filteredStaff.length > 0 ? Math.round(filteredStaff.reduce((sum, s) => sum + (Number(s.salary) || 0), 0) / filteredStaff.length).toLocaleString('en-IN') : 0}</span>
+                                    <span>{cs}{filteredStaff.length > 0 ? Math.round(filteredStaff.reduce((sum, s) => sum + (Number(s.salary) || 0), 0) / filteredStaff.length).toLocaleString('en-IN') : 0}</span>
                                 </div>
                             </div>
                             <div className="crm-table-wrapper mini-table">
@@ -870,7 +863,7 @@ const CRMModel = () => {
                                                 <td style={{textTransform: 'capitalize'}}>{staff.role}</td>
                                                 <td>{staff.shift || 'Morning'}</td>
                                                 <td><span className={`status-badge status-${(staff.attendanceStatus || 'absent').toLowerCase().replace(' ', '-')}`}>{staff.attendanceStatus}</span></td>
-                                                <td>₹{Number(staff.salary || 0).toLocaleString('en-IN')}</td>
+                                                <td>{cs}{Number(staff.salary || 0).toLocaleString('en-IN')}</td>
                                                 <td><button className="action-btn small" onClick={() => { setSalaryEditStaff(staff); setSalaryEditValue(staff.salary || 0); setShowSalaryModal(true); }}>Edit Salary</button></td>
                                             </tr>
                                         ))}
@@ -998,10 +991,10 @@ const CRMModel = () => {
                         <div className="salary-edit-content">
                             <div className="salary-current">
                                 <span>Current Salary:</span>
-                                <strong>₹{Number(salaryEditStaff.salary || 0).toLocaleString('en-IN')}</strong>
+                                <strong>{cs}{Number(salaryEditStaff.salary || 0).toLocaleString('en-IN')}</strong>
                             </div>
                             <div className="form-group">
-                                <label>New Salary (₹ / Month)</label>
+                                <label>New Salary ({cs} / Month)</label>
                                 <input type="number" className="form-input salary-input-large" value={salaryEditValue} onChange={(e) => setSalaryEditValue(e.target.value)} min="0" autoFocus />
                             </div>
                             <div className="modal-actions">

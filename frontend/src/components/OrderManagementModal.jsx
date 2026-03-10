@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import './OrderManagementModal.css';
 import DocumentPreviewModal from './DocumentPreviewModal';
 import { orderStorage } from '../utils/orderStorage';
+import { useSettings } from '../context/SettingsContext';
 
 const OrderManagementModal = ({ isOpen, onClose, room, currentOrder, onAddFood, onUpdateOrder }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [cart, setCart] = useState([]);
     const [showPreview, setShowPreview] = useState(false);
     const [previewType, setPreviewType] = useState(null);
@@ -203,7 +206,7 @@ const OrderManagementModal = ({ isOpen, onClose, room, currentOrder, onAddFood, 
                                 <div key={item.id} className="order-edit-item">
                                     <div className="item-info">
                                         <span className="item-name">{item.name}</span>
-                                        <span className="item-price">₹{item.price}</span>
+                                        <span className="item-price">{cs}{item.price}</span>
                                     </div>
                                     <div className="item-controls">
                                         <div className="qty-control-group">
@@ -222,7 +225,7 @@ const OrderManagementModal = ({ isOpen, onClose, room, currentOrder, onAddFood, 
                                             </button>
                                         </div>
                                         <div className="item-total">
-                                            ₹{item.price * item.quantity}
+                                            {cs}{item.price * item.quantity}
                                         </div>
                                     </div>
                                 </div>
@@ -238,15 +241,15 @@ const OrderManagementModal = ({ isOpen, onClose, room, currentOrder, onAddFood, 
                     <div className="order-summary-section">
                         <div className="summary-row">
                             <span>Subtotal:</span>
-                            <span>₹{subtotal.toFixed(2)}</span>
+                            <span>{cs}{subtotal.toFixed(2)}</span>
                         </div>
                         <div className="summary-row">
                             <span>Tax (5%):</span>
-                            <span>₹{tax.toFixed(2)}</span>
+                            <span>{cs}{tax.toFixed(2)}</span>
                         </div>
                         <div className="summary-row total">
                             <span>Grand Total:</span>
-                            <span>₹{total.toFixed(2)}</span>
+                            <span>{cs}{total.toFixed(2)}</span>
                         </div>
                     </div>
                 </div>

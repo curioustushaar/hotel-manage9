@@ -1,20 +1,19 @@
 import React from 'react';
 import './EditReservationModal.css';
+import { useSettings } from '../context/SettingsContext';
 
 const BookingDetails = ({ reservation }) => {
     if (!reservation) return null;
+    const { formatDate: settingsFormatDate, getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
 
     const formatDate = (dateString) => {
         if (!dateString) return '-';
-        return new Date(dateString).toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
+        return settingsFormatDate(dateString);
     };
 
     const formatCurrency = (amount) => {
-        return `₹${Number(amount || 0).toLocaleString('en-IN')}`;
+        return `${cs}${Number(amount || 0).toLocaleString('en-IN')}`;
     };
 
     return (

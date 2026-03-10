@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import API_URL from '../config/api';
 import '../pages/FoodMenu/FoodMenu.css'; // Import FoodMenu styles
+import { useSettings } from '../context/SettingsContext';
 
 // Replaced ItemStockStatus with Food Menu Management features
 const ItemStockStatus = () => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
 
     const [menuItems, setMenuItems] = useState([]);
     const [editingItem, setEditingItem] = useState(null);
@@ -198,7 +201,7 @@ const ItemStockStatus = () => {
                                         <td>{item.itemName}</td>
                                         <td>{getCategoryWithIcon(item.category)}</td>
                                         <td>{item.description || '---'}</td>
-                                        <td>₹{item.price.toFixed(2)}</td>
+                                        <td>{cs}{item.price.toFixed(2)}</td>
                                         <td>
                                             <span className={`stock-badge ${item.quantity > 0 ? 'in-stock' : 'out-of-stock-text'}`}>
                                                 {item.quantity || 0}
@@ -286,6 +289,8 @@ const ItemStockStatus = () => {
 
 // Edit Item Modal Component
 const EditItemModal = ({ item, onSave, onCancel }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [formData, setFormData] = useState({
         itemName: item.itemName,
         foodCode: item.foodCode || '',
@@ -354,7 +359,7 @@ const EditItemModal = ({ item, onSave, onCancel }) => {
                         </select>
                     </div>
                     <div className="form-group">
-                        <label>PRICE (₹)</label>
+                        <label>PRICE ({cs})</label>
                         <input
                             type="number"
                             step="0.01"

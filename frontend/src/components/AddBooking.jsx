@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import API_URL from '../config/api';
 import soundManager from '../utils/soundManager';
+import { useSettings } from '../context/SettingsContext';
 import './AddBooking.css';
 
 const AddBooking = () => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     // Guest Details State
     const [guestName, setGuestName] = useState('');
     const [mobileNumber, setMobileNumber] = useState('');
@@ -625,13 +628,13 @@ const AddBooking = () => {
                                     <option value="">No Meal Plan (Room Only)</option>
                                     {mealTypes.map((meal) => (
                                         <option key={meal._id} value={meal._id}>
-                                            {meal.shortCode} ({meal.name}) - ₹{meal.price}
+                                            {meal.shortCode} ({meal.name}) - {cs}{meal.price}
                                         </option>
                                     ))}
                                 </select>
                                 {selectedMeal && (
                                     <span className="helper-text" style={{ color: '#16a34a' }}>
-                                        + ₹{mealTypes.find(m => m._id === selectedMeal)?.price || 0} per night
+                                        + {cs}{mealTypes.find(m => m._id === selectedMeal)?.price || 0} per night
                                     </span>
                                 )}
                             </div>
@@ -714,7 +717,7 @@ const AddBooking = () => {
                                     Price per Night
                                 </label>
                                 <div className="input-with-currency">
-                                    <span className="currency-symbol">₹</span>
+                                    <span className="currency-symbol">{cs}</span>
                                     <input
                                         type="number"
                                         id="pricePerNight"
@@ -730,17 +733,17 @@ const AddBooking = () => {
                                     <div className="price-breakdown" style={{ marginTop: '5px', fontSize: '0.85rem', color: '#64748b' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                             <span>Room Base:</span>
-                                            <span>₹{roomPrices[roomType] || 0}</span>
+                                            <span>{cs}{roomPrices[roomType] || 0}</span>
                                         </div>
                                         {selectedMeal && (
                                             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}>
                                                 <span>Meal ({mealTypes.find(m => m._id === selectedMeal)?.shortCode}):</span>
-                                                <span>+₹{mealTypes.find(m => m._id === selectedMeal)?.price || 0}</span>
+                                                <span>+{cs}{mealTypes.find(m => m._id === selectedMeal)?.price || 0}</span>
                                             </div>
                                         )}
                                         <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', marginTop: '2px', paddingTop: '2px', fontWeight: '600' }}>
                                             <span>Total/Night:</span>
-                                            <span>₹{pricePerNight}</span>
+                                            <span>{cs}{pricePerNight}</span>
                                         </div>
                                     </div>
                                 )}
@@ -752,7 +755,7 @@ const AddBooking = () => {
                                     Total Amount
                                 </label>
                                 <div className="input-with-currency">
-                                    <span className="currency-symbol">₹</span>
+                                    <span className="currency-symbol">{cs}</span>
                                     <input
                                         type="number"
                                         id="totalAmount"
@@ -771,7 +774,7 @@ const AddBooking = () => {
                                     Advance Paid
                                 </label>
                                 <div className="input-with-currency">
-                                    <span className="currency-symbol">₹</span>
+                                    <span className="currency-symbol">{cs}</span>
                                     <input
                                         type="number"
                                         id="advancePaid"

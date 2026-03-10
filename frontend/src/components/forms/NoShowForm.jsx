@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, Calendar, Clock, User, Bed, Loader2 } from 'lucide-react';
+import { useSettings } from '../../context/SettingsContext';
 
 const NoShowForm = ({ booking, onSubmit, onCancel }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [applyCharge, setApplyCharge] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -116,7 +119,7 @@ const NoShowForm = ({ booking, onSubmit, onCancel }) => {
                     <label htmlFor="applyCharge" style={{ fontSize: '14px', color: '#374151', cursor: 'pointer' }}>
                         <strong>Apply 1 Night No-Show Charge?</strong>
                         <p style={{ margin: '4px 0 0 0', color: '#6b7280', fontSize: '13px' }}>
-                            A charge of <strong>₹{Math.round(chargeAmount || 0).toLocaleString()}</strong> will be posted to the folio.
+                            A charge of <strong>{cs}{Math.round(chargeAmount || 0).toLocaleString()}</strong> will be posted to the folio.
                         </p>
                     </label>
                 </div>

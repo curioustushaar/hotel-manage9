@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import StatusBadge from './StatusBadge';
+import { useSettings } from '../context/SettingsContext';
 
 const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGenerateInvoice = () => { }, onSelect, isSelected, onActionSelect }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [isExpanded, setIsExpanded] = useState(false);
 
     const getPrimaryAction = (status) => {
@@ -91,15 +94,15 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
             <div className="res-card-financials">
                 <div className="fin-col">
                     <label>AMOUNT</label>
-                    <span className="amount">₹{reservation.totalAmount?.toLocaleString('en-IN')}</span>
+                    <span className="amount">{cs}{reservation.totalAmount?.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="fin-col">
                     <label className="text-green">PAID</label>
-                    <span className="amount text-green">₹{reservation.paidAmount?.toLocaleString('en-IN')}</span>
+                    <span className="amount text-green">{cs}{reservation.paidAmount?.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="fin-col">
                     <label className="text-red">BALANCE</label>
-                    <span className="amount text-red">₹{reservation.balanceDue?.toLocaleString('en-IN')}</span>
+                    <span className="amount text-red">{cs}{reservation.balanceDue?.toLocaleString('en-IN')}</span>
                 </div>
             </div>
 
@@ -161,8 +164,8 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
                                         <span className="r-type">{room.roomType}</span>
                                     </div>
                                     <div className="room-pricing">
-                                        <span className="r-rate">₹{room.ratePerNight}/nt {room.discount > 0 && `(-₹${room.discount} disc)`}</span>
-                                        <span className="r-subtotal">₹{((room.ratePerNight * (reservation.nights || 1)) - (room.discount || 0)).toLocaleString('en-IN')}</span>
+                                        <span className="r-rate">{cs}{room.ratePerNight}/nt {room.discount > 0 && `(-${cs}${room.discount} disc)`}</span>
+                                        <span className="r-subtotal">{cs}{((room.ratePerNight * (reservation.nights || 1)) - (room.discount || 0)).toLocaleString('en-IN')}</span>
                                     </div>
                                 </div>
                             ))}
@@ -174,15 +177,15 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
             <div className="res-card-financials multi">
                 <div className="fin-col">
                     <label>TOTAL AMOUNT</label>
-                    <span className="amount">₹{totals.total?.toLocaleString('en-IN')}</span>
+                    <span className="amount">{cs}{totals.total?.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="fin-col">
                     <label className="text-green">PAID</label>
-                    <span className="amount text-green">₹{totals.paid?.toLocaleString('en-IN')}</span>
+                    <span className="amount text-green">{cs}{totals.paid?.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="fin-col">
                     <label className="text-red">BALANCE</label>
-                    <span className="amount text-red">₹{totals.balance?.toLocaleString('en-IN')}</span>
+                    <span className="amount text-red">{cs}{totals.balance?.toLocaleString('en-IN')}</span>
                 </div>
             </div>
 

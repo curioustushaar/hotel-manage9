@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import './ViewOrderModal.css';
+import { useSettings } from '../context/SettingsContext';
 
 const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [orderItems, setOrderItems] = useState([]);
     const [serviceItems, setServiceItems] = useState([]);
     const [activeTab, setActiveTab] = useState('food'); // 'food' or 'service'
@@ -291,7 +294,7 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
             doc.text(item.name, 20, yPos);
             if (activeTab === 'food') {
                 doc.text(item.quantity.toString(), pageWidth - 60, yPos);
-                doc.text(`₹${item.price * item.quantity}`, pageWidth - 30, yPos);
+                doc.text(`${cs}${item.price * item.quantity}`, pageWidth - 30, yPos);
             } else {
                 doc.text(item.status || 'Pending', pageWidth - 40, yPos);
             }
@@ -308,7 +311,7 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
             const total = activeList.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(13);
-            doc.text(`TOTAL: ₹${total.toFixed(2)}`, pageWidth - 30, yPos, { align: 'right' });
+            doc.text(`TOTAL: ${cs}${total.toFixed(2)}`, pageWidth - 30, yPos, { align: 'right' });
         }
 
         // Footer
@@ -425,7 +428,7 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
                                         <div className="food-item-name">{item.name}</div>
                                         <div className="food-item-footer">
                                             <div className="food-item-qty">Qty: {item.quantityAvailable}</div>
-                                            <div className="food-item-price">₹{item.price}</div>
+                                            <div className="food-item-price">{cs}{item.price}</div>
                                         </div>
                                     </div>
                                 ))}
@@ -492,12 +495,12 @@ const ViewOrderModal = ({ isOpen, onClose, room, currentOrder, onUpdateOrder }) 
                                                     ➕
                                                 </button>
                                             </div>
-                                            <div className="order-item-price">₹{item.price * item.quantity}</div>
+                                            <div className="order-item-price">{cs}{item.price * item.quantity}</div>
                                         </div>
                                     ))}
                                     <div className="order-total-row">
                                         <span>Total:</span>
-                                        <span>₹{total.toFixed(2)}</span>
+                                        <span>{cs}{total.toFixed(2)}</span>
                                     </div>
                                 </div>
                             )

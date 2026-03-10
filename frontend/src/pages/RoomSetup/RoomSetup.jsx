@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import { useSettings } from '../../context/SettingsContext';
 import { hasPermission, MODULES, PERMISSIONS } from '../../config/rbac';
 import './RoomSetup.css';
 import API_URL from '../../config/api';
@@ -10,6 +11,8 @@ import ConfirmationModal from '../../components/ConfirmationModal';
 
 const RoomSetup = () => {
     const navigate = useNavigate();
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [rooms, setRooms] = useState([]);
     const [roomTypes, setRoomTypes] = useState([]); // State for dynamic room types
     const [bedTypes, setBedTypes] = useState([]); // State for dynamic bed types
@@ -268,7 +271,7 @@ const RoomSetup = () => {
                     id: room._id,
                     floor: room.floor || 'Ground Floor',
                     bedType: room.bedType || 'Double',
-                    basePrice: `₹ ${room.price}`,
+                    basePrice: `${cs} ${room.price}`,
                     capacity: { adults: room.capacity, children: 0 }
                 }));
                 setRooms(transformedRooms);
@@ -369,7 +372,7 @@ const RoomSetup = () => {
                 roomType: room.roomType,
                 bedType: room.bedType,
                 capacity: room.capacity.adults, // extract number
-                basePrice: room.price || room.basePrice.replace('₹ ', '').replace(',', ''),
+                basePrice: room.price || room.basePrice.replace(/^[^\d]*/, '').replace(',', ''),
                 status: room.status,
                 // PHASE 2 UPGRADE: Populate enterprise fields (with fallback for backward compatibility)
                 roomViewType: room.roomViewType || 'City View',

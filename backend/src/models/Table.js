@@ -59,7 +59,17 @@ const tableSchema = new mongoose.Schema({
         phone: String,
         contact: String,   // legacy support
         note: String,
-        advancePayment: Number
+        advancePayment: Number,
+        source: {
+            type: String,
+            enum: ['Walk-In', 'Phone', 'Online'],
+            default: 'Phone'
+        },
+        status: {
+            type: String,
+            enum: ['Upcoming', 'Arrived', 'Completed', 'Cancelled', 'No Show'],
+            default: 'Upcoming'
+        }
     }],
 
     location: {

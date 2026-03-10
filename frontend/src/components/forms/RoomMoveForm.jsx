@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import API_URL from '../../config/api';
+import { useSettings } from '../../context/SettingsContext';
 
 const RoomMoveForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     // 1. State Management
     const [booking, setBooking] = useState(initialBooking);
     const [availableRooms, setAvailableRooms] = useState([]);
@@ -135,8 +138,8 @@ const RoomMoveForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
         // Show confirmation modal for price change
         if (adjustment.total !== 0) {
             const message = adjustment.total > 0
-                ? `This room costs ₹${adjustment.diff} more per night. Additional ₹${adjustment.total} will be added to the bill. Confirm move?`
-                : `This room costs ₹${Math.abs(adjustment.diff)} less per night. ₹${Math.abs(adjustment.total)} will be reduced from the bill. Confirm move?`;
+                ? `This room costs ${cs}${adjustment.diff} more per night. Additional ${cs}${adjustment.total} will be added to the bill. Confirm move?`
+                : `This room costs ${cs}${Math.abs(adjustment.diff)} less per night. ${cs}${Math.abs(adjustment.total)} will be reduced from the bill. Confirm move?`;
 
             if (!window.confirm(message)) return;
         }
@@ -268,7 +271,7 @@ const RoomMoveForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                             <span style={{ color: '#6B7280' }}>Category & Rate:</span>
                             <span style={{ fontWeight: '600', color: '#374151' }}>
-                                {booking.roomType || 'Standard'} (₹{(booking.ratePerNight || 0).toLocaleString()})
+                                {booking.roomType || 'Standard'} ({cs}{(booking.ratePerNight || 0).toLocaleString()})
                             </span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
@@ -316,7 +319,7 @@ const RoomMoveForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
                                 <option value="">Select New Room</option>
                                 {availableRooms.map(room => (
                                     <option key={room._id} value={room._id}>
-                                        Room {room.roomNumber} - {room.roomType} (₹{room.price})
+                                        Room {room.roomNumber} - {room.roomType} ({cs}{room.price})
                                     </option>
                                 ))}
                             </select>
@@ -337,8 +340,8 @@ const RoomMoveForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
                         fontWeight: '500'
                     }}>
                         {adjustment.total > 0 ? '⚠️' : '✅'} Rate Difference:
-                        <b> ₹{Math.abs(adjustment.diff)}/{adjustment.total > 0 ? 'more' : 'less'}</b> per night.
-                        Total <b>₹{Math.abs(adjustment.total)}</b> will be {adjustment.total > 0 ? 'charged' : 'reduced'} for {adjustment.nights} nights.
+                        <b> {cs}{Math.abs(adjustment.diff)}/{adjustment.total > 0 ? 'more' : 'less'}</b> per night.
+                        Total <b>{cs}{Math.abs(adjustment.total)}</b> will be {adjustment.total > 0 ? 'charged' : 'reduced'} for {adjustment.nights} nights.
                     </div>
                 )}
 

@@ -63,11 +63,11 @@ exports.getPaymentReport = async (req, res) => {
                 if (!order.closedAt) return false;
                 const hours = new Date(order.closedAt).getHours();
                 if (req.query.shift === 'Morning') {
-                    return hours >= 6 && hours < 15;
-                } else if (req.query.shift === 'Lunch') {
-                    return hours >= 15 && hours < 19;
+                    return hours >= 6 && hours < 14;
+                } else if (req.query.shift === 'Evening') {
+                    return hours >= 14 && hours < 21;
                 } else if (req.query.shift === 'Night') {
-                    return hours >= 19 || hours < 6;
+                    return hours >= 21 || hours < 6;
                 }
                 return true;
             });

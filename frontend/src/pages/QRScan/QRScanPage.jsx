@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import API_URL from '../../config/api';
+import { useSettings } from '../../context/SettingsContext';
 import './QRScanPage.css';
 
 const QRScanPage = () => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const { roomId } = useParams();
     const navigate = useNavigate();
 
@@ -363,11 +366,11 @@ const QRScanPage = () => {
                                     </div>
                                     <div className="summary-row">
                                         <span>Total Amount:</span>
-                                        <strong>₹{bookingDetails.totalAmount}</strong>
+                                        <strong>{cs}{bookingDetails.totalAmount}</strong>
                                     </div>
                                     <div className="summary-row">
                                         <span>Remaining:</span>
-                                        <strong>₹{bookingDetails.remainingAmount}</strong>
+                                        <strong>{cs}{bookingDetails.remainingAmount}</strong>
                                     </div>
                                 </div>
 

@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import BaseDrawer from './BaseDrawer';
+import { useSettings } from '../../context/SettingsContext';
 
 const AddPaymentDrawer = ({ isOpen, onClose, reservation }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [formData, setFormData] = useState({
         paymentDate: new Date().toISOString().split('T')[0],
         paymentMethod: 'Cash',
@@ -90,7 +93,7 @@ const AddPaymentDrawer = ({ isOpen, onClose, reservation }) => {
                     </label>
                     <div className="relative">
                         <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">
-                            ₹
+                            {cs}
                         </span>
                         <input
                             type="number"
@@ -145,21 +148,21 @@ const AddPaymentDrawer = ({ isOpen, onClose, reservation }) => {
                     <div className="bg-gradient-to-r from-red-50 to-white p-4 rounded-lg border border-red-200">
                         <div className="flex justify-between text-sm mb-2">
                             <span className="text-gray-600">Total Amount:</span>
-                            <span className="font-semibold">₹ {reservation.totalAmount || 0}</span>
+                            <span className="font-semibold">{cs} {reservation.totalAmount || 0}</span>
                         </div>
                         <div className="flex justify-between text-sm mb-2">
                             <span className="text-gray-600">Already Paid:</span>
-                            <span className="font-semibold text-green-600">₹ {reservation.paidAmount || 0}</span>
+                            <span className="font-semibold text-green-600">{cs} {reservation.paidAmount || 0}</span>
                         </div>
                         <div className="flex justify-between text-sm mb-2">
                             <span className="text-gray-600">This Payment:</span>
-                            <span className="font-semibold text-primary-600">₹ {formData.amount || 0}</span>
+                            <span className="font-semibold text-primary-600">{cs} {formData.amount || 0}</span>
                         </div>
                         <div className="border-t border-red-200 pt-2 mt-2">
                             <div className="flex justify-between text-base font-bold">
                                 <span>Remaining Balance:</span>
                                 <span className="text-red-600">
-                                    ₹ {(reservation.totalAmount || 0) - (reservation.paidAmount || 0) - (parseFloat(formData.amount) || 0)}
+                                    {cs} {(reservation.totalAmount || 0) - (reservation.paidAmount || 0) - (parseFloat(formData.amount) || 0)}
                                 </span>
                             </div>
                         </div>

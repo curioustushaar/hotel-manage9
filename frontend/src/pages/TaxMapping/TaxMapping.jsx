@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSettings } from '../../context/SettingsContext';
 import './TaxMapping.css';
 
 const TaxMapping = () => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [taxMappings, setTaxMappings] = useState([]);
     const [taxes, setTaxes] = useState([]);
     const [selectedMapping, setSelectedMapping] = useState(null);
@@ -487,7 +490,7 @@ const TaxMapping = () => {
                                                         <div className="tax-checkbox-card-text">
                                                             <span className="tax-checkbox-card-label">{tax.name}</span>
                                                             <span className="tax-checkbox-card-desc">
-                                                                {tax.type === 'PERCENTAGE' ? `${tax.value}% government tax` : `₹${tax.value} additional service fee`}
+                                                                {tax.type === 'PERCENTAGE' ? `${tax.value}% government tax` : `${cs}${tax.value} additional service fee`}
                                                             </span>
                                                         </div>
                                                     </div>

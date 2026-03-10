@@ -20,11 +20,14 @@ import ConfirmationModal from './ConfirmationModal';
 import BookingActionsManager from './BookingActionsManager';
 import HousekeepingView from './HousekeepingView';
 import RoomService from './RoomService';
+import { useSettings } from '../context/SettingsContext';
 
 const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { getCurrencySymbol, settings } = useSettings();
+    const cs = getCurrencySymbol();
 
     // Permission Helper
     const hasRoomPermission = (type) => {
@@ -760,8 +763,18 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         const roomCharges = rooms.reduce((sum, room) => sum + (room.ratePerNight * nights), 0);
         const totalDiscount = rooms.reduce((sum, room) => sum + (Number(room.discount) || 0), 0);
         const subtotal = roomCharges - totalDiscount;
-        const taxAmount = taxExempt ? 0 : Math.round(subtotal * 0.12);
-        const totalAmount = subtotal + taxAmount;
+        const roomGstPct = parseFloat(settings.roomGst) || 12;
+        const isInclusive = settings.inclusiveTax;
+        let taxAmount = 0;
+        if (!taxExempt) {
+            if (isInclusive) {
+                // tax is already included in the price
+                taxAmount = Math.round(subtotal - subtotal * 100 / (100 + roomGstPct));
+            } else {
+                taxAmount = Math.round(subtotal * roomGstPct / 100);
+            }
+        }
+        const totalAmount = isInclusive || taxExempt ? subtotal : subtotal + taxAmount;
         const balanceDue = Math.max(0, totalAmount - (paidAmount || 0));
 
         return {
@@ -774,7 +787,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             balanceDue,
             paymentMode
         };
-    }, [rooms, nights, paidAmount, paymentMode, taxExempt]);
+    }, [rooms, nights, paidAmount, paymentMode, taxExempt, settings.roomGst, settings.inclusiveTax]);
 
     // Handle View Invoice
     const handleViewInvoice = useCallback((invoiceId) => {
@@ -913,10 +926,10 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             return;
         }
 
-        // Check for pending balance - Prevent Check-out if not fully paid
-        if (reservation.status === 'IN_HOUSE' && reservation.balanceDue > 0.5) {
+        // Check for pending balance - Prevent Check-out if not fully paid (only if mandatorySettlement is enabled)
+        if (reservation.status === 'IN_HOUSE' && reservation.balanceDue > 0.5 && settings.billingRules?.mandatorySettlement !== false) {
             setPaymentAlertMessage(
-                `Payment Pending! \n\nGuest: ${reservation.guestName} \nRoom: ${reservation.roomNumber} \n\nOutstanding Balance: ₹${reservation.balanceDue?.toLocaleString('en-IN')} \n\nPlease settle the full bill in the Folio section before proceeding with check-out.`
+                `Payment Pending! \n\nGuest: ${reservation.guestName} \nRoom: ${reservation.roomNumber} \n\nOutstanding Balance: ${cs}${reservation.balanceDue?.toLocaleString('en-IN')} \n\nPlease settle the full bill in the Folio section before proceeding with check-out.`
             );
             setShowPaymentAlert(true);
             return;
@@ -1609,17 +1622,17 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                             </thead>
                                             <tbody>
                                                 {[
-                                                    { id: 'RES-001', roomCategory: 'Deluxe Double', checkIn: '15 Oct', checkOut: '18 Oct', amount: '₹9,500', status: 'paid' },
-                                                    { id: 'RES-002', roomCategory: 'Club AC Single', checkIn: '20 Aug', checkOut: '23 Aug', amount: '₹7,200', status: 'paid' },
-                                                    { id: 'RES-003', roomCategory: 'Suite Double', checkIn: '10 May', checkOut: '13 May', amount: '₹215,000', status: 'overdue' },
-                                                    { id: 'RES-004', roomCategory: 'Club AC Double', checkIn: '3 Mar', checkOut: '8 Mar', amount: '₹112,000', status: 'overdue' }
+                                                    { id: 'RES-001', roomCategory: 'Deluxe Double', checkIn: '15 Oct', checkOut: '18 Oct', amount: `${cs}9,500`, status: 'paid' },
+                                                    { id: 'RES-002', roomCategory: 'Club AC Single', checkIn: '20 Aug', checkOut: '23 Aug', amount: `${cs}7,200`, status: 'paid' },
+                                                    { id: 'RES-003', roomCategory: 'Suite Double', checkIn: '10 May', checkOut: '13 May', amount: `${cs}215,000`, status: 'overdue' },
+                                                    { id: 'RES-004', roomCategory: 'Club AC Double', checkIn: '3 Mar', checkOut: '8 Mar', amount: `${cs}112,000`, status: 'overdue' }
                                                 ].map(booking => (
                                                     <tr key={booking.id} className="history-row">
                                                         <td className="res-id">{booking.id}</td>
                                                         <td className="room-type">{booking.roomCategory}</td>
                                                         <td className="dates">{booking.checkIn} - {booking.checkOut}</td>
                                                         <td className={`amount text-right ${booking.status}`}>
-                                                            {booking.status === 'overdue' ? '₹' : ''}{booking.amount}
+                                                            {booking.status === 'overdue' ? cs : ''}{booking.amount}
                                                         </td>
                                                         <td className="row-action">
                                                             <span className="arrow-right">›</span>
@@ -1949,7 +1962,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                     </tr>
                                     <tr>
                                         <td className="details-label">Total Bills</td>
-                                        <td className="details-value details-value-highlight">₹{selectedReservation.totalAmount?.toLocaleString('en-IN') || '0'}</td>
+                                        <td className="details-value details-value-highlight">{cs}{selectedReservation.totalAmount?.toLocaleString('en-IN') || '0'}</td>
                                     </tr>
                                 </tbody>
                             </table>

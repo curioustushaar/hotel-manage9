@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import './FoodPaymentReport.css';
 import API_URL from '../../config/api';
+import { useSettings } from '../../context/SettingsContext';
 
 const FoodPaymentReport = () => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [activeTab, setActiveTab] = useState('summary');
     const [startDate, setStartDate] = useState('05/02/2026');
     const [endDate, setEndDate] = useState('05/02/2026');
@@ -150,7 +153,7 @@ const FoodPaymentReport = () => {
                     foodOrderId: txn.orderId || 'N/A',
                     bookingId: '-',
                     transaction: txn.type,
-                    amount: `₹${txn.amount.toFixed(2)}`,
+                    amount: `${cs}${txn.amount.toFixed(2)}`,
                     mode: txn.paymentMethod,
                     status: txn.status,
                     notes: txn.description || ''
@@ -381,11 +384,11 @@ const FoodPaymentReport = () => {
                     <div className="summary-cards">
                         <div className="summary-card pink-card">
                             <div className="card-icon pink-icon">
-                                <span>₹</span>
+                                <span>{cs}</span>
                             </div>
                             <div className="card-content">
                                 <h3>Total Collections</h3>
-                                <div className="amount">₹{summary.totalPayments.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                <div className="amount">{cs}{summary.totalPayments.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                 <div className="description">Total Payments Received</div>
                                 <div className="count">{summary.totalPaymentsCount} payments</div>
                             </div>
@@ -397,7 +400,7 @@ const FoodPaymentReport = () => {
                             </div>
                             <div className="card-content">
                                 <h3>Total Refunds</h3>
-                                <div className="amount">₹{summary.totalRefunds.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                <div className="amount">{cs}{summary.totalRefunds.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                 <div className="description">Total Refunds Processed</div>
                                 <div className="count">{summary.totalRefundsCount} refunds</div>
                             </div>
@@ -409,7 +412,7 @@ const FoodPaymentReport = () => {
                             </div>
                             <div className="card-content">
                                 <h3>Net Collection</h3>
-                                <div className="amount">₹{summary.netCollection.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                <div className="amount">{cs}{summary.netCollection.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                 <div className="description">Collection - Refunds</div>
                                 <div className="count">{summary.totalTransactions} total transactions</div>
                             </div>
@@ -430,14 +433,14 @@ const FoodPaymentReport = () => {
                             <div className="stat-card orange-stat">
                                 <div className="stat-label">Total Order Amount</div>
                                 <div className="stat-value-row">
-                                    <span className="stat-amount">₹ {summary.totalOrderAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span className="stat-amount">{cs} {summary.totalOrderAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                             </div>
 
                             <div className="stat-card green-stat">
                                 <div className="stat-label">Total Paid</div>
                                 <div className="stat-value-row">
-                                    <span className="stat-amount">₹ {summary.totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span className="stat-amount">{cs} {summary.totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                             </div>
                         </div>
@@ -454,7 +457,7 @@ const FoodPaymentReport = () => {
                                 </div>
                                 <div className="transaction-body">
                                     <p style={{ fontSize: '18px', fontWeight: 'bold', color: '#10b981', marginBottom: '5px' }}>
-                                        ₹{summary.totalPayments.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        {cs}{summary.totalPayments.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </p>
                                     <p style={{ fontSize: '14px', color: '#6b7280' }}>
                                         Total: {summary.totalPaymentsCount} payments received
@@ -469,7 +472,7 @@ const FoodPaymentReport = () => {
                                 </div>
                                 <div className="transaction-body">
                                     <p style={{ fontSize: '18px', fontWeight: 'bold', color: '#ef4444', marginBottom: '5px' }}>
-                                        ₹{summary.totalRefunds.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        {cs}{summary.totalRefunds.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </p>
                                     <p style={{ fontSize: '14px', color: '#6b7280' }}>
                                         Total: {summary.totalRefundsCount} refunds processed
@@ -489,19 +492,19 @@ const FoodPaymentReport = () => {
                                     <div className="no-data-box" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '20px', textAlign: 'left' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
                                             <span style={{ color: '#6b7280', fontWeight: '500' }}>Cash:</span>
-                                            <span style={{ color: '#10b981', fontWeight: '600' }}>₹{paymentsReceived.cash.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <span style={{ color: '#10b981', fontWeight: '600' }}>{cs}{paymentsReceived.cash.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
                                             <span style={{ color: '#6b7280', fontWeight: '500' }}>Card:</span>
-                                            <span style={{ color: '#10b981', fontWeight: '600' }}>₹{paymentsReceived.card.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <span style={{ color: '#10b981', fontWeight: '600' }}>{cs}{paymentsReceived.card.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
                                             <span style={{ color: '#6b7280', fontWeight: '500' }}>UPI:</span>
-                                            <span style={{ color: '#10b981', fontWeight: '600' }}>₹{paymentsReceived.upi.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <span style={{ color: '#10b981', fontWeight: '600' }}>{cs}{paymentsReceived.upi.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
                                             <span style={{ color: '#6b7280', fontWeight: '500' }}>Bank Transfer:</span>
-                                            <span style={{ color: '#10b981', fontWeight: '600' }}>₹{paymentsReceived.bankTransfer.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <span style={{ color: '#10b981', fontWeight: '600' }}>{cs}{paymentsReceived.bankTransfer.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -513,19 +516,19 @@ const FoodPaymentReport = () => {
                                     <div className="no-data-box" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '20px', textAlign: 'left' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
                                             <span style={{ color: '#6b7280', fontWeight: '500' }}>Cash:</span>
-                                            <span style={{ color: '#ef4444', fontWeight: '600' }}>₹{refundsGiven.cash.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <span style={{ color: '#ef4444', fontWeight: '600' }}>{cs}{refundsGiven.cash.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
                                             <span style={{ color: '#6b7280', fontWeight: '500' }}>Card:</span>
-                                            <span style={{ color: '#ef4444', fontWeight: '600' }}>₹{refundsGiven.card.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <span style={{ color: '#ef4444', fontWeight: '600' }}>{cs}{refundsGiven.card.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
                                             <span style={{ color: '#6b7280', fontWeight: '500' }}>UPI:</span>
-                                            <span style={{ color: '#ef4444', fontWeight: '600' }}>₹{refundsGiven.upi.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <span style={{ color: '#ef4444', fontWeight: '600' }}>{cs}{refundsGiven.upi.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e5e7eb' }}>
                                             <span style={{ color: '#6b7280', fontWeight: '500' }}>Bank Transfer:</span>
-                                            <span style={{ color: '#ef4444', fontWeight: '600' }}>₹{refundsGiven.bankTransfer.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                            <span style={{ color: '#ef4444', fontWeight: '600' }}>{cs}{refundsGiven.bankTransfer.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -550,7 +553,7 @@ const FoodPaymentReport = () => {
                                         <div className="trends-net-collection">
                                             <span className="label">Net Collection:</span>
                                             <span className={`value ${row.netCollection > 0 ? 'positive' : 'neutral'}`}>
-                                                ₹{row.netCollection.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                {cs}{row.netCollection.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                             </span>
                                         </div>
                                     </div>
@@ -562,27 +565,27 @@ const FoodPaymentReport = () => {
                                             <div className="trends-metrics-grid">
                                                 <div className="metric-card total">
                                                     <span className="metric-label">Total</span>
-                                                    <span className="metric-value">₹{row.totalPayments.toFixed(2)}</span>
+                                                    <span className="metric-value">{cs}{row.totalPayments.toFixed(2)}</span>
                                                 </div>
                                                 <div className="metric-card">
                                                     <span className="metric-label">Cash</span>
-                                                    <span className="metric-value">₹{row.cashPayments.toFixed(2)}</span>
+                                                    <span className="metric-value">{cs}{row.cashPayments.toFixed(2)}</span>
                                                 </div>
                                                 <div className="metric-card">
                                                     <span className="metric-label">Card</span>
-                                                    <span className="metric-value">₹{row.cardPayments.toFixed(2)}</span>
+                                                    <span className="metric-value">{cs}{row.cardPayments.toFixed(2)}</span>
                                                 </div>
                                                 <div className="metric-card">
                                                     <span className="metric-label">UPI</span>
-                                                    <span className="metric-value">₹{row.upiPayments.toFixed(2)}</span>
+                                                    <span className="metric-value">{cs}{row.upiPayments.toFixed(2)}</span>
                                                 </div>
                                                 <div className="metric-card">
                                                     <span className="metric-label">Bank</span>
-                                                    <span className="metric-value">₹{row.bankTransfer.toFixed(2)}</span>
+                                                    <span className="metric-value">{cs}{row.bankTransfer.toFixed(2)}</span>
                                                 </div>
                                                 <div className="metric-card">
                                                     <span className="metric-label">Others</span>
-                                                    <span className="metric-value">₹{row.othersPayments.toFixed(2)}</span>
+                                                    <span className="metric-value">{cs}{row.othersPayments.toFixed(2)}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -593,27 +596,27 @@ const FoodPaymentReport = () => {
                                             <div className="trends-metrics-grid">
                                                 <div className="metric-card total-refund">
                                                     <span className="metric-label">Total</span>
-                                                    <span className="metric-value">₹{row.totalRefunds.toFixed(2)}</span>
+                                                    <span className="metric-value">{cs}{row.totalRefunds.toFixed(2)}</span>
                                                 </div>
                                                 <div className="metric-card refund">
                                                     <span className="metric-label">Cash</span>
-                                                    <span className="metric-value">₹{row.cashRefunds.toFixed(2)}</span>
+                                                    <span className="metric-value">{cs}{row.cashRefunds.toFixed(2)}</span>
                                                 </div>
                                                 <div className="metric-card refund">
                                                     <span className="metric-label">Card</span>
-                                                    <span className="metric-value">₹{row.cardRefunds.toFixed(2)}</span>
+                                                    <span className="metric-value">{cs}{row.cardRefunds.toFixed(2)}</span>
                                                 </div>
                                                 <div className="metric-card refund">
                                                     <span className="metric-label">UPI</span>
-                                                    <span className="metric-value">₹{row.upiRefunds.toFixed(2)}</span>
+                                                    <span className="metric-value">{cs}{row.upiRefunds.toFixed(2)}</span>
                                                 </div>
                                                 <div className="metric-card refund">
                                                     <span className="metric-label">Bank</span>
-                                                    <span className="metric-value">₹{row.bankRefunds.toFixed(2)}</span>
+                                                    <span className="metric-value">{cs}{row.bankRefunds.toFixed(2)}</span>
                                                 </div>
                                                 <div className="metric-card refund">
                                                     <span className="metric-label">Others</span>
-                                                    <span className="metric-value">₹{row.othersRefunds.toFixed(2)}</span>
+                                                    <span className="metric-value">{cs}{row.othersRefunds.toFixed(2)}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -652,7 +655,7 @@ const FoodPaymentReport = () => {
                                 <div className="strip-info">
                                     <div className="strip-label">Total Amount</div>
                                     <div className="strip-value">
-                                        ₹{transactionsData
+                                        {cs}{transactionsData
                                             .reduce((sum, t) => sum + (t.transaction === 'Payment' ? t.amount : 0), 0)
                                             .toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                     </div>
@@ -704,7 +707,7 @@ const FoodPaymentReport = () => {
                                                     {row.transaction}
                                                 </td>
                                                 <td className={row.transaction === 'Payment' ? 'positive-value' : 'negative-value'}>
-                                                    ₹{row.amount.toFixed(2)}
+                                                    {cs}{row.amount.toFixed(2)}
                                                 </td>
                                                 <td className="mode-cell">{row.mode}</td>
                                                 <td>

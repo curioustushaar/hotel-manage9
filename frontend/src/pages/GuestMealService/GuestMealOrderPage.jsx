@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import API_URL from '../../config/api';
+import { useSettings } from '../../context/SettingsContext';
 import './GuestMealOrderPage.css';
 
 const GuestMealOrderPage = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { settings, getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [order, setOrder] = useState(null);
     const [table, setTable] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -261,8 +264,10 @@ const GuestMealOrderPage = () => {
 
     // Calculate totals
     const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
-    const tax = subtotal * 0.05;
+    const taxRate = (parseFloat(settings.foodGst) || 5) / 100;
+    const tax = subtotal * taxRate;
     const total = subtotal + tax;
+    const taxLabel = `${settings.taxType || 'GST'} (${parseFloat(settings.foodGst) || 5}%)`;
 
     if (loading) {
         return <div className="gmo-loading">Loading order...</div>;
@@ -311,7 +316,7 @@ const GuestMealOrderPage = () => {
                                             <div key={item.id} className={`gmo-item-card ${item.status === 'Inactive' ? 'out-of-stock' : ''}`}>
                                                 <div className="item-image">{item.image}</div>
                                                 <div className="item-name">{item.name}</div>
-                                                <div className="item-price">₹{item.price.toFixed(2)}</div>
+                                                <div className="item-price">{cs}{item.price.toFixed(2)}</div>
                                                 {item.status === 'Inactive' ? (
                                                     <button className="item-add-btn disabled" disabled style={{ background: '#ccc', cursor: 'not-allowed' }}>
                                                         🚫 Out of Stock
@@ -352,14 +357,14 @@ const GuestMealOrderPage = () => {
                                         <div key={item.id} className="gmo-cart-item">
                                             <div className="item-info">
                                                 <span className="item-name">{item.name}</span>
-                                                <span className="item-price">₹{item.price}</span>
+                                                <span className="item-price">{cs}{item.price}</span>
                                             </div>
                                             <div className="item-controls">
                                                 <button onClick={() => updateQuantity(item.id, -1)}>−</button>
                                                 <span className="quantity">{item.quantity}</span>
                                                 <button onClick={() => updateQuantity(item.id, 1)}>+</button>
                                             </div>
-                                            <div className="item-total">₹{item.subtotal}</div>
+                                            <div className="item-total">{cs}{item.subtotal}</div>
                                             <button className="item-remove" onClick={() => removeFromCart(item.id)}>
                                                 🗑️
                                             </button>
@@ -370,15 +375,15 @@ const GuestMealOrderPage = () => {
                                 <div className="gmo-totals">
                                     <div className="total-row">
                                         <span>Subtotal:</span>
-                                        <span>₹{subtotal.toFixed(2)}</span>
+                                        <span>{cs}{subtotal.toFixed(2)}</span>
                                     </div>
                                     <div className="total-row">
-                                        <span>Tax (5%):</span>
-                                        <span>₹{tax.toFixed(2)}</span>
+                                        <span>{taxLabel}:</span>
+                                        <span>{cs}{tax.toFixed(2)}</span>
                                     </div>
                                     <div className="total-row-final">
                                         <span>Total:</span>
-                                        <span>₹{total.toFixed(2)}</span>
+                                        <span>{cs}{total.toFixed(2)}</span>
                                     </div>
                                 </div>
 
@@ -418,15 +423,15 @@ const GuestMealOrderPage = () => {
                                 <div className="billing-summary">
                                     <div className="summary-row">
                                         <span>Subtotal:</span>
-                                        <span>₹{subtotal.toFixed(2)}</span>
+                                        <span>{cs}{subtotal.toFixed(2)}</span>
                                     </div>
                                     <div className="summary-row">
-                                        <span>Tax (5%):</span>
-                                        <span>₹{tax.toFixed(2)}</span>
+                                        <span>{taxLabel}:</span>
+                                        <span>{cs}{tax.toFixed(2)}</span>
                                     </div>
                                     <div className="summary-row-total">
                                         <span>Total Amount:</span>
-                                        <span>₹{total.toFixed(2)}</span>
+                                        <span>{cs}{total.toFixed(2)}</span>
                                     </div>
                                 </div>
 
@@ -485,7 +490,7 @@ const GuestMealOrderPage = () => {
                                     onClick={handleBilling}
                                     disabled={isProcessing}
                                 >
-                                    {isProcessing ? 'Processing...' : `Confirm Payment - ₹${total.toFixed(2)}`}
+                                    {isProcessing ? 'Processing...' : `Confirm Payment - ${cs}${total.toFixed(2)}`}
                                 </button>
                             </div>
                         </div>

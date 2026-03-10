@@ -1,7 +1,10 @@
 import React, { useMemo } from 'react';
 import './EditReservationModal.css';
+import { useSettings } from '../context/SettingsContext';
 
 const RoomCharges = ({ reservation }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     if (!reservation) return null;
 
     const charges = useMemo(() => {
@@ -48,7 +51,7 @@ const RoomCharges = ({ reservation }) => {
     const grandTotal = totalCharges - totalDiscount + tax;
 
     const formatCurrency = (amount) => {
-        return `₹${Number(amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+        return `${cs}${Number(amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
     };
 
     const formatDate = (dateString) => {

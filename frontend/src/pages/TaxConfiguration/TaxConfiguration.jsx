@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSettings } from '../../context/SettingsContext';
 import './TaxConfiguration.css';
 
 const TaxConfiguration = () => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [taxes, setTaxes] = useState([]);
     const [selectedTax, setSelectedTax] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
@@ -291,7 +294,7 @@ const TaxConfiguration = () => {
                                                 <span className="tax-value">
                                                     {tax.type === 'PERCENTAGE'
                                                         ? `${tax.value}%`
-                                                        : `₹${tax.value}`}
+                                                        : <>{cs}{tax.value}</>}
                                                 </span>
                                             </td>
                                             <td>
@@ -398,7 +401,7 @@ const TaxConfiguration = () => {
                                     onChange={(e) => setFormData({ ...formData, type: e.target.value, value: '' })}
                                 >
                                     <option value="PERCENTAGE">Percentage (%)</option>
-                                    <option value="FLAT">Flat Amount (₹)</option>
+                                    <option value="FLAT">Flat Amount ({cs})</option>
                                 </select>
                             </div>
 
@@ -409,7 +412,7 @@ const TaxConfiguration = () => {
                                     {formData.type === 'PERCENTAGE' && <span className="label-hint">(0-100%)</span>}
                                 </label>
                                 <div className="input-with-prefix">
-                                    {formData.type === 'FLAT' && <span className="input-prefix">₹</span>}
+                                    {formData.type === 'FLAT' && <span className="input-prefix">{cs}</span>}
                                     <input
                                         type="number"
                                         placeholder={formData.type === 'PERCENTAGE' ? 'Enter percentage' : 'Enter amount'}

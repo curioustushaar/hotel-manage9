@@ -1,7 +1,10 @@
 import { useState } from 'react';
+import { useSettings } from '../../context/SettingsContext';
 import './FormStyles.css';
 
 const CheckInForm = ({ booking, onSubmit, onCancel }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [formData, setFormData] = useState({
         actualCheckInDate: new Date().toISOString().split('T')[0],
         actualCheckInTime: new Date().toTimeString().slice(0, 5),
@@ -156,7 +159,7 @@ const CheckInForm = ({ booking, onSubmit, onCancel }) => {
             </div>
 
             <div className="form-group">
-                <label className="form-label">Security Deposit (₹)</label>
+                <label className="form-label">Security Deposit ({cs})</label>
                 <input
                     type="number"
                     name="securityDeposit"

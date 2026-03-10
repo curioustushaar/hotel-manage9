@@ -191,6 +191,12 @@ app.use('/api/analytics-report', analyticsReportRoutes);
 const reportsRoutes = require('./routes/reportsRoutes');
 app.use('/api/reports', reportsRoutes);
 
+const staffReportRoutes = require('./routes/staffReportRoutes');
+app.use('/api/staff-report', staffReportRoutes);
+
+const reservationReportRoutes = require('./routes/reservationReportRoutes');
+app.use('/api/reservation-report', reservationReportRoutes);
+
 // Root route
 app.get('/', (req, res) => {
     res.json({

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import API_URL from '../config/api';
+import { useSettings } from '../context/SettingsContext';
 import './FolioOperations.css';
 import AddPayment from './AddPayment';
 import AddCharges from './AddCharges';
@@ -10,6 +11,8 @@ import ConfirmationModal from './ConfirmationModal';
 import Toast from './Toast';
 
 const FolioOperations = ({ reservation, onTotalsChange }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [selectedRoom, setSelectedRoom] = useState(0);
     const [showAddPayment, setShowAddPayment] = useState(false);
     const [showAddCharges, setShowAddCharges] = useState(false);
@@ -292,7 +295,7 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
 
         const discountLabel = discountData.discountType === 'percentage'
             ? `${discountData.discountValue}%`
-            : `₹${discountData.discountValue}`;
+            : `${cs}${discountData.discountValue}`;
 
         const newTransaction = {
             type: 'Discount',
@@ -484,7 +487,7 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
 Date:        ${item.day}
 Type:        ${item.particulars}
 Description: ${item.description}
-Amount:      ₹ ${Math.abs(item.amount)}
+Amount:      ${cs} ${Math.abs(item.amount)}
 User:        ${item.user}
 
 ===========================================
@@ -789,37 +792,37 @@ User:        ${item.user}
                             <div className="summary-left">
                                 <div className="summary-row">
                                     <span className="summary-label-text">Sub Total</span>
-                                    <span className="summary-amount">₹ {totals.subTotal}</span>
+                                    <span className="summary-amount">{cs} {totals.subTotal}</span>
                                 </div>
                                 {totals.discounts > 0 && (
                                     <div className="summary-row">
                                         <span className="summary-label-text">Discount</span>
-                                        <span className="summary-amount discount-amount">- ₹ {totals.discounts}</span>
+                                        <span className="summary-amount discount-amount">- {cs} {totals.discounts}</span>
                                     </div>
                                 )}
                                 <div className="summary-row">
                                     <span className="summary-label-text">Grand Total</span>
-                                    <span className="summary-amount grand-total">₹ {totals.grandTotal}</span>
+                                    <span className="summary-amount grand-total">{cs} {totals.grandTotal}</span>
                                 </div>
                                 <div className="summary-row">
                                     <span className="summary-label-text">Paid {totals.advance > 0 && '(Incl. Advance)'}</span>
-                                    <span className="summary-amount">₹ {totals.paid}</span>
+                                    <span className="summary-amount">{cs} {totals.paid}</span>
                                 </div>
                                 <div className="summary-row">
                                     <span className="summary-label-text">Remaining</span>
-                                    <span className="summary-amount remaining">₹ {totals.remaining}</span>
+                                    <span className="summary-amount remaining">{cs} {totals.remaining}</span>
                                 </div>
                             </div>
                             <div className="summary-right">
                                 <div className="summary-row-right">
                                     <span className="summary-label-text">Current Balance</span>
                                     <span className="summary-amount-right" style={{ fontSize: '1.2rem', fontWeight: '800', color: totals.remaining > 0 ? '#ef4444' : '#22c55e' }}>
-                                        ₹ {totals.remaining}
+                                        {cs} {totals.remaining}
                                     </span>
                                 </div>
                                 <div className="summary-row-right" style={{ borderTop: '1px dashed #e2e8f0', marginTop: '10px', paddingTop: '10px' }}>
                                     <span className="summary-label-text">Total Paid</span>
-                                    <span className="summary-amount-right paid">₹ {totals.paid}</span>
+                                    <span className="summary-amount-right paid">{cs} {totals.paid}</span>
                                 </div>
                             </div>
                         </div>

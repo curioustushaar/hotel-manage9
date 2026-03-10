@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import API_URL from '../../config/api';
+import { useSettings } from '../../context/SettingsContext';
 
 const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     // Helper to format date for input (YYYY-MM-DD)
     const formatDateForInput = (dateStr) => {
         if (!dateStr) return '';
@@ -264,7 +267,7 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
                     {/* Pricing Section */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                         <div>
-                            <label style={labelStyle}>Rate per Night (₹)</label>
+                            <label style={labelStyle}>Rate per Night ({cs})</label>
                             <input
                                 type="number"
                                 name="ratePerNight"
@@ -275,7 +278,7 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
                             {errors.ratePerNight && <div style={errorStyle}>{errors.ratePerNight}</div>}
                         </div>
                         <div>
-                            <label style={labelStyle}>Discount (₹)</label>
+                            <label style={labelStyle}>Discount ({cs})</label>
                             <input
                                 type="number"
                                 name="discount"
@@ -303,16 +306,16 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
                     <div style={{ backgroundColor: '#1E293B', color: '#FFFFFF', borderRadius: '16px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', opacity: 0.7 }}>
                             <span>Nights: {summary.nights}</span>
-                            <span>Tax ({formData.taxPercentage}%): ₹{summary.tax.toLocaleString()}</span>
+                            <span>Tax ({formData.taxPercentage}%): {cs}{summary.tax.toLocaleString()}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                             <div>
                                 <span style={{ fontSize: '11px', fontWeight: '800', opacity: 0.6, display: 'block' }}>OLD GRAND TOTAL</span>
-                                <span style={{ fontSize: '16px', fontWeight: '700', textDecoration: 'line-through', opacity: 0.6 }}>₹{summary.oldTotal.toLocaleString()}</span>
+                                <span style={{ fontSize: '16px', fontWeight: '700', textDecoration: 'line-through', opacity: 0.6 }}>{cs}{summary.oldTotal.toLocaleString()}</span>
                             </div>
                             <div style={{ textAlign: 'right' }}>
                                 <span style={{ fontSize: '11px', fontWeight: '800', color: '#FDA4AF', display: 'block' }}>NEW GRAND TOTAL</span>
-                                <span style={{ fontSize: '24px', fontWeight: '900', color: '#FFFFFF' }}>₹{summary.grandTotal.toLocaleString()}</span>
+                                <span style={{ fontSize: '24px', fontWeight: '900', color: '#FFFFFF' }}>{cs}{summary.grandTotal.toLocaleString()}</span>
                             </div>
                         </div>
                         <div style={{ paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between' }}>
@@ -347,12 +350,12 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #F1F5F9' }}>
                                 <span style={{ fontSize: '13px', fontWeight: '700', color: '#94A3B8' }}>Grand Total</span>
-                                <span style={{ fontSize: '13px', fontWeight: '800' }}>₹{summary.oldTotal.toLocaleString()} → ₹{summary.grandTotal.toLocaleString()}</span>
+                                <span style={{ fontSize: '13px', fontWeight: '800' }}>{cs}{summary.oldTotal.toLocaleString()} → {cs}{summary.grandTotal.toLocaleString()}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontSize: '14px', fontWeight: '800', color: '#1E293B' }}>Net Difference</span>
                                 <span style={{ fontSize: '18px', fontWeight: '900', color: summary.difference >= 0 ? '#10B981' : '#EF4444' }}>
-                                    {summary.difference >= 0 ? '+' : ''}₹{Math.abs(summary.difference).toLocaleString()}
+                                    {summary.difference >= 0 ? '+' : ''}{cs}{Math.abs(summary.difference).toLocaleString()}
                                 </span>
                             </div>
                         </div>

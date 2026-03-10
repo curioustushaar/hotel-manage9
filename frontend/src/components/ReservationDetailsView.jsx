@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ReservationDetailsView.css';
+import { useSettings } from '../context/SettingsContext';
 
 const ReservationDetailsView = ({ reservation, onClose, onUpdate }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('roomCharges');
     const [showPrintMenu, setShowPrintMenu] = useState(false);
@@ -253,7 +256,7 @@ const ReservationDetailsView = ({ reservation, onClose, onUpdate }) => {
                                                     <td>{charge.day}</td>
                                                     <td>{charge.particulars}</td>
                                                     <td>{charge.description}</td>
-                                                    <td>₹ {charge.amount}</td>
+                                                    <td>{cs} {charge.amount}</td>
                                                     <td>{charge.user}</td>
                                                     <td>
                                                         <button className="action-icon-btn">⋮</button>
@@ -379,31 +382,31 @@ const ReservationDetailsView = ({ reservation, onClose, onUpdate }) => {
                 <div className="summary-footer">
                     <div className="summary-item">
                         <label>Sub Total</label>
-                        <span>₹ {totals.subTotal}</span>
+                        <span>{cs} {totals.subTotal}</span>
                     </div>
                     <div className="summary-item">
                         <label>Grand Total</label>
-                        <span>₹ {totals.grandTotal}</span>
+                        <span>{cs} {totals.grandTotal}</span>
                     </div>
                     <div className="summary-item">
                         <label>Paid</label>
-                        <span className="paid-amount">₹ {totals.paid}</span>
+                        <span className="paid-amount">{cs} {totals.paid}</span>
                     </div>
                     <div className="summary-item">
                         <label>Sub Total</label>
-                        <span>₹ {totals.subTotal}</span>
+                        <span>{cs} {totals.subTotal}</span>
                     </div>
                     <div className="summary-item">
                         <label>Grand Total</label>
-                        <span>₹ {totals.grandTotal}</span>
+                        <span>{cs} {totals.grandTotal}</span>
                     </div>
                     <div className="summary-item highlight">
                         <label>Balance</label>
-                        <span>₹ {totals.balance}</span>
+                        <span>{cs} {totals.balance}</span>
                     </div>
                     <div className="summary-item">
                         <label>Paid</label>
-                        <span className="paid-amount">₹ {totals.paid}</span>
+                        <span className="paid-amount">{cs} {totals.paid}</span>
                     </div>
                 </div>
             </div>

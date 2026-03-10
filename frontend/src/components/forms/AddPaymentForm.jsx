@@ -1,6 +1,9 @@
 import { useState } from 'react';
+import { useSettings } from '../../context/SettingsContext';
 
 const AddPaymentForm = ({ booking, onSubmit, onCancel }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [formData, setFormData] = useState({
         paymentDate: new Date().toISOString().split('T')[0],
         paymentMethod: 'Cash',
@@ -85,10 +88,10 @@ const AddPaymentForm = ({ booking, onSubmit, onCancel }) => {
                 {/* Amount */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Amount (₹) <span className="text-red-500">*</span>
+                        Amount ({cs}) <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                        <span className="absolute left-3 top-2 text-gray-500">₹</span>
+                        <span className="absolute left-3 top-2 text-gray-500">{cs}</span>
                         <input
                             type="number"
                             name="amount"

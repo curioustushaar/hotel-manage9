@@ -130,3 +130,24 @@ input:focus {
 .btn-reserve:hover {
     background: #b91c1c;
 }
+
+.input-with-currency {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.currency-symbol {
+    position: absolute;
+    left: 10px;
+    font-size: 16px;
+    color: #666;
+    pointer-events: none;
+}
+
+.hint-text {
+    font-size: 12px;
+    color: #666;
+    margin-top: 8px;
+    font-style: italic;
+}

@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import './ReservationModal.css';
 import API_URL_CONFIG from '../config/api';
+import { useSettings } from '../context/SettingsContext';
 
 const ReservationModal = ({ table, onClose, onReserve }) => {
+    const { getCurrencySymbol } = useSettings();
+    const cs = getCurrencySymbol();
     const [formData, setFormData] = useState({
         guestName: '',
         guestPhone: '',
@@ -10,7 +13,9 @@ const ReservationModal = ({ table, onClose, onReserve }) => {
         startTime: '20:00',
         endTime: '21:00',
         guests: 4,
-        note: ''
+        note: '',
+        source: 'Phone',
+        advancePayment: 0
     });
     const [errors, setErrors] = useState({});
     const [searching, setSearching] = useState(false);
@@ -106,7 +111,7 @@ const ReservationModal = ({ table, onClose, onReserve }) => {
                             title="Search Guest"
                             style={{ cursor: 'pointer', opacity: searching ? 0.5 : 1 }}
                         >
-                            {searching ? '...' : 'Search'}
+                            {searching ? '...' : '🔍'}
 
                         </span>
                     </div>
@@ -174,6 +179,29 @@ const ReservationModal = ({ table, onClose, onReserve }) => {
                         {errors.guests && <span className="error-text">{errors.guests}</span>}
                     </div>
                     <div className="form-group half">
+                        <label>RESERVATION SOURCE</label>
+                        <select
+                            name="source"
+                            value={formData.source}
+                            onChange={handleInputChange}
+                            className="form-select"
+                            style={{
+                                width: '100%',
+                                padding: '10px',
+                                border: '1px solid #ddd',
+                                borderRadius: '6px',
+                                fontSize: '14px'
+                            }}
+                        >
+                            <option value="Phone">Phone Number</option>
+                            <option value="Walk-In">Walk In</option>
+                            <option value="Online">Online</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div className="row-group">
+                    <div className="form-group full" style={{ width: '100%' }}>
                         <label>SPECIAL NOTE</label>
                         <input
                             type="text"
@@ -185,6 +213,22 @@ const ReservationModal = ({ table, onClose, onReserve }) => {
                     </div>
                 </div>
 
+                <div className="form-group">
+                    <label>ADVANCE PAYMENT</label>
+                    <div className="input-with-currency">
+                        <span className="currency-symbol">{cs}</span>
+                        <input
+                            type="number"
+                            name="advancePayment"
+                            value={formData.advancePayment}
+                            onChange={handleInputChange}
+                            placeholder="0.00"
+                            style={{ paddingLeft: '25px', border: '2px solid #dc2626' }}
+                        />
+                    </div>
+                    <p className="hint-text">* Enter the advance amount collected from the guest.</p>
+                </div>
+
                 <div className="modal-actions">
                     <button className="btn-cancel" onClick={onClose}>Cancel</button>
                     <button className="btn-reserve" onClick={handleSubmit}>Reserve Table</button>
@@ -193,5 +237,6 @@ const ReservationModal = ({ table, onClose, onReserve }) => {
         </div>
     );
 };
+
 
 export default ReservationModal;
