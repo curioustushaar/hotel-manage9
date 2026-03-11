@@ -11,7 +11,7 @@ import ConfirmationModal from './ConfirmationModal';
 import Toast from './Toast';
 
 const FolioOperations = ({ reservation, onTotalsChange }) => {
-    const { getCurrencySymbol } = useSettings();
+    const { settings, getCurrencySymbol } = useSettings();
     const cs = getCurrencySymbol();
     const [selectedRoom, setSelectedRoom] = useState(0);
     const [showAddPayment, setShowAddPayment] = useState(false);
@@ -24,6 +24,7 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
     const [pendingRouteData, setPendingRouteData] = useState(null);
     const [isProcessingRoute, setIsProcessingRoute] = useState(false);
     const [activeMenu, setActiveMenu] = useState(null); // For three dot menu
+    const [menuPosition, setMenuPosition] = useState({ bottom: 0, right: 0 });
     const [editingItem, setEditingItem] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [allTransactions, setAllTransactions] = useState([]); // Store all transactions
@@ -477,35 +478,101 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
     };
 
     // Action handlers
+    // Print full folio statement
+    const handlePrintFolio = () => {
+        if (!currentFolioTransactions.length) return;
+        const selectedFolioData = folioList.find(f => f.id === selectedRoom);
+        const guestName = selectedFolioData?.guestName || reservation?.guestName || '';
+        const roomNo = selectedFolioData?.roomNumber || reservation?.roomNumber || '';
+        const hotelName = settings?.name || 'Hotel';
+        const address = [settings?.address, settings?.city, settings?.state].filter(Boolean).join(', ');
+
+        const rows = currentFolioTransactions.map(t => `
+            <tr>
+                <td>${t.day || ''}</td>
+                <td><strong>${t.particulars || ''}</strong></td>
+                <td style="color:#6b7280">${t.description || ''}</td>
+                <td style="text-align:right;font-weight:600;color:${t.amount < 0 ? '#16a34a' : '#111'}">
+                    ${t.amount < 0 ? '&minus; ' : ''}${cs} ${Math.abs(Number(t.amount)).toFixed(2)}
+                </td>
+                <td style="color:#9ca3af;font-size:11px">${t.user || ''}</td>
+            </tr>`).join('');
+
+        const content = `<!DOCTYPE html><html><head><title>Folio - ${roomNo}</title>
+            <style>
+                @page { size: A4; margin: 15mm; }
+                body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #111; margin: 0; }
+                .header { text-align: center; margin-bottom: 18px; }
+                .hotel-name { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+                .sub { font-size: 10px; color: #777; margin-top: 2px; }
+                .meta { display: flex; justify-content: space-between; margin: 14px 0; padding: 10px 14px;
+                    background: #f8f9fa; border-radius: 6px; font-size: 11px; }
+                .meta-col { display: flex; flex-direction: column; gap: 3px; }
+                .meta span { color: #6b7280; } .meta strong { color: #111; font-size: 12px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                th { padding: 8px 10px; text-align: left; border-bottom: 2px solid #000;
+                    font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #374151; }
+                td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+                .totals-wrap { display: flex; justify-content: flex-end; margin-top: 18px; }
+                .totals-table { width: 280px; border-collapse: collapse; }
+                .totals-table td { padding: 5px 10px; border: none; }
+                .totals-table .grand td { font-weight: 800; font-size: 14px; border-top: 2px solid #000;
+                    border-bottom: 2.5px double #000; padding-top: 8px; padding-bottom: 8px; }
+                .footer { margin-top: 30px; text-align: center; font-size: 11px; color: #9ca3af;
+                    border-top: 1px dashed #ddd; padding-top: 10px; }
+            </style></head><body>
+            <div class="header">
+                <div class="hotel-name">${hotelName}</div>
+                ${address ? `<div class="sub">${address}</div>` : ''}
+            </div>
+            <div class="meta">
+                <div class="meta-col"><span>Room No.</span><strong>${roomNo}</strong></div>
+                <div class="meta-col"><span>Guest</span><strong>${guestName}</strong></div>
+                <div class="meta-col"><span>Printed</span><strong>${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</strong></div>
+            </div>
+            <table>
+                <thead><tr>
+                    <th>Date</th><th>Particulars</th><th>Description</th>
+                    <th style="text-align:right">Amount</th><th>User</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+            <div class="totals-wrap"><table class="totals-table">
+                <tr><td>Subtotal</td><td style="text-align:right">${cs} ${totals.subTotal.toFixed(2)}</td></tr>
+                ${totals.discounts > 0 ? `<tr><td>Discount</td><td style="text-align:right;color:#dc2626">&minus; ${cs} ${totals.discounts.toFixed(2)}</td></tr>` : ''}
+                <tr class="grand"><td>Grand Total</td><td style="text-align:right">${cs} ${totals.grandTotal.toFixed(2)}</td></tr>
+                <tr><td>Paid</td><td style="text-align:right;color:#16a34a">${cs} ${totals.paid.toFixed(2)}</td></tr>
+                <tr><td style="color:${totals.remaining > 0 ? '#dc2626' : '#16a34a'};font-weight:600">Remaining</td>
+                    <td style="text-align:right;color:${totals.remaining > 0 ? '#dc2626' : '#16a34a'};font-weight:700">${cs} ${totals.remaining.toFixed(2)}</td></tr>
+            </table></div>
+            <div class="footer">Thank you for staying with us &mdash; ${hotelName}</div>
+            <script>window.onload=function(){window.print();setTimeout(()=>window.close(),500)}<\/script>
+            </body></html>`;
+
+        const w = window.open('', '_blank', 'height=700,width=900');
+        w.document.write(content);
+        w.document.close();
+    };
+
+    // Print individual receipt
     const handlePrint = (index) => {
         const item = currentFolioTransactions[index];
-        const printContent = `
-===========================================
-       TRANSACTION RECEIPT
-===========================================
-
-Date:        ${item.day}
-Type:        ${item.particulars}
-Description: ${item.description}
-Amount:      ${cs} ${Math.abs(item.amount)}
-User:        ${item.user}
-
-===========================================
-        Thank you for choosing us!
-===========================================
-        `;
-
-        // Create a downloadable text file
-        const blob = new Blob([printContent], { type: 'text/plain' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Receipt_${item.particulars}_${Date.now()}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-
+        const w = window.open('', '_blank', 'height=400,width=550');
+        w.document.write(`<!DOCTYPE html><html><head><title>Receipt</title>
+            <style>body{font-family:Arial,sans-serif;padding:20mm;font-size:12px;}
+            h3{margin:0 0 10px}table{width:100%;border-collapse:collapse;margin-top:12px}
+            td{padding:6px 0;border-bottom:1px solid #eee}.label{color:#666}.val{font-weight:700;text-align:right}
+            </style></head><body>
+            <h3>Transaction Receipt</h3>
+            <table><tr><td class=label>Date</td><td class=val>${item.day}</td></tr>
+            <tr><td class=label>Type</td><td class=val>${item.particulars}</td></tr>
+            <tr><td class=label>Description</td><td class=val>${item.description}</td></tr>
+            <tr><td class=label>Amount</td><td class=val>${cs} ${Math.abs(item.amount).toFixed(2)}</td></tr>
+            <tr><td class=label>User</td><td class=val>${item.user}</td></tr></table>
+            <p style="margin-top:20px;text-align:center;color:#999;font-size:11px">Thank you!</p>
+            <script>window.onload=function(){window.print();setTimeout(()=>window.close(),500)}<\/script>
+            </body></html>`);
+        w.document.close();
         setActiveMenu(null);
     };
 
@@ -563,8 +630,17 @@ User:        ${item.user}
         setActiveMenu(null);
     };
 
-    const toggleMenu = (index) => {
-        setActiveMenu(activeMenu === index ? null : index);
+    const toggleMenu = (index, e) => {
+        if (activeMenu === index) {
+            setActiveMenu(null);
+            return;
+        }
+        const rect = e.currentTarget.getBoundingClientRect();
+        setMenuPosition({
+            bottom: window.innerHeight - rect.top + 6,
+            right: window.innerWidth - rect.right,
+        });
+        setActiveMenu(index);
     };
 
     // Base transactions from API
@@ -691,6 +767,14 @@ User:        ${item.user}
                             Folio Operations
                         </button>
                     </div>
+                    <button
+                        className="folio-action-btn btn-print-folio"
+                        onClick={handlePrintFolio}
+                        disabled={currentFolioTransactions.length === 0}
+                        title="Print full folio"
+                    >
+                        🖨️ Print Folio
+                    </button>
                 </div>
 
                 {/* Folio Routing Section - Blank area below payment options */}
@@ -765,17 +849,10 @@ User:        ${item.user}
                                             <td style={{ textAlign: 'center', position: 'relative' }}>
                                                 <button
                                                     className="action-menu-btn"
-                                                    onClick={() => toggleMenu(index)}
+                                                    onClick={(e) => { e.stopPropagation(); toggleMenu(index, e); }}
                                                 >
                                                     ⋮
                                                 </button>
-                                                {activeMenu === index && (
-                                                    <div className="action-dropdown">
-                                                        <button onClick={() => handlePrint(index)}>🖨️ Print</button>
-                                                        <button onClick={() => handleEdit(index)}>✏️ Edit</button>
-                                                        <button onClick={() => handleVoid(index)}>🗑️ Void</button>
-                                                    </div>
-                                                )}
                                             </td>
                                         </tr>
                                     ))}
@@ -940,6 +1017,29 @@ User:        ${item.user}
                     type={toast.type}
                     onClose={() => setToast(null)}
                 />
+            )}
+
+            {/* Global fixed three-dot dropdown — renders above the row */}
+            {activeMenu !== null && (
+                <>
+                    <div
+                        style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+                        onClick={() => setActiveMenu(null)}
+                    />
+                    <div
+                        className="action-dropdown action-dropdown-fixed"
+                        style={{
+                            position: 'fixed',
+                            bottom: `${menuPosition.bottom}px`,
+                            right: `${menuPosition.right}px`,
+                            zIndex: 9999,
+                        }}
+                    >
+                        <button onClick={() => handlePrint(activeMenu)}>🖨️ Print</button>
+                        <button onClick={() => handleEdit(activeMenu)}>✏️ Edit</button>
+                        <button onClick={() => handleVoid(activeMenu)}>🗑️ Void</button>
+                    </div>
+                </>
             )}
         </div>
     );

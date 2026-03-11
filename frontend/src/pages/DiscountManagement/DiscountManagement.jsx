@@ -3,8 +3,10 @@ import './DiscountManagement.css';
 import { useSettings } from '../../context/SettingsContext';
 
 const DiscountManagement = () => {
-    const { getCurrencySymbol } = useSettings();
+    const { getCurrencySymbol, settings } = useSettings();
     const cs = getCurrencySymbol();
+    const maxDiscount = parseFloat(settings?.discountRules?.maxDiscount) || 0;
+    const maxDiscountType = settings?.discountRules?.maxDiscountType || 'PERCENTAGE';
     const [discounts, setDiscounts] = useState([]);
     const [selectedDiscount, setSelectedDiscount] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
@@ -132,6 +134,19 @@ const DiscountManagement = () => {
 
         if (formData.type === 'PERCENTAGE' && formData.value > 100) {
             errors.value = 'Percentage cannot exceed 100%';
+        }
+
+        // Enforce company max discount limit
+        if (maxDiscount > 0 && formData.value > 0) {
+            if (formData.type === 'PERCENTAGE' && maxDiscountType === 'PERCENTAGE') {
+                if (parseFloat(formData.value) > maxDiscount) {
+                    errors.value = `Discount cannot exceed the company max limit of ${maxDiscount}%`;
+                }
+            } else if (formData.type === 'FLAT' && maxDiscountType === 'FLAT') {
+                if (parseFloat(formData.value) > maxDiscount) {
+                    errors.value = `Discount cannot exceed the company max limit of ${cs}${maxDiscount}`;
+                }
+            }
         }
 
         if (formData.appliesTo.length === 0) {
@@ -420,7 +435,14 @@ const DiscountManagement = () => {
                             <div className="form-group">
                                 <label>
                                     Discount Value <span className="required">*</span>
-                                    {formData.type === 'PERCENTAGE' && <span className="label-hint">(0-100%)</span>}
+                                    {formData.type === 'PERCENTAGE' && (
+                                        <span className="label-hint">
+                                            (0-{maxDiscountType === 'PERCENTAGE' && maxDiscount > 0 ? maxDiscount : 100}%)
+                                        </span>
+                                    )}
+                                    {formData.type === 'FLAT' && maxDiscountType === 'FLAT' && maxDiscount > 0 && (
+                                        <span className="label-hint"> (Max {cs}{maxDiscount})</span>
+                                    )}
                                 </label>
                                 <div className="input-with-prefix">
                                     {formData.type === 'FLAT' && <span className="input-prefix">{cs}</span>}
@@ -430,7 +452,11 @@ const DiscountManagement = () => {
                                         value={formData.value}
                                         onChange={(e) => setFormData({ ...formData, value: e.target.value })}
                                         min="0"
-                                        max={formData.type === 'PERCENTAGE' ? '100' : undefined}
+                                        max={
+                                            formData.type === 'PERCENTAGE'
+                                                ? (maxDiscountType === 'PERCENTAGE' && maxDiscount > 0 ? maxDiscount : 100)
+                                                : (maxDiscountType === 'FLAT' && maxDiscount > 0 ? maxDiscount : undefined)
+                                        }
                                         className={formErrors.value ? 'error' : ''}
                                     />
                                     {formData.type === 'PERCENTAGE' && <span className="input-suffix">%</span>}

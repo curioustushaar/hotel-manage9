@@ -37,7 +37,7 @@ const defaultSettings = {
     printKOTHeader: true,
     paymentModes: { cash: true, upi: true, card: true, bankTransfer: true },
     billingRules: { autoPost: true, mandatorySettlement: true, splitBill: true, mergeTable: true, addToRoom: true },
-    discountRules: { maxDiscount: 25, managerApproval: true, couponEnabled: true }
+    discountRules: { maxDiscount: 25, maxDiscountType: 'PERCENTAGE', managerApproval: true, couponEnabled: true }
 };
 
 export const SettingsProvider = ({ children }) => {

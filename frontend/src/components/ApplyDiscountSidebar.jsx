@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import './ApplyDiscountSidebar.css';
 
 const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
-    const { getCurrencySymbol } = useSettings();
+    const { settings, getCurrencySymbol } = useSettings();
     const cs = getCurrencySymbol();
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -16,6 +16,27 @@ const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [autoFilledSource, setAutoFilledSource] = useState('');
+
+    // Auto-fill discount from active rules on open
+    useEffect(() => {
+        try {
+            const discounts = JSON.parse(localStorage.getItem('discounts') || '[]');
+            const match = discounts.find(
+                d => d.status === 'ACTIVE' && d.autoApply &&
+                Array.isArray(d.appliesTo) &&
+                (d.appliesTo.includes('ROOM') || d.appliesTo.includes('BILL'))
+            );
+            if (match) {
+                setFormData(prev => ({
+                    ...prev,
+                    discountType: match.type === 'FLAT' ? 'amount' : 'percentage',
+                    discountValue: String(match.value)
+                }));
+                setAutoFilledSource(match.name);
+            }
+        } catch { /* ignore parse errors */ }
+    }, []);
 
     const handleSubmit = async () => {
         if (!formData.discountValue) {
@@ -23,21 +44,36 @@ const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
             return;
         }
 
-        if (formData.discountType === 'percentage' && (formData.discountValue < 0 || formData.discountValue > 100)) {
+        if (formData.discountType === 'percentage' && (parseFloat(formData.discountValue) < 0 || parseFloat(formData.discountValue) > 100)) {
             alert('Discount percentage must be between 0 and 100');
             return;
         }
 
-        if (formData.discountType === 'amount' && formData.discountValue < 0) {
+        if (formData.discountType === 'amount' && parseFloat(formData.discountValue) < 0) {
             alert('Discount amount must be greater than 0');
             return;
         }
 
+        // Enforce company max discount
+        const maxDiscount = parseFloat(settings.discountRules?.maxDiscount) || 0;
+        const maxDiscountType = settings.discountRules?.maxDiscountType || 'PERCENTAGE';
+        if (maxDiscount > 0 && parseFloat(formData.discountValue) > 0) {
+            if (formData.discountType === 'percentage' && maxDiscountType === 'PERCENTAGE') {
+                if (parseFloat(formData.discountValue) > maxDiscount) {
+                    alert(`Discount cannot exceed company max limit of ${maxDiscount}%`);
+                    return;
+                }
+            } else if (formData.discountType === 'amount' && maxDiscountType === 'FLAT') {
+                if (parseFloat(formData.discountValue) > maxDiscount) {
+                    alert(`Discount cannot exceed company max limit of ${cs}${maxDiscount}`);
+                    return;
+                }
+            }
+        }
+
         setIsSubmitting(true);
         try {
-            // Call the parent handler and wait for it to complete
             await onApply(formData);
-            // Parent will handle closing the sidebar and showing toast
         } catch (error) {
             console.error('Error applying discount:', error);
             alert('Failed to apply discount. Please try again.');
@@ -107,15 +143,32 @@ const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
 
                     {/* Discount Value Field */}
                     <div className="apply-discount-field">
-                        <label>Discount <span className="required">*</span></label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            Discount <span className="required">*</span>
+                            {autoFilledSource && (
+                                <span style={{ fontWeight: 400, fontSize: '11px', color: '#16a34a' }}>
+                                    ✓ Auto-filled: {autoFilledSource}
+                                </span>
+                            )}
+                        </label>
                         <input
                             type="number"
                             value={formData.discountValue}
-                            onChange={(e) => handleChange('discountValue', e.target.value)}
+                            onChange={(e) => {
+                                handleChange('discountValue', e.target.value);
+                                if (autoFilledSource && !autoFilledSource.endsWith('(Edited)')) {
+                                    setAutoFilledSource(prev => `${prev} (Edited)`);
+                                }
+                            }}
                             placeholder={formData.discountType === 'percentage' ? 'Enter discount percentage' : 'Enter discount amount'}
                             min="0"
                             max={formData.discountType === 'percentage' ? '100' : undefined}
                         />
+                        {settings.discountRules?.maxDiscount > 0 && (
+                            <span style={{ fontSize: '11px', color: '#6b7280', marginTop: '3px', display: 'block' }}>
+                                Max allowed: {settings.discountRules.maxDiscount}{settings.discountRules?.maxDiscountType === 'FLAT' ? ` ${cs}` : '%'}
+                            </span>
+                        )}
                     </div>
 
                     {/* Folio Field */}

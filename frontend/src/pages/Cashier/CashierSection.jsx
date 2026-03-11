@@ -550,6 +550,19 @@ const CashierSection = () => {
 const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checkedInRooms = [] }) => {
     const { settings, getCurrencySymbol, formatDate } = useSettings();
     const cs = getCurrencySymbol();
+
+    // Food items are always priced BEFORE tax (exclusive), so always add GST on top
+    const computedSubtotal = order ? order.items.reduce((s, i) => s + i.amount, 0) : 0;
+    const foodGstPct = parseFloat(settings.foodGst) || 0;
+    const svcChargePct = parseFloat(settings.roomServiceCharge) || 0;
+    let taxAmtComputed = 0, svcAmtComputed = 0;
+    let grandTotalComputed = computedSubtotal;
+    if (computedSubtotal > 0) {
+        taxAmtComputed = Math.round(computedSubtotal * foodGstPct / 100);
+        svcAmtComputed = Math.round(computedSubtotal * svcChargePct / 100);
+        grandTotalComputed = computedSubtotal + taxAmtComputed + svcAmtComputed;
+    }
+
     // State for payment interactions
     const [paymentMode, setPaymentMode] = useState('Cash');
     const [paymentType, setPaymentType] = useState('Direct Payment');
@@ -561,6 +574,12 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
     const [showPrintDropdown, setShowPrintDropdown] = useState(false);
     const [showEditBill, setShowEditBill] = useState(false);
     const [editItems, setEditItems] = useState([]);
+
+    // Discount states
+    const [discountType, setDiscountType] = useState('PERCENTAGE');
+    const [discountValue, setDiscountValue] = useState('');
+    const [discountSource, setDiscountSource] = useState('');
+
     const printDropdownRef = useRef(null);
 
     // Initial state reset when order changes
@@ -570,10 +589,36 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
             const defaultPayMode = settings.paymentModes?.cash !== false ? 'Cash' : firstMode;
             setPaymentMode(defaultPayMode);
             setPaymentType('Direct Payment');
-            setReceivedAmount(order.amount.toString());
             setIsTendered(false);
             setShowPrintDropdown(false);
             setShowEditBill(false);
+
+            // Auto-fill discount from rules for food/all-bill orders
+            let autoDiscType = 'PERCENTAGE', autoDiscVal = '', autoDiscSrc = '';
+            try {
+                const discounts = JSON.parse(localStorage.getItem('discounts') || '[]');
+                const match = discounts.find(
+                    d => d.status === 'ACTIVE' && d.autoApply &&
+                    Array.isArray(d.appliesTo) &&
+                    (d.appliesTo.includes('FOOD') || d.appliesTo.includes('BILL'))
+                );
+                if (match) {
+                    autoDiscType = match.type === 'FLAT' ? 'FLAT' : 'PERCENTAGE';
+                    autoDiscVal = String(match.value);
+                    autoDiscSrc = match.name;
+                }
+            } catch { /* ignore */ }
+            setDiscountType(autoDiscType);
+            setDiscountValue(autoDiscVal);
+            setDiscountSource(autoDiscSrc);
+
+            // Set received amount to net after auto-discount
+            const autoDiscAmt = autoDiscVal
+                ? autoDiscType === 'PERCENTAGE'
+                    ? Math.round(grandTotalComputed * (parseFloat(autoDiscVal) || 0) / 100)
+                    : parseFloat(autoDiscVal) || 0
+                : 0;
+            setReceivedAmount(Math.max(0, grandTotalComputed - autoDiscAmt).toString());
 
             // Pre-fill room number if it's a Room order
             if (order.type === 'Room' && order.name.includes('Room')) {
@@ -593,6 +638,9 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
             setIsTendered(false);
             setShowPrintDropdown(false);
             setShowEditBill(false);
+            setDiscountValue('');
+            setDiscountSource('');
+            setDiscountType('PERCENTAGE');
         }
     }, [order, checkedInRooms]);
 
@@ -611,16 +659,28 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
     useEffect(() => {
         if (order && receivedAmount) {
             const received = parseFloat(receivedAmount);
-            const billAmount = order.amount;
             if (!isNaN(received)) {
-                setReturnAmount(received - billAmount);
+                const discAmt = discountValue
+                    ? discountType === 'PERCENTAGE'
+                        ? Math.round(grandTotalComputed * (parseFloat(discountValue) || 0) / 100)
+                        : parseFloat(discountValue) || 0
+                    : 0;
+                setReturnAmount(received - Math.max(0, grandTotalComputed - discAmt));
             } else {
                 setReturnAmount(0);
             }
         } else {
             setReturnAmount(0);
         }
-    }, [receivedAmount, order]);
+    }, [receivedAmount, order, discountType, discountValue, grandTotalComputed]);
+
+    // Discount + net payable computation
+    const discountAmt = discountValue
+        ? discountType === 'PERCENTAGE'
+            ? Math.round(grandTotalComputed * (parseFloat(discountValue) || 0) / 100)
+            : parseFloat(discountValue) || 0
+        : 0;
+    const netAfterDiscount = Math.max(0, grandTotalComputed - discountAmt);
 
     const printFormats = [
         { key: 'a4', label: 'A4', icon: '📄', pageSize: '210mm 297mm', bodyWidth: '190mm' },
@@ -754,16 +814,21 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                         <span>${cs} ${order.items.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</span>
                     </div>
                     ${parseFloat(settings.foodGst) > 0 ? `<div class="total-row">
-                        <span>Food GST (${settings.foodGst}%)${settings.inclusiveTax ? ' (incl.)' : ''}</span>
-                        <span>${cs} ${settings.inclusiveTax ? Math.round(order.items.reduce((s,i)=>s+i.amount,0) - order.items.reduce((s,i)=>s+i.amount,0)*100/(100+parseFloat(settings.foodGst||0)+parseFloat(settings.roomServiceCharge||0))).toFixed(2) : Math.round(order.items.reduce((s,i)=>s+i.amount,0)*parseFloat(settings.foodGst)/100).toFixed(2)}</span>
+                        <span>Food GST (${settings.foodGst}%)</span>
+                        <span>${cs} ${Math.round(order.items.reduce((s,i)=>s+i.amount,0)*parseFloat(settings.foodGst)/100).toFixed(2)}</span>
                     </div>` : ''}
-                    ${!settings.inclusiveTax && parseFloat(settings.roomServiceCharge) > 0 ? `<div class="total-row">
+                    ${parseFloat(settings.roomServiceCharge) > 0 ? `<div class="total-row">
                         <span>Service Charge (${settings.roomServiceCharge}%)</span>
                         <span>${cs} ${Math.round(order.items.reduce((s,i)=>s+i.amount,0)*parseFloat(settings.roomServiceCharge)/100).toFixed(2)}</span>
                     </div>` : ''}
                     <div class="grand-total">
                         <span>NET PAYABLE</span>
-                        <span>${cs} ${order.amount.toFixed(2)}</span>
+                        <span>${cs} ${(() => {
+                            const sub = order.items.reduce((s,i)=>s+i.amount,0);
+                            const fGst = parseFloat(settings.foodGst)||0;
+                            const sSvc = parseFloat(settings.roomServiceCharge)||0;
+                            return (sub + Math.round(sub*fGst/100) + Math.round(sub*sSvc/100)).toFixed(2);
+                        })()}</span>
                     </div>
                 </div>
 
@@ -822,14 +887,14 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
         // Validation for "Direct Payment"
         if (paymentType === 'Direct Payment') {
             const received = parseFloat(receivedAmount) || 0;
-            if (received < order.amount) {
+            if (received < netAfterDiscount) {
                 alert('⚠️ Received amount cannot be less than bill amount!');
                 return;
             }
         }
 
         // Trigger completion callback
-        onPaymentComplete(order.id, order.amount, paymentMode, paymentType, targetRoom);
+        onPaymentComplete(order.id, netAfterDiscount, paymentMode, paymentType, targetRoom);
         setIsTendered(true);
     };
 
@@ -908,47 +973,84 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                 </div>
 
                 {/* Summary Totals */}
-                {(() => {
-                    const subtotal = displayOrder.items.reduce((s, i) => s + i.amount, 0);
-                    const foodGstPct = parseFloat(settings.foodGst) || 0;
-                    const svcChargePct = parseFloat(settings.roomServiceCharge) || 0;
-                    const isInclusive = settings.inclusiveTax;
-                    let taxAmt = 0, svcAmt = 0, grandTotal = subtotal;
-                    if (!isInclusive && subtotal > 0) {
-                        taxAmt = Math.round(subtotal * foodGstPct / 100);
-                        svcAmt = Math.round(subtotal * svcChargePct / 100);
-                        grandTotal = subtotal + taxAmt + svcAmt;
-                    } else if (isInclusive && subtotal > 0) {
-                        // extract from inclusive price
-                        const rate = foodGstPct + svcChargePct;
-                        taxAmt = Math.round(subtotal - subtotal * 100 / (100 + rate));
-                        grandTotal = subtotal;
-                    }
-                    return (
-                        <div className="bill-summary-panel">
-                            <div className="summary-row-modern">
-                                <span>Subtotal</span>
-                                <span>{cs} {subtotal.toFixed(0)}</span>
+                <div className="bill-summary-panel">
+                    <div className="summary-row-modern">
+                        <span>Subtotal</span>
+                        <span>{cs} {computedSubtotal.toFixed(0)}</span>
+                    </div>
+                    {foodGstPct > 0 && (
+                        <div className="summary-row-modern">
+                            <span>Food GST ({foodGstPct}%)</span>
+                            <span>{cs} {taxAmtComputed.toFixed(0)}</span>
+                        </div>
+                    )}
+                    {svcChargePct > 0 && (
+                        <div className="summary-row-modern">
+                            <span>Service Charge ({svcChargePct}%)</span>
+                            <span>{cs} {svcAmtComputed.toFixed(0)}</span>
+                        </div>
+                    )}
+                    <div className="summary-row-modern grand-total-highlight">
+                        <span>Grand Total</span>
+                        <span>{cs} {grandTotalComputed.toFixed(0)}</span>
+                    </div>
+
+                    {/* Discount Section */}
+                    {!isPlaceholder && (
+                        <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '10px', marginTop: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '4px' }}>
+                                <span style={{ fontWeight: 600, fontSize: '13px', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    Discount
+                                    {discountSource && (
+                                        <span style={{ fontWeight: 400, fontSize: '10px', color: '#16a34a' }}>
+                                            ✓ {discountSource}
+                                        </span>
+                                    )}
+                                </span>
+                                <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', border: '1px solid #d1d5db', borderRadius: '4px', overflow: 'hidden' }}>
+                                        <button type="button" onClick={() => setDiscountType('PERCENTAGE')}
+                                            style={{ padding: '3px 8px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '12px',
+                                                background: discountType === 'PERCENTAGE' ? '#1d4ed8' : '#f9fafb',
+                                                color: discountType === 'PERCENTAGE' ? '#fff' : '#374151' }}>%</button>
+                                        <button type="button" onClick={() => setDiscountType('FLAT')}
+                                            style={{ padding: '3px 8px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '12px',
+                                                background: discountType === 'FLAT' ? '#1d4ed8' : '#f9fafb',
+                                                color: discountType === 'FLAT' ? '#fff' : '#374151' }}>{cs}</button>
+                                    </div>
+                                    <input
+                                        type="number"
+                                        value={discountValue}
+                                        onChange={(e) => {
+                                            setDiscountValue(e.target.value);
+                                            setDiscountSource(prev => e.target.value
+                                                ? (prev && !prev.endsWith('(Edited)') ? `${prev} (Edited)` : prev || 'Manual')
+                                                : '');
+                                        }}
+                                        placeholder={discountType === 'PERCENTAGE' ? '0 %' : '0'}
+                                        min="0"
+                                        max={discountType === 'PERCENTAGE' ? '100' : undefined}
+                                        style={{ width: '68px', padding: '3px 6px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px' }}
+                                    />
+                                    {discountValue && (
+                                        <button type="button" onClick={() => { setDiscountValue(''); setDiscountSource(''); }}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '16px', lineHeight: 1, padding: '0 2px' }}>×</button>
+                                    )}
+                                </div>
                             </div>
-                            {foodGstPct > 0 && (
-                                <div className="summary-row-modern">
-                                    <span>Food GST ({foodGstPct}%){isInclusive ? ' (incl.)' : ''}</span>
-                                    <span>{cs} {taxAmt.toFixed(0)}</span>
+                            {discountAmt > 0 && (
+                                <div className="summary-row-modern" style={{ color: '#dc2626' }}>
+                                    <span>Discount ({discountType === 'PERCENTAGE' ? `${discountValue}%` : `${cs}${discountValue}`})</span>
+                                    <span>−{cs} {discountAmt.toFixed(0)}</span>
                                 </div>
                             )}
-                            {svcChargePct > 0 && !isInclusive && (
-                                <div className="summary-row-modern">
-                                    <span>Service Charge ({svcChargePct}%)</span>
-                                    <span>{cs} {svcAmt.toFixed(0)}</span>
-                                </div>
-                            )}
-                            <div className="summary-row-modern grand-total-highlight">
-                                <span>Grand Total</span>
-                                <span>{cs} {(order ? order.amount : grandTotal).toFixed(0)}</span>
+                            <div className="summary-row-modern" style={{ fontWeight: 700, color: '#15803d', borderTop: '1.5px solid #e2e8f0', paddingTop: '6px', marginTop: '4px' }}>
+                                <span>Net Payable</span>
+                                <span>{cs} {netAfterDiscount.toFixed(0)}</span>
                             </div>
                         </div>
-                    );
-                })()}
+                    )}
+                </div>
             </div>
 
             {/* RIGHT PANEL: Payment Section */}
@@ -999,8 +1101,8 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                 </div>
 
                 <div className="total-indicator-strip">
-                    <span>Grand Total</span>
-                    <span className="big-sum">{cs}{displayOrder.amount.toFixed(2)}</span>
+                    <span>{discountAmt > 0 ? 'Net Payable' : 'Grand Total'}</span>
+                    <span className="big-sum">{cs}{netAfterDiscount.toFixed(2)}</span>
                 </div>
 
                 {paymentType === 'Direct Payment' ? (
@@ -1074,7 +1176,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                         {selectedBooking && !isPlaceholder && (
                             <div className="folio-confirm-banner">
                                 <span className="info-icon">ℹ️</span>
-                                <p>Are you sure you want to transfer {cs}{displayOrder.amount.toFixed(2)} to Room {targetRoom} Folio?</p>
+                                <p>Are you sure you want to transfer {cs}{netAfterDiscount.toFixed(2)} to Room {targetRoom} Folio?</p>
                             </div>
                         )}
                     </div>
@@ -1181,8 +1283,12 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                                 <button className="edit-bill-save" onClick={() => {
                                     if (order) {
                                         order.items = editItems;
-                                        order.amount = editItems.reduce((s, i) => s + i.amount, 0);
-                                        setReceivedAmount(order.amount.toString());
+                                        const newSubtotal = editItems.reduce((s, i) => s + i.amount, 0);
+                                        const fGst = parseFloat(settings.foodGst) || 0;
+                                        const sSvc = parseFloat(settings.roomServiceCharge) || 0;
+                                        const newGrandTotal = newSubtotal + Math.round(newSubtotal * fGst / 100) + Math.round(newSubtotal * sSvc / 100);
+                                        order.amount = newGrandTotal;
+                                        setReceivedAmount(newGrandTotal.toString());
                                         setIsTendered(false);
                                     }
                                     setShowEditBill(false);
@@ -1199,7 +1305,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                 >
                     {isTendered
                         ? '✅ Payment Settled — Select Print Format'
-                        : paymentType === 'Add to Room' ? 'Post to Room Folio' : `Tender ${cs} ${displayOrder.amount.toFixed(0)}`
+                        : paymentType === 'Add to Room' ? 'Post to Room Folio' : `Tender ${cs} ${netAfterDiscount.toFixed(0)}`
                     }
                 </button>
 
