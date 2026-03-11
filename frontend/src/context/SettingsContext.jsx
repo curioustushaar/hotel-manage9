@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import API_URL from '../config/api';
 
 const SettingsContext = createContext(null);
 
@@ -46,7 +47,7 @@ export const SettingsProvider = ({ children }) => {
 
     const fetchSettings = useCallback(async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/hotel/settings');
+            const res = await fetch(`${API_URL}/api/hotel/settings`);
             const data = await res.json();
             if (data.success && data.data) {
                 setSettings(prev => ({ ...prev, ...data.data }));
