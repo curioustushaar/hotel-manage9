@@ -1,16 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
-import { Calendar, ChevronRight, X, LayoutGrid, CheckCircle2 } from 'lucide-react';
 import API_URL from '../../config/api';
 import { useSettings } from '../../context/SettingsContext';
 
 const ExchangeRoomForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
     const { getCurrencySymbol } = useSettings();
     const cs = getCurrencySymbol();
+
     const [reservation, setReservation] = useState(null);
     const [availableRooms, setAvailableRooms] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errors, setErrors] = useState({});
 
     const [formData, setFormData] = useState({
         targetCategory: '',
@@ -20,469 +20,208 @@ const ExchangeRoomForm = ({ booking: initialBooking, onSubmit, onCancel }) => {
     });
 
     useEffect(() => {
-        const fetchReservation = async () => {
+        const fetchData = async () => {
             try {
-                const res = await axios.get(`${API_URL}/api/reservations/${initialBooking._id || initialBooking.id}`);
-                const data = res.data.data;
-                setReservation(data);
-
-                const roomsResp = await axios.get(`${API_URL}/api/rooms/available?from=${data.checkInDate}&to=${data.checkOutDate}`);
-                setAvailableRooms(roomsResp.data.data || []);
+                const resResponse = await fetch(`${API_URL}/api/reservations/${initialBooking._id || initialBooking.id}`);
+                const resResult = await resResponse.json();
+                if (resResult.success) {
+                    setReservation(resResult.data);
+                    const roomsResponse = await fetch(`${API_URL}/api/rooms/available?from=${resResult.data.checkInDate}&to=${resResult.data.checkOutDate}`);
+                    const roomsResult = await roomsResponse.json();
+                    setAvailableRooms(roomsResult.data || []);
+                }
             } catch (err) {
                 console.error('Error fetching data:', err);
-                alert('Failed to load reservation details');
             } finally {
                 setLoading(false);
             }
         };
-
-        if (initialBooking?._id || initialBooking?.id) {
-            fetchReservation();
-        }
+        if (initialBooking?._id || initialBooking?.id) fetchData();
     }, [initialBooking]);
 
     const categories = useMemo(() => {
-        const uniqueCats = [...new Set(availableRooms.map(r => r.roomType))];
-        return uniqueCats.sort();
+        return [...new Set(availableRooms.map(r => r.roomType))].sort();
     }, [availableRooms]);
-
-    const adjustment = useMemo(() => {
-        if (!formData.newRoomId || !reservation) return { total: 0, diff: 0, nights: 0, oldTotal: reservation?.grandTotal || 0 };
-
-        const oldPrice = reservation.ratePerNight || 0;
-        const selectedRoom = availableRooms.find(r => r._id === formData.newRoomId);
-        const newPrice = selectedRoom ? selectedRoom.price : 0;
-        const diff = newPrice - oldPrice;
-
-        const checkOutDate = new Date(reservation.checkOutDate);
-        const effectiveDate = new Date(formData.effectiveDate);
-        effectiveDate.setHours(0, 0, 0, 0);
-        checkOutDate.setHours(0, 0, 0, 0);
-
-        const remainingNights = Math.max(0, Math.ceil((checkOutDate - effectiveDate) / (1000 * 60 * 60 * 24)));
-        return {
-            diff,
-            nights: remainingNights,
-            total: diff * remainingNights,
-            newPrice,
-            oldTotal: reservation.grandTotal || 0, // Fallback if grandTotal is missing
-            remainingNights // Exposed directly for UI if needed separately
-        };
-    }, [formData.newRoomId, formData.effectiveDate, reservation, availableRooms]);
-
-    const remainingNightsCurrent = useMemo(() => {
-        if (!reservation) return 0;
-        const checkOutDate = new Date(reservation.checkOutDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        checkOutDate.setHours(0, 0, 0, 0);
-        return Math.max(0, Math.ceil((checkOutDate - today) / (1000 * 60 * 60 * 24)));
-    }, [reservation]);
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        if (name === 'targetCategory') {
-            setFormData(prev => ({ ...prev, [name]: value, newRoomId: '' }));
-        } else {
-            setFormData(prev => ({ ...prev, [name]: value }));
-        }
-    };
-
-    const confirmExchange = async (e) => {
-        e.preventDefault();
-        if (!formData.newRoomId) return;
-
-        const effective = new Date(formData.effectiveDate);
-        const checkOut = new Date(reservation.checkOutDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        if (effective < today) return alert('Effective date cannot be in the past');
-        if (effective > checkOut) return alert('Effective date cannot be after checkout');
-
-        const selectedRoom = availableRooms.find(r => r._id === formData.newRoomId);
-        if (selectedRoom && selectedRoom.roomNumber === reservation.roomNumber) {
-            return alert('Cannot exchange to the same room');
-        }
-
-        setIsSubmitting(true);
-        try {
-            const response = await axios.put(`${API_URL}/api/reservations/${reservation._id}/exchange-room`, {
-                newRoomId: formData.newRoomId,
-                newRoomNumber: selectedRoom.roomNumber, // Send number for safety
-                reason: formData.reason,
-                effectiveDate: formData.effectiveDate
-            });
-
-            if (response.data.success) {
-                await onSubmit(response.data.data);
-            }
-        } catch (err) {
-            alert(err.response?.data?.message || 'Error processing exchange');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    if (loading) return <div className="p-10 text-center text-gray-400">Loading details...</div>;
-    if (!reservation) return <div className="p-10 text-center text-red-500">Stay record not found</div>;
 
     const filteredRooms = formData.targetCategory
         ? availableRooms.filter(r => r.roomType === formData.targetCategory)
         : [];
 
-    const selectedRoomDetails = availableRooms.find(r => r._id === formData.newRoomId);
+    const selectedRoom = availableRooms.find(r => r._id === formData.newRoomId);
+
+    const adjustment = useMemo(() => {
+        if (!formData.newRoomId || !reservation) return { total: 0, diff: 0, nights: 0, newPrice: 0 };
+        const oldPrice = reservation.ratePerNight || 0;
+        const newPrice = selectedRoom?.price || 0;
+        const diff = newPrice - oldPrice;
+        const checkOut = new Date(reservation.checkOutDate);
+        const effective = new Date(formData.effectiveDate);
+        effective.setHours(0, 0, 0, 0);
+        checkOut.setHours(0, 0, 0, 0);
+        const remainingNights = Math.max(0, Math.ceil((checkOut - effective) / (1000 * 60 * 60 * 24)));
+        return { diff, nights: remainingNights, total: diff * remainingNights, newPrice };
+    }, [formData.newRoomId, formData.effectiveDate, reservation, selectedRoom]);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        if (name === 'targetCategory') {
+            setFormData(prev => ({ ...prev, targetCategory: value, newRoomId: '' }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
+        if (errors[name]) setErrors(prev => { const u = { ...prev }; delete u[name]; return u; });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const newErrors = {};
+        if (!formData.newRoomId) newErrors.newRoomId = 'Please select a room';
+        if (!formData.reason.trim()) newErrors.reason = 'Reason is required';
+
+        const effective = new Date(formData.effectiveDate);
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        if (effective < today) newErrors.effectiveDate = 'Cannot be in the past';
+        if (reservation && effective > new Date(reservation.checkOutDate)) newErrors.effectiveDate = 'Cannot be after checkout';
+        if (selectedRoom?.roomNumber === reservation?.roomNumber) newErrors.newRoomId = 'Cannot exchange to same room';
+
+        setErrors(newErrors);
+        if (Object.keys(newErrors).length > 0) return;
+
+        setIsSubmitting(true);
+        try {
+            await onSubmit({
+                newRoomId: formData.newRoomId,
+                newRoomNumber: selectedRoom?.roomNumber,
+                reason: formData.reason,
+                effectiveDate: formData.effectiveDate
+            });
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '16px' }}>
+                <div style={{ width: '40px', height: '40px', border: '4px solid #f3f3f3', borderTop: '4px solid #E11D48', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                <span style={{ fontWeight: '600', color: '#64748B' }}>Loading exchange details...</span>
+                <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+            </div>
+        );
+    }
+
+    if (!reservation) {
+        return (
+            <div style={{ padding: '40px', textAlign: 'center' }}>
+                <p style={{ color: '#EF4444', fontWeight: '600' }}>Stay record not found</p>
+            </div>
+        );
+    }
+
+    const labelStyle = { fontSize: '12px', fontWeight: '700', color: '#64748B', marginBottom: '6px', display: 'block' };
+    const boxStyle = { backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '12px 14px' };
+    const errorStyle = { color: '#EF4444', fontSize: '11px', marginTop: '4px', fontWeight: '600' };
 
     return (
-        <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100%',
-            backgroundColor: '#ffffff',
-            fontFamily: "'Outfit', 'Inter', sans-serif",
-            margin: '-20px'
-        }}>
-            {/* REF & GUEST Row */}
-            <div style={{
-                padding: '12px 24px',
-                borderBottom: '1px solid #f1f5f9',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                fontSize: '14px',
-                color: '#64748b',
-                fontWeight: '500'
-            }}>
-                <span style={{ color: '#94a3b8' }}>{reservation.reservationId || 'REF-XXXX'}</span>
-                <span style={{ color: '#e2e8f0' }}>|</span>
-                <span style={{ color: '#1e293b', fontWeight: '700' }}>{reservation.guestName}</span>
-            </div>
+        <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden" style={{ backgroundColor: '#F8FAFC', color: '#1E293B' }}>
+            <div className="flex-1 overflow-y-auto p-6" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-            <form onSubmit={confirmExchange} style={{
-                flex: 1,
-                padding: '24px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '20px',
-                overflowY: 'auto'
-            }}>
-                {/* Current Room Details Card */}
-                <div style={{
-                    backgroundColor: '#fff',
-                    borderRadius: '12px',
-                    border: '1px solid #f1f5f9',
-                    overflow: 'hidden',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                }}>
-                    <div style={{
-                        padding: '12px 16px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        backgroundColor: '#f8fafc',
-                        borderBottom: '1px solid #e2e8f0',
-                        color: '#64748b',
-                        fontWeight: '600',
-                        fontSize: '13px',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
-                    }}>
-                        <LayoutGrid size={16} />
-                        Current Room Details:
+                {/* Guest Banner */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFFFFF', padding: '12px 16px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                    <div>
+                        <span style={{ fontSize: '11px', fontWeight: '800', color: '#94A3B8', display: 'block' }}>GUEST</span>
+                        <span style={{ fontSize: '15px', fontWeight: '800', color: '#1E293B' }}>{reservation.guestName}</span>
                     </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        {/* Room Number & Category Row */}
-                        <div style={{
-                            display: 'flex',
-                            padding: '16px',
-                            borderBottom: '1px solid #f1f5f9',
-                            alignItems: 'center',
-                            justifyContent: 'space-between'
-                        }}>
-                            <div style={{ display: 'flex', gap: '6px', fontSize: '15px', color: '#475569', fontWeight: '500' }}>
-                                Room <span style={{ fontWeight: '700', color: '#0f172a' }}>{reservation.roomNumber || '---'}</span>
-                            </div>
-                            <div style={{ fontSize: '15px', fontWeight: '600', color: '#334155' }}>
-                                {reservation.roomType || 'Standard'}
-                            </div>
-                        </div>
-
-                        {/* Rate Row */}
-                        <div style={{
-                            display: 'flex',
-                            padding: '16px',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            backgroundColor: '#fff'
-                        }}>
-                            <div style={{ fontSize: '15px', color: '#475569', fontWeight: '500' }}>Rate per Night</div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ fontWeight: '700', color: '#0f172a', fontSize: '15px' }}>
-                                    {cs}{reservation.ratePerNight?.toLocaleString() || '0'}
-                                </span>
-                                <ChevronRight size={16} color="#cbd5e1" />
-                            </div>
-                        </div>
+                    <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: '11px', fontWeight: '800', color: '#94A3B8', display: 'block' }}>CURRENT ROOM</span>
+                        <span style={{ fontSize: '15px', fontWeight: '800', color: '#1E293B' }}>{reservation.roomNumber} · {reservation.roomType || 'Standard'}</span>
                     </div>
                 </div>
 
-                {/* Exchange To Card */}
-                <div style={{
-                    backgroundColor: '#fff',
-                    borderRadius: '12px',
-                    border: '1px solid #f1f5f9',
-                    overflow: 'hidden',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                }}>
-                    {/* Category Selector Row */}
-                    <div style={{
-                        position: 'relative',
-                        display: 'flex',
-                        padding: '16px',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        borderBottom: '1px solid #f1f5f9'
-                    }}>
-                        <label style={{ fontSize: '15px', fontWeight: '700', color: '#475569' }}>Exchange To:</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '15px', fontWeight: '600', color: formData.targetCategory ? '#0f172a' : '#94a3b8' }}>
-                                {formData.targetCategory || 'Select Category'}
-                            </span>
-                            <ChevronRight size={16} color="#cbd5e1" />
-                        </div>
-                        <select
-                            name="targetCategory"
-                            value={formData.targetCategory}
-                            onChange={handleChange}
-                            style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                height: '100%',
-                                opacity: 0,
-                                cursor: 'pointer'
-                            }}
-                        >
-                            <option value="">Select Category</option>
-                            {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                        </select>
-                    </div>
-
-                    {/* Room Selector Row */}
-                    <div style={{
-                        position: 'relative',
-                        display: 'flex',
-                        padding: '16px',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        borderBottom: '1px solid #f1f5f9',
-                        backgroundColor: formData.targetCategory ? '#fff' : '#f8fafc'
-                    }}>
-                        <label style={{ fontSize: '15px', fontWeight: '500', color: '#475569' }}>
-                            Room <span style={{ fontWeight: '700', color: '#0f172a' }}>{formData.newRoomId ? selectedRoomDetails?.roomNumber : ''}</span>
-                        </label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '15px', fontWeight: '600', color: formData.newRoomId ? '#0f172a' : '#94a3b8' }}>
-                                {formData.newRoomId ? selectedRoomDetails?.roomType : 'Select Room'}
-                            </span>
-                            <ChevronRight size={16} color="#cbd5e1" />
-                        </div>
-                        <select
-                            name="newRoomId"
-                            value={formData.newRoomId}
-                            onChange={handleChange}
-                            disabled={!formData.targetCategory}
-                            style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                height: '100%',
-                                opacity: 0,
-                                cursor: formData.targetCategory ? 'pointer' : 'not-allowed'
-                            }}
-                        >
-                            <option value="">Select Room</option>
-                            {filteredRooms.map(room => (
-                                <option key={room._id} value={room._id}>Room {room.roomNumber}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* New Rate Row */}
-                    <div style={{
-                        display: 'flex',
-                        padding: '16px',
-                        alignItems: 'center',
-                        justifyContent: 'space-between'
-                    }}>
-                        <label style={{ fontSize: '15px', fontWeight: '500', color: '#64748b' }}>New Rate Per Night</label>
-                        <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>
-                            {cs}{adjustment.newPrice?.toLocaleString() || '0'}
-                        </div>
+                {/* Current Room Info */}
+                <div style={{ backgroundColor: '#FFFFFF', borderRadius: '12px', padding: '16px', border: '1px solid #E2E8F0' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: '#94A3B8', display: 'block', marginBottom: '12px' }}>CURRENT RATE</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                        <span style={{ color: '#64748B' }}>Rate per Night</span>
+                        <span style={{ fontWeight: '800', fontSize: '16px' }}>{cs}{(reservation.ratePerNight || 0).toLocaleString()}</span>
                     </div>
                 </div>
 
-                {/* Info Block - Corrected Text Requirement */}
-                {adjustment.total !== 0 && (
-                    <div style={{
-                        padding: '12px 16px',
-                        borderRadius: '10px',
-                        backgroundColor: adjustment.total > 0 ? '#fff7ed' : '#f0fdf4',
-                        border: `1px solid ${adjustment.total > 0 ? '#ffedd5' : '#dcfce7'}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        animation: 'fadeIn 0.3s ease-out'
-                    }}>
-                        <CheckCircle2 size={24} color={adjustment.total > 0 ? '#f97316' : '#22c55e'} fill="#fff" />
-                        <div style={{ fontSize: '13px', color: adjustment.total > 0 ? '#9a3412' : '#14532d', fontWeight: '600', lineHeight: '1.5' }}>
-                            <span style={{ display: 'block' }}>
-                                {cs}{Math.abs(adjustment.diff).toLocaleString()} {adjustment.diff > 0 ? 'more' : 'less'} per night.
-                            </span>
-                            Total {cs}{Math.abs(adjustment.total).toLocaleString()} will be {adjustment.total > 0 ? 'added' : 'reduced'} for {adjustment.nights} nights.
+                {/* Category Selector */}
+                <div>
+                    <label style={labelStyle}>Room Category</label>
+                    <select name="targetCategory" value={formData.targetCategory} onChange={handleChange} style={{ ...boxStyle, width: '100%', fontWeight: '700', appearance: 'none', cursor: 'pointer' }}>
+                        <option value="">Select Category</option>
+                        {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    </select>
+                </div>
+
+                {/* Room Selector */}
+                {formData.targetCategory && (
+                    <div>
+                        <label style={labelStyle}>Select Room</label>
+                        {filteredRooms.length === 0 ? (
+                            <div style={{ padding: '14px', borderRadius: '12px', backgroundColor: '#FEF2F2', border: '1px solid #FEE2E2', color: '#991B1B', fontSize: '13px', fontWeight: '600' }}>
+                                No rooms available in this category.
+                            </div>
+                        ) : (
+                            <select name="newRoomId" value={formData.newRoomId} onChange={handleChange} style={{ ...boxStyle, width: '100%', fontWeight: '700', appearance: 'none', cursor: 'pointer', borderColor: errors.newRoomId ? '#EF4444' : '#E2E8F0' }}>
+                                <option value="">Select Room</option>
+                                {filteredRooms.map(room => (
+                                    <option key={room._id} value={room._id}>
+                                        Room {room.roomNumber} – {cs}{room.price}/night
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+                        {errors.newRoomId && <div style={errorStyle}>{errors.newRoomId}</div>}
+                    </div>
+                )}
+
+                {/* New Rate Display */}
+                {selectedRoom && (
+                    <div style={{ backgroundColor: '#FFFFFF', borderRadius: '12px', padding: '16px', border: '1px solid #E2E8F0' }}>
+                        <span style={{ fontSize: '11px', fontWeight: '800', color: '#94A3B8', display: 'block', marginBottom: '12px' }}>NEW RATE</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                            <span style={{ color: '#64748B' }}>Room {selectedRoom.roomNumber} – {selectedRoom.roomType}</span>
+                            <span style={{ fontWeight: '800', fontSize: '16px' }}>{cs}{(selectedRoom.price || 0).toLocaleString()}</span>
                         </div>
                     </div>
                 )}
 
+                {/* Rate Difference */}
+                {formData.newRoomId && adjustment.total !== 0 && (
+                    <div style={{ padding: '12px 16px', borderRadius: '12px', backgroundColor: adjustment.total > 0 ? '#FEF2F2' : '#F0FDF4', border: `1px solid ${adjustment.total > 0 ? '#FEE2E2' : '#DCFCE7'}`, fontSize: '13px', color: adjustment.total > 0 ? '#991B1B' : '#166534', fontWeight: '600' }}>
+                        {adjustment.total > 0 ? '⚠️ Upgrade:' : '✅ Downgrade:'} {cs}{Math.abs(adjustment.diff)}/{adjustment.diff > 0 ? 'more' : 'less'} per night.
+                        Total <strong>{cs}{Math.abs(adjustment.total).toLocaleString()}</strong> will be {adjustment.total > 0 ? 'added' : 'reduced'} for {adjustment.nights} nights.
+                    </div>
+                )}
+
                 {/* Reason */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontSize: '14px', fontWeight: '700', color: '#475569' }}>Reason for Exchange:</label>
-                    <input
-                        type="text"
-                        name="reason"
-                        value={formData.reason}
-                        onChange={handleChange}
-                        placeholder="Enter reason for exchange..."
-                        style={{
-                            width: '100%',
-                            padding: '12px 16px',
-                            borderRadius: '10px',
-                            border: '1px solid #e2e8f0',
-                            backgroundColor: '#f8fafc',
-                            fontSize: '14px',
-                            outline: 'none',
-                            transition: 'border-color 0.2s'
-                        }}
-                    />
+                <div>
+                    <label style={labelStyle}>Reason for Exchange *</label>
+                    <textarea name="reason" value={formData.reason} onChange={handleChange} placeholder="e.g. Guest upgrade, maintenance, category swap..." rows={2} style={{ ...boxStyle, width: '100%', fontWeight: '600', resize: 'none', fontSize: '13px', borderColor: errors.reason ? '#EF4444' : '#E2E8F0' }} />
+                    {errors.reason && <div style={errorStyle}>{errors.reason}</div>}
                 </div>
 
                 {/* Effective Date */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', fontWeight: '700', color: '#475569' }}>Effective Date:</span>
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        backgroundColor: '#f8fafc',
-                        padding: '8px 16px',
-                        borderRadius: '10px',
-                        border: '1px solid #e2e8f0'
-                    }}>
-                        <input
-                            type="date"
-                            name="effectiveDate"
-                            value={formData.effectiveDate}
-                            onChange={handleChange}
-                            style={{
-                                border: 'none',
-                                background: 'transparent',
-                                outline: 'none',
-                                fontSize: '14px',
-                                fontWeight: '700',
-                                color: '#1e293b',
-                                fontFamily: 'inherit'
-                            }}
-                        />
-                        <Calendar size={18} color="#94a3b8" />
-                    </div>
+                <div>
+                    <label style={labelStyle}>Effective Date</label>
+                    <input type="date" name="effectiveDate" value={formData.effectiveDate} onChange={handleChange} style={{ ...boxStyle, width: '100%', fontWeight: '700', borderColor: errors.effectiveDate ? '#EF4444' : '#E2E8F0' }} />
+                    {errors.effectiveDate && <div style={errorStyle}>{errors.effectiveDate}</div>}
                 </div>
-
-                {/* Calculation Row */}
-                <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginTop: '10px',
-                    padding: '10px 0'
-                }}>
-                    <div style={{ fontSize: '15px', color: '#1e293b', fontWeight: '700' }}>
-                        {cs}{adjustment.oldTotal.toLocaleString()} {adjustment.total >= 0 ? '+' : '-'} {cs}{Math.abs(adjustment.total).toLocaleString()}
-                        <span style={{
-                            fontSize: '11px',
-                            color: adjustment.total > 0 ? '#ea580c' : '#166534',
-                            fontWeight: '600',
-                            marginLeft: '6px',
-                            verticalAlign: 'middle'
-                        }}>
-                            {adjustment.total > 0 ? '▲ (Upgrade)' : (adjustment.total < 0 ? '▼ (Downgrade)' : '')}
-                        </span>
-                        <span style={{ margin: '0 8px', color: '#94a3b8' }}>=</span>
-                    </div>
-                    <div style={{ fontSize: '24px', fontWeight: '900', color: adjustment.total > 0 ? '#c2410c' : '#15803d' }}>
-                        {cs}{(adjustment.oldTotal + adjustment.total).toLocaleString()}
-                    </div>
-                </div>
-
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: '16px', marginTop: 'auto' }}>
-                    <button
-                        type="button"
-                        onClick={onCancel}
-                        style={{
-                            flex: 1,
-                            padding: '14px',
-                            borderRadius: '12px',
-                            border: '1px solid #e2e8f0',
-                            backgroundColor: '#f8fafc',
-                            color: '#64748b',
-                            fontWeight: '700',
-                            cursor: 'pointer',
-                            fontSize: '15px'
-                        }}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={isSubmitting || !formData.newRoomId}
-                        style={{
-                            flex: 1,
-                            padding: '14px',
-                            borderRadius: '12px',
-                            border: 'none',
-                            backgroundColor: '#dc2626',
-                            color: '#ffffff',
-                            fontWeight: '700',
-                            cursor: 'pointer',
-                            fontSize: '15px',
-                            boxShadow: '0 4px 12px rgba(220, 38, 38, 0.2)',
-                            opacity: (isSubmitting || !formData.newRoomId) ? 0.6 : 1
-                        }}
-                    >
-                        {isSubmitting ? 'Processing...' : 'Confirm Exchange'}
-                    </button>
-                </div>
-            </form>
-
-            {/* Footer Summary Bar */}
-            <div style={{
-                padding: '10px 24px',
-                backgroundColor: '#f8fafc',
-                borderTop: '1px solid #f1f5f9',
-                textAlign: 'right',
-                fontSize: '13px',
-                fontWeight: '700',
-                color: '#475569'
-            }}>
-                {cs}{adjustment.oldTotal.toLocaleString()} {adjustment.total >= 0 ? '+' : '-'} <span style={{ color: '#059669', margin: '0 4px' }}>
-                    {cs}{Math.abs(adjustment.total).toLocaleString()} ({adjustment.total > 0 ? 'Upgrade' : 'Downgrade'})
-                </span>
-                = {cs}{(adjustment.oldTotal + adjustment.total).toLocaleString()}
             </div>
-        </div>
+
+            {/* Footer */}
+            <div style={{ padding: '20px 24px', backgroundColor: '#FFFFFF', borderTop: '1px solid #E2E8F0', display: 'flex', gap: '12px' }}>
+                <button type="button" onClick={onCancel} style={{ flex: 1, padding: '14px', backgroundColor: '#F1F5F9', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '700', color: '#64748B', cursor: 'pointer' }}>Cancel</button>
+                <button type="submit" disabled={isSubmitting || !formData.newRoomId} style={{ flex: 1, padding: '14px', background: 'linear-gradient(135deg, #E11D48, #BE123C)', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '700', color: '#FFFFFF', cursor: 'pointer', opacity: (!formData.newRoomId || isSubmitting) ? 0.5 : 1, boxShadow: '0 4px 12px rgba(225, 29, 72, 0.3)' }}>
+                    {isSubmitting ? 'Processing...' : 'Confirm Exchange'}
+                </button>
+            </div>
+        </form>
     );
 };
 

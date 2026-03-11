@@ -1066,6 +1066,60 @@ exports.getDashboardStats = async (req, res) => {
     }
 };
 
+// Get POS stats per order type (for FoodOrderPage live stats)
+exports.getPosStats = async (req, res) => {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const runningStatuses = ['Pending', 'Active', 'Preparing', 'Ready', 'Started', 'Pending Payment', 'Served'];
+
+        // Order type groupings
+        const typeMap = {
+            dinein: { $in: ['Dine-In', 'Direct Payment'] },
+            takeaway: 'Take Away',
+            online: { $in: ['Online', 'Delivery'] },
+            roomservice: { $in: ['Post to Room', 'Room Order', 'Room Service'] }
+        };
+
+        const results = {};
+
+        for (const [key, typeFilter] of Object.entries(typeMap)) {
+            const typeQuery = typeof typeFilter === 'string' ? { orderType: typeFilter } : { orderType: typeFilter };
+
+            // Today's closed sale
+            const closedOrders = await GuestMealOrder.find({
+                ...typeQuery,
+                status: 'Closed',
+                closedAt: { $gte: today }
+            });
+            const todaySale = closedOrders.reduce((sum, o) => sum + (o.finalAmount || o.revenue || 0), 0);
+
+            // Running orders
+            const runningOrders = await GuestMealOrder.find({
+                ...typeQuery,
+                status: { $in: runningStatuses }
+            });
+            const runningCount = runningOrders.length;
+            const runningValue = runningOrders.reduce((sum, o) => sum + (o.finalAmount || o.subtotal || 0), 0);
+
+            results[key] = {
+                todaySale,
+                runningCount,
+                runningValue
+            };
+        }
+
+        res.status(200).json({ success: true, data: results });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching POS stats',
+            error: error.message
+        });
+    }
+};
+
 // Get all orders for room service view
 exports.getRoomServiceOrders = async (req, res) => {
     try {

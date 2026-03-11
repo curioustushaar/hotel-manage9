@@ -39,13 +39,14 @@
 
 /* Header */
 .add-charges-header {
-    background: #3b5bdb;
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
     color: white;
     padding: 14px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-radius: 0;
+    border-bottom: 3px solid #991b1b;
 }
 
 .add-charges-header h2 {
@@ -133,8 +134,8 @@
 .add-charges-field select:focus,
 .add-charges-field textarea:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
 .add-charges-field textarea {
@@ -192,7 +193,7 @@
 }
 
 .add-charges-submit-btn {
-    background: #10b981;
+    background: #dc2626;
     color: white;
     border: none;
     padding: 9px 24px;
@@ -204,11 +205,11 @@
 }
 
 .add-charges-submit-btn:hover {
-    background: #059669;
+    background: #b91c1c;
 }
 
 .add-charges-submit-btn:active {
-    background: #047857;
+    background: #991b1b;
 }
 
 .add-charges-submit-btn:disabled {

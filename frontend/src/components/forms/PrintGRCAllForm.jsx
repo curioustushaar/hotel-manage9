@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import './FormStyles.css';
 import API_URL from '../../config/api';
+import { useSettings } from '../../context/SettingsContext';
 
 const PrintGRCAllForm = ({ booking, onSubmit, onCancel }) => {
+    const { settings, getFullAddress } = useSettings();
     const [bookings, setBookings] = useState([]);
     const [selectedBookings, setSelectedBookings] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -61,8 +63,8 @@ const PrintGRCAllForm = ({ booking, onSubmit, onCancel }) => {
     const generateSingleGRC = (b, index, total) => {
         return `
 <div class="grc-card" ${index < total - 1 ? 'style="page-break-after: always;"' : ''}>
-<div class="hotel-name">Bireena Athithi Hotel</div>
-<div class="hotel-addr">123 Hotel Street, City, State 12345 | +91-1234-567890</div>
+<div class="hotel-name">${settings.name || 'Hotel'}</div>
+<div class="hotel-addr">${getFullAddress()}${settings.phone ? ' | ' + settings.phone : ''}</div>
 <hr class="divider">
 <div class="doc-title">Guest Registration Card (Form C)</div>
 <hr class="divider">
@@ -91,7 +93,7 @@ const PrintGRCAllForm = ({ booking, onSubmit, onCancel }) => {
 <div class="sig-block"><div class="sig-line">Guest Signature</div><small>Date: ___________</small></div>
 <div class="sig-block"><div class="sig-line">Reception</div><small>${new Date().toLocaleDateString('en-IN')}</small></div>
 </div>
-<div class="footer">Generated: ${new Date().toLocaleString('en-IN')} | Bireena Athithi Hotel</div>
+<div class="footer">Generated: ${new Date().toLocaleString('en-IN')} | ${settings.name || 'Hotel'}</div>
 </div>`;
     };
 
@@ -156,7 +158,7 @@ td { padding: ${isReceipt ? '3px 4px' : '8px 10px'}; font-size: ${isReceipt ? '1
                     <div className="flex-1">
                         <label className="text-[11px] text-gray-400 uppercase tracking-wide mb-1 block">Format</label>
                         <select value={printType} onChange={(e) => setPrintType(e.target.value)}
-                            className="w-full px-2.5 py-2 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
+                            className="w-full px-2.5 py-2 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-400 bg-white">
                             {printOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                         </select>
                     </div>
@@ -209,9 +211,18 @@ td { padding: ${isReceipt ? '3px 4px' : '8px 10px'}; font-size: ${isReceipt ? '1
             <div className="p-4 border-t border-gray-100">
                 <button type="button" onClick={handlePrintAll}
                     disabled={selectedBookings.length === 0}
-                    className={`w-full py-2.5 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 ${selectedBookings.length === 0 ? 'bg-gray-200 cursor-not-allowed text-gray-400' : 'bg-blue-600 hover:bg-blue-700 text-white active:scale-[0.98]'}`}>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                    Print {selectedBookings.length} GRC{selectedBookings.length !== 1 ? 's' : ''}
+                    style={selectedBookings.length === 0 ? {
+                        width:'100%', padding:'12px', background:'#e5e7eb', color:'#9ca3af',
+                        border:'none', borderRadius:'10px', fontWeight:'700', fontSize:'14px',
+                        cursor:'not-allowed', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px'
+                    } : {
+                        width:'100%', padding:'12px', background:'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                        color:'#fff', border:'none', borderRadius:'10px', fontWeight:'700', fontSize:'14px',
+                        cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px',
+                        boxShadow:'0 4px 15px rgba(220,38,38,0.4)', transition:'all 0.2s'
+                    }}>
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                    📋 Print {selectedBookings.length} GRC{selectedBookings.length !== 1 ? 's' : ''}
                 </button>
             </div>
         </div>

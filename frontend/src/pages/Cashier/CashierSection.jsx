@@ -148,7 +148,8 @@ const CashierSection = () => {
                         amount: item.subtotal
                     })),
                     billNo: `${settings.invoicePrefix || settings.billingInvoicePrefix || '#'}${order._id.toString().substr(-6).toUpperCase()}`,
-                    kotInfo: `KOT - ${order._id.toString().substr(-4)}`
+                    kotInfo: `KOT - ${order._id.toString().substr(-4)}`,
+                    notes: order.notes || ''
                 }));
 
                 setOrders(mappedOrders);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Search, Plus, ArrowLeft, Utensils, CheckCircle } from 'lucide-react';
 import API_URL from '../config/api';
@@ -30,12 +30,13 @@ const RoomService = () => {
     const [rooms, setRooms] = useState([]);
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const isFirstFetch = useRef(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('all');
 
     const fetchData = async () => {
         try {
-            setLoading(true);
+            if (isFirstFetch.current) setLoading(true);
             const [roomsRes, allOrdersRes, bookingsRes] = await Promise.all([
                 fetch(`${API_URL}/api/rooms/list`),
                 fetch(`${API_URL}/api/guest-meal/orders`),
@@ -77,13 +78,16 @@ const RoomService = () => {
         } catch (error) {
             console.error('Error fetching room service data:', error);
         } finally {
-            setLoading(false);
+            if (isFirstFetch.current) {
+                setLoading(false);
+                isFirstFetch.current = false;
+            }
         }
     };
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 3000); // Fast refresh for real-time order tracking
+        const interval = setInterval(fetchData, 15000); // Refresh every 15 seconds
         return () => clearInterval(interval);
     }, []);
 

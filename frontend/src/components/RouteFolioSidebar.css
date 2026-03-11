@@ -33,13 +33,14 @@
 }
 
 .route-folio-header {
-    background: #4a5c96;
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
     color: white;
     padding: 14px 18px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-shrink: 0;
+    border-bottom: 3px solid #991b1b;
 }
 
 .route-folio-header h2 {
@@ -114,7 +115,8 @@
 }
 
 .route-select-modern:focus {
-    border-color: #4a5c96;
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
 .route-section-modern {
@@ -153,7 +155,7 @@
     width: 17px;
     height: 17px;
     cursor: pointer;
-    accent-color: #4a5c96;
+    accent-color: #dc2626;
 }
 
 .modern-checkbox-label.disabled {
@@ -171,7 +173,7 @@
 }
 
 .route-save-btn-modern {
-    background: #28a745;
+    background: #dc2626;
     color: white;
     border: none;
     padding: 8px 18px;
@@ -183,5 +185,5 @@
 }
 
 .route-save-btn-modern:hover {
-    background: #218838;
+    background: #b91c1c;
 }

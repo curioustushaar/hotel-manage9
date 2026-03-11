@@ -1080,14 +1080,22 @@ exports.addBookingPayment = async (req, res) => {
 
         const { amount, mode, reference, notes, paymentMethod, referenceId, comment } = req.body;
 
-        // Add payment transaction according to current Booking model schema
+        const payMode = paymentMethod || mode || 'Cash';
+        const now = new Date();
+
+        // Add payment transaction with folio-compatible fields
         booking.transactions.push({
-            type: 'Payment', // Case-sensitive enum: Payment, Refund, Adjustment, Charge
-            amount: Math.abs(Number(amount)), // Positive amount for payments
-            method: paymentMethod || mode || 'Cash', // Maps to model field 'method'
+            type: 'Payment',
+            amount: Math.abs(Number(amount)),
+            method: payMode,
             referenceId: referenceId || reference || '',
             notes: comment || notes || '',
-            date: new Date()
+            date: now,
+            day: now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
+            particulars: `Payment (${payMode})`,
+            description: comment || notes || `Payment via ${payMode}`,
+            user: 'Staff',
+            folioId: 0
         });
 
         await booking.save();
@@ -1533,6 +1541,20 @@ exports.addBookingVisitor = async (req, res) => {
         if (!booking.visitors) booking.visitors = [];
 
         booking.visitors.push(newVisitor._id);
+
+        // Add visitor entry as a folio transaction so it appears in Folio Operations
+        const now = new Date();
+        if (!booking.transactions) booking.transactions = [];
+        booking.transactions.push({
+            type: 'Charge',
+            amount: 0,
+            date: now,
+            day: now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
+            particulars: 'Visitor Entry',
+            description: `Visitor: ${visitorData.visitorName} (${visitorData.visitPurpose || visitorData.purpose || 'Visiting'})`,
+            user: 'Staff',
+            folioId: 0
+        });
 
         // Add to audit trail if available
         if (booking.auditTrail) {

@@ -311,10 +311,32 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
     };
 
     // Calculations
-    // Calculations
     const subtotal = Array.isArray(cart) ? cart.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 0)), 0) : 0;
-    const taxAmount = isTaxApplied ? (subtotal * Number(taxRate || 0)) / 100 : 0;
-    const total = subtotal + taxAmount;
+    const total = subtotal;
+
+    // POS Stats State
+    const [posStats, setPosStats] = useState({
+        dinein: { todaySale: 0, runningCount: 0, runningValue: 0 },
+        takeaway: { todaySale: 0, runningCount: 0, runningValue: 0 },
+        online: { todaySale: 0, runningCount: 0, runningValue: 0 },
+        roomservice: { todaySale: 0, runningCount: 0, runningValue: 0 }
+    });
+
+    // Fetch POS stats
+    useEffect(() => {
+        const fetchPosStats = async () => {
+            try {
+                const response = await fetch(`${API_URL_CONFIG}/api/guest-meal/analytics/pos-stats`);
+                const data = await response.json();
+                if (data.success) setPosStats(data.data);
+            } catch (err) {
+                console.error('Error fetching POS stats:', err);
+            }
+        };
+        fetchPosStats();
+        const interval = setInterval(fetchPosStats, 15000);
+        return () => clearInterval(interval);
+    }, []);
 
     // Handlers
     const saveOrderToBackend = async () => {
@@ -347,8 +369,9 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                 guestPhone: selectedCustomer?.phone || effectiveRoom.phoneNumber || location.state?.customerPhone || null,
                 roomNumber: selectedCustomer?.roomNumber || effectiveRoom.roomNumber || 'Take Away',
                 orderType: (activeOrderType === 'roomservice' || activeOrderType === 'room') ? 'Post to Room' :
-                    activeOrderType === 'takeaway' ? 'Take Away' : 'Direct Payment',
-                taxRate: isTaxApplied ? Number(taxRate) : 0,
+                    activeOrderType === 'takeaway' ? 'Take Away' :
+                    activeOrderType === 'online' ? 'Online' : 'Direct Payment',
+                taxRate: 0,
                 notes: billComment, // Bill Wise Comment
                 kotNote: kotNote, // Special Note (KOT Only)
                 guest: selectedCustomer?.id || null, // Link to Guest model
@@ -785,16 +808,21 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                     {/* B. Stats Row */}
                     <div className="pos-stats-row">
                         <div className="pos-stat-item">
-                            <div className="pos-stat-label">Today Room Sale</div>
-                            <div className="pos-stat-value">0.00</div>
+                            <div className="pos-stat-label">
+                                {activeOrderType === 'dinein' ? 'Today Dine In Sale' :
+                                 activeOrderType === 'takeaway' ? 'Today Take Away Sale' :
+                                 activeOrderType === 'online' ? 'Today Online Sale' :
+                                 'Today Room Service Sale'}
+                            </div>
+                            <div className="pos-stat-value">{cs}{(posStats[activeOrderType]?.todaySale || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
                         </div>
                         <div className="pos-stat-item">
                             <div className="pos-stat-label">Current Running Orders</div>
-                            <div className="pos-stat-value">9</div>
+                            <div className="pos-stat-value">{posStats[activeOrderType]?.runningCount || 0}</div>
                         </div>
                         <div className="pos-stat-item">
                             <div className="pos-stat-label">Running Orders Value</div>
-                            <div className="pos-stat-value">4,337.64</div>
+                            <div className="pos-stat-value">{cs}{(posStats[activeOrderType]?.runningValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
                         </div>
                     </div>
 
@@ -803,7 +831,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                         <div className="pos-room-details">
                             <div className="pos-room-no">
                                 {activeOrderType === 'dinein' ? 'Table ' : (activeOrderType === 'roomservice' ? 'Room ' : '')}
-                                {room?.roomNumber || (activeOrderType === 'takeaway' ? 'Take Away' : '')}
+                                {room?.roomNumber || (activeOrderType === 'takeaway' ? 'Take Away' : (activeOrderType === 'online' ? 'Online Order' : ''))}
                             </div>
                             <div className="pos-guest-name">{room?.guestName || 'Guest Name'}</div>
                         </div>
@@ -813,12 +841,6 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                                 onClick={() => setShowCustomerModal(true)}
                             >
                                 {selectedCustomer ? '👤 ' + selectedCustomer.name.split(' ')[0] : 'Add Customer'}
-                            </button>
-                            <button
-                                className={`pos-action-btn ${billComment ? 'active' : ''}`}
-                                onClick={() => { setActiveNoteType('BILL'); setShowCommentModal(true); }}
-                            >
-                                {billComment ? '📝 Note Added' : 'Bill Wise Comment'}
                             </button>
                             <button className="pos-action-btn">Delivery Boy</button>
                             <button className="pos-action-btn">Home Delivery</button>
@@ -863,41 +885,62 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
 
                     {/* F. Total Section */}
                     <div className="pos-total-section">
-                        <div className="pos-tax-controls" style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '15px',
-                            marginBottom: '10px',
-                            padding: '8px 12px',
-                            background: '#f8fafc',
-                            borderRadius: '8px',
-                            border: '1px solid #e2e8f0'
-                        }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: '600', color: '#475569', fontSize: '0.9rem' }}>
-                                <input
-                                    type="checkbox"
-                                    checked={isTaxApplied}
-                                    onChange={(e) => setIsTaxApplied(e.target.checked)}
-                                    style={{ width: '16px', height: '16px', accentColor: '#dc2626' }}
-                                />
-                                Apply Tax (%)
-                            </label>
-                            {isTaxApplied && (
-                                <input
-                                    type="number"
-                                    value={taxRate}
-                                    onChange={(e) => setTaxRate(Number(e.target.value))}
-                                    style={{
-                                        width: '60px',
-                                        padding: '4px 8px',
-                                        borderRadius: '6px',
-                                        border: '1px solid #cbd5e1',
-                                        textAlign: 'center',
-                                        fontSize: '0.9rem',
-                                        fontWeight: '700'
-                                    }}
-                                />
-                            )}
+                        {/* Bill Wise Comment - Inline */}
+                        <div
+                            className="pos-comment-inline"
+                            onClick={() => { setActiveNoteType('BILL'); setShowCommentModal(true); }}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '8px 12px',
+                                background: billComment ? '#fef2f2' : '#f8fafc',
+                                borderRadius: '8px',
+                                border: billComment ? '1px solid #fca5a5' : '1px solid #e2e8f0',
+                                cursor: 'pointer',
+                                marginBottom: '8px',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            <span style={{ fontSize: '16px' }}>📝</span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bill Comment</div>
+                                {billComment ? (
+                                    <div style={{ fontSize: '0.85rem', color: '#dc2626', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{billComment}</div>
+                                ) : (
+                                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>Tap to add comment...</div>
+                                )}
+                            </div>
+                            {billComment && <span style={{ color: '#dc2626', fontWeight: '700', fontSize: '14px' }}>✓</span>}
+                        </div>
+
+                        {/* Special Note (KOT) - Inline */}
+                        <div
+                            className="pos-note-inline"
+                            onClick={() => { setActiveNoteType('KOT'); setShowCommentModal(true); }}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '8px 12px',
+                                background: kotNote ? '#fffbeb' : '#f8fafc',
+                                borderRadius: '8px',
+                                border: kotNote ? '1px solid #fcd34d' : '1px solid #e2e8f0',
+                                cursor: 'pointer',
+                                marginBottom: '10px',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            <span style={{ fontSize: '16px' }}>🍳</span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Special Note (Kitchen)</div>
+                                {kotNote ? (
+                                    <div style={{ fontSize: '0.85rem', color: '#b45309', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{kotNote}</div>
+                                ) : (
+                                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>Tap to add kitchen note...</div>
+                                )}
+                            </div>
+                            {kotNote && <span style={{ color: '#f59e0b', fontWeight: '700', fontSize: '14px' }}>✓</span>}
                         </div>
 
                         <div className="pos-total-row">
@@ -905,31 +948,13 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                             <span>{cs}{subtotal.toFixed(2)}</span>
                         </div>
 
-                        {isTaxApplied && (
-                            <div className="pos-total-row">
-                                <span>Tax ({taxRate}%)</span>
-                                <span>{cs}{taxAmount.toFixed(2)}</span>
-                            </div>
-                        )}
-
-                        <div className="pos-total-row final" style={{ borderTop: '2px solid #e2e8f0', marginTop: '10px', paddingTop: '10px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span style={{ fontSize: '1.1rem', fontWeight: '800' }}>Grand Total</span>
-                                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '500' }}>
-                                    {isTaxApplied ? `Incl. ${taxRate}% Tax` : 'Zero Tax'}
-                                </span>
-                            </div>
+                        <div className="pos-total-row final" style={{ borderTop: '2px solid #e2e8f0', marginTop: '6px', paddingTop: '8px' }}>
+                            <span style={{ fontSize: '1.1rem', fontWeight: '800' }}>Grand Total</span>
                             <span style={{ fontSize: '1.4rem', color: '#dc2626' }}>{cs}{total.toFixed(2)}</span>
                         </div>
 
-                        {/* ACTION BAR */}
-                        <div className="pos-action-bar">
-                            <button className="pos-action-btn" style={{ width: '100%' }} onClick={() => { setActiveNoteType('KOT'); setShowCommentModal(true); }}>Special Note</button>
-                        </div>
-
-                        {/* TWO ROWS BELOW */}
+                        {/* KOT ROW */}
                         <div className="pos-footer-rows">
-                            {/* KOT ROW */}
                             <div className="pos-footer-row" style={{ height: '40px' }}>
                                 <div className="pos-row-label kot" style={{ fontSize: '10px' }}>KOT</div>
                                 <div className="pos-row-btns">
@@ -1034,22 +1059,45 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
                             className="pos-modal-content"
-                            style={{ width: '400px' }}
+                            style={{ width: '420px', borderRadius: '12px', overflow: 'hidden' }}
                         >
-                            <div className="pos-modal-header">
-                                <h3>{activeNoteType === 'KOT' ? 'Special KOT Note' : 'Bill Wise Comment'}</h3>
-                                <button className="pos-modal-close" onClick={() => setShowCommentModal(false)}>×</button>
+                            <div className="pos-modal-header" style={{
+                                background: activeNoteType === 'KOT' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                                color: '#fff',
+                                padding: '14px 20px'
+                            }}>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1rem' }}>{activeNoteType === 'KOT' ? '🍳 Special Note (Kitchen)' : '📝 Bill Wise Comment'}</h3>
+                                    <p style={{ margin: '2px 0 0', fontSize: '0.75rem', opacity: 0.85 }}>
+                                        {activeNoteType === 'KOT' ? 'This note will appear in the KOT print & order card' : 'This comment will appear on the bill & cashier print'}
+                                    </p>
+                                </div>
+                                <button className="pos-modal-close" onClick={() => setShowCommentModal(false)} style={{ color: '#fff' }}>×</button>
                             </div>
                             <div className="pos-modal-body" style={{ background: '#fff', padding: '20px', display: 'block' }}>
                                 <textarea
                                     className="pos-search-input"
-                                    placeholder={activeNoteType === 'KOT' ? "Add note for the kitchen..." : "Add comment for the bill..."}
-                                    style={{ width: '100%', height: '120px', resize: 'none', background: '#fff', fontSize: '14px' }}
+                                    placeholder={activeNoteType === 'KOT' ? "e.g. No onion, Extra spicy, Less oil..." : "e.g. Birthday celebration, VIP guest, Complimentary..."}
+                                    style={{
+                                        width: '100%',
+                                        height: '120px',
+                                        resize: 'none',
+                                        background: '#f8fafc',
+                                        fontSize: '14px',
+                                        border: `2px solid ${activeNoteType === 'KOT' ? '#fcd34d' : '#fca5a5'}`,
+                                        borderRadius: '8px',
+                                        padding: '12px',
+                                        lineHeight: '1.5'
+                                    }}
                                     value={activeNoteType === 'KOT' ? kotNote : billComment}
                                     onChange={(e) => activeNoteType === 'KOT' ? setKotNote(e.target.value) : setBillComment(e.target.value)}
+                                    autoFocus
                                 />
+                                <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '6px', textAlign: 'right' }}>
+                                    {(activeNoteType === 'KOT' ? kotNote : billComment).length} characters
+                                </div>
                             </div>
-                            <div className="pos-modal-footer">
+                            <div className="pos-modal-footer" style={{ padding: '12px 20px', gap: '10px' }}>
                                 <button className="pos-modal-btn cancel" onClick={() => {
                                     activeNoteType === 'KOT' ? setKotNote('') : setBillComment('');
                                     setShowCommentModal(false);
@@ -1129,21 +1177,6 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                                 <button className="main-tender-btn" onClick={handleTenderSubmit}>
                                     Tender {cs}{total}
                                 </button>
-
-                                <div className="room-posting-section">
-                                    <h4>Room Posting Today</h4>
-                                    <div className="posting-row">
-                                        <button className="posting-btn room" onClick={handleRoomPosting}>
-                                            <span>🏨</span>
-                                        </button>
-                                        <button className="posting-btn sms" onClick={openSmsModal}>
-                                            <span>💬</span> SMS Receipt
-                                        </button>
-                                        <button className="posting-btn email" onClick={openEmailModal}>
-                                            <span>📧</span> Email
-                                        </button>
-                                    </div>
-                                </div>
                             </div>
                         </motion.div>
                     </motion.div>

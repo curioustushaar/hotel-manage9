@@ -294,7 +294,7 @@
     width: 15px;
     height: 15px;
     cursor: pointer;
-    accent-color: #3b82f6;
+    accent-color: #ef4444;
     margin: 0;
 }
 
@@ -432,7 +432,7 @@
     width: 15px;
     height: 15px;
     cursor: pointer;
-    accent-color: #3b82f6;
+    accent-color: #ef4444;
     margin: 0;
     vertical-align: middle;
 }
@@ -725,8 +725,8 @@
 .edit-field input:focus,
 .edit-field textarea:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
 .edit-field textarea {
@@ -762,10 +762,10 @@
 }
 
 .btn-save {
-    background: #3b82f6;
+    background: #ef4444;
     color: white;
 }
 
 .btn-save:hover {
-    background: #2563eb;
+    background: #dc2626;
 }

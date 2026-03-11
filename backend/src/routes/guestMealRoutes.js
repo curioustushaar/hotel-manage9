@@ -87,6 +87,9 @@ router.delete('/orders/:orderId', guestMealController.deleteOrder);
 // Get dashboard stats
 router.get('/analytics/dashboard', guestMealController.getDashboardStats);
 
+// Get POS per-type stats (for FoodOrderPage live stats bar)
+router.get('/analytics/pos-stats', guestMealController.getPosStats);
+
 // Get revenue report
 router.get('/analytics/revenue', guestMealController.getRevenueReport);
 

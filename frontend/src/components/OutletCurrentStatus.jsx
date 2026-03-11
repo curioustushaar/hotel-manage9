@@ -381,11 +381,94 @@ const OutletCurrentStatus = () => {
                         </div>
                     </div>
                 </div>
+            ) : activeFilter === 'Online Order' ? (
+                <div className="outlet-grid">
+                    <div className="dashboard-section">
+                        <div className="section-header">
+                            <span className="icon">🌐</span>
+                            <h3>Online Order Queue</h3>
+                        </div>
+                        <div className="stats-row">
+                            <div className="status-card highlight-blue">
+                                <div className="status-value">0</div>
+                                <div className="status-label">Total Orders</div>
+                            </div>
+                            <div className="status-card highlight-orange">
+                                <div className="status-value">0</div>
+                                <div className="status-label">Pending</div>
+                            </div>
+                            <div className="status-card highlight-green">
+                                <div className="status-value">0</div>
+                                <div className="status-label">Completed</div>
+                            </div>
+                        </div>
+                        <div className="occupancy-meter">
+                            <div className="meter-label">
+                                <span>Completion Rate</span>
+                                <span>0%</span>
+                            </div>
+                            <div className="meter-bg">
+                                <div className="meter-fill" style={{ width: '0%' }}></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="dashboard-section">
+                        <div className="section-header">
+                            <span className="icon">👨‍🍳</span>
+                            <h3>Kitchen Live Load</h3>
+                        </div>
+                        <div className="stats-row">
+                            <div className="status-card highlight-orange">
+                                <div className="status-value">0</div>
+                                <div className="status-label">KOT Pending</div>
+                            </div>
+                            <div className="status-card highlight-yellow">
+                                <div className="status-value">0</div>
+                                <div className="status-label">Preparing</div>
+                            </div>
+                            <div className="status-card highlight-green">
+                                <div className="status-value">0</div>
+                                <div className="status-label">Ready</div>
+                            </div>
+                        </div>
+                        <div className="prep-time-metric">
+                            <div className="metric-icon">⏱</div>
+                            <div className="metric-details">
+                                <span className="label">Avg. Prep Time</span>
+                                <span className="value">0 mins</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="dashboard-section full-width">
+                        <div className="section-header">
+                            <span className="icon">📊</span>
+                            <h3>Operational Indicators</h3>
+                        </div>
+                        <div className="indicators-row">
+                            <div className="indicator-col">
+                                <div className="indicator-label">Kitchen Load</div>
+                                <div className="indicator-tag load-low">Low</div>
+                            </div>
+                            <div className="indicator-col">
+                                <div className="indicator-label">Staff Load</div>
+                                <div className="indicator-tag staff-normal">Normal</div>
+                            </div>
+                            <div className="indicator-col">
+                                <div className="indicator-label">Delay Risk</div>
+                                <div className="indicator-tag risk-minimal">Minimal</div>
+                            </div>
+                        </div>
+                        <div className="operational-tips">
+                            <span className="tip-icon">💡</span>
+                            <p>Healthy: Online order operations are running smoothly.</p>
+                        </div>
+                    </div>
+                </div>
             ) : (
                 <div className="no-data-placeholder">
                     <div className="placeholder-icon">📊</div>
                     <h3>{activeFilter} Analytics</h3>
-                    <p>Live stats for {activeFilter} are currently being processed. Check back shortly for real-time updates.</p>
+                    <p>Live stats for {activeFilter} are currently being processed.</p>
                 </div>
             )}
         </div>

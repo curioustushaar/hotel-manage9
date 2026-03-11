@@ -1,10 +1,19 @@
 import { useState } from 'react';
 import './FormStyles.css';
+import { useSettings } from '../../context/SettingsContext';
 
 const PrintGRCForm = ({ booking, onSubmit, onCancel }) => {
+    const { settings, getFullAddress } = useSettings();
     const [printType, setPrintType] = useState('A4');
 
-    const printOptions = ['A4', 'A5', 'Thermal', 'Dot Matrix', '3 inch', '2 inch'];
+    const printOptions = [
+        { id: 'A4', label: 'A4', icon: '📄', desc: 'Standard' },
+        { id: 'A5', label: 'A5', icon: '📃', desc: 'Half Sheet' },
+        { id: 'Thermal', label: 'Thermal', icon: '🧾', desc: '80mm Roll' },
+        { id: 'Dot Matrix', label: 'Dot Matrix', icon: '🖨️', desc: 'DMP' },
+        { id: '3 inch', label: '3 inch', icon: '📜', desc: '76mm Roll' },
+        { id: '2 inch', label: '2 inch', icon: '🔖', desc: '58mm Roll' },
+    ];
 
     const formatDate = (date) => {
         if (!date) return 'N/A';
@@ -53,8 +62,9 @@ td { padding: ${isReceipt ? '3px 4px' : '8px 10px'}; font-size: ${isReceipt ? '1
 @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style></head>
 <body>
-<div class="hotel-name">Bireena Athithi Hotel</div>
-<div class="hotel-addr">123 Hotel Street, City, State 12345 | +91-1234-567890</div>
+${settings.displayLogoOnBill && settings.logoUrl ? `<div style="text-align:center;margin-bottom:4px"><img src="${settings.logoUrl}" style="max-height:50px;max-width:150px;object-fit:contain" /></div>` : ''}
+<div class="hotel-name">${settings.name || 'Hotel'}</div>
+<div class="hotel-addr">${getFullAddress()}${settings.phone ? ' | ' + settings.phone : ''}</div>
 <hr class="divider">
 <div class="doc-title">Guest Registration Card (Form C)</div>
 <hr class="divider">
@@ -92,7 +102,7 @@ td { padding: ${isReceipt ? '3px 4px' : '8px 10px'}; font-size: ${isReceipt ? '1
 </div>
 
 <hr class="divider">
-<div class="footer">Generated: ${new Date().toLocaleString('en-IN')} | Bireena Athithi Hotel</div>
+<div class="footer">Generated: ${new Date().toLocaleString('en-IN')} | ${settings.name || 'Hotel'}</div>
 </body></html>`;
     };
 
@@ -128,16 +138,28 @@ td { padding: ${isReceipt ? '3px 4px' : '8px 10px'}; font-size: ${isReceipt ? '1
 
                 {/* Format Selector */}
                 <div>
-                    <label className="text-[11px] text-gray-400 uppercase tracking-wide mb-1 block">Print Format</label>
+                    <label className="text-[11px] text-gray-400 uppercase tracking-wide mb-2 block">
+                        <span style={{marginRight:'6px'}}>🖨️</span> Select Print Format
+                    </label>
                     <div className="grid grid-cols-3 gap-2">
                         {printOptions.map(opt => (
-                            <button key={opt} type="button" onClick={() => setPrintType(opt)}
-                                className={`py-2 text-xs font-semibold rounded-lg border transition-all ${
-                                    printType === opt
-                                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                                        : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                                }`}>
-                                {opt}
+                            <button key={opt.id} type="button" onClick={() => setPrintType(opt.id)}
+                                style={printType === opt.id ? {
+                                    background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                                    color: '#fff', border: '2px solid #dc2626', borderRadius: '10px',
+                                    padding: '10px 4px', boxShadow: '0 4px 12px rgba(220,38,38,0.3)',
+                                    transform: 'translateY(-1px)', cursor: 'pointer', transition: 'all 0.2s',
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px'
+                                } : {
+                                    background: '#fff', color: '#374151', border: '1.5px solid #e5e7eb',
+                                    borderRadius: '10px', padding: '10px 4px', cursor: 'pointer',
+                                    transition: 'all 0.2s', display: 'flex', flexDirection: 'column',
+                                    alignItems: 'center', gap: '3px'
+                                }}
+                            >
+                                <span style={{fontSize:'18px'}}>{opt.icon}</span>
+                                <span style={{fontSize:'11px', fontWeight:'700'}}>{opt.label}</span>
+                                <span style={{fontSize:'9px', opacity:'0.7'}}>{opt.desc}</span>
                             </button>
                         ))}
                     </div>
@@ -146,10 +168,17 @@ td { padding: ${isReceipt ? '3px 4px' : '8px 10px'}; font-size: ${isReceipt ? '1
 
             {/* Print Button */}
             <div className="p-4 border-t border-gray-100">
+                <div style={{marginBottom:'8px', fontSize:'11px', color:'#6b7280', textAlign:'center'}}>
+                    Format: <strong style={{color:'#dc2626'}}>{printOptions.find(p => p.id === printType)?.icon} {printType}</strong>
+                </div>
                 <button type="button" onClick={handlePrint}
-                    className="w-full py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                    Print GRC
+                    style={{width:'100%', padding:'12px', background:'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                        color:'#fff', border:'none', borderRadius:'10px', fontWeight:'700', fontSize:'14px',
+                        cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px',
+                        boxShadow:'0 4px 15px rgba(220,38,38,0.4)', transition:'all 0.2s'
+                    }}>
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                    📋 Print GRC
                 </button>
             </div>
         </div>
