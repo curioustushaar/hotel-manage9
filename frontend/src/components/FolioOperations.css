@@ -129,6 +129,7 @@
     gap: 6px;
     margin-bottom: 8px;
     flex-wrap: nowrap;
+    align-items: center;
 }
 
 /* Folio Routing Section */
@@ -584,48 +585,71 @@
 }
 
 .action-dropdown {
-    position: absolute;
-    right: 0;
-    top: 100%;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
-    min-width: 140px;
-    margin-top: 4px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.08);
+    min-width: 148px;
     overflow: hidden;
+    animation: dropdownFadeIn 0.12s ease;
+}
+
+@keyframes dropdownFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .action-dropdown button {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     width: 100%;
-    padding: 8px 12px;
+    padding: 10px 14px;
     border: none;
     background: white;
     text-align: left;
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 500;
     color: #374151;
     cursor: pointer;
-    transition: background 0.15s ease;
+    transition: background 0.12s ease;
 }
 
 .action-dropdown button:hover {
-    background: #f9fafb;
+    background: #f5f7fa;
 }
 
 .action-dropdown button:not(:last-child) {
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid #f1f5f9;
 }
 
 .action-dropdown button:last-child {
     color: #dc2626;
+    font-weight: 500;
 }
 
 .action-dropdown button:last-child:hover {
     background: #fef2f2;
+}
+
+/* Print Folio button */
+.btn-print-folio {
+    margin-left: auto;
+    background: #fff !important;
+    color: #374151 !important;
+    border: 1.5px solid #d1d5db !important;
+    font-weight: 500;
+}
+
+.btn-print-folio:hover {
+    background: #f9fafb !important;
+    border-color: #9ca3af !important;
+    color: #111827 !important;
+}
+
+.btn-print-folio:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }
 
 /* Payment Badge */

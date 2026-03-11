@@ -56,6 +56,7 @@ const CompanySettings = () => {
         },
         discountRules: {
             maxDiscount: '25',
+            maxDiscountType: 'PERCENTAGE',
             managerApproval: true,
             couponEnabled: true
         }
@@ -107,6 +108,7 @@ const CompanySettings = () => {
                         billingRules: s.billingRules || prev.billingRules,
                         discountRules: s.discountRules ? {
                             maxDiscount: String(s.discountRules.maxDiscount ?? prev.discountRules.maxDiscount),
+                            maxDiscountType: s.discountRules.maxDiscountType || prev.discountRules.maxDiscountType,
                             managerApproval: s.discountRules.managerApproval ?? prev.discountRules.managerApproval,
                             couponEnabled: s.discountRules.couponEnabled ?? prev.discountRules.couponEnabled
                         } : prev.discountRules
@@ -263,6 +265,7 @@ const CompanySettings = () => {
                 billingRules: hotelData.billingRules,
                 discountRules: {
                     maxDiscount: parseFloat(hotelData.discountRules.maxDiscount) || 0,
+                    maxDiscountType: hotelData.discountRules.maxDiscountType || 'PERCENTAGE',
                     managerApproval: hotelData.discountRules.managerApproval,
                     couponEnabled: hotelData.discountRules.couponEnabled
                 }
@@ -701,18 +704,54 @@ const CompanySettings = () => {
                             <div className="settings-card">
                                 <h3 className="card-header-icon"><span className="red-icon">🏷️</span> Discount & Approval</h3>
                                 <div className="billing-field-row">
-                                    <label>Max Discount %</label>
-                                    <div className="input-with-symbol-right">
-                                        <input
-                                            type="text"
-                                            name="maxDiscount"
-                                            value={hotelData.discountRules.maxDiscount}
-                                            onChange={(e) => setHotelData(prev => ({
-                                                ...prev,
-                                                discountRules: { ...prev.discountRules, maxDiscount: e.target.value }
-                                            }))}
-                                        />
-                                        <span className="symbol-box">%</span>
+                                    <label>Max Discount</label>
+                                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                        <div className="input-with-symbol-right" style={{ flex: 1 }}>
+                                            <input
+                                                type="number"
+                                                name="maxDiscount"
+                                                min="0"
+                                                max={hotelData.discountRules.maxDiscountType === 'PERCENTAGE' ? '100' : undefined}
+                                                value={hotelData.discountRules.maxDiscount}
+                                                onChange={(e) => setHotelData(prev => ({
+                                                    ...prev,
+                                                    discountRules: { ...prev.discountRules, maxDiscount: e.target.value }
+                                                }))}
+                                            />
+                                            <span className="symbol-box">
+                                                {hotelData.discountRules.maxDiscountType === 'FLAT' ? '₹' : '%'}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden', flexShrink: 0 }}>
+                                            <button
+                                                type="button"
+                                                style={{
+                                                    padding: '6px 12px', fontSize: '13px', fontWeight: '600',
+                                                    border: 'none', cursor: 'pointer',
+                                                    background: hotelData.discountRules.maxDiscountType !== 'FLAT' ? '#2563eb' : '#f3f4f6',
+                                                    color: hotelData.discountRules.maxDiscountType !== 'FLAT' ? '#fff' : '#374151',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onClick={() => setHotelData(prev => ({
+                                                    ...prev,
+                                                    discountRules: { ...prev.discountRules, maxDiscountType: 'PERCENTAGE' }
+                                                }))}
+                                            >%</button>
+                                            <button
+                                                type="button"
+                                                style={{
+                                                    padding: '6px 12px', fontSize: '13px', fontWeight: '600',
+                                                    border: 'none', cursor: 'pointer',
+                                                    background: hotelData.discountRules.maxDiscountType === 'FLAT' ? '#2563eb' : '#f3f4f6',
+                                                    color: hotelData.discountRules.maxDiscountType === 'FLAT' ? '#fff' : '#374151',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onClick={() => setHotelData(prev => ({
+                                                    ...prev,
+                                                    discountRules: { ...prev.discountRules, maxDiscountType: 'FLAT' }
+                                                }))}
+                                            >₹</button>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="billing-field-row special">

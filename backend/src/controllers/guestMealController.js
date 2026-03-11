@@ -1198,14 +1198,18 @@ exports.settleOrder = async (req, res) => {
                 });
             }
 
+            // Build item summary for folio description
+            const itemSummary = (order.items || []).map(i => `${i.name} x${i.quantity || 1}`).join(', ');
+            const folioAmount = amount || order.finalAmount;
+
             // Create folio transaction
             const transactionData = {
                 type: 'Charge',
                 particulars: 'Restaurant Bill',
-                description: `${order.orderType || 'Dine-In'} ${order.tableNumber ? `(Table ${order.tableNumber})` : order.roomNumber ? `(Room ${order.roomNumber})` : ''} #${orderId.toString().substr(-6).toUpperCase()}`,
-                amount: order.finalAmount,
+                description: `${order.orderType || 'Dine-In'} ${order.tableNumber ? `(Table ${order.tableNumber})` : order.roomNumber ? `(Room ${order.roomNumber})` : ''} #${orderId.toString().substr(-6).toUpperCase()}${itemSummary ? ' | ' + itemSummary : ''}`,
+                amount: folioAmount,
                 date: new Date(),
-                notes: `Restaurant Bill - ${orderId.toString().substr(-6).toUpperCase()}`
+                notes: `Restaurant Bill - ${orderId.toString().substr(-6).toUpperCase()} | Items: ${itemSummary}`
             };
 
             // Apply automatic routing rules
@@ -1217,7 +1221,7 @@ exports.settleOrder = async (req, res) => {
 
             // Increment total amount so balance recalculates correctly
             if (!booking.billing) booking.billing = {};
-            booking.billing.totalAmount = (booking.billing.totalAmount || 0) + order.finalAmount;
+            booking.billing.totalAmount = (booking.billing.totalAmount || 0) + folioAmount;
 
             await booking.save();
 
@@ -1254,7 +1258,7 @@ exports.settleOrder = async (req, res) => {
                 date: new Date(),
                 type: 'Income',
                 category: 'Restaurant',
-                amount: order.finalAmount,
+                amount: amount || order.finalAmount,
                 order: orderId, // Link to the order
                 referenceId: `TXN-${Date.now()}-${orderId.toString().substr(-6).toUpperCase()}`,
                 description: `Restaurant Bill - Table ${order.tableNumber || 'N/A'} - ${order.orderType || 'Dine-In'}`,
