@@ -1,74 +1,44 @@
 .footer-section {
-  padding: 60px 20px 10px;
-  background-color: #fcfcfc;
-  /* Match the light background in image */
-  background: linear-gradient(to right, #fff, #fdf2f4, #fff);
-  /* Subtle pinkish gradient hint */
-  position: relative;
-  overflow: hidden;
+  background-color: #1a1a2e;
+  color: #ccc;
+  padding: 60px 20px 20px;
+  font-size: 14px;
 }
 
 .footer-container {
   max-width: 1200px;
   margin: 0 auto;
-  position: relative;
-  z-index: 1;
 }
 
 .footer-top {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
   gap: 40px;
-  margin-bottom: 20px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid #333;
 }
 
-/* Brand Column (Col 1) */
-.footer-col {
-  flex: 1;
-  min-width: 200px;
+@media (max-width: 768px) {
+  .footer-top {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
-.brand-col {
-  flex: 1.5;
-  /* Give more space to the first column */
-  max-width: 350px;
-  margin-left: -40px;
+@media (max-width: 480px) {
+  .footer-top {
+    grid-template-columns: 1fr;
+  }
 }
 
-.logo-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  margin-bottom: 0px;
-}
-
-.footer-logo-img {
-  width: 220px;
-  /* Increased to match Navbar logo size */
-  height: auto;
-  object-fit: contain;
-  margin-top: -25px;
-  margin-bottom: -20px;
-  margin-left: -34px;
-}
-
-.brand-desc {
-  color: #6b7280;
-  font-size: 15px;
-  line-height: 1.6;
-  max-width: 300px;
-}
-
-/* Headings */
 .footer-col h4 {
-  font-size: 18px;
-  margin-bottom: 24px;
-  font-weight: 700;
-  color: #111827;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-/* Links */
 .footer-col ul {
   list-style: none;
   padding: 0;
@@ -76,102 +46,80 @@
 }
 
 .footer-col ul li {
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
-.footer-col ul li a {
+.footer-col ul li a,
+.footer-col a {
+  color: #aaa;
   text-decoration: none;
-  color: #6b7280;
-  font-size: 15px;
-  transition: all 0.3s ease;
-  display: inline-block;
-  /* Required for transform */
+  transition: color 0.2s ease;
 }
 
-.footer-col ul li a:hover {
-  color: #e11d48;
-  transform: translateX(6px);
-  /* Smooth slide right */
+.footer-col ul li a:hover,
+.footer-col a:hover {
+  color: #f4a261;
 }
 
-/* Contact Info */
-.contact-info p {
-  margin-bottom: 12px;
-  color: #6b7280;
-  font-size: 15px;
+.brand-col .logo-wrapper {
+  margin-bottom: 16px;
+}
+
+.footer-logo-img {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
+}
+
+.brand-desc {
+  color: #aaa;
   line-height: 1.6;
+  max-width: 280px;
 }
 
-.contact-info a {
-  color: inherit;
+.contact-col .contact-info p {
+  margin-bottom: 8px;
+  color: #aaa;
+}
+
+.contact-col .contact-info a {
+  color: #aaa;
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: color 0.2s ease;
 }
 
-.contact-info a:hover {
-  color: #e11d48;
-  padding-left: 3px;
+.contact-col .contact-info a:hover {
+  color: #f4a261;
 }
 
-/* Social Icons */
 .social-icons {
-  margin-top: 24px;
   display: flex;
   gap: 12px;
+  margin-top: 16px;
 }
 
 .social-icons a {
-  width: 36px;
-  height: 36px;
-  background: #fff;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #e11d48;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  /* Soft shadow */
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  /* Bouncy effect */
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #2a2a3e;
+  color: #ccc;
+  font-size: 16px;
+  transition: background-color 0.2s ease, color 0.2s ease;
   text-decoration: none;
-  font-size: 14px;
 }
 
 .social-icons a:hover {
-  background: #e11d48;
-  color: white;
-  transform: translateY(-5px) scale(1.1);
-  box-shadow: 0 8px 16px rgba(225, 29, 72, 0.3);
+  background-color: #f4a261;
+  color: #fff;
 }
 
-/* Footer Bottom */
 .footer-bottom {
   text-align: center;
-  border-top: 1px solid #eee;
-  /* Faint separator maybe not needed if exact image, but good practice */
-  padding-top: 20px;
-}
-
-.footer-bottom p {
-  font-size: 14px;
-  color: #9ca3af;
-}
-
-/* Responsive */
-@media (max-width: 900px) {
-  .footer-top {
-    gap: 30px;
-  }
-
-  .brand-col {
-    flex: 100%;
-    max-width: 100%;
-    margin-bottom: 20px;
-  }
-}
-
-@media (max-width: 600px) {
-  .footer-top {
-    flex-direction: column;
-  }
+  padding-top: 24px;
+  color: #777;
+  font-size: 13px;
 }
