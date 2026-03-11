@@ -5,6 +5,7 @@ import { useSettings } from '../../context/SettingsContext';
 import soundManager from '../../utils/soundManager';
 import axios from 'axios';
 import { io } from 'socket.io-client';
+import API_URL from '../../config/api';
 
 const UniversalReport = ({ type }) => {
     const { user } = useAuth();
@@ -118,7 +119,7 @@ const UniversalReport = ({ type }) => {
     // Fetch dynamic options based on report type
     useEffect(() => {
         if (type === 'reports-sales') {
-            fetch('http://localhost:5000/api/menu/list')
+            fetch(`${API_URL}/api/menu/list`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
@@ -127,7 +128,7 @@ const UniversalReport = ({ type }) => {
                 })
                 .catch(err => console.error("Error fetching menu:", err));
         } else if (type === 'reports-rooms') {
-            fetch('http://localhost:5000/api/reports/rooms/options')
+            fetch(`${API_URL}/api/reports/rooms/options`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
@@ -136,7 +137,7 @@ const UniversalReport = ({ type }) => {
                 })
                 .catch(err => console.error("Error fetching room options:", err));
         } else if (type === 'reports-reservations') {
-            fetch('http://localhost:5000/api/guest-meal/tables')
+            fetch(`${API_URL}/api/guest-meal/tables`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
@@ -223,7 +224,7 @@ const UniversalReport = ({ type }) => {
                 endDate: dateRange.to
             };
 
-            const res = await axios.get("http://localhost:5000/api/sales-report", { params: queryParams });
+            const res = await axios.get(`${API_URL}/api/sales-report`, { params: queryParams });
             if (res.data.success) {
                 const mappedData = res.data.data.map((tx, idx) => ({
                     id: tx.id || idx,
@@ -260,7 +261,7 @@ const UniversalReport = ({ type }) => {
                 shift: filters['Shift'] || 'All'
             };
 
-            const res = await axios.get("http://localhost:5000/api/payment-report", { params: queryParams });
+            const res = await axios.get(`${API_URL}/api/payment-report`, { params: queryParams });
             if (res.data.success) {
                 const rawData = res.data.transactions || [];
                 let filteredData = rawData;
@@ -296,7 +297,7 @@ const UniversalReport = ({ type }) => {
         if (isManual) setLoading(true);
         try {
             const metricFilter = filters['Metric'] || 'All Metrics';
-            const res = await axios.get("http://localhost:5000/api/analytics-report", {
+            const res = await axios.get(`${API_URL}/api/analytics-report`, {
                 params: {
                     metric: metricFilter,
                     startDate: dateRange.from,
@@ -337,7 +338,7 @@ const UniversalReport = ({ type }) => {
                 endDate: dateRange.to
             };
 
-            const res = await axios.get("http://localhost:5000/api/reports/rooms", { params: queryParams });
+            const res = await axios.get(`${API_URL}/api/reports/rooms`, { params: queryParams });
             if (res.data.success) {
                 const mappedData = res.data.data.map((item, idx) => ({
                     id: idx,
@@ -385,7 +386,7 @@ const UniversalReport = ({ type }) => {
                 endDate: dateRange.to
             };
 
-            const res = await axios.get("http://localhost:5000/api/reports/kitchen", { params: queryParams });
+            const res = await axios.get(`${API_URL}/api/reports/kitchen`, { params: queryParams });
             if (res.data.success) {
                 if (res.data.categories && res.data.categories.length > 0) {
                     setKitchenCategories(res.data.categories);
@@ -448,7 +449,7 @@ const UniversalReport = ({ type }) => {
                 status: filters['Bill Status'] || 'All'
             };
 
-            const res = await axios.get("http://localhost:5000/api/reports/billing", { params: queryParams });
+            const res = await axios.get(`${API_URL}/api/reports/billing`, { params: queryParams });
             if (res.data.success) {
                 const { summary, breakdowns, tableData, topSelling, cancelledBills } = res.data;
                 let mappedData = [];
@@ -522,7 +523,7 @@ const UniversalReport = ({ type }) => {
                 tab: activeTab
             };
 
-            const res = await axios.get("http://localhost:5000/api/reservation-report", { params: queryParams });
+            const res = await axios.get(`${API_URL}/api/reservation-report`, { params: queryParams });
             if (res.data.success) {
                 const { summary, distributions, reservationList } = res.data;
                 const mappedData = reservationList.map((item, idx) => ({
@@ -613,7 +614,7 @@ const UniversalReport = ({ type }) => {
             });
         }
 
-        const socket = io("http://localhost:5000");
+        const socket = io(API_URL || window.location.origin);
         socket.on("salesUpdated", () => {
             if (type === 'reports-sales') fetchSalesReport();
             else if (type === 'reports-analytics') fetchAnalyticsReport();
