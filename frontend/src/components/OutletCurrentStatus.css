@@ -142,16 +142,18 @@
 
 .outlet-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    width: 100%;
 }
 
 .dashboard-section {
     background: white;
     border-radius: 16px;
-    padding: 24px;
+    padding: 20px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
     border: 1px solid #f1f5f9;
+    width: 100%;
 }
 
 .dashboard-section.full-width {

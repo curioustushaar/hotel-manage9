@@ -305,11 +305,11 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
                             <div style={{ display: 'flex', border: '1px solid #d1d5db', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
                                 <button type="button" onClick={() => setDiscountType('PERCENTAGE')}
                                     style={{ padding: '6px 12px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px',
-                                        background: discountType === 'PERCENTAGE' ? '#1d4ed8' : '#f9fafb',
+                                        background: discountType === 'PERCENTAGE' ? '#dc2626' : '#f9fafb',
                                         color: discountType === 'PERCENTAGE' ? '#fff' : '#374151' }}>%</button>
                                 <button type="button" onClick={() => setDiscountType('FLAT')}
                                     style={{ padding: '6px 12px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px',
-                                        background: discountType === 'FLAT' ? '#1d4ed8' : '#f9fafb',
+                                        background: discountType === 'FLAT' ? '#dc2626' : '#f9fafb',
                                         color: discountType === 'FLAT' ? '#fff' : '#374151' }}>{cs}</button>
                             </div>
                             <input

@@ -125,11 +125,7 @@ const CompanySettings = () => {
     const [rooms, setRooms] = useState([]);
     const [loadingRooms, setLoadingRooms] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-
-    // Users Management State
-    const [users, setUsers] = useState([]);
-    const [loadingUsers, setLoadingUsers] = useState(false);
-    const [userSearchQuery, setUserSearchQuery] = useState('');
+    const [activeRoomSubTab, setActiveRoomSubTab] = useState('Rooms List');
 
     const fetchRooms = async () => {
         try {
@@ -143,21 +139,6 @@ const CompanySettings = () => {
             console.error('Error fetching rooms:', err);
         } finally {
             setLoadingRooms(false);
-        }
-    };
-
-    const fetchUsers = async () => {
-        try {
-            setLoadingUsers(true);
-            const response = await fetch(`${API_URL}/api/staff`);
-            const data = await response.json();
-            if (Array.isArray(data)) {
-                setUsers(data);
-            }
-        } catch (error) {
-            console.error('Error fetching staff:', error);
-        } finally {
-            setLoadingUsers(false);
         }
     };
 
@@ -179,32 +160,11 @@ const CompanySettings = () => {
         }
     };
 
-    const handleToggleUserStatus = async (id) => {
-        try {
-            const response = await fetch(`${API_URL}/api/staff/toggle/${id}`, {
-                method: 'PUT'
-            });
-            const data = await response.json();
-            if (data._id) {
-                fetchUsers();
-            }
-        } catch (error) {
-            console.error('Error toggling user status:', error);
-        }
-    };
-
     useEffect(() => {
         if (activeTab === 'Rooms') {
             fetchRooms();
-        } else if (activeTab === 'Users') {
-            fetchUsers();
         }
     }, [activeTab]);
-
-    // Stats calculations
-    const activeUsersCount = users.filter(u => u.isActive).length;
-    const disabledUsersCount = users.filter(u => !u.isActive).length;
-    const rolesCount = [...new Set(users.map(u => u.role))].length;
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -304,7 +264,6 @@ const CompanySettings = () => {
                 {[
                     { name: 'General', icon: '⚙️' },
                     { name: 'Rooms', icon: '🏨' },
-                    { name: 'Users', icon: '👥' },
                     { name: 'Billing Setup', icon: '🛠️' }
                 ].map(tab => (
                     <button
@@ -327,9 +286,16 @@ const CompanySettings = () => {
 
                         <div className="management-toolbar">
                             <div className="sub-tabs">
-                                <button className="sub-tab-btn"><span className="btn-icon">🏨</span> Room Categories</button>
-                                <button className="sub-tab-btn">Room Types</button>
-                                <button className="sub-tab-btn active">Rooms List</button>
+                                {['Room Categories', 'Room Types', 'Rooms List'].map(sub => (
+                                    <button
+                                        key={sub}
+                                        className={`sub-tab-btn ${activeRoomSubTab === sub ? 'active' : ''}`}
+                                        onClick={() => setActiveRoomSubTab(sub)}
+                                    >
+                                        {sub === 'Room Categories' && <span className="btn-icon">🏨</span>}
+                                        {sub}
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
@@ -367,17 +333,11 @@ const CompanySettings = () => {
                                             r.roomType.toLowerCase().includes(searchQuery.toLowerCase())
                                         ).map((room, idx) => (
                                             <tr key={room._id || idx}>
-                                                <td className="room-no-cell">
-                                                    <span className="bold-no">{room.roomNumber}</span>
-                                                </td>
-                                                <td className="cat-cell">
-                                                    {room.roomType === 'Deluxe Room' ? '🏨' : '🛏️'} {room.roomType}
-                                                </td>
-                                                <td className="tariff-cell">
-                                                    {cs} {room.price} <span className="per-night">/ Night</span>
-                                                </td>
-                                                <td className="status-cell">
-                                                    <span className={`status-pill available`}>
+                                                <td><span className="bold-no">{room.roomNumber}</span></td>
+                                                <td><span className="room-cat-inline">{room.roomType === 'Deluxe Room' ? '🏨' : '🛏️'} {room.roomType}</span></td>
+                                                <td className="tariff-cell">{cs}{room.price} <span className="per-night">/ Night</span></td>
+                                                <td>
+                                                    <span className="status-pill available">
                                                         <span className="check">✓</span> AVAILABLE
                                                     </span>
                                                 </td>
@@ -394,110 +354,7 @@ const CompanySettings = () => {
                     </div>
                 )}
 
-                {activeTab === 'Users' && (
-                    <div className="users-management-section">
-                        <div className="section-header-row">
-                            <h2>Users</h2>
-                        </div>
 
-                        <div className="stats-row">
-                            <div className="stat-card stat-card-total">
-                                <div className="stat-info">
-                                    <span className="stat-label">TOTAL USERS</span>
-                                    <span className="stat-value">{users.length}</span>
-                                </div>
-                                <div className="stat-icon-bg">👥</div>
-                            </div>
-                            <div className="stat-card stat-card-active">
-                                <div className="stat-info">
-                                    <span className="stat-label">ACTIVE USERS</span>
-                                    <span className="stat-value">{activeUsersCount}</span>
-                                </div>
-                                <div className="stat-icon-bg">👤</div>
-                            </div>
-                            <div className="stat-card stat-card-disabled">
-                                <div className="stat-info">
-                                    <span className="stat-label">DISABLED USERS</span>
-                                    <span className="stat-value">{disabledUsersCount}</span>
-                                </div>
-                                <div className="stat-icon-bg">🔒</div>
-                            </div>
-                            <div className="stat-card stat-card-roles">
-                                <div className="stat-info">
-                                    <span className="stat-label">ROLES</span>
-                                    <span className="stat-value">{rolesCount || 0}</span>
-                                </div>
-                                <div className="stat-icon-bg">🏰</div>
-                            </div>
-                        </div>
-
-                        <div className="management-toolbar">
-                            <div className="search-input-wrapper wide">
-                                <span className="search-icon">🔍</span>
-                                <input
-                                    type="text"
-                                    placeholder="Search Name / Username / Phone / Email..."
-                                    value={userSearchQuery}
-                                    onChange={(e) => setUserSearchQuery(e.target.value)}
-                                />
-                            </div>
-                            <button className="add-room-btn" onClick={() => alert('Add Staff functionality is in the Add Staff page')}>+ Add User</button>
-                        </div>
-
-                        <div className="rooms-table-card">
-                            <table className="rooms-management-table">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Role</th>
-                                        <th>Mobile</th>
-                                        <th>Email</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {loadingUsers ? (
-                                        <tr><td colSpan="6" style={{ textAlign: 'center', padding: '40px' }}>Loading users...</td></tr>
-                                    ) : users.length === 0 ? (
-                                        <tr><td colSpan="6" style={{ textAlign: 'center', padding: '40px' }}>No users found.</td></tr>
-                                    ) : (
-                                        users.filter(u =>
-                                            u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-                                            u.username.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-                                            (u.phone && u.phone.includes(userSearchQuery))
-                                        ).map((user, idx) => (
-                                            <tr key={user._id || idx}>
-                                                <td>
-                                                    <div className="user-name-info">
-                                                        <span className="user-full-name">{user.name}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="role-cell">
-                                                    <span className="role-icon-sm">{user.role === 'admin' ? '👤' : (user.role === 'staff' ? '👨‍🍳' : '🖥️')}</span>
-                                                    {user.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Staff'}
-                                                </td>
-                                                <td>{user.phone || 'N/A'}</td>
-                                                <td className="email-cell">{user.username}</td>
-                                                <td>
-                                                    <span className={`status-pill ${user.isActive ? 'available' : 'disabled-pill'}`}>
-                                                        <span className="check">✓</span> {user.isActive ? 'ACTIVE' : 'DISABLED'}
-                                                    </span>
-                                                </td>
-                                                <td className="actions-cell">
-                                                    <button className="edit-action" onClick={() => alert('Edit functionality to be handled in Add Staff section')}>Edit</button>
-                                                    <button className="delete-action" onClick={() => handleToggleUserStatus(user._id)}>
-                                                        {user.isActive ? 'Disable' : 'Enable'}
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
 
                 {activeTab === 'Billing Setup' && (
                     <div className="billing-setup-section">
@@ -754,30 +611,7 @@ const CompanySettings = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="billing-field-row special">
-                                    <label>Manager Approval Required</label>
-                                    <div
-                                        className={`toggle-switch ${hotelData.discountRules.managerApproval ? 'active' : ''}`}
-                                        onClick={() => setHotelData(prev => ({
-                                            ...prev,
-                                            discountRules: { ...prev.discountRules, managerApproval: !prev.discountRules.managerApproval }
-                                        }))}
-                                    >
-                                        {hotelData.discountRules.managerApproval ? 'Yes' : 'No'} <div className="switch-knob"></div>
-                                    </div>
-                                </div>
-                                <div className="billing-field-row special">
-                                    <label>Coupon Enabled</label>
-                                    <div
-                                        className={`toggle-switch ${hotelData.discountRules.couponEnabled ? 'active' : ''}`}
-                                        onClick={() => setHotelData(prev => ({
-                                            ...prev,
-                                            discountRules: { ...prev.discountRules, couponEnabled: !prev.discountRules.couponEnabled }
-                                        }))}
-                                    >
-                                        {hotelData.discountRules.couponEnabled ? 'Yes' : 'No'} <div className="switch-knob"></div>
-                                    </div>
-                                </div>
+
                             </div>
 
                             <div className="settings-card no-bg-actions">

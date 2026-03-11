@@ -9,6 +9,7 @@ import NewFolio from './NewFolio';
 import RouteFolioSidebar from './RouteFolioSidebar';
 import ConfirmationModal from './ConfirmationModal';
 import Toast from './Toast';
+import VisitorList from './visitors/VisitorList';
 
 const FolioOperations = ({ reservation, onTotalsChange }) => {
     const { settings, getCurrencySymbol } = useSettings();
@@ -36,11 +37,12 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
     const BASE_API_URL = `${API_URL}/api/bookings`;
 
     // Fetch all bookings and current booking transactions on component load
+    // Also refetch when reservation.updatedAt changes (e.g. after external actions like add payment/visitor)
     useEffect(() => {
         if (reservation?.roomNumber) {
             fetchAllBookings();
         }
-    }, [reservation?.roomNumber]);
+    }, [reservation?.roomNumber, reservation?.updatedAt]);
 
     // Fetch transactions whenever the selected room changes
     useEffect(() => {
@@ -903,6 +905,17 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* Visitors Section */}
+                {!showRoutingSection && (
+                    <div style={{ padding: '16px 20px', borderTop: '1px solid #e5e7eb' }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#374151', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Visitors</h3>
+                        <VisitorList
+                            reservationId={reservation?._id || reservation?.id}
+                            refreshTrigger={reservation?.updatedAt}
+                        />
                     </div>
                 )}
             </div>

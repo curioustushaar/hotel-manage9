@@ -85,14 +85,20 @@ exports.createVisitor = async (req, res) => {
         // 6. Handle Charges
         if (newVisitor.chargeAmount > 0) {
             const amount = newVisitor.chargeAmount;
+            const now = new Date();
 
             if (!record.transactions) record.transactions = [];
             record.transactions.push({
                 type: 'Charge',
                 amount: amount,
-                date: new Date(),
+                date: now,
                 notes: `Visitor Charge - ${name}`,
-                recordedBy: req.user?._id
+                recordedBy: req.user?._id,
+                day: now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
+                particulars: 'Visitor Charge',
+                description: `Visitor: ${name} - ${purpose || 'Visitor'}`,
+                user: 'Staff',
+                folioId: 0
             });
 
             if (!record.billing) {

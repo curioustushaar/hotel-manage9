@@ -80,7 +80,8 @@ const ViewOrderPage = () => {
                     amount: order.finalAmount || 0,
                     updatedAt: new Date(order.updatedAt),
                     guestName: order.guestName || '',
-                    notes: order.notes || ''
+                    notes: order.notes || '',
+                    kotNote: order.kotNote || ''
                 }));
                 setOrders(mappedOrders);
 
@@ -371,13 +372,14 @@ const ViewOrderPage = () => {
                                                     </div>
                                                 ))}
                                             </div>
-                                            {order.notes && (
-                                                <div className="order-notes-display">
-                                                    <span className="notes-icon">📝</span>
-                                                    <p>{order.notes}</p>
-                                                </div>
-                                            )}
                                         </div>
+
+                                        {order.kotNote && (
+                                            <div className="order-special-note">
+                                                <span className="special-note-icon">🍳</span>
+                                                <span className="special-note-text"><strong>Special Note:</strong> {order.kotNote}</span>
+                                            </div>
+                                        )}
 
                                         <div className="status-actions">
                                             <button

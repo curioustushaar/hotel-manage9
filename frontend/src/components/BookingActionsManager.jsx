@@ -17,163 +17,78 @@ import PrintGRCForm from './forms/PrintGRCForm';
 import PrintGRCAllForm from './forms/PrintGRCAllForm';
 import SendInvoiceForm from './forms/SendInvoiceForm';
 import AddVisitorDrawer from './visitors/AddVisitorDrawer';
-import { LayoutGrid } from 'lucide-react';
 import API_URL from '../config/api';
 import soundManager from '../utils/soundManager';
+
+const ACTION_CONFIG = {
+    'check-in':      { title: '✓ Check-In Guest',       endpoint: (id) => `/api/reservations/checkin/${id}`,      method: 'PUT' },
+    'add-payment':   { title: '💳 Add Payment',          endpoint: (id) => `/api/bookings/add-payment/${id}`,      method: 'POST' },
+    'amend-stay':    { title: '📅 Amend Stay',           endpoint: (id) => `/api/reservations/amend/${id}`,        method: 'PUT' },
+    'room-move':     { title: '🚪 Room Move',            endpoint: (id) => `/api/reservations/${id}/room-move`,    method: 'PUT' },
+    'exchange-room': { title: '⇄ Exchange Room',         endpoint: (id) => `/api/reservations/${id}/exchange-room`, method: 'PUT' },
+    'add-visitor':   { title: '👤 Add Visitor',          endpoint: (id) => `/api/bookings/add-visitor/${id}`,      method: 'POST' },
+    'no-show':       { title: '❌ Mark No-Show',          endpoint: (id) => `/api/reservations/${id}/no-show`,      method: 'PUT' },
+    'void':          { title: '🗑️ Void Reservation',     endpoint: (id) => `/api/reservations/${id}/void`,         method: 'PUT' },
+    'cancel':        { title: '⚠️ Cancel Reservation',   endpoint: (id) => `/api/bookings/cancel/${id}`,           method: 'POST' },
+    'print-summary': { title: '📄 Print Summary' },
+    'print-invoice': { title: '🧾 Print Invoice' },
+    'print-grc':     { title: '📋 Print GRC' },
+    'print-grc-all': { title: '📋 Print All GRCs' },
+    'send-invoice':  { title: '📧 Send Invoice' },
+};
+
+const PRINT_ACTIONS = ['print-summary', 'print-invoice', 'print-grc', 'print-grc-all', 'send-invoice'];
 
 const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toast, setToast] = useState(null);
 
-    const getActionTitle = () => {
-        if (actionType === 'exchange-room') {
-            return (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <LayoutGrid size={20} strokeWidth={2.5} />
-                    <span>Exchange Room</span>
-                </div>
-            );
-        }
-
-        const titles = {
-            'check-in': '✓ Check-In Guest',
-            'add-payment': '💳 Add Payment',
-            'amend-stay': '📅 Amend Stay',
-            'room-move': '🚪 Room Move',
-            'add-visitor': '👤 Add / Show Visitor',
-            'no-show': '❌ Mark No-Show',
-            'void': '🗑️ Void Reservation',
-            'cancel': '⚠️ Cancel Reservation',
-            'print-summary': '📄 Print Summary',
-            'print-invoice': '🧾 Print Invoice',
-            'print-grc': '📋 Print GRC',
-            'print-grc-all': '📋 Print All GRCs',
-            'send-invoice': '📧 Send Invoice'
-        };
-        return titles[actionType] || 'Action';
-    };
+    const config = ACTION_CONFIG[actionType] || {};
 
     const handleSubmit = async (formData) => {
-        // For print and email actions, handle locally without API call
-        if (['print-summary', 'print-invoice', 'print-grc', 'print-grc-all', 'send-invoice'].includes(actionType)) {
-            console.log(`${actionType} completed:`, formData);
+        if (PRINT_ACTIONS.includes(actionType)) {
             onSuccess?.(booking);
             onClose();
             return;
         }
 
+        const bookingId = booking?._id || booking?.id;
+        if (!bookingId) {
+            setToast({ message: 'Booking ID not found', type: 'error' });
+            return;
+        }
+
+        if (!config.endpoint) {
+            setToast({ message: 'Invalid action type', type: 'error' });
+            return;
+        }
+
         setIsSubmitting(true);
-
         try {
-            let endpoint = '';
-            let method = 'POST';
-
-            // Determine endpoint based on action type
-            switch (actionType) {
-                case 'check-in':
-                    if (!booking._id) throw new Error("Invalid booking ID");
-                    endpoint = `/api/reservations/checkin/${booking._id}`;
-                    console.log("Calling URL:", endpoint);
-                    method = 'PUT';
-                    break;
-                case 'add-payment':
-                    endpoint = `/api/bookings/add-payment/${booking._id}`;
-                    break;
-                case 'amend-stay':
-                    endpoint = `/api/reservations/amend/${booking._id}`;
-                    method = 'PUT';
-                    break;
-                case 'room-move':
-                    endpoint = `/api/reservations/${booking._id || booking.id}/room-move`;
-                    method = 'PUT';
-                    break;
-                case 'exchange-room':
-                    endpoint = `/api/bookings/room-exchange/${booking._id}`;
-                    break;
-                case 'add-visitor':
-                    endpoint = `/api/bookings/add-visitor/${booking._id}`;
-                    break;
-                case 'no-show':
-                    const nsId = booking._id || booking.id;
-                    if (!nsId) throw new Error("Booking ID not found");
-                    endpoint = `/api/reservations/${nsId}/no-show`;
-                    console.log(`[Frontend] Calling No-Show API: ${endpoint}`);
-                    method = 'PUT';
-                    break;
-                case 'void':
-                    const vId = booking._id || booking.id;
-                    if (!vId) throw new Error("Booking ID not found");
-                    endpoint = `/api/reservations/${vId}/void`;
-                    method = 'PUT';
-                    break;
-                case 'cancel':
-                    endpoint = `/api/bookings/cancel/${booking._id}`;
-                    break;
-            }
-
-
-            const response = await fetch(`${API_URL}${endpoint}`, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+            const response = await fetch(`${API_URL}${config.endpoint(bookingId)}`, {
+                method: config.method,
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
 
             const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Action failed');
-            }
+            if (!response.ok) throw new Error(data.message || 'Action failed');
 
             if (data.success) {
-                console.log("Response data for Check-In:", data);
-                if (actionType === 'check-in') {
-                    soundManager.play('success');
-                } else if (actionType === 'amend-stay') {
-                    setToast({ message: 'Stay amended successfully', type: 'success' });
-                } else if (actionType === 'room-move') {
-                    setToast({ message: data.message || 'Room moved successfully', type: 'success' });
-                } else if (actionType === 'exchange-room') {
-                    setToast({ message: data.message || 'Room exchanged successfully', type: 'success' });
-                } else {
-                    alert(`✅ ${getActionTitle()} completed successfully!`);
-                }
-                const updatedData = data.data || data.updatedReservation;
-                if (updatedData) {
-                    console.log("Calling onSuccess with:", updatedData);
-                    onSuccess?.(updatedData); // Notify parent component
-                } else {
-                    console.error("Updated reservation data missing in response!");
-                }
+                if (actionType === 'check-in') soundManager.play('success');
 
-                // If it was toast-based, wait for toast before closing
-                if (['amend-stay', 'room-move', 'exchange-room'].includes(actionType)) {
-                    setTimeout(() => onClose(), 2000);
-                } else {
-                    onClose(); // Close sidebar
-                }
+                setToast({ message: data.message || `${config.title} completed successfully!`, type: 'success' });
+
+                const updatedData = data.data || data.updatedReservation;
+                if (updatedData) onSuccess?.(updatedData);
+
+                setTimeout(() => onClose(), 1500);
             } else {
-                console.error("Action failed with message:", data.message);
                 throw new Error(data.message || 'Action failed');
             }
-
         } catch (error) {
-            console.error(`Error performing ${actionType}:`, error);
-            if (actionType !== 'check-in') {
-                if (['amend-stay', 'room-move', 'exchange-room'].includes(actionType)) {
-                    setToast({ message: error.message, type: 'error' });
-                } else {
-                    alert(`❌ Error: ${error.message}`);
-                }
-            } else {
-                if (error.response?.data?.message) {
-                    console.error("Server error message:", error.response.data.message);
-                } else {
-                    console.error("Unknown error details:", error);
-                }
-            }
-            throw error; // Re-throw to let form handle it
+            setToast({ message: error.message, type: 'error' });
+            throw error;
         } finally {
             setIsSubmitting(false);
         }
@@ -181,49 +96,26 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
 
     const renderForm = () => {
         if (!booking) return null;
-
-        const formProps = {
-            booking,
-            onSubmit: handleSubmit,
-            onCancel: onClose
-        };
+        const formProps = { booking, onSubmit: handleSubmit, onCancel: onClose };
 
         switch (actionType) {
-            case 'check-in':
-                return <CheckInForm {...formProps} />;
-            case 'add-payment':
-                return <AddPaymentForm {...formProps} />;
-            case 'amend-stay':
-                return <AmendStayForm {...formProps} />;
-            case 'room-move':
-                return <RoomMoveForm {...formProps} />;
-            case 'exchange-room':
-                return <ExchangeRoomForm {...formProps} />;
-            case 'add-visitor':
-                return <AddVisitorForm {...formProps} />;
-            case 'no-show':
-                return <NoShowForm {...formProps} />;
-            case 'void':
-                return <VoidReservationForm {...formProps} />;
-            case 'cancel':
-                return <CancelReservationForm {...formProps} />;
-            case 'print-summary':
-                return <PrintSummaryForm {...formProps} />;
-            case 'print-invoice':
-                return <PrintInvoiceForm {...formProps} />;
-            case 'print-grc':
-                return <PrintGRCForm {...formProps} />;
-            case 'print-grc-all':
-                return <PrintGRCAllForm {...formProps} />;
-            case 'send-invoice':
-                return <SendInvoiceForm {...formProps} />;
-
-            default:
-                return <div>Invalid action type</div>;
+            case 'check-in':       return <CheckInForm {...formProps} />;
+            case 'add-payment':    return <AddPaymentForm {...formProps} />;
+            case 'amend-stay':     return <AmendStayForm {...formProps} />;
+            case 'room-move':      return <RoomMoveForm {...formProps} />;
+            case 'exchange-room':  return <ExchangeRoomForm {...formProps} />;
+            case 'add-visitor':    return <AddVisitorForm {...formProps} />;
+            case 'no-show':        return <NoShowForm {...formProps} />;
+            case 'void':           return <VoidReservationForm {...formProps} />;
+            case 'cancel':         return <CancelReservationForm {...formProps} />;
+            case 'print-summary':  return <PrintSummaryForm {...formProps} />;
+            case 'print-invoice':  return <PrintInvoiceForm {...formProps} />;
+            case 'print-grc':      return <PrintGRCForm {...formProps} />;
+            case 'print-grc-all':  return <PrintGRCAllForm {...formProps} />;
+            case 'send-invoice':   return <SendInvoiceForm {...formProps} />;
+            default:               return <div className="p-6 text-center text-gray-500">Invalid action</div>;
         }
     };
-
-
 
     if (actionType === 'add-visitor' && booking) {
         return (
@@ -232,30 +124,17 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
                 onClose={onClose}
                 reservationId={booking._id || booking.id}
                 booking={booking}
-                onVisitorAdded={() => {
-                    if (onSuccess) onSuccess(booking);
-                }}
+                onVisitorAdded={() => onSuccess?.(booking)}
             />
         );
     }
 
     return (
         <>
-            <Drawer
-                isOpen={isOpen}
-                onClose={onClose}
-                title={getActionTitle()}
-                height="90vh"
-            >
+            <Drawer isOpen={isOpen} onClose={onClose} title={config.title || 'Action'} height="90vh">
                 {renderForm()}
             </Drawer>
-            {toast && (
-                <Toast
-                    message={toast.message}
-                    type={toast.type}
-                    onClose={() => setToast(null)}
-                />
-            )}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </>
     );
 };

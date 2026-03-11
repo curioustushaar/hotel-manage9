@@ -5,21 +5,10 @@ import { useSettings } from '../../context/SettingsContext';
 const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
     const { getCurrencySymbol } = useSettings();
     const cs = getCurrencySymbol();
-    // Helper to format date for input (YYYY-MM-DD)
+
     const formatDateForInput = (dateStr) => {
         if (!dateStr) return '';
-        try {
-            return new Date(dateStr).toISOString().split('T')[0];
-        } catch (e) {
-            return '';
-        }
-    };
-
-    // Helper to format date for display (DD MMM YYYY)
-    const formatDateDisplay = (dateStr) => {
-        if (!dateStr) return '';
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        try { return new Date(dateStr).toISOString().split('T')[0]; } catch { return ''; }
     };
 
     const [formData, setFormData] = useState(null);
@@ -29,12 +18,9 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Fetch fresh data on mount
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Assuming API_URL is defined elsewhere or passed as a prop/context
-                // For demonstration, let's use a placeholder API_URL
                 const response = await fetch(`${API_URL}/api/reservations/${booking._id || booking.id}`);
                 const result = await response.json();
                 if (result.success) {
@@ -44,15 +30,14 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
                         newCheckInTime: data.checkInTime || '14:00',
                         newCheckOutDate: formatDateForInput(data.checkOutDate),
                         newCheckOutTime: data.checkOutTime || '11:00',
-                        flexibleCheckout: !!data.flexibleCheckout,
                         adults: data.adults || 1,
                         children: data.children || 0,
                         ratePerNight: data.ratePerNight || 0,
                         discount: data.discount || 0,
                         taxPercentage: data.taxPercentage || 12,
+                        reason: '',
                         id: data._id
                     });
-
                     setSummary({
                         nights: data.nights || 0,
                         oldTotal: data.grandTotal || data.amount || 0,
@@ -61,13 +46,9 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
                         grandTotal: data.grandTotal || data.amount || 0,
                         difference: 0
                     });
-                } else {
-                    console.error("Failed to fetch booking data:", result.message);
-                    // Optionally set an error state to display to the user
                 }
             } catch (err) {
-                console.error("Fetch error:", err);
-                // Optionally set an error state to display to the user
+                console.error('Fetch error:', err);
             } finally {
                 setLoading(false);
             }
@@ -75,43 +56,38 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
         fetchData();
     }, [booking._id, booking.id]);
 
-    // Calculate totals when inputs change
     useEffect(() => {
-        if (!formData) return; // Don't calculate until formData is loaded
-
+        if (!formData) return;
         const checkIn = new Date(`${formData.newCheckInDate}T${formData.newCheckInTime}`);
         const checkOut = new Date(`${formData.newCheckOutDate}T${formData.newCheckOutTime}`);
 
-        if (checkIn && checkOut && !isNaN(checkIn) && !isNaN(checkOut)) {
-            // Calculate nights
+        if (!isNaN(checkIn) && !isNaN(checkOut)) {
             let diffDays = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
-            if (diffDays < 0) diffDays = 0; // Ensure nights is not negative
+            if (diffDays < 0) diffDays = 0;
 
             const roomRate = parseFloat(formData.ratePerNight) || 0;
-            const discountAmount = parseFloat(formData.discount) || 0;
+            const discountAmount = Math.max(0, parseFloat(formData.discount) || 0);
             const taxPerc = parseFloat(formData.taxPercentage) || 0;
-
             const roomTotal = roomRate * diffDays;
             const taxAmount = Math.round((roomTotal * taxPerc) / 100);
             const newGrandTotal = roomTotal + taxAmount - discountAmount;
-
-            const oldGrandTotal = booking.totalAmount || 0; // Use original booking total for comparison
+            const oldGrandTotal = booking.totalAmount || booking.grandTotal || 0;
 
             setSummary({
                 nights: diffDays,
                 oldTotal: oldGrandTotal,
                 newTotal: roomTotal,
                 tax: taxAmount,
-                grandTotal: newGrandTotal,
+                grandTotal: Math.max(0, newGrandTotal),
                 difference: newGrandTotal - oldGrandTotal
             });
         }
-    }, [formData, booking.totalAmount]);
+    }, [formData, booking.totalAmount, booking.grandTotal]);
 
     if (loading || !formData || !summary) {
         return (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '16px' }}>
-                <div className="spinner" style={{ width: '40px', height: '40px', border: '4px solid #f3f3f3', borderTop: '4px solid #E11D48', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                <div style={{ width: '40px', height: '40px', border: '4px solid #f3f3f3', borderTop: '4px solid #E11D48', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                 <span style={{ fontWeight: '600', color: '#64748B' }}>Fetching stay details...</span>
                 <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
             </div>
@@ -120,23 +96,17 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
 
     const validate = () => {
         const newErrors = {};
-        if (!formData) return false; // Cannot validate if formData is not loaded
-
+        if (!formData) return false;
         const checkIn = new Date(formData.newCheckInDate);
         const checkOut = new Date(formData.newCheckOutDate);
 
-        if (checkOut <= checkIn) {
-            newErrors.checkOutDate = 'Check-out date must be after check-in date';
-        }
-        if (formData.adults < 1) {
-            newErrors.adults = 'At least 1 adult is required';
-        }
-        if (summary.nights < 1) {
-            newErrors.nights = 'Stay must be at least 1 night';
-        }
-        if (formData.ratePerNight <= 0) {
-            newErrors.ratePerNight = 'Rate per night must be greater than 0';
-        }
+        if (checkOut <= checkIn) newErrors.checkOutDate = 'Check-out must be after check-in';
+        if (formData.adults < 1) newErrors.adults = 'At least 1 adult required';
+        if (summary.nights < 1) newErrors.nights = 'Stay must be at least 1 night';
+        if (formData.ratePerNight <= 0) newErrors.ratePerNight = 'Rate must be greater than 0';
+        if (parseFloat(formData.discount) < 0) newErrors.discount = 'Discount cannot be negative';
+        const roomTotal = (parseFloat(formData.ratePerNight) || 0) * summary.nights;
+        if (parseFloat(formData.discount) > roomTotal) newErrors.discount = 'Discount exceeds room total';
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -148,15 +118,7 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
             ...prev,
             [name]: type === 'checkbox' ? checked : (type === 'number' ? parseFloat(value) || 0 : value)
         }));
-
-        // Clear error when field changes
-        if (errors[name]) {
-            setErrors(prev => {
-                const updated = { ...prev };
-                delete updated[name];
-                return updated;
-            });
-        }
+        if (errors[name]) setErrors(prev => { const u = { ...prev }; delete u[name]; return u; });
     };
 
     const handleCounter = (field, change) => {
@@ -168,9 +130,7 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
 
     const handleSaveClick = (e) => {
         e.preventDefault();
-        if (validate()) {
-            setShowSummaryModal(true);
-        }
+        if (validate()) setShowSummaryModal(true);
     };
 
     const handleFinalConfirm = async () => {
@@ -180,7 +140,7 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
                 ...formData,
                 newGrandTotal: summary.grandTotal,
                 nights: summary.nights,
-                reason: "Stay Amendment"
+                reason: formData.reason || 'Stay Amendment'
             });
         } catch (err) {
             console.error(err);
@@ -196,11 +156,7 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
 
     return (
         <>
-            <form
-                onSubmit={handleSaveClick}
-                className="flex flex-col h-full overflow-hidden"
-                style={{ backgroundColor: '#F8FAFC', color: '#1E293B' }}
-            >
+            <form onSubmit={handleSaveClick} className="flex flex-col h-full overflow-hidden" style={{ backgroundColor: '#F8FAFC', color: '#1E293B' }}>
                 <div className="flex-1 overflow-y-auto p-6" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
                     {/* Guest Banner */}
@@ -218,25 +174,25 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
                     {/* Date Section */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                         <div>
-                            <label style={labelStyle}>New Check-in</label>
-                            <input
-                                type="date"
-                                name="newCheckInDate"
-                                value={formData.newCheckInDate}
-                                onChange={handleChange}
-                                style={{ ...boxStyle, width: '100%', fontWeight: '700' }}
-                            />
+                            <label style={labelStyle}>New Check-in Date</label>
+                            <input type="date" name="newCheckInDate" value={formData.newCheckInDate} onChange={handleChange} style={{ ...boxStyle, width: '100%', fontWeight: '700' }} />
                         </div>
                         <div>
-                            <label style={labelStyle}>New Check-out</label>
-                            <input
-                                type="date"
-                                name="newCheckOutDate"
-                                value={formData.newCheckOutDate}
-                                onChange={handleChange}
-                                style={{ ...boxStyle, width: '100%', fontWeight: '700', borderColor: errors.checkOutDate ? '#EF4444' : '#E2E8F0' }}
-                            />
+                            <label style={labelStyle}>New Check-out Date</label>
+                            <input type="date" name="newCheckOutDate" value={formData.newCheckOutDate} onChange={handleChange} style={{ ...boxStyle, width: '100%', fontWeight: '700', borderColor: errors.checkOutDate ? '#EF4444' : '#E2E8F0' }} />
                             {errors.checkOutDate && <div style={errorStyle}>{errors.checkOutDate}</div>}
+                        </div>
+                    </div>
+
+                    {/* Time Section */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div>
+                            <label style={labelStyle}>Check-in Time</label>
+                            <input type="time" name="newCheckInTime" value={formData.newCheckInTime} onChange={handleChange} style={{ ...boxStyle, width: '100%', fontWeight: '700' }} />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Check-out Time</label>
+                            <input type="time" name="newCheckOutTime" value={formData.newCheckOutTime} onChange={handleChange} style={{ ...boxStyle, width: '100%', fontWeight: '700' }} />
                         </div>
                     </div>
 
@@ -247,8 +203,8 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <div style={{ ...boxStyle, flex: 1, display: 'flex', justifyContent: 'center', fontWeight: '800' }}>{formData.adults}</div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                    <button type="button" onClick={() => handleCounter('adults', 1)} style={{ ...boxStyle, padding: '4px 8px', lineHeight: 1 }}>+</button>
-                                    <button type="button" onClick={() => handleCounter('adults', -1)} style={{ ...boxStyle, padding: '4px 8px', lineHeight: 1 }}>-</button>
+                                    <button type="button" onClick={() => handleCounter('adults', 1)} style={{ ...boxStyle, padding: '4px 8px', lineHeight: 1, cursor: 'pointer' }}>+</button>
+                                    <button type="button" onClick={() => handleCounter('adults', -1)} style={{ ...boxStyle, padding: '4px 8px', lineHeight: 1, cursor: 'pointer' }}>-</button>
                                 </div>
                             </div>
                         </div>
@@ -257,8 +213,8 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <div style={{ ...boxStyle, flex: 1, display: 'flex', justifyContent: 'center', fontWeight: '800' }}>{formData.children}</div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                    <button type="button" onClick={() => handleCounter('children', 1)} style={{ ...boxStyle, padding: '4px 8px', lineHeight: 1 }}>+</button>
-                                    <button type="button" onClick={() => handleCounter('children', -1)} style={{ ...boxStyle, padding: '4px 8px', lineHeight: 1 }}>-</button>
+                                    <button type="button" onClick={() => handleCounter('children', 1)} style={{ ...boxStyle, padding: '4px 8px', lineHeight: 1, cursor: 'pointer' }}>+</button>
+                                    <button type="button" onClick={() => handleCounter('children', -1)} style={{ ...boxStyle, padding: '4px 8px', lineHeight: 1, cursor: 'pointer' }}>-</button>
                                 </div>
                             </div>
                         </div>
@@ -268,42 +224,31 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                         <div>
                             <label style={labelStyle}>Rate per Night ({cs})</label>
-                            <input
-                                type="number"
-                                name="ratePerNight"
-                                value={formData.ratePerNight}
-                                onChange={handleChange}
-                                style={{ ...boxStyle, width: '100%', fontWeight: '800', borderColor: errors.ratePerNight ? '#EF4444' : '#E2E8F0' }}
-                            />
+                            <input type="number" name="ratePerNight" value={formData.ratePerNight} onChange={handleChange} min="0" style={{ ...boxStyle, width: '100%', fontWeight: '800', borderColor: errors.ratePerNight ? '#EF4444' : '#E2E8F0' }} />
                             {errors.ratePerNight && <div style={errorStyle}>{errors.ratePerNight}</div>}
                         </div>
                         <div>
                             <label style={labelStyle}>Discount ({cs})</label>
-                            <input
-                                type="number"
-                                name="discount"
-                                value={formData.discount}
-                                onChange={handleChange}
-                                style={{ ...boxStyle, width: '100%', fontWeight: '800' }}
-                            />
+                            <input type="number" name="discount" value={formData.discount} onChange={handleChange} min="0" style={{ ...boxStyle, width: '100%', fontWeight: '800', borderColor: errors.discount ? '#EF4444' : '#E2E8F0' }} />
+                            {errors.discount && <div style={errorStyle}>{errors.discount}</div>}
                         </div>
                     </div>
 
-                    {/* Checkbox */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px' }}>
-                        <input
-                            type="checkbox"
-                            id="flexibleCheckout"
-                            name="flexibleCheckout"
-                            checked={formData.flexibleCheckout}
+                    {/* Reason for Amendment */}
+                    <div>
+                        <label style={labelStyle}>Reason for Amendment</label>
+                        <textarea
+                            name="reason"
+                            value={formData.reason}
                             onChange={handleChange}
-                            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                            placeholder="e.g. Extended stay, date correction, rate change..."
+                            rows={2}
+                            style={{ ...boxStyle, width: '100%', fontWeight: '600', resize: 'none', fontSize: '13px' }}
                         />
-                        <label htmlFor="flexibleCheckout" style={{ fontSize: '13px', fontWeight: '700', color: '#475569', cursor: 'pointer' }}>Flexible Checkout Enabled</label>
                     </div>
 
                     {/* Summary Card */}
-                    <div style={{ backgroundColor: '#1E293B', color: '#FFFFFF', borderRadius: '16px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
+                    <div style={{ backgroundColor: '#1E293B', color: '#FFFFFF', borderRadius: '16px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', opacity: 0.7 }}>
                             <span>Nights: {summary.nights}</span>
                             <span>Tax ({formData.taxPercentage}%): {cs}{summary.tax.toLocaleString()}</span>
@@ -321,7 +266,7 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
                         <div style={{ paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ fontSize: '12px', fontWeight: '700' }}>Balance Difference:</span>
                             <span style={{ fontSize: '14px', fontWeight: '900', color: summary.difference >= 0 ? '#4ADE80' : '#F87171' }}>
-                                {summary.difference >= 0 ? '+' : ''}{summary.difference.toLocaleString()}
+                                {summary.difference >= 0 ? '+' : ''}{cs}{Math.abs(summary.difference).toLocaleString()}
                             </span>
                         </div>
                     </div>
@@ -329,29 +274,35 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
 
                 {/* Footer Buttons */}
                 <div style={{ padding: '20px 24px', backgroundColor: '#FFFFFF', borderTop: '1px solid #E2E8F0', display: 'flex', gap: '12px' }}>
-                    <button type="button" onClick={onCancel} style={{ flex: 1, padding: '14px', backgroundColor: '#F1F5F9', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '700', color: '#64748B' }}>Cancel</button>
-                    <button type="submit" disabled={isSubmitting} style={{ flex: 1, padding: '14px', backgroundColor: '#E11D48', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '700', color: '#FFFFFF', boxShadow: '0 4px 12px rgba(225, 29, 72, 0.2)' }}>
-                        Save Changes
+                    <button type="button" onClick={onCancel} style={{ flex: 1, padding: '14px', backgroundColor: '#F1F5F9', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '700', color: '#64748B', cursor: 'pointer' }}>Cancel</button>
+                    <button type="submit" disabled={isSubmitting} style={{ flex: 1, padding: '14px', background: 'linear-gradient(135deg, #E11D48, #BE123C)', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '700', color: '#FFFFFF', cursor: 'pointer', boxShadow: '0 4px 12px rgba(225, 29, 72, 0.3)' }}>
+                        Review & Save
                     </button>
                 </div>
             </form>
 
-            {/* Change Summary Modal Overlay */}
+            {/* Confirmation Modal */}
             {showSummaryModal && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }}>
                     <div style={{ backgroundColor: '#FFFFFF', borderRadius: '24px', width: '100%', maxWidth: '400px', padding: '32px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-                        <h3 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '8px', color: '#1E293B' }}>Confirm Changes</h3>
-                        <p style={{ fontSize: '14px', color: '#64748B', marginBottom: '24px' }}>Please review the stay amendment before saving.</p>
+                        <h3 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '8px', color: '#1E293B' }}>Confirm Amendment</h3>
+                        <p style={{ fontSize: '14px', color: '#64748B', marginBottom: '24px' }}>Review the stay changes before saving.</p>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #F1F5F9' }}>
                                 <span style={{ fontSize: '13px', fontWeight: '700', color: '#94A3B8' }}>Stay Duration</span>
-                                <span style={{ fontSize: '13px', fontWeight: '800' }}>{booking.numberOfNights} → {summary.nights} Nights</span>
+                                <span style={{ fontSize: '13px', fontWeight: '800' }}>{booking.numberOfNights || booking.nights || '—'} → {summary.nights} Nights</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #F1F5F9' }}>
                                 <span style={{ fontSize: '13px', fontWeight: '700', color: '#94A3B8' }}>Grand Total</span>
                                 <span style={{ fontSize: '13px', fontWeight: '800' }}>{cs}{summary.oldTotal.toLocaleString()} → {cs}{summary.grandTotal.toLocaleString()}</span>
                             </div>
+                            {formData.reason && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '12px', borderBottom: '1px solid #F1F5F9' }}>
+                                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#94A3B8' }}>Reason</span>
+                                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569', maxWidth: '180px', textAlign: 'right' }}>{formData.reason}</span>
+                                </div>
+                            )}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontSize: '14px', fontWeight: '800', color: '#1E293B' }}>Net Difference</span>
                                 <span style={{ fontSize: '18px', fontWeight: '900', color: summary.difference >= 0 ? '#10B981' : '#EF4444' }}>
@@ -361,8 +312,8 @@ const AmendStayForm = ({ booking, onSubmit, onCancel }) => {
                         </div>
 
                         <div style={{ display: 'flex', gap: '12px' }}>
-                            <button onClick={() => setShowSummaryModal(false)} style={{ flex: 1, padding: '14px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', fontSize: '14px', fontWeight: '700', color: '#64748B' }}>Go Back</button>
-                            <button onClick={handleFinalConfirm} disabled={isSubmitting} style={{ flex: 1, padding: '14px', backgroundColor: '#1E293B', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '700', color: '#FFFFFF' }}>
+                            <button type="button" onClick={() => setShowSummaryModal(false)} style={{ flex: 1, padding: '14px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', fontSize: '14px', fontWeight: '700', color: '#64748B', cursor: 'pointer' }}>Go Back</button>
+                            <button type="button" onClick={handleFinalConfirm} disabled={isSubmitting} style={{ flex: 1, padding: '14px', backgroundColor: '#1E293B', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '700', color: '#FFFFFF', cursor: 'pointer' }}>
                                 {isSubmitting ? 'Saving...' : 'Confirm'}
                             </button>
                         </div>

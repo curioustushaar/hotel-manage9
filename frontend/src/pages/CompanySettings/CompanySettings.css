@@ -436,8 +436,8 @@
 }
 
 .toggle-status.yes {
-    background: #dcfce7;
-    color: #15803d;
+    background: #fee2e2;
+    color: #b91c1c;
 }
 
 .toggle-status.no {
@@ -861,8 +861,14 @@
 }
 
 .room-no-cell {
-    display: flex;
-    flex-direction: column;
+    vertical-align: middle;
+}
+
+.room-cat-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
 }
 
 .bold-no {
@@ -877,10 +883,8 @@
 }
 
 .cat-cell {
-    display: flex;
-    align-items: center;
-    gap: 10px;
     font-weight: 600;
+    vertical-align: middle;
 }
 
 .bed-icon-sm {
@@ -908,9 +912,9 @@
 }
 
 .status-pill.available {
-    background: #dcfce7;
-    color: #15803d;
-    border: 1px solid #bbf7d0;
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
 }
 
 .status-pill.disabled-pill {
@@ -1148,7 +1152,7 @@
 }
 
 .toggle-switch.active {
-    background: #059669;
+    background: #d32f2f;
     justify-content: flex-start;
 }
 
@@ -1169,8 +1173,8 @@
 
 /* Status Badge */
 .status-badge-green {
-    background: #dcfce7;
-    color: #15803d;
+    background: #fee2e2;
+    color: #b91c1c;
     padding: 4px 10px;
     border-radius: 8px;
     font-weight: 800;
