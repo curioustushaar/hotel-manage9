@@ -79,11 +79,12 @@ function Navbar() {
             </svg>
           </button>
 
-          <nav id="sidebarNav" className={sidebarActive ? 'active' : ''}>
+          {/* Desktop nav — stays inside header */}
+          <nav className="desktop-nav">
             <ul className="nav-menu">
               {NAV_LINKS.map(({ to, label }) => (
                 <li key={to} className="nav-item">
-                  <NavItem to={to} onClick={closeSidebar}>{label}</NavItem>
+                  <NavItem to={to}>{label}</NavItem>
                 </li>
               ))}
             </ul>
@@ -91,10 +92,7 @@ function Navbar() {
               <Link
                 to="/login"
                 className="demo-btn"
-                onClick={() => {
-                  window.scrollTo({ top: 0, behavior: 'instant' });
-                  closeSidebar();
-                }}
+                onClick={() => { window.scrollTo({ top: 0, behavior: 'instant' }); }}
               >
                 Book a Free Demo
               </Link>
@@ -102,6 +100,35 @@ function Navbar() {
           </nav>
         </div>
       </header>
+
+      {/* Mobile sidebar — outside header to avoid stacking context issues */}
+      <nav id="sidebarNav" className={sidebarActive ? 'active' : ''}>
+        <button className="sidebar-close-btn" onClick={closeSidebar} aria-label="Close menu">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" width="24" height="24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <ul className="nav-menu">
+          {NAV_LINKS.map(({ to, label }) => (
+            <li key={to} className="nav-item">
+              <NavItem to={to} onClick={closeSidebar}>{label}</NavItem>
+            </li>
+          ))}
+        </ul>
+        <div className="nav-secondary">
+          <Link
+            to="/login"
+            className="demo-btn"
+            onClick={() => {
+              window.scrollTo({ top: 0, behavior: 'instant' });
+              closeSidebar();
+            }}
+          >
+            Book a Free Demo
+          </Link>
+        </div>
+      </nav>
+
       <div className={`menu-overlay ${sidebarActive ? 'active' : ''}`} onClick={closeSidebar} aria-hidden="true" />
     </>
   );
