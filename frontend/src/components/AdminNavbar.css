@@ -178,3 +178,12 @@
 .dropdown-item.logout:hover {
     background: #fef2f2;
 }
+
+@media (max-width: 500px) {
+    .top-bar-right {
+        display: none !important;
+    }
+    .top-bar-logo {
+        font-size: 16px !important;
+    }
+}

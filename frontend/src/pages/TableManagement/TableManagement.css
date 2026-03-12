@@ -1334,6 +1334,8 @@
 
     .subtitle {
         font-size: 0.84rem;
+        display: block;
+        width: 100%;
     }
 
     .add-table-btn {
@@ -1709,6 +1711,8 @@
     .subtitle {
         font-size: 0.85rem;
         text-align: center;
+        display: block;
+        width: 100%;
     }
 
     .dining-header > div:last-child {
@@ -2240,4 +2244,48 @@
         padding: 12px;
     }
 }
+
+/* --------------- CUSTOM MOBILE OVERRIDES (360px - 600px) ------------- */
+/* Force absolute adherence to 2-column row-wise layout and header stack */
+@media (max-width: 600px) {
+    .dining-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        text-align: left !important;
+    }
+    .header-content {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        width: 100% !important;
+    }
+    .header-content h1 {
+        text-align: left !important;
+        font-size: 1.6rem !important;
+        line-height: 1.2 !important;
+    }
+    .subtitle {
+        text-align: left !important;
+        display: block !important;
+        margin-top: 4px !important;
+        width: 100% !important;
+    }
+    .dining-header > div:last-child {
+        justify-content: flex-start !important;
+        width: 100% !important;
+        margin-top: 10px !important;
+    }
+    
+    .stats-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+    }
+    .stat-card {
+        width: 100% !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        text-align: left !important;
+    }
+}
+
 
