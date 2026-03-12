@@ -172,7 +172,16 @@ const ReservationModal = ({ table, onClose, onReserve }) => {
                             type="number"
                             name="guests"
                             value={formData.guests}
-                            onChange={handleInputChange}
+                            onChange={(e) => {
+                                let val = e.target.value;
+                                setFormData({ ...formData, guests: val !== '' ? Number(val) : '' });
+                                setErrors({ ...errors, [e.target.name]: '' });
+                            }}
+                            onKeyDown={(e) => {
+                                if (['-', '+', 'e', 'E', '.'].includes(e.key)) {
+                                    e.preventDefault();
+                                }
+                            }}
                             min="1"
                             max={table.seats}
                         />
@@ -221,7 +230,16 @@ const ReservationModal = ({ table, onClose, onReserve }) => {
                             type="number"
                             name="advancePayment"
                             value={formData.advancePayment}
-                            onChange={handleInputChange}
+                            onChange={(e) => {
+                                let val = e.target.value;
+                                setFormData({ ...formData, advancePayment: val !== '' ? Number(val) : '' });
+                                setErrors({ ...errors, [e.target.name]: '' });
+                            }}
+                            onKeyDown={(e) => {
+                                if (['-', '+', 'e', 'E'].includes(e.key)) {
+                                    e.preventDefault();
+                                }
+                            }}
                             placeholder="0.00"
                             style={{ paddingLeft: '25px', border: '2px solid #dc2626' }}
                         />

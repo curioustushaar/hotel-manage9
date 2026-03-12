@@ -1982,7 +1982,16 @@ const GuestMealService = () => {
                                             type="number" className="form-input"
                                             style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
                                             value={reserveFormData.guests}
-                                            onChange={e => setReserveFormData({ ...reserveFormData, guests: parseInt(e.target.value) || 0 })}
+                                            onChange={e => {
+                                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                                setReserveFormData({ ...reserveFormData, guests: val !== '' ? parseInt(val) : '' });
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (['-', '+', 'e', 'E', '.'].includes(e.key)) {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                            min="1"
                                         />
                                     </div>
                                     <div className="form-group">
@@ -2032,7 +2041,16 @@ const GuestMealService = () => {
                                                 background: '#fef2f2'
                                             }}
                                             value={reserveFormData.advancePayment || ''}
-                                            onChange={e => setReserveFormData({ ...reserveFormData, advancePayment: parseFloat(e.target.value) || 0 })}
+                                            onChange={e => {
+                                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                                setReserveFormData({ ...reserveFormData, advancePayment: val !== '' ? parseFloat(val) : '' });
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (['-', '+', 'e', 'E'].includes(e.key)) {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                            min="0"
                                         />
                                     </div>
                                     <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: '#6b7280' }}>* Enter the advance amount collected from the guest.</p>

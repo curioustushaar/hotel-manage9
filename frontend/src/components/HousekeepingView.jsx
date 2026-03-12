@@ -90,7 +90,7 @@ const HousekeepingView = () => {
                         type="text"
                         placeholder="Search by room number..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => setSearchQuery(e.target.value.replace(/\D/g, ''))}
                         className="search-input"
                     />
                     <span className="search-icon">🔍</span>

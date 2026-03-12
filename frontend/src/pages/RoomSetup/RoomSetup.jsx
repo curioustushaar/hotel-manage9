@@ -860,7 +860,7 @@ const RoomSetup = () => {
                                             type="text"
                                             name="roomNumber"
                                             value={formData.roomNumber}
-                                            onChange={handleInputChange}
+                                            onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value.replace(/\D/g, '') })}
                                             required
                                             className="form-input"
                                         />
@@ -910,7 +910,10 @@ const RoomSetup = () => {
                                             type="number"
                                             name="basePrice"
                                             value={formData.basePrice}
-                                            onChange={handleInputChange}
+                                            onChange={(e) => {
+                                                const val = Math.max(0, Number(e.target.value));
+                                                setFormData({ ...formData, basePrice: val.toString() });
+                                            }}
                                             required
                                             className="form-input"
                                         />
