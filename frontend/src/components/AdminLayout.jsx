@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Sidebar from './Sidebar';
 import AdminNavbar from './AdminNavbar';
@@ -6,6 +6,26 @@ import './AdminLayout.css';
 
 const AdminLayout = ({ children, activeMenu, onMenuClick, onLogout, noPadding = false }) => {
     const { sidebarOpen, setSidebarOpen } = useAuth();
+
+    // Auto-close sidebar on mobile/tablet viewports
+    useEffect(() => {
+        let prevWidth = window.innerWidth;
+        const handleResize = () => {
+            const currWidth = window.innerWidth;
+            if (currWidth <= 768 && prevWidth > 768) {
+                setSidebarOpen(false);
+            }
+            prevWidth = currWidth;
+        };
+
+        // Check on initial mount
+        if (window.innerWidth <= 768) {
+            setSidebarOpen(false);
+        }
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [setSidebarOpen]);
 
     return (
         <div className="admin-layout">
