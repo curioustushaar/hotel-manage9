@@ -692,7 +692,7 @@
 
 .add-type-btn {
     padding: 0 16px;
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    background: linear-gradient(135deg, #e11d48, #be123c);
     color: white;
     border: none;
     border-radius: 8px;
@@ -704,9 +704,9 @@
 }
 
 .add-type-btn:hover {
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: linear-gradient(135deg, #be123c, #9f1239);
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 8px rgba(225, 29, 72, 0.3);
 }
 
 .type-input-group {
@@ -976,15 +976,15 @@
 }
 
 .add-table-modal .btn-primary {
-    background-color: #3b82f6;
+    background-color: #e11d48;
     color: white;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+    box-shadow: 0 4px 12px rgba(225, 29, 72, 0.25);
 }
 
 .add-table-modal .btn-primary:hover {
-    background-color: #2563eb;
+    background-color: #be123c;
     transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(59, 130, 246, 0.35);
+    box-shadow: 0 6px 15px rgba(225, 29, 72, 0.35);
 }
 
 .add-table-modal .type-action-btn {
@@ -1000,7 +1000,7 @@
 }
 
 .add-table-modal .type-action-btn.success {
-    background-color: #3b82f6;
+    background-color: #e11d48;
     color: white;
 }
 
@@ -1016,7 +1016,7 @@
 }
 
 .add-table-modal .add-type-btn {
-    background: #3b82f6;
+    background: #e11d48;
     color: white;
     border: none;
     border-radius: 12px;
