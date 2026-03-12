@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import './FormStyles.css';
+import '../AddPayment.css';
 import { useSettings } from '../../context/SettingsContext';
 
 const PrintInvoiceForm = ({ booking, onSubmit, onCancel }) => {
     const [printType, setPrintType] = useState('A4');
-    const { settings, getCurrencySymbol, getFullAddress, formatDate: settingsFormatDate } = useSettings();
+    const { settings, getCurrencySymbol, formatDate: settingsFormatDate } = useSettings();
 
     const printOptions = [
         { id: 'A4', label: 'A4', icon: '📄', desc: 'Standard' },
@@ -26,185 +26,132 @@ const PrintInvoiceForm = ({ booking, onSubmit, onCancel }) => {
     const subtotal = b.totalAmount || 0;
     const tax = Math.round(subtotal * taxRate);
     const grandTotal = subtotal + tax;
-    const nights = b.numberOfNights || 1;
-
-    const getPageStyle = (type) => {
-        if (type === '2 inch') return '@page { size: 56mm auto; margin: 2mm; }';
-        if (type === '3 inch' || type === 'Thermal') return '@page { size: 78mm auto; margin: 2mm; }';
-        if (type === 'A5') return '@page { size: A5; margin: 12mm; }';
-        if (type === 'Dot Matrix') return '@page { size: auto; margin: 5mm; }';
-        return '@page { size: A4; margin: 15mm; }';
-    };
-
-    const isReceipt = ['2 inch', '3 inch', 'Thermal'].includes(printType);
-    const isDotMatrix = printType === 'Dot Matrix';
-
-    const generateInvoice = () => {
-        return `<!DOCTYPE html>
-<html><head><title>Invoice - ${b.bookingId || 'INV'}</title>
-<style>
-${getPageStyle(printType)}
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-    font-family: ${isDotMatrix ? "'Courier New', monospace" : isReceipt ? "'Roboto Mono', 'Courier New', monospace" : "'Segoe UI', Arial, sans-serif"};
-    font-size: ${isReceipt ? (printType === '2 inch' ? '10px' : '11px') : isDotMatrix ? '12px' : '13px'};
-    color: #000; padding: ${isReceipt ? '4px' : isDotMatrix ? '10px' : '30px'}; line-height: 1.5;
-    ${isReceipt ? `width: ${printType === '2 inch' ? '56mm' : '78mm'};` : ''}
-}
-.hotel-name { font-size: ${isReceipt ? '14px' : isDotMatrix ? '16px' : '24px'}; font-weight: bold; text-align: center; text-transform: uppercase; }
-.hotel-addr { text-align: center; font-size: ${isReceipt ? '9px' : '11px'}; color: #444; margin-bottom: ${isReceipt ? '4px' : '8px'}; }
-.gst-no { text-align: center; font-size: ${isReceipt ? '9px' : '11px'}; font-weight: bold; color: #333; margin-bottom: ${isReceipt ? '6px' : '12px'}; }
-.divider { border: none; border-top: ${isDotMatrix ? '1px dashed #000' : isReceipt ? '1px dashed #333' : '2px solid #333'}; margin: ${isReceipt ? '5px 0' : '10px 0'}; }
-.divider-thin { border: none; border-top: 1px solid #ddd; margin: ${isReceipt ? '4px 0' : '8px 0'}; }
-.inv-title { text-align: center; font-size: ${isReceipt ? '13px' : isDotMatrix ? '14px' : '18px'}; font-weight: bold; text-transform: uppercase; padding: ${isReceipt ? '4px 0' : '8px 0'}; ${!isReceipt && !isDotMatrix ? 'background: #f3f4f6; border: 1px solid #ddd; letter-spacing: 3px;' : ''} margin: ${isReceipt ? '4px 0' : '10px 0'}; }
-.row { display: flex; justify-content: space-between; padding: ${isReceipt ? '2px 0' : '5px 0'}; }
-.row .label { color: #555; font-size: ${isReceipt ? '9px' : '12px'}; }
-.row .val { font-weight: 600; }
-.section-title { font-weight: bold; font-size: ${isReceipt ? '11px' : '13px'}; margin: ${isReceipt ? '6px 0 3px' : '12px 0 5px'}; text-transform: uppercase; color: #333; }
-table { width: 100%; border-collapse: collapse; margin: ${isReceipt ? '5px 0' : '10px 0'}; }
-th { background: ${isDotMatrix ? 'transparent' : '#f3f4f6'}; padding: ${isReceipt ? '3px 2px' : '8px 10px'}; text-align: left; font-size: ${isReceipt ? '9px' : '12px'}; font-weight: bold; border-bottom: ${isDotMatrix ? '1px dashed #000' : '2px solid #ddd'}; }
-td { padding: ${isReceipt ? '3px 2px' : '8px 10px'}; font-size: ${isReceipt ? '10px' : '12px'}; border-bottom: 1px solid #eee; }
-.text-right { text-align: right; }
-.total-box { ${!isReceipt && !isDotMatrix ? 'float: right; width: 280px;' : ''} margin-top: ${isReceipt ? '6px' : '10px'}; ${!isReceipt && !isDotMatrix ? 'border: 1px solid #ddd; padding: 10px; background: #fafafa;' : ''} }
-.total-row { display: flex; justify-content: space-between; padding: ${isReceipt ? '3px 0' : '6px 0'}; }
-.grand-total { font-size: ${isReceipt ? '13px' : '16px'}; font-weight: bold; border-top: 2px solid #000; padding-top: 5px; margin-top: 5px; }
-.paid { color: green; font-weight: 600; }
-.due { color: #dc2626; font-weight: 600; }
-.footer { text-align: center; margin-top: ${isReceipt ? '10px' : '25px'}; font-size: ${isReceipt ? '8px' : '10px'}; color: #777; ${!isReceipt ? 'clear: both; padding-top: 20px;' : ''} }
-.terms { margin-top: ${isReceipt ? '8px' : '15px'}; font-size: ${isReceipt ? '8px' : '10px'}; color: #666; ${!isReceipt ? 'clear: both; padding-top: 15px;' : ''} }
-.terms p { margin: 2px 0; }
-@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-</style></head>
-<body>
-<div class="hotel-name">${settings.name || 'Hotel'}</div>
-<div class="hotel-addr">${getFullAddress()}${settings.phone ? ' | ' + settings.phone : ''}</div>
-<div class="gst-no">GSTIN: ${settings.gstNumber || 'N/A'}</div>
-<hr class="divider">
-<div class="inv-title">Tax Invoice</div>
-<hr class="divider">
-
-<div class="row"><span class="label">Invoice No:</span><span class="val">${settings.invoicePrefix || settings.billingInvoicePrefix || 'INV-'}${b.bookingId || Date.now()}</span></div>
-<div class="row"><span class="label">Date:</span><span class="val">${new Date().toLocaleDateString('en-IN')}</span></div>
-<hr class="divider-thin">
-<div class="section-title">Bill To</div>
-<div class="row"><span class="label">Guest:</span><span class="val">${b.guestName || 'N/A'}</span></div>
-<div class="row"><span class="label">Mobile:</span><span class="val">${b.mobileNumber || 'N/A'}</span></div>
-${b.email ? `<div class="row"><span class="label">Email:</span><span class="val">${b.email}</span></div>` : ''}
-<hr class="divider-thin">
-
-<table>
-<thead><tr><th>Description</th><th class="text-right">Qty</th><th class="text-right">Rate</th><th class="text-right">Amount</th></tr></thead>
-<tbody>
-<tr>
-<td>Room Charges - ${b.roomType || 'Room'}<br><span style="font-size:${isReceipt ? '9px' : '11px'};color:#666">Room ${b.roomNumber || 'TBA'} | ${formatDate(b.checkInDate)} → ${formatDate(b.checkOutDate)}</span></td>
-<td class="text-right">${nights} Night${nights > 1 ? 's' : ''}</td>
-<td class="text-right">${cs}${(b.pricePerNight || 0).toLocaleString('en-IN')}</td>
-<td class="text-right">${cs}${subtotal.toLocaleString('en-IN')}</td>
-</tr>
-</tbody>
-</table>
-
-<div class="total-box">
-<div class="total-row"><span>Subtotal:</span><span>${cs}${subtotal.toLocaleString('en-IN')}</span></div>
-<div class="total-row"><span>${settings.taxType || 'GST'} (${(taxRate * 100).toFixed(0)}%):</span><span>${cs}${tax.toLocaleString('en-IN')}</span></div>
-<div class="total-row grand-total"><span>Grand Total:</span><span>${cs}${grandTotal.toLocaleString('en-IN')}</span></div>
-${(b.advancePaid || 0) > 0 ? `<div class="total-row paid"><span>Paid:</span><span>${cs}${(b.advancePaid || 0).toLocaleString('en-IN')}</span></div>` : ''}
-${(b.remainingAmount || 0) > 0 ? `<div class="total-row due"><span>Balance Due:</span><span>${cs}${(b.remainingAmount || 0).toLocaleString('en-IN')}</span></div>` : ''}
-</div>
-
-<div class="terms">
-<p><strong>Terms & Conditions:</strong></p>
-<p>1. Check-in: 2:00 PM | Check-out: 11:00 AM</p>
-<p>2. Late checkout subject to availability and charges</p>
-<p>3. Payment at checkout</p>
-</div>
-<hr class="divider">
-<div class="footer">${settings.thankYouMessage || 'Thank you for your business!'} | Generated: ${new Date().toLocaleString('en-IN')}</div>
-</body></html>`;
-    };
 
     const handlePrint = () => {
-        const content = generateInvoice();
-        const printWindow = window.open('', '_blank', 'width=800,height=600');
-        printWindow.document.write(content);
-        printWindow.document.close();
-        setTimeout(() => {
-            printWindow.focus();
-            printWindow.print();
-        }, 400);
-        onSubmit({ action: 'print-invoice', timestamp: new Date().toISOString(), type: printType });
+        if (onSubmit) {
+            onSubmit({ action: 'print-invoice', timestamp: new Date().toISOString(), type: printType });
+        }
     };
 
     return (
-        <div className="flex flex-col h-full bg-white">
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
-                {/* Booking Info Card */}
-                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="text-[11px] text-gray-400 uppercase tracking-wide">Invoice</p>
-                            <p className="text-sm font-bold text-gray-900">{b.bookingId || 'N/A'}</p>
+        <div className="add-payment-form-premium" style={{ height: '100%', width: '100%', boxSizing: 'border-box' }}>
+            <div className="add-payment-body">
+                {/* Guest & Billing Summary Card */}
+                <div className="payment-summary-card">
+                    <div className="summary-header">
+                        <span className="ref-tag">TAX INVOICE</span>
+                        <span className="ref-number">{b.bookingId || 'N/A'}</span>
+                    </div>
+                    
+                    <div className="summary-main">
+                        <div className="summary-column">
+                            <div className="summary-item">
+                                <label>BILL TO</label>
+                                <span className="truncate-text">{b.guestName || 'N/A'}</span>
+                            </div>
+                            <div className="summary-item">
+                                <label>ROOM</label>
+                                <span>{b.roomNumber || 'TBA'} ({b.roomType || 'Std'})</span>
+                            </div>
+                            <div className="summary-item">
+                                <label>PERIOD</label>
+                                <span style={{ fontSize: '11px' }}>{formatDate(b.checkInDate)} - {formatDate(b.checkOutDate)}</span>
+                            </div>
                         </div>
-                        <p className="text-[11px] text-gray-400">{new Date().toLocaleDateString('en-IN')}</p>
-                    </div>
-                    <div className="border-t border-gray-200 pt-2 grid grid-cols-2 gap-2 text-[12px]">
-                        <div><span className="text-gray-400">Guest</span><p className="font-semibold text-gray-800 truncate">{b.guestName || 'N/A'}</p></div>
-                        <div><span className="text-gray-400">Room</span><p className="font-semibold text-gray-800">{b.roomNumber || 'TBA'} ({b.roomType || 'Std'})</p></div>
-                        <div><span className="text-gray-400">Check-in</span><p className="font-semibold text-gray-800">{formatDate(b.checkInDate)}</p></div>
-                        <div><span className="text-gray-400">Check-out</span><p className="font-semibold text-gray-800">{formatDate(b.checkOutDate)}</p></div>
-                    </div>
-                    <div className="border-t border-gray-200 pt-2 space-y-1 text-[12px]">
-                        <div className="flex justify-between"><span className="text-gray-400">Subtotal</span><span className="font-semibold text-gray-800">{cs}{subtotal.toLocaleString('en-IN')}</span></div>
-                        <div className="flex justify-between"><span className="text-gray-400">{settings.taxType || 'GST'} ({(taxRate * 100).toFixed(0)}%)</span><span className="font-semibold text-gray-800">{cs}{tax.toLocaleString('en-IN')}</span></div>
-                        <div className="flex justify-between text-sm font-bold pt-1 border-t border-gray-200"><span className="text-gray-900">Grand Total</span><span className="text-gray-900">{cs}{grandTotal.toLocaleString('en-IN')}</span></div>
-                        {(b.advancePaid || 0) > 0 && <div className="flex justify-between text-[12px]"><span className="text-green-600">Paid</span><span className="font-semibold text-green-600">{cs}{(b.advancePaid || 0).toLocaleString('en-IN')}</span></div>}
-                        {(b.remainingAmount || 0) > 0 && <div className="flex justify-between text-[12px]"><span className="text-red-600">Balance</span><span className="font-semibold text-red-600">{cs}{(b.remainingAmount || 0).toLocaleString('en-IN')}</span></div>}
+                        <div className="summary-column">
+                            <div className="summary-item">
+                                <label>SUBTOTAL</label>
+                                <span>{cs}{subtotal.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div className="summary-item">
+                                <label>{settings.taxType || 'GST'} ({(taxRate * 100).toFixed(0)}%)</label>
+                                <span>{cs}{tax.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div className="summary-item">
+                                <label>GRAND TOTAL</label>
+                                <span style={{ color: '#e11d48', fontWeight: '900' }}>{cs}{grandTotal.toLocaleString('en-IN')}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* Format Selector */}
-                <div>
-                    <label className="text-[11px] text-gray-400 uppercase tracking-wide mb-2 block">
-                        <span style={{marginRight:'6px'}}>🖨️</span> Select Print Format
+                {/* Print Format Selector */}
+                <div style={{ marginTop: '4px' }}>
+                    <label className="field-label-premium" style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>🖨️</span> SELECT PRINT FORMAT
                     </label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                         {printOptions.map(opt => (
-                            <button key={opt.id} type="button" onClick={() => setPrintType(opt.id)}
-                                style={printType === opt.id ? {
-                                    background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-                                    color: '#fff', border: '2px solid #dc2626', borderRadius: '10px',
-                                    padding: '10px 4px', boxShadow: '0 4px 12px rgba(220,38,38,0.3)',
-                                    transform: 'translateY(-1px)', cursor: 'pointer', transition: 'all 0.2s',
-                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px'
-                                } : {
-                                    background: '#fff', color: '#374151', border: '1.5px solid #e5e7eb',
-                                    borderRadius: '10px', padding: '10px 4px', cursor: 'pointer',
-                                    transition: 'all 0.2s', display: 'flex', flexDirection: 'column',
-                                    alignItems: 'center', gap: '3px'
+                            <button 
+                                key={opt.id} 
+                                type="button" 
+                                onClick={() => setPrintType(opt.id)}
+                                style={{
+                                    background: printType === opt.id ? '#fef2f2' : 'white',
+                                    border: printType === opt.id ? '2px solid #e11d48' : '2px solid #f1f5f9',
+                                    borderRadius: '16px',
+                                    padding: '16px 8px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    boxShadow: printType === opt.id ? '0 8px 20px rgba(225, 29, 72, 0.15)' : 'none',
+                                    position: 'relative',
+                                    overflow: 'hidden'
                                 }}
                             >
-                                <span style={{fontSize:'18px'}}>{opt.icon}</span>
-                                <span style={{fontSize:'11px', fontWeight:'700'}}>{opt.label}</span>
-                                <span style={{fontSize:'9px', opacity:'0.7'}}>{opt.desc}</span>
+                                <span style={{ fontSize: '24px' }}>{opt.icon}</span>
+                                <span style={{ fontSize: '13px', fontWeight: '800', color: printType === opt.id ? '#e11d48' : '#475569' }}>
+                                    {opt.label}
+                                </span>
+                                {printType === opt.id && (
+                                    <div style={{ 
+                                        position: 'absolute', 
+                                        top: '-6px', 
+                                        right: '-6px', 
+                                        background: '#e11d48', 
+                                        color: 'white', 
+                                        width: '20px', 
+                                        height: '20px', 
+                                        borderRadius: '50%', 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'center',
+                                        fontSize: '10px',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                                        border: '2px solid white'
+                                    }}>✓</div>
+                                )}
                             </button>
                         ))}
                     </div>
                 </div>
+
+                {/* Status Indicator */}
+                <div className="new-balance-preview" style={{ marginTop: 'auto', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                    <div className="preview-label" style={{ color: '#64748b' }}>SELECTED FORMAT:</div>
+                    <div className="preview-amount" style={{ color: '#1e293b', fontSize: '14px' }}>
+                        {printOptions.find(p => p.id === printType)?.icon} {printType}
+                    </div>
+                </div>
             </div>
 
-            {/* Print Button */}
-            <div className="p-4 border-t border-gray-100">
-                <div style={{marginBottom:'8px', fontSize:'11px', color:'#6b7280', textAlign:'center'}}>
-                    Format: <strong style={{color:'#dc2626'}}>{printOptions.find(p => p.id === printType)?.icon} {printType}</strong>
-                </div>
-                <button type="button" onClick={handlePrint}
-                    style={{width:'100%', padding:'12px', background:'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-                        color:'#fff', border:'none', borderRadius:'10px', fontWeight:'700', fontSize:'14px',
-                        cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px',
-                        boxShadow:'0 4px 15px rgba(220,38,38,0.4)', transition:'all 0.2s'
-                    }}>
-                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                    🧾 Print Invoice
+            {/* Footer */}
+            <div className="payment-modal-footer">
+                <button type="button" className="btn-secondary" onClick={onCancel}>
+                    CANCEL
+                </button>
+                <button 
+                    type="button" 
+                    className="btn-primary" 
+                    onClick={handlePrint}
+                    style={{ flex: 2 }}
+                >
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                    PRINT INVOICE
                 </button>
             </div>
         </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSettings } from '../../context/SettingsContext';
-import './FormStyles.css';
+import '../AddPayment.css'; // Reuse premium styles
 
 const CheckInForm = ({ booking, onSubmit, onCancel }) => {
     const { getCurrencySymbol } = useSettings();
@@ -39,7 +39,7 @@ const CheckInForm = ({ booking, onSubmit, onCancel }) => {
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         if (!validate()) return;
 
         setIsSubmitting(true);
@@ -56,56 +56,94 @@ const CheckInForm = ({ booking, onSubmit, onCancel }) => {
                 remarks: formData.checkInRemarks
             });
         } catch (error) {
-            // handled by BookingActionsManager
-        } finally {
+            console.error('Check-in error:', error);
             setIsSubmitting(false);
         }
     };
 
     return (
-        <form className="flex flex-col h-full" onSubmit={handleSubmit} noValidate>
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
-                {/* Guest Banner */}
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <div className="flex justify-between items-start mb-2">
-                        <div>
-                            <p className="text-[11px] text-gray-400 uppercase tracking-wide">Guest</p>
-                            <p className="text-base font-bold text-gray-900">{booking.guestName || 'Guest'}</p>
+        <div className="add-payment-form-premium" style={{ height: '100%', width: '100%', boxSizing: 'border-box' }}>
+            <div className="add-payment-body">
+                {/* Guest & Reservation Summary Card */}
+                <div className="payment-summary-card">
+                    <div className="summary-header">
+                        <span className="ref-tag">RESERVATION DETAILS</span>
+                        <span className="ref-number">{booking.bookingId || 'N/A'}</span>
+                    </div>
+                    <div className="summary-main">
+                        <div className="summary-column">
+                            <div className="summary-item">
+                                <label>GUEST NAME</label>
+                                <span className="truncate-text">{booking.guestName || 'Valued Guest'}</span>
+                            </div>
+                            <div className="summary-item">
+                                <label>ROOM</label>
+                                <span>{booking.roomNumber || 'TBA'} ({booking.roomType || 'Std'})</span>
+                            </div>
                         </div>
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700">
-                            {booking.status || 'Reserved'}
-                        </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-[12px] border-t border-gray-200 pt-2">
-                        <div><span className="text-gray-400">Room</span><p className="font-semibold">{booking.roomNumber || 'TBA'} ({booking.roomType || 'Std'})</p></div>
-                        <div><span className="text-gray-400">Reservation</span><p className="font-semibold">{booking.bookingId || 'N/A'}</p></div>
-                    </div>
-                </div>
-
-                {/* Check-In Date & Time */}
-                <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Arrival Date <span className="text-red-500">*</span></label>
-                        <input type="date" name="actualCheckInDate" value={formData.actualCheckInDate} onChange={handleChange}
-                            className={`w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-red-500 ${errors.actualCheckInDate ? 'border-red-400' : 'border-gray-300'}`} />
-                        {errors.actualCheckInDate && <p className="text-red-500 text-xs mt-1">{errors.actualCheckInDate}</p>}
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Check-In Time <span className="text-red-500">*</span></label>
-                        <input type="time" name="actualCheckInTime" value={formData.actualCheckInTime} onChange={handleChange}
-                            className={`w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-red-500 ${errors.actualCheckInTime ? 'border-red-400' : 'border-gray-300'}`} />
-                        {errors.actualCheckInTime && <p className="text-red-500 text-xs mt-1">{errors.actualCheckInTime}</p>}
+                        <div className="summary-column">
+                            <div className="summary-item">
+                                <label>RESERVATION ID</label>
+                                <span style={{ color: '#64748b', fontSize: '11px' }}>{booking.bookingId || 'N/A'}</span>
+                            </div>
+                            <div className="summary-item">
+                                <label>STATUS</label>
+                                <span style={{ color: '#059669' }}>{booking.status || 'Reserved'}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* ID Proof */}
-                <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
-                    <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">🪪 Identity Verification</p>
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">ID Type <span className="text-red-500">*</span></label>
-                            <select name="idProofType" value={formData.idProofType} onChange={handleChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none bg-white focus:ring-2 focus:ring-red-500">
+                {/* Arrival Info */}
+                <div className="payment-method-grid" style={{ gridTemplateColumns: '1.2fr 0.8fr' }}>
+                    <div className="payment-field-group">
+                        <label className="field-label-premium">ARRIVAL DATE <span className="req-star">*</span></label>
+                        <div className="input-with-icon">
+                            <span className="field-icon">📅</span>
+                            <input
+                                type="date"
+                                name="actualCheckInDate"
+                                value={formData.actualCheckInDate}
+                                onChange={handleChange}
+                                className={errors.actualCheckInDate ? 'error' : ''}
+                            />
+                        </div>
+                    </div>
+                    <div className="payment-field-group">
+                        <label className="field-label-premium">TIME <span className="req-star">*</span></label>
+                        <div className="input-with-icon">
+                            <span className="field-icon">🕒</span>
+                            <input
+                                type="time"
+                                name="actualCheckInTime"
+                                value={formData.actualCheckInTime}
+                                onChange={handleChange}
+                                className={errors.actualCheckInTime ? 'error' : ''}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="payment-field-group" style={{ 
+                    background: '#f1f5f9', 
+                    padding: '20px', 
+                    borderRadius: '20px', 
+                    border: '1px solid #e2e8f0',
+                    marginTop: '8px'
+                }}>
+                    <label className="field-label-premium" style={{ color: '#1e40af', marginBottom: '12px', paddingLeft: '0' }}>
+                        🪪 IDENTITY VERIFICATION
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div className="payment-field-group">
+                            <label className="field-label-premium">ID TYPE</label>
+                            <select 
+                                name="idProofType" 
+                                value={formData.idProofType} 
+                                onChange={handleChange}
+                                className="premium-select"
+                                style={{ height: '46px' }}
+                            >
                                 <option value="Aadhaar">Aadhaar Card</option>
                                 <option value="Passport">Passport</option>
                                 <option value="Driving License">Driving License</option>
@@ -113,72 +151,106 @@ const CheckInForm = ({ booking, onSubmit, onCancel }) => {
                                 <option value="Voter ID">Voter ID</option>
                             </select>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">ID Number <span className="text-red-500">*</span></label>
-                            <input type="text" name="idProofNumber" value={formData.idProofNumber} onChange={handleChange}
+                        <div className="payment-field-group">
+                            <label className="field-label-premium">ID NUMBER</label>
+                            <input
+                                type="text"
+                                name="idProofNumber"
+                                value={formData.idProofNumber}
+                                onChange={handleChange}
                                 placeholder="Enter ID number"
-                                className={`w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-red-500 ${errors.idProofNumber ? 'border-red-400' : 'border-gray-300'}`} />
-                            {errors.idProofNumber && <p className="text-red-500 text-xs mt-1">{errors.idProofNumber}</p>}
+                                className={errors.idProofNumber ? 'error' : ''}
+                                style={{ height: '46px' }}
+                            />
                         </div>
                     </div>
                 </div>
 
                 {/* Occupancy */}
-                <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Adults <span className="text-red-500">*</span></label>
-                        <input type="number" name="numberOfAdults" value={formData.numberOfAdults} onChange={handleChange}
-                            min="1" max="20"
-                            className={`w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-red-500 ${errors.numberOfAdults ? 'border-red-400' : 'border-gray-300'}`} />
-                        {errors.numberOfAdults && <p className="text-red-500 text-xs mt-1">{errors.numberOfAdults}</p>}
+                <div className="payment-method-grid">
+                    <div className="payment-field-group">
+                        <label className="field-label-premium">ADULTS <span className="req-star">*</span></label>
+                        <input
+                            type="number"
+                            name="numberOfAdults"
+                            value={formData.numberOfAdults}
+                            onChange={handleChange}
+                            min="1"
+                            className={errors.numberOfAdults ? 'error' : ''}
+                        />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Children</label>
-                        <input type="number" name="numberOfChildren" value={formData.numberOfChildren} onChange={handleChange}
-                            min="0" max="20"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-red-500" />
+                    <div className="payment-field-group">
+                        <label className="field-label-premium">CHILDREN</label>
+                        <input
+                            type="number"
+                            name="numberOfChildren"
+                            value={formData.numberOfChildren}
+                            onChange={handleChange}
+                            min="0"
+                        />
                     </div>
                 </div>
 
                 {/* Vehicle & Deposit */}
-                <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Number</label>
-                        <input type="text" name="vehicleNumber" value={formData.vehicleNumber} onChange={handleChange}
-                            placeholder="e.g. DL01AB1234"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-red-500" />
+                <div className="payment-method-grid">
+                    <div className="payment-field-group">
+                        <label className="field-label-premium">VEHICLE NUMBER</label>
+                        <input
+                            type="text"
+                            name="vehicleNumber"
+                            value={formData.vehicleNumber}
+                            onChange={handleChange}
+                            placeholder="e.g. DL01AB..."
+                        />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Security Deposit ({cs})</label>
-                        <input type="number" name="securityDeposit" value={formData.securityDeposit} onChange={handleChange}
-                            min="0" step="0.01"
-                            className={`w-full px-3 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-red-500 ${errors.securityDeposit ? 'border-red-400' : 'border-gray-300'}`} />
-                        {errors.securityDeposit && <p className="text-red-500 text-xs mt-1">{errors.securityDeposit}</p>}
+                    <div className="payment-field-group">
+                        <label className="field-label-premium">SECURITY DEPOSIT ({cs})</label>
+                        <input
+                            type="number"
+                            name="securityDeposit"
+                            value={formData.securityDeposit}
+                            onChange={handleChange}
+                            min="0"
+                            step="0.01"
+                        />
                     </div>
                 </div>
 
                 {/* Remarks */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
-                    <textarea name="checkInRemarks" value={formData.checkInRemarks} onChange={handleChange}
-                        placeholder="Any special notes (optional)" rows="2"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-red-500 resize-none" />
+                <div className="payment-field-group">
+                    <label className="field-label-premium">REMARKS</label>
+                    <textarea
+                        name="checkInRemarks"
+                        className="premium-textarea"
+                        value={formData.checkInRemarks}
+                        onChange={handleChange}
+                        placeholder="Any special notes for this check-in..."
+                        rows="2"
+                    />
                 </div>
             </div>
 
-            {/* Footer */}
-            <div className="p-4 border-t border-gray-100 flex gap-3">
-                <button type="button" onClick={onCancel} disabled={isSubmitting}
-                    className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                    Cancel
+            {/* Premium Footer */}
+            <div className="payment-modal-footer">
+                <button type="button" className="btn-secondary" onClick={onCancel} disabled={isSubmitting}>
+                    CANCEL
                 </button>
-                <button type="submit" disabled={isSubmitting}
-                    className="flex-1 px-4 py-2.5 rounded-lg font-semibold text-white transition-all"
-                    style={{ background: isSubmitting ? '#9ca3af' : 'linear-gradient(135deg, #dc2626, #b91c1c)' }}>
-                    {isSubmitting ? 'Checking In...' : '✓ Check-In'}
+                <button 
+                    type="submit" 
+                    className="btn-primary" 
+                    onClick={handleSubmit} 
+                    disabled={isSubmitting}
+                >
+                    {isSubmitting ? (
+                        <div className="spinner-small"></div>
+                    ) : (
+                        <>
+                           <span>✓</span> CONFIRM CHECK-IN
+                        </>
+                    )}
                 </button>
             </div>
-        </form>
+        </div>
     );
 };
 

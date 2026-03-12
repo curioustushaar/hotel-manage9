@@ -131,7 +131,7 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
 
     return (
         <>
-            <Drawer isOpen={isOpen} onClose={onClose} title={config.title || 'Action'} height="90vh">
+            <Drawer isOpen={isOpen} onClose={onClose} title={config.title || 'Action'} height="premium">
                 {renderForm()}
             </Drawer>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}

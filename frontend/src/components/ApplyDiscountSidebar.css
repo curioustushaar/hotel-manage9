@@ -1,301 +1,93 @@
-/* Apply Discount Modal Overlay */
-.apply-discount-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
+/* Premium Apply Discount Sidebar Styling */
+
+/* Checkbox Card Panel */
+.discount-scope-panel {
     display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    z-index: 10000;
-    backdrop-filter: blur(2px);
-    padding: 100px 0;
+    gap: 12px;
+    margin-bottom: 20px;
 }
 
-/* Apply Discount Modal */
-.apply-discount-modal {
-    background: white;
-    width: 420px;
-    max-width: 90%;
-    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 200px);
-    max-height: 90vh;
-    overflow: hidden;
-    animation: slideInRight 0.3s ease-out;
-}
-
-@keyframes slideInRight {
-    from {
-        transform: translateX(100%);
-    }
-
-    to {
-        transform: translateX(0);
-    }
-}
-
-/* Header */
-.apply-discount-header {
-    background: linear-gradient(135deg, #dc2626, #b91c1c);
-    color: white;
-    padding: 14px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-radius: 0;
-    border-bottom: 3px solid #991b1b;
-}
-
-.apply-discount-header h2 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-}
-
-.apply-discount-close {
-    background: transparent;
-    border: none;
-    color: white;
-    font-size: 28px;
-    cursor: pointer;
-    padding: 0;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    opacity: 0.9;
-    transition: opacity 0.2s;
-}
-
-.apply-discount-close:hover {
-    opacity: 1;
-}
-
-/* Body */
-.apply-discount-body {
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    overflow-y: auto;
+.premium-checkbox-card {
     flex: 1;
+    position: relative;
+    cursor: pointer;
 }
 
-/* Field */
-.apply-discount-field {
+.premium-checkbox-card input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkbox-custom-content {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 10px;
+    background: #f8fafc;
+    border: 2px solid #f1f5f9;
+    border-radius: 16px;
+    transition: all 0.3s ease;
 }
 
-.apply-discount-field label {
-    font-size: 13px;
-    font-weight: 500;
-    color: #374151;
+.premium-checkbox-card:hover .checkbox-custom-content {
+    border-color: #fecaca;
+    background: #fffafa;
 }
 
-.apply-discount-field label .required {
-    color: #dc2626;
-    margin-left: 2px;
+.premium-checkbox-card input:checked + .checkbox-custom-content {
+    background: #fff1f2;
+    border-color: #f43f5e;
+    box-shadow: 0 4px 12px rgba(244, 63, 94, 0.12);
 }
 
-.apply-discount-field input[type="text"],
-.apply-discount-field input[type="number"],
-.apply-discount-field input[type="date"],
-.apply-discount-field select,
-.apply-discount-field textarea {
-    padding: 9px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    font-size: 14px;
-    color: #111827;
-    font-family: inherit;
-    transition: border-color 0.15s;
-}
-
-.apply-discount-field input:focus,
-.apply-discount-field select:focus,
-.apply-discount-field textarea:focus {
-    outline: none;
-    border-color: #ef4444;
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-}
-
-.apply-discount-dropdown {
-    padding: 10px 12px;
-    border: 1px solid #d1d5db;
+.custom-check-box {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #cbd5e1;
     border-radius: 6px;
-    font-size: 14px;
-    color: #111827;
-    background-color: #fff;
-    cursor: pointer;
+    position: relative;
     transition: all 0.2s;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    background-size: 16px;
-}
-
-.apply-discount-dropdown:hover {
-    border-color: #9ca3af;
-    background-color: #f9fafb;
-}
-
-.apply-discount-field textarea {
-    resize: vertical;
-}
-
-.apply-discount-field textarea::placeholder {
-    color: #9ca3af;
-}
-
-/* Checkbox Group */
-.discount-checkbox-group {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.discount-checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    user-select: none;
-}
-
-.discount-checkbox-label input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    accent-color: #dc2626;
-    flex-shrink: 0;
-}
-
-.checkbox-text {
-    font-size: 13px;
-    font-weight: 600;
-    color: #dc2626;
-    letter-spacing: 0.3px;
-}
-
-/* Discount Type Radio Group */
-.discount-type-group {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-}
-
-.discount-type-radio {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    user-select: none;
-}
-
-.discount-type-radio input[type="radio"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    accent-color: #dc2626;
-    flex-shrink: 0;
-}
-
-.radio-text {
-    font-size: 14px;
-    font-weight: 500;
-    color: #374151;
-}
-
-/* Plus Value Button */
-.discount-plus-value-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    padding: 9px 12px;
-    background-color: #f3f4f6;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    color: #374151;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.discount-plus-value-btn:hover {
-    background-color: #e5e7eb;
-    border-color: #9ca3af;
-}
-
-.plus-icon {
-    font-size: 16px;
-    font-weight: bold;
-}
-
-/* Footer */
-.apply-discount-footer {
-    padding: 16px 20px;
-    border-top: 1px solid #e5e7eb;
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-}
-
-.apply-discount-cancel-btn {
     background: white;
-    color: #374151;
-    border: 1px solid #d1d5db;
-    padding: 9px 24px;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
 }
 
-.apply-discount-cancel-btn:hover {
-    background: #f9fafb;
-    border-color: #9ca3af;
+.premium-checkbox-card input:checked + .checkbox-custom-content .custom-check-box {
+    background: #f43f5e;
+    border-color: #f43f5e;
 }
 
-.apply-discount-cancel-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+.premium-checkbox-card input:checked + .checkbox-custom-content .custom-check-box::after {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2.5px 2.5px 0;
+    transform: rotate(45deg);
 }
 
-.apply-discount-submit-btn {
-    background: #dc2626;
-    color: white;
-    border: none;
-    padding: 9px 24px;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.2s;
+.card-label-text {
+    font-size: 11px;
+    font-weight: 800;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.apply-discount-submit-btn:hover {
-    background: #b91c1c;
+.premium-checkbox-card input:checked + .checkbox-custom-content .card-label-text {
+    color: #e11d48;
 }
 
-.apply-discount-submit-btn:active {
-    background: #991b1b;
-}
-
-.apply-discount-submit-btn:disabled {
-    background: #9ca3af;
-    cursor: not-allowed;
-    opacity: 0.7;
-}
+/* Field Info Text */
+.field-info-text {
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: 600;
+    margin-top: 6px;
+    padding-left: 4px;
+}

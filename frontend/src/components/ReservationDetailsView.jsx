@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ReservationDetailsView.css';
 import { useSettings } from '../context/SettingsContext';
+import AddPayment from './AddPayment';
 
 const ReservationDetailsView = ({ reservation, onClose, onUpdate }) => {
     const { getCurrencySymbol } = useSettings();
@@ -9,6 +10,7 @@ const ReservationDetailsView = ({ reservation, onClose, onUpdate }) => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('roomCharges');
     const [showPrintMenu, setShowPrintMenu] = useState(false);
+    const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
 
     const handlePrintAction = (action) => {
         setShowPrintMenu(false);
@@ -40,8 +42,7 @@ const ReservationDetailsView = ({ reservation, onClose, onUpdate }) => {
     ];
 
     const handleAddPayment = () => {
-        // Add payment logic
-        alert('Add Payment functionality');
+        setShowAddPaymentModal(true);
     };
 
     const handleAddCharges = () => {
@@ -423,6 +424,19 @@ const ReservationDetailsView = ({ reservation, onClose, onUpdate }) => {
                     </div>
                 </div>
             </div>
+            {showAddPaymentModal && (
+                <AddPayment 
+                    reservation={reservation}
+                    onClose={() => setShowAddPaymentModal(false)}
+                    onAdd={async (data) => {
+                        console.log('Payment Added in View:', data);
+                        // Mock success
+                        alert('Payment processed successfully!');
+                        setShowAddPaymentModal(false);
+                        if (onUpdate) onUpdate({ type: 'PAYMENT_ADDED', data });
+                    }}
+                />
+            )}
         </div >
     );
 };

@@ -17,8 +17,8 @@ const Drawer = ({ isOpen, onClose, title, children, height = '600px' }) => {
 
                     {/* Drawer */}
                     <motion.div
-                        className="drawer-container"
-                        style={{ height: height }}
+                        className={`drawer-container ${height === 'premium' ? 'premium' : ''}`}
+                        style={{ height: height === 'premium' ? undefined : height }}
                         initial={{ x: '100%' }}
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
@@ -28,7 +28,7 @@ const Drawer = ({ isOpen, onClose, title, children, height = '600px' }) => {
                         <div className="drawer-header">
                             <h2 className="drawer-title">{title}</h2>
                             <button className="drawer-close-btn" onClick={onClose}>
-                                ✕
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                             </button>
                         </div>
 
