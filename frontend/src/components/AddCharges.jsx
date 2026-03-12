@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import './AddCharges.css';
 import Toast from './Toast';
@@ -14,19 +14,16 @@ const CHARGE_CATEGORY_MAP = {
 };
 
 const DEFAULT_CHARGE_OPTIONS = [
-    { value: 'laundry', label: 'Laundry' },
-    { value: 'dry_cleaning', label: 'Dry Cleaning' },
-    { value: 'spa_wellness', label: 'Spa and Wellness' },
-    { value: 'gym_access', label: 'Gym Access' },
-    { value: 'pool_access', label: 'Pool Access' },
-    { value: 'bar', label: 'Bar' },
-    { value: 'special_requests', label: 'Special Requests' },
-    { value: 'damage_security', label: 'Damage or Security Deposit' },
-    { value: 'lost_key', label: 'Lost Key or Card Replacement' },
-    { value: 'smoking_fees', label: 'Smoking Fees' },
-    { value: 'extra_towels', label: 'Extra Towels or Toiletries' },
-    { value: 'security_parking', label: 'Security Parking' },
-    { value: 'valet_parking', label: 'Valet Parking' },
+    { value: 'laundry', label: 'Laundry', icon: '🧺' },
+    { value: 'dry_cleaning', label: 'Dry Cleaning', icon: '👔' },
+    { value: 'spa_wellness', label: 'Spa & Wellness', icon: '🧖' },
+    { value: 'gym_access', label: 'Gym Access', icon: '💪' },
+    { value: 'pool_access', label: 'Pool Access', icon: '🏊' },
+    { value: 'bar', label: 'Bar & Drinks', icon: '🍹' },
+    { value: 'special_requests', label: 'Special Service', icon: '✨' },
+    { value: 'damage_security', label: 'Damage/Security', icon: '🛡️' },
+    { value: 'lost_key', label: 'Key Replacement', icon: '🔑' },
+    { value: 'smoking_fees', label: 'Smoking Fees', icon: '🚬' },
 ];
 
 const AddCharges = ({ onClose, onAdd, reservation }) => {
@@ -35,7 +32,7 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
 
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
-        folio: reservation ? `${reservation.roomNumber} - ${reservation.guestName}` : 'B5 - Shahrukh Ahmed',
+        folio: reservation ? `${reservation.roomNumber} - ${reservation.guestName}` : '102 - Guest',
         chargeType: '',
         currency: 'INR',
         amount: '',
@@ -53,7 +50,6 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
     const [discountValue, setDiscountValue] = useState('');
     const [discountSource, setDiscountSource] = useState('');
 
-    // Custom charge type states
     const [chargeOptions, setChargeOptions] = useState(() => {
         try {
             const custom = JSON.parse(localStorage.getItem('customChargeTypes') || '[]');
@@ -63,7 +59,6 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
     const [showAddCustom, setShowAddCustom] = useState(false);
     const [newCustomLabel, setNewCustomLabel] = useState('');
 
-    // Auto-fill discount when chargeType changes
     useEffect(() => {
         const category = CHARGE_CATEGORY_MAP[formData.chargeType];
         if (!category) {
@@ -87,10 +82,9 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
                 setDiscountSource('');
                 setDiscountType('PERCENTAGE');
             }
-        } catch { /* ignore parse errors */ }
+        } catch { }
     }, [formData.chargeType]);
 
-    // Computed amounts
     const totalAmount = (parseFloat(formData.amount) || 0) * (parseInt(formData.quantity) || 1);
     const discAmt = discountValue
         ? discountType === 'PERCENTAGE'
@@ -112,7 +106,7 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
             alert('A charge type with this name already exists.');
             return;
         }
-        const newOpt = { value, label: trimmed, isCustom: true };
+        const newOpt = { value, label: trimmed, isCustom: true, icon: '🏷️' };
         const updated = [...chargeOptions, newOpt];
         setChargeOptions(updated);
         const custom = updated.filter(o => o.isCustom);
@@ -124,10 +118,10 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
 
     const validateForm = () => {
         const newErrors = {};
-        if (!formData.date) newErrors.date = 'Date is required';
-        if (!formData.chargeType) newErrors.chargeType = 'Charge type is required';
-        if (!formData.amount || parseFloat(formData.amount) <= 0) newErrors.amount = 'Please enter a valid amount';
-        if (!formData.quantity || parseInt(formData.quantity) <= 0) newErrors.quantity = 'Please enter a valid quantity';
+        if (!formData.date) newErrors.date = 'Required';
+        if (!formData.chargeType) newErrors.chargeType = 'Required';
+        if (!formData.amount || parseFloat(formData.amount) <= 0) newErrors.amount = 'Invalid';
+        if (!formData.quantity || parseInt(formData.quantity) <= 0) newErrors.quantity = 'Invalid';
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -138,242 +132,184 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
         try {
             const chargeData = {
                 id: Date.now(),
-                date: formData.date,
-                folio: formData.folio,
-                chargeType: formData.chargeType,
-                currency: formData.currency,
+                ...formData,
                 amount: parseFloat(formData.amount),
                 quantity: parseInt(formData.quantity),
-                totalAmount,
+                totalAmount, discAmt, netAmount,
                 discountType: discountValue ? discountType : null,
-                discountValue: discountValue ? parseFloat(discountValue) : 0,
-                discountAmount: discAmt,
-                netAmount,
-                description: formData.description,
-                comment: formData.comment,
-                timestamp: new Date().toISOString(),
-                createdBy: 'current_user'
+                timestamp: new Date().toISOString()
             };
-
             if (onAdd) await onAdd(chargeData);
-
-            const existingCharges = JSON.parse(localStorage.getItem('charges') || '[]');
-            existingCharges.push(chargeData);
-            localStorage.setItem('charges', JSON.stringify(existingCharges));
+            setShowToast(true);
+            setTimeout(() => onClose(), 800);
         } catch (error) {
-            console.error('Error submitting charge:', error);
-            alert('Failed to add charge. Please try again.');
+            console.error(error);
             setIsSubmitting(false);
         }
     };
 
-    const handleKeyPress = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(); }
-    };
+    const balance = reservation ? (reservation.remainingAmount || (reservation.totalAmount - (reservation.paidAmount || reservation.advancePaid || 0))) : 0;
 
     return (
-        <div className="add-charges-overlay" onClick={onClose}>
-            <div className="add-charges-modal" onClick={(e) => e.stopPropagation()}>
-                <div className="add-charges-header">
-                    <h2>Add Charges</h2>
-                    <button className="add-charges-close" onClick={onClose}>×</button>
+        <div className="add-payment-overlay" onClick={onClose}>
+            <div className="add-payment-modal" onClick={(e) => e.stopPropagation()}>
+                {/* Header */}
+                <div className="premium-payment-header">
+                    <div className="header-icon-wrap">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"></path></svg>
+                    </div>
+                    <div className="header-text">
+                        <h3>Add Charges</h3>
+                        <span>Apply extra services to folio</span>
+                    </div>
+                    <button className="premium-close-btn" onClick={onClose}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
                 </div>
 
-                <div className="add-charges-body">
-                    {/* Date */}
-                    <div className="add-charges-field">
-                        <label>Date <span className="required">*</span></label>
-                        <input
-                            type="date"
-                            value={formData.date}
-                            onChange={(e) => handleChange('date', e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            className={errors.date ? 'error' : ''}
-                        />
-                        {errors.date && <span className="error-message">{errors.date}</span>}
-                    </div>
-
-                    {/* Folio */}
-                    <div className="add-charges-field">
-                        <label>Folio</label>
-                        <select value={formData.folio} onChange={(e) => handleChange('folio', e.target.value)}>
-                            <option>{formData.folio}</option>
-                        </select>
-                    </div>
-
-                    {/* Charges Select */}
-                    <div className="add-charges-field">
-                        <label>Charges <span className="required">*</span></label>
-                        <select
-                            value={formData.chargeType}
-                            onChange={(e) => {
-                                if (e.target.value === '__add_custom__') {
-                                    setShowAddCustom(true);
-                                } else {
-                                    handleChange('chargeType', e.target.value);
-                                }
-                            }}
-                            className={errors.chargeType ? 'error' : ''}
-                        >
-                            <option value="">Select Charges</option>
-                            {chargeOptions.map(option => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}{option.isCustom ? ' (Custom)' : ''}
-                                </option>
-                            ))}
-                            <option value="__add_custom__">＋ Add Custom Charge Type</option>
-                        </select>
-                        {errors.chargeType && <span className="error-message">{errors.chargeType}</span>}
-                    </div>
-
-                    {/* Custom Charge Type form */}
-                    {showAddCustom && (
-                        <div className="add-charges-field" style={{ background: '#f0f9ff', padding: '10px', borderRadius: '6px', border: '1px solid #bae6fd' }}>
-                            <label>New Charge Type Name</label>
-                            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                                <input
-                                    type="text"
-                                    value={newCustomLabel}
-                                    onChange={(e) => setNewCustomLabel(e.target.value)}
-                                    placeholder="e.g. Minibar, Transport..."
-                                    onKeyPress={(e) => e.key === 'Enter' && handleAddCustomChargeType()}
-                                    style={{ flex: 1 }}
-                                />
-                                <button type="button" onClick={handleAddCustomChargeType}
-                                    style={{ background: '#0284c7', color: '#fff', border: 'none', borderRadius: '4px', padding: '0 12px', cursor: 'pointer', fontWeight: 600 }}>
-                                    Add
-                                </button>
-                                <button type="button" onClick={() => { setShowAddCustom(false); setNewCustomLabel(''); }}
-                                    style={{ background: '#e5e7eb', color: '#374151', border: 'none', borderRadius: '4px', padding: '0 10px', cursor: 'pointer' }}>
-                                    Cancel
-                                </button>
+                <div className="add-payment-body">
+                    {/* Reservation Card */}
+                    {reservation && (
+                        <div className="payment-summary-card">
+                            <div className="summary-header">
+                                <span className="ref-tag">FOLIO DETAILS</span>
+                                <span className="ref-number">{reservation.bookingId || 'BKG-552'}</span>
+                            </div>
+                            <div className="summary-details">
+                                <div className="detail-col">
+                                    <label>Guest</label>
+                                    <p className="truncate-text">{reservation.guestName || 'Valued Guest'}</p>
+                                </div>
+                                <div className="detail-col-group">
+                                    <div className="detail-sub-col">
+                                        <label>Room</label>
+                                        <p>{reservation.roomNumber || '102'}</p>
+                                    </div>
+                                    <div className="detail-sub-col text-right">
+                                        <label>Current Balance</label>
+                                        <p className="balance-text-bold">{cs}{balance.toLocaleString('en-IN')}</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
 
-                    {/* Amount */}
-                    <div className="add-charges-field">
-                        <label>Amount <span className="required">*</span></label>
-                        <div className="amount-input-group">
-                            <select className="currency-select" value={formData.currency} onChange={(e) => handleChange('currency', e.target.value)}>
-                                <option>INR</option>
-                                <option>USD</option>
-                                <option>EUR</option>
-                                <option>GBP</option>
-                            </select>
-                            <input
-                                type="number"
-                                className={`amount-input ${errors.amount ? 'error' : ''}`}
-                                value={formData.amount}
-                                onChange={(e) => handleChange('amount', e.target.value)}
-                                onKeyPress={handleKeyPress}
-                                placeholder="Enter amount"
-                                min="0"
-                                step="0.01"
-                            />
-                        </div>
-                        {errors.amount && <span className="error-message">{errors.amount}</span>}
+                    {/* Form Content */}
+                    <div className="payment-field-group">
+                        <label className="field-label-premium">Service Date</label>
+                        <input type="date" value={formData.date} onChange={(e) => handleChange('date', e.target.value)} />
                     </div>
 
-                    {/* Quantity */}
-                    <div className="add-charges-field">
-                        <label>Quantity <span className="required">*</span></label>
-                        <input
-                            type="number"
-                            value={formData.quantity}
-                            onChange={(e) => handleChange('quantity', e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            className={errors.quantity ? 'error' : ''}
-                            min="1"
-                            placeholder="Enter quantity"
-                        />
-                        {errors.quantity && <span className="error-message">{errors.quantity}</span>}
-                    </div>
-
-                    {/* ── Discount Section ── */}
-                    <div className="add-charges-field" style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '12px', marginTop: '4px' }}>
-                        <label style={{ fontWeight: 600, color: '#1e40af', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            Discount
-                            {discountSource && (
-                                <span style={{ fontWeight: 400, fontSize: '11px', color: '#16a34a' }}>
-                                    ✓ Auto-filled: {discountSource}
-                                </span>
-                            )}
-                        </label>
-                        <div style={{ display: 'flex', gap: '8px', marginTop: '6px', alignItems: 'center' }}>
-                            {/* Toggle % / flat */}
-                            <div style={{ display: 'flex', border: '1px solid #d1d5db', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
-                                <button type="button" onClick={() => setDiscountType('PERCENTAGE')}
-                                    style={{ padding: '6px 12px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px',
-                                        background: discountType === 'PERCENTAGE' ? '#dc2626' : '#f9fafb',
-                                        color: discountType === 'PERCENTAGE' ? '#fff' : '#374151' }}>%</button>
-                                <button type="button" onClick={() => setDiscountType('FLAT')}
-                                    style={{ padding: '6px 12px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px',
-                                        background: discountType === 'FLAT' ? '#dc2626' : '#f9fafb',
-                                        color: discountType === 'FLAT' ? '#fff' : '#374151' }}>{cs}</button>
-                            </div>
-                            <input
-                                type="number"
-                                value={discountValue}
+                    <div className="payment-field-group">
+                        <label className="field-label-premium">Select Charge Type</label>
+                        <div className="modern-select-wrapper">
+                            <select 
+                                className="premium-dropdown-select"
+                                value={formData.chargeType}
                                 onChange={(e) => {
-                                    setDiscountValue(e.target.value);
-                                    if (e.target.value) setDiscountSource(prev => prev && !prev.endsWith('(Edited)') ? `${prev} (Edited)` : (prev || 'Manual'));
-                                    else setDiscountSource('');
+                                    if(e.target.value === 'add') setShowAddCustom(true);
+                                    else handleChange('chargeType', e.target.value);
                                 }}
-                                placeholder={discountType === 'PERCENTAGE' ? '0 %' : `0 ${cs}`}
-                                min="0"
-                                max={discountType === 'PERCENTAGE' ? '100' : undefined}
-                                style={{ flex: 1, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px' }}
-                            />
-                            {discountValue && (
-                                <button type="button" onClick={() => { setDiscountValue(''); setDiscountSource(''); }}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '18px', lineHeight: 1 }}>×</button>
-                            )}
-                        </div>
-                        {/* Net amount preview */}
-                        {totalAmount > 0 && (
-                            <div style={{ marginTop: '8px', fontSize: '12px', color: '#475569', display: 'flex', justifyContent: 'space-between', background: '#f8fafc', padding: '6px 8px', borderRadius: '4px' }}>
-                                <span>Gross: {cs}{totalAmount.toFixed(2)}</span>
-                                {discAmt > 0 && <span style={{ color: '#dc2626' }}>Discount: −{cs}{discAmt.toFixed(2)}</span>}
-                                <span style={{ fontWeight: 700, color: '#15803d' }}>Net: {cs}{netAmount.toFixed(2)}</span>
+                            >
+                                <option value="">Choose a service...</option>
+                                {chargeOptions.map(opt => (
+                                    <option key={opt.value} value={opt.value}>
+                                        {opt.icon} {opt.label}
+                                    </option>
+                                ))}
+                                <option value="add" className="add-option" style={{color:'#e11d48', fontWeight:'bold'}}>
+                                    ＋ Add Custom Type...
+                                </option>
+                            </select>
+                            <div className="select-arrow">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
                             </div>
-                        )}
+                        </div>
                     </div>
 
-                    {/* Description */}
-                    <div className="add-charges-field">
-                        <label>Description</label>
-                        <input
-                            type="text"
-                            value={formData.description}
-                            onChange={(e) => handleChange('description', e.target.value)}
-                            placeholder="Enter description"
-                        />
+                    {showAddCustom && (
+                        <div className="custom-type-entry animate-in">
+                            <input 
+                                value={newCustomLabel} 
+                                onChange={(e) => setNewCustomLabel(e.target.value)} 
+                                placeholder="Minibar, Extra Bed, etc..." 
+                            />
+                            <button onClick={handleAddCustomChargeType}>Add</button>
+                        </div>
+                    )}
+
+                    <div style={{display:'flex', gap:'12px'}}>
+                        <div className="payment-field-group" style={{flex:2}}>
+                            <label className="field-label-premium">Amount per unit</label>
+                            <div className="amount-input-container">
+                                <span className="currency-indicator">{cs}</span>
+                                <input 
+                                    type="number" 
+                                    className="amount-input-field"
+                                    value={formData.amount} 
+                                    onChange={(e) => handleChange('amount', e.target.value)}
+                                    placeholder="0.00"
+                                />
+                            </div>
+                        </div>
+                        <div className="payment-field-group" style={{flex:1}}>
+                            <label className="field-label-premium">Qty</label>
+                            <input 
+                                type="number" 
+                                value={formData.quantity} 
+                                onChange={(e) => handleChange('quantity', e.target.value)} 
+                                min="1"
+                            />
+                        </div>
                     </div>
 
-                    {/* Comment */}
-                    <div className="add-charges-field">
-                        <label>Comment</label>
-                        <textarea
-                            placeholder="Leave a comment here"
-                            value={formData.comment}
-                            onChange={(e) => handleChange('comment', e.target.value)}
-                            rows="3"
-                        ></textarea>
+                    {/* Discount Box */}
+                    <div className="new-balance-preview animate-in" style={{background:'#f0f9ff', borderColor:'#bae6fd', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                        <div className="preview-label" style={{color:'#0369a1', flex: 1}}>
+                            Discount {discountSource && <span style={{fontSize:'10px', opacity:0.7}}>(Auto: {discountSource})</span>}
+                        </div>
+                        <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
+                            <div className="disc-toggle">
+                                <button className={discountType === 'PERCENTAGE' ? 'active' : ''} onClick={() => setDiscountType('PERCENTAGE')}>%</button>
+                                <button className={discountType === 'FLAT' ? 'active' : ''} onClick={() => setDiscountType('FLAT')}>{cs}</button>
+                            </div>
+                            <input 
+                                type="number" 
+                                className="disc-val-input"
+                                value={discountValue} 
+                                onChange={(e) => setDiscountValue(e.target.value)}
+                                placeholder="0"
+                            />
+                        </div>
+                    </div>
+                    
+                    {totalAmount > 0 && (
+                        <div className="gross-net-preview animate-in">
+                           <div className="preview-row">
+                               <span>Gross Total</span>
+                               <span>{cs}{totalAmount.toLocaleString('en-IN')}</span>
+                           </div>
+                           <div className="preview-row net">
+                               <span>Net Charge</span>
+                               <span>{cs}{netAmount.toLocaleString('en-IN')}</span>
+                           </div>
+                        </div>
+                    )}
+
+                    <div className="payment-field-group">
+                        <label className="field-label-premium">Short Description</label>
+                        <input value={formData.description} onChange={(e) => handleChange('description', e.target.value)} placeholder="e.g. Laundry 2 shirts" />
                     </div>
                 </div>
 
-                <div className="add-charges-footer">
-                    <button className="add-charges-cancel-btn" onClick={onClose} disabled={isSubmitting}>Cancel</button>
-                    <button className="add-charges-submit-btn" onClick={handleSubmit} disabled={isSubmitting}>
-                        {isSubmitting ? 'Adding...' : 'Add Charge'}
+                <div className="payment-modal-footer">
+                    <button className="btn-secondary" onClick={onClose}>Cancel</button>
+                    <button className="btn-primary" onClick={handleSubmit} disabled={isSubmitting}>
+                        {isSubmitting ? <div className="spinner-small" /> : 'Confirm Charge'}
                     </button>
                 </div>
             </div>
-
-            {showToast && (
-                <Toast message="Successful!" onClose={() => setShowToast(false)} type="success" />
-            )}
+            {showToast && <Toast message="Charge Added Successfully!" onClose={() => setShowToast(false)} type="success" />}
         </div>
     );
 };

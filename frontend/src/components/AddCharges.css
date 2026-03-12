@@ -1,219 +1,172 @@
-/* Add Charges Modal Overlay */
-.add-charges-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    z-index: 10000;
-    backdrop-filter: blur(2px);
-    padding: 100px 0;
+/* Premium Add Charges Side Drawer (Matches Primary Red Theme) */
+
+/* Modern Dropdown Select Wrapper */
+.modern-select-wrapper {
+    position: relative;
+    width: 100%;
 }
 
-/* Add Charges Modal */
-.add-charges-modal {
-    background: white;
-    width: 420px;
-    max-width: 90%;
-    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 200px);
-    max-height: 90vh;
-    overflow: hidden;
-    animation: slideInRight 0.3s ease-out;
-}
-
-@keyframes slideInRight {
-    from {
-        transform: translateX(100%);
-    }
-    to {
-        transform: translateX(0);
-    }
-}
-
-/* Header */
-.add-charges-header {
-    background: linear-gradient(135deg, #dc2626, #b91c1c);
-    color: white;
-    padding: 14px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-radius: 0;
-    border-bottom: 3px solid #991b1b;
-}
-
-.add-charges-header h2 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-}
-
-.add-charges-close {
-    background: transparent;
-    border: none;
-    color: white;
-    font-size: 28px;
+.premium-dropdown-select {
+    width: 100%;
+    padding: 12px 14px;
+    padding-right: 40px;
+    background: #f8fafc;
+    border: 2px solid #f1f5f9;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    appearance: none;
     cursor: pointer;
-    padding: 0;
-    width: 32px;
-    height: 32px;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.premium-dropdown-select:focus {
+    border-color: #f43f5e;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.08);
+}
+
+.select-arrow {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #94a3b8;
+}
+
+.premium-dropdown-select option {
+    font-weight: 600;
+    padding: 10px;
+}
+
+/* Theme Colors for Charges - Primary Red */
+.btn-primary {
+    background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+    box-shadow: 0 8px 20px -5px rgba(225, 29, 72, 0.35);
+}
+
+/* Custom Type Entry */
+.custom-type-entry {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    background: #fef2f2;
+    border: 1.5px solid #fecaca;
+    border-radius: 14px;
+    margin-top: -6px;
+}
+
+.custom-type-entry input {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1.5px solid #fca5a5;
+    font-size: 13px;
+    outline: none;
+}
+
+.custom-type-entry button {
+    background: #e11d48;
+    color: white;
+    border: none;
+    padding: 0 16px;
+    border-radius: 10px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+/* Discount Selection Specifics */
+.disc-toggle {
+    display: flex;
+    background: #ffffff;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid #f1f5f9;
+    min-width: 80px;
+}
+
+.disc-toggle button {
+    padding: 6px 14px;
+    min-width: 36px;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    color: #475569;
     display: flex;
     align-items: center;
     justify-content: center;
-    line-height: 1;
-    opacity: 0.9;
-    transition: opacity 0.2s;
-}
-
-.add-charges-close:hover {
-    opacity: 1;
-}
-
-/* Body */
-.add-charges-body {
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    overflow-y: auto;
-}
-
-/* Field */
-.add-charges-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.add-charges-field label {
-    font-size: 13px;
-    font-weight: 500;
-    color: #374151;
-}
-
-.add-charges-field label .required {
-    color: #dc2626;
-    margin-left: 2px;
-}
-
-.error-message {
-    font-size: 12px;
-    color: #dc2626;
-    margin-top: 4px;
-    display: block;
-}
-
-.add-charges-field input[type="text"],
-.add-charges-field input[type="number"],
-.add-charges-field input[type="date"],
-.add-charges-field select,
-.add-charges-field textarea {
-    padding: 9px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-    font-size: 14px;
-    color: #111827;
-    font-family: inherit;
-    transition: border-color 0.15s;
-}
-
-.add-charges-field input.error,
-.add-charges-field select.error,
-.add-charges-field textarea.error {
-    border-color: #dc2626;
-}
-
-.add-charges-field input:focus,
-.add-charges-field select:focus,
-.add-charges-field textarea:focus {
-    outline: none;
-    border-color: #ef4444;
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-}
-
-.add-charges-field textarea {
-    resize: vertical;
-}
-
-.add-charges-field textarea::placeholder {
-    color: #9ca3af;
-}
-
-/* Amount Input Group */
-.add-charges-field .amount-input-group {
-    display: flex;
-    gap: 8px;
-}
-
-.add-charges-field .currency-select {
-    width: 90px;
-    flex-shrink: 0;
-}
-
-.add-charges-field .amount-input {
-    flex: 1;
-}
-
-/* Footer */
-.add-charges-footer {
-    padding: 16px 20px;
-    border-top: 1px solid #e5e7eb;
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-}
-
-.add-charges-cancel-btn {
-    background: white;
-    color: #374151;
-    border: 1px solid #d1d5db;
-    padding: 9px 24px;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
     transition: all 0.2s;
 }
 
-.add-charges-cancel-btn:hover {
-    background: #f9fafb;
-    border-color: #9ca3af;
+.disc-toggle button.active {
+    background: #e11d48;
+    color: #fff;
 }
 
-.add-charges-cancel-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.add-charges-submit-btn {
-    background: #dc2626;
-    color: white;
-    border: none;
-    padding: 9px 24px;
-    border-radius: 4px;
+/* Discount Section Layout Fixes */
+.disc-val-input {
+    width: 80px;
+    padding: 8px 12px;
+    border: 2px solid #f1f5f9;
+    border-radius: 12px;
     font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.2s;
+    font-weight: 800;
+    text-align: center;
+    color: #0f172a;
+    outline: none;
+    transition: all 0.3s ease;
 }
 
-.add-charges-submit-btn:hover {
-    background: #b91c1c;
+.disc-val-input:focus {
+    border-color: #f43f5e;
+    background: white;
 }
 
-.add-charges-submit-btn:active {
-    background: #991b1b;
+/* Ensure the balance preview container (used for discount) is spacious */
+.new-balance-preview {
+    min-height: 56px;
+    padding: 12px 16px !important;
+    gap: 12px;
 }
 
-.add-charges-submit-btn:disabled {
-    background: #9ca3af;
-    cursor: not-allowed;
-    opacity: 0.7;
+/* Net Summary Text */
+.preview-row.net span:last-child {
+    color: #e11d48 !important;
+}
+
+.gross-net-preview {
+    background: #f8fafc;
+    border: 1.5px dashed #cbd5e1;
+    border-radius: 16px;
+    padding: 14px;
+}
+
+.preview-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.preview-row.net {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #e2e8f0;
+    font-size: 16px;
+    color: #1e293b;
+    font-weight: 950;
+    margin-bottom: 0;
+}
+
+/* Existing Shared Styles Overrides */
+.add-payment-body .payment-field-group input:focus {
+    border-color: #f43f5e;
+    box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.08);
 }

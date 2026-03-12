@@ -11,7 +11,7 @@ const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
         folioWiseDiscount: false,
         discountType: 'percentage',
         discountValue: '',
-        folio: reservation ? `${reservation.roomNumber} - ${reservation.guestName}` : 'B5 - Shahrukh Ahmed',
+        folio: reservation ? `${reservation.roomNumber} - ${reservation.guestName}` : 'Guest',
         comment: ''
     });
 
@@ -74,6 +74,7 @@ const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
         setIsSubmitting(true);
         try {
             await onApply(formData);
+            setTimeout(() => onClose(), 500);
         } catch (error) {
             console.error('Error applying discount:', error);
             alert('Failed to apply discount. Please try again.');
@@ -88,18 +89,54 @@ const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
         }));
     };
 
+    const balance = reservation ? (reservation.remainingAmount || (reservation.totalAmount - (reservation.paidAmount || reservation.advancePaid || 0))) : 0;
+
     return (
-        <div className="apply-discount-overlay" onClick={onClose}>
-            <div className="apply-discount-modal" onClick={(e) => e.stopPropagation()}>
-                <div className="apply-discount-header">
-                    <h2>Apply Discount</h2>
-                    <button className="apply-discount-close" onClick={onClose}>×</button>
+        <div className="add-payment-overlay" onClick={onClose}>
+            <div className="add-payment-modal" onClick={(e) => e.stopPropagation()}>
+                {/* Header */}
+                <div className="premium-payment-header">
+                    <div className="header-icon-wrap">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 15h2m0 0l-1-1m1 1l-1 1m-4 1h8a2 2 0 002-2V9a2 2 0 00-2-2h-3l-4-4H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <div className="header-text">
+                        <h3>Apply Discount</h3>
+                        <span>Adjust folio total amount</span>
+                    </div>
+                    <button className="premium-close-btn" onClick={onClose}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
                 </div>
 
-                <div className="apply-discount-body">
-                    {/* Date Field */}
-                    <div className="apply-discount-field">
-                        <label>Date <span className="required">*</span></label>
+                <div className="add-payment-body">
+                    {/* Reservation Card */}
+                    {reservation && (
+                        <div className="payment-summary-card">
+                            <div className="summary-header">
+                                <span className="ref-tag">RESERVATION</span>
+                                <span className="ref-number">{reservation.bookingId || 'BKG-552'}</span>
+                            </div>
+                            <div className="summary-details">
+                                <div className="detail-col">
+                                    <label>Guest</label>
+                                    <p className="truncate-text">{reservation.guestName || 'Valued Guest'}</p>
+                                </div>
+                                <div className="detail-col-group">
+                                    <div className="detail-sub-col">
+                                        <label>Room</label>
+                                        <p>{reservation.roomNumber || '101'}</p>
+                                    </div>
+                                    <div className="detail-sub-col text-right">
+                                        <label>Net Due</label>
+                                        <p className="balance-text-bold">{cs}{balance.toLocaleString('en-IN')}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="payment-field-group">
+                        <label className="field-label-premium">Processing Date</label>
                         <input
                             type="date"
                             value={formData.date}
@@ -107,114 +144,99 @@ const ApplyDiscountSidebar = ({ onClose, onApply, reservation }) => {
                         />
                     </div>
 
-                    <div className="apply-discount-field">
-                        <div className="discount-checkbox-group">
-                            <label className="discount-checkbox-label">
-                                <input
-                                    type="checkbox"
-                                    checked={formData.roomWiseDiscount}
-                                    onChange={(e) => handleChange('roomWiseDiscount', e.target.checked)}
-                                />
-                                <span className="checkbox-text">ROOM WISE DISCOUNT</span>
-                            </label>
-                            <label className="discount-checkbox-label">
-                                <input
-                                    type="checkbox"
-                                    checked={formData.folioWiseDiscount}
-                                    onChange={(e) => handleChange('folioWiseDiscount', e.target.checked)}
-                                />
-                                <span className="checkbox-text">FOLIO WISE DISCOUNT</span>
-                            </label>
+                    <div className="discount-scope-panel">
+                        <label className="premium-checkbox-card">
+                            <input
+                                type="checkbox"
+                                checked={formData.roomWiseDiscount}
+                                onChange={(e) => handleChange('roomWiseDiscount', e.target.checked)}
+                            />
+                            <div className="checkbox-custom-content">
+                                <span className="custom-check-box"></span>
+                                <span className="card-label-text">Room Wise</span>
+                            </div>
+                        </label>
+                        <label className="premium-checkbox-card">
+                            <input
+                                type="checkbox"
+                                checked={formData.folioWiseDiscount}
+                                onChange={(e) => handleChange('folioWiseDiscount', e.target.checked)}
+                            />
+                            <div className="checkbox-custom-content">
+                                <span className="custom-check-box"></span>
+                                <span className="card-label-text">Folio Wise</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div className="payment-field-group">
+                        <label className="field-label-premium">Discount Format</label>
+                        <div className="modern-select-wrapper">
+                            <select
+                                value={formData.discountType}
+                                onChange={(e) => handleChange('discountType', e.target.value)}
+                                className="premium-dropdown-select"
+                            >
+                                <option value="percentage">Percentage (%)</option>
+                                <option value="amount">Fixed Amount ({cs})</option>
+                            </select>
+                            <div className="select-arrow">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Discount Type Selection */}
-                    <div className="apply-discount-field">
-                        <label>Discount Type <span className="required">*</span></label>
-                        <select
-                            value={formData.discountType}
-                            onChange={(e) => handleChange('discountType', e.target.value)}
-                            className="apply-discount-dropdown"
-                        >
-                            <option value="percentage">Percentage (%)</option>
-                            <option value="amount">Amount ({cs})</option>
-                        </select>
-                    </div>
-
-                    {/* Discount Value Field */}
-                    <div className="apply-discount-field">
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            Discount <span className="required">*</span>
-                            {autoFilledSource && (
-                                <span style={{ fontWeight: 400, fontSize: '11px', color: '#16a34a' }}>
-                                    ✓ Auto-filled: {autoFilledSource}
-                                </span>
-                            )}
+                    <div className="payment-field-group">
+                        <label className="field-label-premium" style={{display:'flex', justifyContent:'space-between'}}>
+                            Amount / Value
+                            {autoFilledSource && <span style={{fontSize:'10px', color:'#16a34a'}}>Auto: {autoFilledSource}</span>}
                         </label>
-                        <input
-                            type="number"
-                            value={formData.discountValue}
-                            onChange={(e) => {
-                                handleChange('discountValue', e.target.value);
-                                if (autoFilledSource && !autoFilledSource.endsWith('(Edited)')) {
-                                    setAutoFilledSource(prev => `${prev} (Edited)`);
-                                }
-                            }}
-                            placeholder={formData.discountType === 'percentage' ? 'Enter discount percentage' : 'Enter discount amount'}
-                            min="0"
-                            max={formData.discountType === 'percentage' ? '100' : undefined}
-                        />
+                        <div className="amount-input-container">
+                            <span className="currency-indicator">{formData.discountType === 'percentage' ? '%' : cs}</span>
+                            <input
+                                type="number"
+                                className="amount-input-field"
+                                value={formData.discountValue}
+                                onChange={(e) => {
+                                    handleChange('discountValue', e.target.value);
+                                    if (autoFilledSource && !autoFilledSource.endsWith('(Edited)')) {
+                                        setAutoFilledSource(prev => `${prev} (Edited)`);
+                                    }
+                                }}
+                                placeholder="0"
+                            />
+                        </div>
                         {settings.discountRules?.maxDiscount > 0 && (
-                            <span style={{ fontSize: '11px', color: '#6b7280', marginTop: '3px', display: 'block' }}>
-                                Max allowed: {settings.discountRules.maxDiscount}{settings.discountRules?.maxDiscountType === 'FLAT' ? ` ${cs}` : '%'}
-                            </span>
+                             <p className="field-info-text">Max limit: {settings.discountRules.maxDiscount}{settings.discountRules?.maxDiscountType === 'FLAT' ? ` ${cs}` : '%'}</p>
                         )}
                     </div>
 
-                    {/* Folio Field */}
-                    <div className="apply-discount-field">
-                        <label>Folio</label>
+                    <div className="payment-field-group">
+                        <label className="field-label-premium">Target Reference</label>
                         <input
                             type="text"
                             value={formData.folio}
                             onChange={(e) => handleChange('folio', e.target.value)}
-                            placeholder="Enter folio name"
+                            placeholder="Folio or bill number..."
                         />
                     </div>
 
-                    {/* Plus Value Button */}
-                    <div className="apply-discount-field">
-                        <button type="button" className="discount-plus-value-btn">
-                            <span className="plus-icon">+</span> Plus Value
-                        </button>
-                    </div>
-
-                    {/* Comment Field */}
-                    <div className="apply-discount-field">
-                        <label>Comment</label>
+                    <div className="payment-field-group">
+                        <label className="field-label-premium">Approval Note</label>
                         <textarea
                             value={formData.comment}
                             onChange={(e) => handleChange('comment', e.target.value)}
-                            placeholder="Write a comment here"
-                            rows="3"
+                            className="premium-textarea"
+                            placeholder="Reason for adjustment..."
+                            rows="2"
                         ></textarea>
                     </div>
                 </div>
 
-                <div className="apply-discount-footer">
-                    <button
-                        className="apply-discount-cancel-btn"
-                        onClick={onClose}
-                        disabled={isSubmitting}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        className="apply-discount-submit-btn"
-                        onClick={handleSubmit}
-                        disabled={isSubmitting}
-                    >
-                        {isSubmitting ? 'Adding...' : 'Add'}
+                <div className="payment-modal-footer">
+                    <button className="btn-secondary" onClick={onClose}>Cancel</button>
+                    <button className="btn-primary" onClick={handleSubmit} disabled={isSubmitting}>
+                        {isSubmitting ? <div className="spinner-small" /> : 'Confirm Adjustment'}
                     </button>
                 </div>
             </div>
