@@ -1262,25 +1262,15 @@ const GuestMealService = () => {
     return (
         <div className="gms-wrapper">
             {/* Header / Stats */}
-            <div className="gms-header" style={{ marginBottom: '24px', background: '#fff', padding: '24px', borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                    <div>
-                        <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: '800', color: '#111827' }}>Dining Dashboard</h1>
-                        <p style={{ color: '#6b7280', margin: '4px 0 0' }}>Manage your restaurant tables and reservations</p>
+            <div className="gms-header">
+                <div className="gms-header-top">
+                    <div className="gms-header-content">
+                        <h1 className="gms-page-title">Dining Dashboard</h1>
+                        <p className="gms-subtitle">Manage your restaurant tables and reservations</p>
                     </div>
                     <button
-                        className="btn btn-primary"
+                        className="btn btn-primary add-table-btn-gms"
                         onClick={() => setShowAddTableModal(true)}
-                        style={{
-                            background: '#dc2626',
-                            borderRadius: '10px',
-                            padding: '12px 24px',
-                            fontWeight: '700',
-                            border: 'none',
-                            cursor: 'pointer',
-                            boxShadow: '0 4px 10px rgba(220, 38, 38, 0.2)',
-                            whiteSpace: 'nowrap'
-                        }}
                     >
                         + ADD TABLE
                     </button>
