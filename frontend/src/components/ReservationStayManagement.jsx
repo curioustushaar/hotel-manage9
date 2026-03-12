@@ -66,11 +66,15 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        const oneMonthAgoStr = `${oneMonthAgo.getFullYear()}-${String(oneMonthAgo.getMonth() + 1).padStart(2, '0')}-${String(oneMonthAgo.getDate()).padStart(2, '0')}`;
+
         return reservations.filter(r => {
             if (activeTab === 'all') return true;
             if (activeTab === 'reserved') return r.status === 'RESERVED';
             if (activeTab === 'in-house') return r.status === 'IN_HOUSE';
-            if (activeTab === 'checked-out') return r.status === 'CHECKED_OUT';
+            if (activeTab === 'checked-out') return r.status === 'CHECKED_OUT' && r.checkOutDate >= oneMonthAgoStr;
             if (activeTab === 'arrival') return r.checkInDate === todayStr && r.status === 'RESERVED';
             if (activeTab === 'departure') return r.checkOutDate <= todayStr && r.status === 'IN_HOUSE';
             return true;
@@ -82,11 +86,15 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        const oneMonthAgoStr = `${oneMonthAgo.getFullYear()}-${String(oneMonthAgo.getMonth() + 1).padStart(2, '0')}-${String(oneMonthAgo.getDate()).padStart(2, '0')}`;
+
         return {
             all: reservations.length,
             reserved: reservations.filter(r => r.status === 'RESERVED').length,
             'in-house': reservations.filter(r => r.status === 'IN_HOUSE').length,
-            'checked-out': reservations.filter(r => r.status === 'CHECKED_OUT').length,
+            'checked-out': reservations.filter(r => r.status === 'CHECKED_OUT' && r.checkOutDate >= oneMonthAgoStr).length,
             arrival: reservations.filter(r => r.checkInDate === todayStr && r.status === 'RESERVED').length,
             departure: reservations.filter(r => r.checkOutDate <= todayStr && r.status === 'IN_HOUSE').length
         };
@@ -134,7 +142,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                     id: 1,
                     categoryId: data.roomType ? getCategoryIdFromRoomType(data.roomType) : '',
                     roomNumber: data.roomNumber || '',
-                    mealPlan: 'CP',
+                    mealPlan: '',
                     adultsCount: data.capacity || 1,
                     childrenCount: 0,
                     ratePerNight: data.price || 0,
@@ -160,7 +168,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                     id: 1,
                                     categoryId: room.roomType ? getCategoryIdFromRoomType(room.roomType) : '',
                                     roomNumber: room.roomNumber,
-                                    mealPlan: 'CP',
+                                    mealPlan: '',
                                     adultsCount: room.capacity || 1,
                                     childrenCount: 0,
                                     ratePerNight: room.price || 0,
@@ -420,7 +428,12 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                 if (activeTab === 'all') return true;
                 if (activeTab === 'reserved') return r.status === 'RESERVED';
                 if (activeTab === 'in-house') return r.status === 'IN_HOUSE';
-                if (activeTab === 'checked-out') return r.status === 'CHECKED_OUT';
+                if (activeTab === 'checked-out') {
+                    const oneMonthAgo = new Date();
+                    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+                    const oneMonthAgoStr = `${oneMonthAgo.getFullYear()}-${String(oneMonthAgo.getMonth() + 1).padStart(2, '0')}-${String(oneMonthAgo.getDate()).padStart(2, '0')}`;
+                    return r.status === 'CHECKED_OUT' && r.checkOutDate >= oneMonthAgoStr;
+                }
 
                 const today = new Date();
                 const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -592,10 +605,10 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         categoryId: '',
         roomNumber: '',
         mealPlan: '',
-        adultsCount: 1,
-        childrenCount: 0,
-        ratePerNight: 0,
-        discount: 0
+        adultsCount: '',
+        childrenCount: '',
+        ratePerNight: '',
+        discount: ''
     }]);
 
     // Form State - Guest Information
@@ -620,7 +633,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     };
 
     // Billing State
-    const [paidAmount, setPaidAmount] = useState(0);
+    const [paidAmount, setPaidAmount] = useState('');
     const [paymentMode, setPaymentMode] = useState('Cash');
     const [taxExempt, setTaxExempt] = useState(false);
 
@@ -660,7 +673,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                     id: 1,
                     categoryId: prefilledData.roomType ? getCategoryIdFromRoomType(prefilledData.roomType) : '',
                     roomNumber: prefilledData.roomNumber || '',
-                    mealPlan: 'CP',
+                    mealPlan: '',
                     adultsCount: 1,
                     childrenCount: 0,
                     ratePerNight: prefilledData.price || 0,
@@ -738,20 +751,13 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         if (mealTypes.length > 0) {
             setRooms(prevRooms => {
                 return prevRooms.map(room => {
-                    if (!room.mealPlan) {
-                        return {
-                            ...room,
-                            mealPlan: mealTypes[0].shortCode
-                        };
+                    // Check if current mealPlan exists in mealTypes
+                    if (room.mealPlan) {
+                        const isValid = mealTypes.some(mt => mt.shortCode === room.mealPlan);
+                        if (!isValid) {
+                            return { ...room, mealPlan: '' };
+                        }
                     }
-                    // Optionally check if the current mealPlan exists in mealTypes
-                    // But usually shortCodes are stable. If you want strict validation:
-                    /*
-                    const isValid = mealTypes.some(mt => mt.shortCode === room.mealPlan);
-                    if (!isValid) {
-                        return { ...room, mealPlan: mealTypes[0].shortCode };
-                    }
-                    */
                     return room;
                 });
             });
@@ -1066,9 +1072,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         setCheckOutDate('');
         setCheckOutTime('11:00');
         setFlexibleCheckout(false);
-        setRooms([{ id: 1, categoryId: '', roomNumber: '', mealPlan: '', adultsCount: 1, childrenCount: 0, ratePerNight: 0, discount: 0 }]);
+        setRooms([{ id: 1, categoryId: '', roomNumber: '', mealPlan: '', adultsCount: '', childrenCount: '', ratePerNight: '', discount: '' }]);
         setSelectedGuests([]);
-        setPaidAmount(0);
+        setPaidAmount('');
         setPaymentMode('Cash');
         setTaxExempt(false);
         setShowGuestModal(false);
@@ -1281,15 +1287,23 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             return (
                 <div className="reservation-management-container">
                     <div className="error-alert">Unknown Permission: You do not have access to Room Service.</div>
-                    <button className="back-btn" onClick={() => setView('dashboard')}>Back to Dashboard</button>
+                    <button className="back-btn" onClick={() => setView('dashboard')}>
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                        Back to Dashboard
+                    </button>
                 </div>
             );
         }
         return (
             <div className="reservation-management-container">
-                <button className="back-btn" onClick={() => setView('dashboard')}>
-                    ← Back to Dashboard
-                </button>
+                <div className="reservation-header">
+                    <div className="form-top-nav">
+                        <button className="back-btn" onClick={() => setView('dashboard')}>
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                            <span>Back to Dashboard</span>
+                        </button>
+                    </div>
+                </div>
                 <RoomService />
             </div>
         );
@@ -1301,15 +1315,23 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             return (
                 <div className="reservation-management-container">
                     <div className="error-alert">Unknown Permission: You do not have access to Housekeeping.</div>
-                    <button className="back-btn" onClick={() => setView('dashboard')}>Back to Dashboard</button>
+                    <button className="back-btn" onClick={() => setView('dashboard')}>
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                        Back to Dashboard
+                    </button>
                 </div>
             );
         }
         return (
             <div className="reservation-management-container">
-                <button className="back-btn" onClick={() => setView('dashboard')}>
-                    ← Back to Dashboard
-                </button>
+                <div className="reservation-header">
+                    <div className="form-top-nav">
+                        <button className="back-btn" onClick={() => setView('dashboard')}>
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                            <span>Back to Dashboard</span>
+                        </button>
+                    </div>
+                </div>
                 <HousekeepingView />
             </div>
         );
@@ -1320,17 +1342,25 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             return (
                 <div className="reservation-management-container">
                     <div className="error-alert">Unknown Permission: You do not have access to create New Reservations.</div>
-                    <button className="back-btn" onClick={() => setView('dashboard')}>Back to Dashboard</button>
+                    <button className="back-btn" onClick={() => setView('dashboard')}>
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                        Back to Dashboard
+                    </button>
                 </div>
             );
         }
         return (
             <div className="reservation-management-container">
+                <div className="reservation-header">
+                    <div className="form-top-nav">
+                        <button className="back-btn" onClick={() => { resetForm(); setView('dashboard'); }}>
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                            <span>Back to Dashboard</span>
+                        </button>
+                    </div>
+                </div>
                 <div className="form-container">
                     <div className="form-main">
-                        <button className="back-btn" onClick={() => { resetForm(); setView('dashboard'); }}>
-                            ← Back to Dashboard
-                        </button>
                         <h1>{isEditingMode ? 'Edit Reservation' : 'Create New Reservation'}</h1>
 
                         <div className="reservation-form-view">
@@ -1537,11 +1567,11 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                         id: rooms.length + 1,
                                         categoryId: '',
                                         roomNumber: '',
-                                        mealPlan: mealTypes.length > 0 ? mealTypes[0].shortCode : 'CP',
-                                        adultsCount: 1,
-                                        childrenCount: 0,
-                                        ratePerNight: 3000,
-                                        discount: 0
+                                        mealPlan: '',
+                                        adultsCount: '',
+                                        childrenCount: '',
+                                        ratePerNight: '',
+                                        discount: ''
                                     }])}
                                 >
                                     + Add Room

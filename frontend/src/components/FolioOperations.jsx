@@ -908,16 +908,7 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
                     </div>
                 )}
 
-                {/* Visitors Section */}
-                {!showRoutingSection && (
-                    <div style={{ padding: '16px 20px', borderTop: '1px solid #e5e7eb' }}>
-                        <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#374151', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Visitors</h3>
-                        <VisitorList
-                            reservationId={reservation?._id || reservation?.id}
-                            refreshTrigger={reservation?.updatedAt}
-                        />
-                    </div>
-                )}
+
             </div>
 
             {/* Add Payment Modal */}

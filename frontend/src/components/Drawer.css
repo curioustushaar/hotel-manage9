@@ -22,8 +22,8 @@
     top: 16px;
     right: 16px;
     height: calc(100vh - 32px);
-    width: 420px;
-    max-width: calc(100vw - 32px);
+    width: 460px;
+    max-width: calc(100vw - 40px);
     background: #ffffff;
     box-shadow: -10px 10px 40px rgba(0, 0, 0, 0.15);
     z-index: 9999;

@@ -83,6 +83,8 @@
 /* Compact Body Content */
 .add-payment-body {
     padding: 24px;
+    padding-left: 16px !important;
+    padding-right: 32px !important;
     overflow-y: auto;
     overflow-x: hidden;
     display: flex;
@@ -465,7 +467,7 @@
 
 /* Footer Section - Force Side by Side */
 .payment-modal-footer {
-    padding: 16px 20px;
+    padding: 20px 32px 20px 16px;
     border-top: 1px solid #f1f5f9;
     display: flex;
     flex-direction: row !important;
