@@ -413,7 +413,12 @@ const DiscountManagement = () => {
                                     type="text"
                                     placeholder="e.g., Early Bird Special"
                                     value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (/^[A-Za-z\s]*$/.test(value)) {
+                                            setFormData({ ...formData, name: value });
+                                        }
+                                    }}
                                     className={formErrors.name ? 'error' : ''}
                                 />
                                 {formErrors.name && <span className="error-message">{formErrors.name}</span>}
