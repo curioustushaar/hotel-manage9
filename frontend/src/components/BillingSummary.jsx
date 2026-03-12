@@ -97,12 +97,11 @@ const BillingSummary = ({
                         <div className="payment-form-group-v2">
                             <label className="input-label-v2">ADVANCE / PAID AMOUNT</label>
                             <div className="premium-input-wrapper-v2">
-                                <span className="currency-symbol-v2">{cs}</span>
                                 <input
                                     type="number"
                                     className="premium-input-v2"
                                     value={paidAmount}
-                                    onChange={(e) => onPaidAmountChange(parseFloat(e.target.value) || 0)}
+                                    onChange={(e) => onPaidAmountChange(e.target.value)}
                                     placeholder="0"
                                 />
                             </div>

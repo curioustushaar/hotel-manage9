@@ -95,7 +95,7 @@ const CheckInForm = ({ booking, onSubmit, onCancel }) => {
                 </div>
 
                 {/* Arrival Info */}
-                <div className="payment-method-grid" style={{ gridTemplateColumns: '1.2fr 0.8fr' }}>
+                <div className="payment-method-grid">
                     <div className="payment-field-group">
                         <label className="field-label-premium">ARRIVAL DATE <span className="req-star">*</span></label>
                         <div className="input-with-icon">
@@ -125,16 +125,18 @@ const CheckInForm = ({ booking, onSubmit, onCancel }) => {
                 </div>
 
                 <div className="payment-field-group" style={{ 
-                    background: '#f1f5f9', 
+                    background: '#f8fafc', 
                     padding: '20px', 
-                    borderRadius: '20px', 
+                    borderRadius: '24px', 
                     border: '1px solid #e2e8f0',
-                    marginTop: '8px'
+                    marginTop: '4px',
+                    width: '100%',
+                    boxSizing: 'border-box'
                 }}>
                     <label className="field-label-premium" style={{ color: '#1e40af', marginBottom: '12px', paddingLeft: '0' }}>
                         🪪 IDENTITY VERIFICATION
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div className="payment-method-grid">
                         <div className="payment-field-group">
                             <label className="field-label-premium">ID TYPE</label>
                             <select 

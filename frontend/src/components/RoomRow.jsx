@@ -14,14 +14,23 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
     // Auto-fetch dynamic price when category changes
     useEffect(() => {
         const fetchPrice = async () => {
+            const categoryWasEmpty = !prevCategoryId.current;
+            const categoryIsNowSet = !!room.categoryId;
             const categoryChanged = room.categoryId !== prevCategoryId.current;
 
-            // Only fetch if category changed to prevent overwriting existing prices on load
-            if (room.categoryId && categoryChanged) {
+            // Only fetch if category changed. 
+            // If it's the first time setting a category (categoryWasEmpty is true), 
+            // only fetch if we don't already have a valid price (prevents overwriting prefilled Quick Book prices).
+            // If the user IS switching from one category to another, always fetch the new price.
+            const shouldFetch = categoryIsNowSet && categoryChanged && (
+                !categoryWasEmpty || (categoryWasEmpty && (!room.ratePerNight || room.ratePerNight === 0))
+            );
+
+            if (shouldFetch) {
                 try {
                     const res = await fetch(`${API_URL}/api/pricing/calculate/${room.categoryId}?date=${checkInDate}`);
                     const data = await res.json();
-                    if (data.success && data.price) {
+                    if (data.success && data.price !== undefined) {
                         const basePrice = data.price;
                         // Calculate total with current meal plan
                         const currentMeal = mealTypes.find(m => m.shortCode === room.mealPlan);
@@ -200,7 +209,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                         type="number"
                         min="1"
                         value={room.adultsCount}
-                        onChange={(e) => handleChange('adultsCount', parseInt(e.target.value) || 0)}
+                        onChange={(e) => handleChange('adultsCount', e.target.value)}
                     />
                 </div>
 
@@ -210,7 +219,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                         type="number"
                         min="0"
                         value={room.childrenCount}
-                        onChange={(e) => handleChange('childrenCount', parseInt(e.target.value) || 0)}
+                        onChange={(e) => handleChange('childrenCount', e.target.value)}
                     />
                 </div>
 
@@ -221,15 +230,16 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                         min="0"
                         value={room.ratePerNight}
                         onChange={(e) => {
-                            const newRate = parseFloat(e.target.value) || 0;
+                            const newRate = e.target.value;
                             // Update baseRate based on current meal plan
                             const currentMeal = mealTypes.find(m => m.shortCode === room.mealPlan);
                             const mealPrice = currentMeal ? (currentMeal.price || 0) : 0;
+                            const numericRate = parseFloat(newRate) || 0;
 
                             onUpdate(index, {
                                 ...room,
                                 ratePerNight: newRate,
-                                baseRate: newRate - mealPrice
+                                baseRate: numericRate - mealPrice
                             });
                         }}
                         disabled={readOnly}
@@ -242,7 +252,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                         type="number"
                         min="0"
                         value={room.discount}
-                        onChange={(e) => handleChange('discount', parseFloat(e.target.value) || 0)}
+                        onChange={(e) => handleChange('discount', e.target.value)}
                     />
                 </div>
 
@@ -251,7 +261,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                     <input
                         type="text"
                         disabled
-                        value={`${cs}${((room.ratePerNight - room.discount) * nights).toFixed(2)}`}
+                        value={`${cs}${(( (parseFloat(room.ratePerNight) || 0) - (parseFloat(room.discount) || 0) ) * nights).toFixed(2)}`}
                         className="total-field"
                     />
                 </div>
