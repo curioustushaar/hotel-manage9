@@ -584,7 +584,7 @@ const Rooms = () => {
                                     className="form-input"
                                     placeholder="e.g., 101, 102"
                                     value={formData.roomNumber}
-                                    onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value })}
+                                    onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value.replace(/\D/g, '') })}
                                     style={{ 
                                         color: '#000000', 
                                         fontWeight: '700', 
@@ -699,7 +699,10 @@ const Rooms = () => {
                                     className="form-input"
                                     placeholder="0"
                                     value={formData.price}
-                                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                    onChange={(e) => {
+                                        const val = Math.max(0, Number(e.target.value));
+                                        setFormData({ ...formData, price: val.toString() });
+                                    }}
                                     style={{ 
                                         color: '#000000', 
                                         fontWeight: '700', 
@@ -774,7 +777,7 @@ const Rooms = () => {
                                     className="form-input"
                                     placeholder="e.g., 101, 102"
                                     value={formData.roomNumber}
-                                    onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value })}
+                                    onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value.replace(/\D/g, '') })}
                                 />
                             </div>
 
@@ -865,7 +868,10 @@ const Rooms = () => {
                                     className="form-input"
                                     placeholder="0"
                                     value={formData.price}
-                                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                    onChange={(e) => {
+                                        const val = Math.max(0, Number(e.target.value));
+                                        setFormData({ ...formData, price: val.toString() });
+                                    }}
                                 />
                             </div>
 

@@ -525,7 +525,7 @@ const CashierSection = () => {
                                     type="text"
                                     placeholder="Enter Customer Name"
                                     value={newOrderDetails.name}
-                                    onChange={(e) => setNewOrderDetails({ ...newOrderDetails, name: e.target.value })}
+                                    onChange={(e) => setNewOrderDetails({ ...newOrderDetails, name: e.target.value.replace(/[^A-Za-z\s]/g, '') })}
                                 />
                             </div>
                             <div className="form-group-custom">
@@ -534,7 +534,7 @@ const CashierSection = () => {
                                     type="text"
                                     placeholder="Enter Phone Number"
                                     value={newOrderDetails.phone}
-                                    onChange={(e) => setNewOrderDetails({ ...newOrderDetails, phone: e.target.value })}
+                                    onChange={(e) => setNewOrderDetails({ ...newOrderDetails, phone: e.target.value.replace(/\D/g, '') })}
                                 />
                             </div>
                             <button className="food-menu-btn" onClick={handleGoToFoodMenu}>

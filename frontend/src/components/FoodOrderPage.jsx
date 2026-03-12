@@ -654,7 +654,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                     <div className="pos-search-row">
                         <input
                             className="pos-search-input"
-                            placeholder="Search items by name or code (ESCAPE)"
+                            placeholder="Search item by name"
                             value={searchName}
                             onChange={(e) => setSearchName(e.target.value)}
                         />

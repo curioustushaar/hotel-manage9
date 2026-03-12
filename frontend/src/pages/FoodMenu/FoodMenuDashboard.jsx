@@ -53,8 +53,8 @@ const FoodMenuDashboard = () => {
         e.preventDefault();
         const formData = new FormData(e.target);
 
-        // Generate a simple unique food code
-        const foodCode = `FC-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`;
+        // Required by backend
+        const foodCode = formData.get('foodCode') || `FC-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`;
 
         const newItem = {
             itemName: formData.get('itemName'),
@@ -96,6 +96,7 @@ const FoodMenuDashboard = () => {
         const formData = new FormData(e.target);
         const updatedItem = {
             itemName: formData.get('itemName'),
+            foodCode: formData.get('foodCode') || editingItem.foodCode,
             category: formData.get('category'),
             price: parseFloat(formData.get('price')),
             description: formData.get('description') || ''
@@ -185,7 +186,16 @@ const FoodMenuDashboard = () => {
                     marginBottom: '20px',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px' }}>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600 }}>Item ID</label>
+                            <input name="foodCode" placeholder="Optional" style={{
+                                width: '100%',
+                                padding: '10px',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '6px'
+                            }} />
+                        </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600 }}>Item Name *</label>
                             <input name="itemName" required style={{
@@ -429,6 +439,23 @@ const FoodMenuDashboard = () => {
                         </div>
 
                         <form onSubmit={handleUpdateItem}>
+                            <div style={{ marginBottom: '15px' }}>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600, color: '#374151' }}>
+                                    ITEM ID (Food Code)
+                                </label>
+                                <input
+                                    name="foodCode"
+                                    defaultValue={editingItem.foodCode}
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px',
+                                        border: '1px solid #d1d5db',
+                                        borderRadius: '6px',
+                                        fontSize: '14px'
+                                    }}
+                                />
+                            </div>
+
                             <div style={{ marginBottom: '15px' }}>
                                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600, color: '#374151' }}>
                                     ITEM NAME
