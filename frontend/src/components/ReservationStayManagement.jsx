@@ -145,6 +145,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                     mealPlan: '',
                     adultsCount: data.capacity || 1,
                     childrenCount: 0,
+                    baseRate: data.price || 0,
                     ratePerNight: data.price || 0,
                     discount: 0
                 }]);
@@ -171,6 +172,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                     mealPlan: '',
                                     adultsCount: room.capacity || 1,
                                     childrenCount: 0,
+                                    baseRate: room.price || 0,
                                     ratePerNight: room.price || 0,
                                     discount: 0
                                 }]);
@@ -607,8 +609,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         mealPlan: '',
         adultsCount: '',
         childrenCount: '',
-        ratePerNight: '',
-        discount: ''
+        baseRate: 0,
+        ratePerNight: 0,
+        discount: 0
     }]);
 
     // Form State - Guest Information
@@ -676,6 +679,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                     mealPlan: '',
                     adultsCount: 1,
                     childrenCount: 0,
+                    baseRate: prefilledData.price || 0,
                     ratePerNight: prefilledData.price || 0,
                     discount: 0
                 }]);
@@ -1089,9 +1093,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         setCheckOutDate('');
         setCheckOutTime('11:00');
         setFlexibleCheckout(false);
-        setRooms([{ id: 1, categoryId: '', roomNumber: '', mealPlan: '', adultsCount: '', childrenCount: '', ratePerNight: '', discount: '' }]);
+        setRooms([{ id: 1, categoryId: '', roomNumber: '', mealPlan: '', adultsCount: '', childrenCount: '', baseRate: 0, ratePerNight: 0, discount: 0 }]);
         setSelectedGuests([]);
-        setPaidAmount('');
+        setPaidAmount(0);
         setPaymentMode('Cash');
         setTaxExempt(false);
         setShowGuestModal(false);

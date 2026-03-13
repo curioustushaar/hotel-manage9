@@ -37,7 +37,7 @@ const hotelSchema = new mongoose.Schema({
     roomGst: { type: Number, default: 12 },
     foodGst: { type: Number, default: 5 },
     roomServiceCharge: { type: Number, default: 5 },
-    inclusiveTax: { type: Boolean, default: true },
+    inclusiveTax: { type: Boolean, default: false },
 
     // Invoice & Billing
     invoicePrefix: { type: String, default: 'INV-2026-' },
