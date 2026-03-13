@@ -51,7 +51,7 @@ const RouteFolioSidebar = ({
 
     const handleCheckboxChange = (name) => {
         const extraChargeCategories = [
-            'laundry', 'dryCleaning', 'spa', 'gym', 'pool', 'pets',
+            'roomPosting', 'laundry', 'dryCleaning', 'spa', 'gym', 'pool', 'pets',
             'special', 'deposit', 'key', 'smoking', 'towels', 'parking', 'valet'
         ];
 
@@ -152,7 +152,7 @@ const RouteFolioSidebar = ({
                         <div className="summary-details">
                             <div className="detail-col">
                                 <label>Routing Scope</label>
-                                <p className="truncate-text">Future folia of this guest</p>
+                                <p className="truncate-text">Future folio of this guest</p>
                             </div>
                             <div className="detail-col-group">
                                 <div className="detail-sub-col">
@@ -191,7 +191,7 @@ const RouteFolioSidebar = ({
                     </div>
 
                     <div className="route-grid-section">
-                        <label className="field-label-premium">Core Charges</label>
+                        <label className="field-label-premium">Core Stay Charges</label>
                         <div className="discount-scope-panel">
                             <label className="premium-checkbox-card">
                                 <input
@@ -201,18 +201,7 @@ const RouteFolioSidebar = ({
                                 />
                                 <div className="checkbox-custom-content">
                                     <span className="custom-check-box"></span>
-                                    <span className="card-label-text">Room Tariff</span>
-                                </div>
-                            </label>
-                            <label className="premium-checkbox-card">
-                                <input
-                                    type="checkbox"
-                                    checked={selectedCategories.roomPosting}
-                                    onChange={() => handleCheckboxChange('roomPosting')}
-                                />
-                                <div className="checkbox-custom-content">
-                                    <span className="custom-check-box"></span>
-                                    <span className="card-label-text">Postings</span>
+                                    <span className="card-label-text">Room Tariff / Rent</span>
                                 </div>
                             </label>
                         </div>
@@ -220,7 +209,7 @@ const RouteFolioSidebar = ({
 
                     <div className="route-grid-section" style={{marginTop:'12px'}}>
                         <label className="field-label-premium" style={{display:'flex', justifyContent:'space-between'}}>
-                            Other Services
+                            Other Services & Postings
                             <span 
                                 onClick={() => handleCheckboxChange('all')} 
                                 style={{fontSize:'11px', color:'#f43f5e', cursor:'pointer', fontWeight: 800}}
@@ -230,6 +219,7 @@ const RouteFolioSidebar = ({
                         </label>
                         <div className="premium-compact-checkbox-list">
                             {[
+                                { name: 'roomPosting', label: 'Restaurant & Food' },
                                 { name: 'laundry', label: 'Laundry' },
                                 { name: 'dryCleaning', label: 'Dry Cleaning' },
                                 { name: 'spa', label: 'Spa & Wellness' },

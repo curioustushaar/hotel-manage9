@@ -1229,7 +1229,7 @@ exports.getPendingOrders = async (req, res) => {
 exports.settleOrder = async (req, res) => {
     try {
         const { orderId } = req.params;
-        const { paymentMethod, paymentMode, amount, roomNumber } = req.body;
+        const { paymentMethod, paymentMode, amount, roomNumber, folioId } = req.body;
 
         const order = await GuestMealOrder.findById(orderId);
         if (!order) {
@@ -1239,10 +1239,10 @@ exports.settleOrder = async (req, res) => {
         // 1. Handle "Post to Room" (Add to Folio)
         if (paymentMethod === 'Add to Room') {
             const Booking = require('../models/Booking');
-            // Find active booking for this room
+            // Find active booking for this room - handle multiple in-house status variants
             const booking = await Booking.findOne({
                 roomNumber: roomNumber,
-                status: 'Checked-in'
+                status: { $in: ['Checked-in', 'CheckedIn', 'IN_HOUSE', 'Checked-In'] }
             });
 
             if (!booking) {
@@ -1263,7 +1263,10 @@ exports.settleOrder = async (req, res) => {
                 description: `${order.orderType || 'Dine-In'} ${order.tableNumber ? `(Table ${order.tableNumber})` : order.roomNumber ? `(Room ${order.roomNumber})` : ''} #${orderId.toString().substr(-6).toUpperCase()}${itemSummary ? ' | ' + itemSummary : ''}`,
                 amount: folioAmount,
                 date: new Date(),
-                notes: `Restaurant Bill - ${orderId.toString().substr(-6).toUpperCase()} | Items: ${itemSummary}`
+                day: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
+                user: 'Cashier',
+                notes: `Restaurant Bill - ${orderId.toString().substr(-6).toUpperCase()} | Items: ${itemSummary}`,
+                folioId: folioId !== undefined ? parseInt(folioId) : 0 // User selected folio or default to Primary
             };
 
             // Apply automatic routing rules
@@ -1273,9 +1276,9 @@ exports.settleOrder = async (req, res) => {
             // Add to transactions and update total billing
             booking.transactions.push(transactionData);
 
-            // Increment total amount so balance recalculates correctly
+            // Increment total amount - hooks should handle it, but we update explicit mapping here
             if (!booking.billing) booking.billing = {};
-            booking.billing.totalAmount = (booking.billing.totalAmount || 0) + folioAmount;
+            // The pre('save') hook in Booking.js will recalculate totalAmount correctly from transactions
 
             await booking.save();
 

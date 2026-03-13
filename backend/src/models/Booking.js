@@ -180,11 +180,11 @@ bookingSchema.pre('save', function (next) {
             .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
 
         const extraCharges = this.transactions
-            .filter(t => t.type?.toLowerCase() === 'charge' && t.particulars !== 'Room Tariff')
+            .filter(t => t.type?.toLowerCase() === 'charge' && t.particulars !== 'Room Tariff' && t.particulars !== 'Room Charges')
             .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
 
         const roomTariffTrans = this.transactions
-            .filter(t => t.particulars === 'Room Tariff')
+            .filter(t => t.particulars === 'Room Tariff' || t.particulars === 'Room Charges')
             .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
 
         const totalDiscounts = this.transactions

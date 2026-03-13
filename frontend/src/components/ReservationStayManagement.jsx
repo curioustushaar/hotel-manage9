@@ -809,6 +809,17 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         const targetReservation = bookingSpec || selectedReservation;
         if (!targetReservation) return;
 
+        // NEW: Intercept View Invoice action to open modal directly
+        if (actionType === 'view-invoice') {
+            console.log('📦 handleMoreOptionsAction: Intercepting view-invoice...');
+            handleGenerateInvoice({ 
+                ...targetReservation, 
+                actionType: 'viewInvoice',
+                isProforma: targetReservation.status === 'IN_HOUSE'
+            });
+            return;
+        }
+
         // Convert reservation to booking format for the actions
         const bookingData = {
             _id: targetReservation.id,
@@ -889,41 +900,48 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     // Handle Generate Invoice
     const handleGenerateInvoice = useCallback(async (reservation) => {
         if (reservation.actionType === 'viewInvoice') {
-            // 1. Try to find in local invoices state
-            let existingInvoice = invoices.find(inv =>
-                (inv.reservationId === reservation.id) ||
-                (reservation.id && inv.reservationId === reservation.id)
-            );
+            try {
+                console.log('🔍 handleGenerateInvoice: View mode triggered', reservation);
+                
+                // 1. Try to find in local invoices state
+                let existingInvoice = invoices.find(inv => 
+                    (reservation.invoiceId && inv.invoiceId === reservation.invoiceId) ||
+                    (inv.reservationId === reservation.id)
+                );
 
-            if (existingInvoice) {
-                setCurrentInvoice(existingInvoice);
+                if (existingInvoice) {
+                    console.log('✅ handleGenerateInvoice: Found existing invoice', existingInvoice);
+                    setCurrentInvoice(existingInvoice);
+                    setShowInvoiceModal(true);
+                    return;
+                }
+
+                // 2. Regenerate preview
+                console.log('⚡ handleGenerateInvoice: No local invoice found, regenerating preview...');
+                const billingDataForInvoice = {
+                    roomCharges: reservation.roomCharges || 0,
+                    totalDiscount: reservation.discount || 0,
+                    subtotal: (reservation.roomCharges || 0) - (reservation.discount || 0),
+                    taxAmount: reservation.tax || 0,
+                    totalAmount: reservation.totalAmount || 0,
+                    paidAmount: reservation.paidAmount || 0,
+                    balanceDue: reservation.balanceDue || 0,
+                    paymentMode: reservation.paymentMode || 'Cash'
+                };
+
+                const invoice = reservation.isProforma 
+                    ? InvoiceGenerator.generateProformaInvoice(reservation, billingDataForInvoice)
+                    : InvoiceGenerator.generateInvoice(reservation, billingDataForInvoice);
+
+                if (reservation.invoiceId) invoice.invoiceId = reservation.invoiceId;
+                if (!reservation.isProforma) invoice.invoiceStatus = 'FINAL';
+
+                setCurrentInvoice(invoice);
                 setShowInvoiceModal(true);
-                return;
+            } catch (error) {
+                console.error('❌ Error in viewInvoice logic:', error);
+                alert('Could not open invoice view: ' + error.message);
             }
-
-            // 2. If not found (e.g., after refresh), dynamically generate a view-only preview
-            console.log('📝 Regenerating invoice preview for:', reservation.guestName);
-
-            const billingDataForInvoice = {
-                roomCharges: reservation.roomCharges || 0,
-                totalDiscount: reservation.discount || 0,
-                subtotal: (reservation.roomCharges || 0) - (reservation.discount || 0),
-                taxAmount: reservation.tax || 0,
-                totalAmount: reservation.totalAmount || 0,
-                paidAmount: reservation.paidAmount || 0,
-                balanceDue: reservation.balanceDue || 0,
-                paymentMode: reservation.paymentMode || 'Cash'
-            };
-
-            const invoice = InvoiceGenerator.generateInvoice(reservation, billingDataForInvoice);
-            // Use existing ID if we have it, otherwise standard generation
-            if (reservation.invoiceId) {
-                invoice.invoiceId = reservation.invoiceId;
-            }
-            invoice.invoiceStatus = 'FINAL';
-
-            setCurrentInvoice(invoice);
-            setShowInvoiceModal(true);
             return;
         }
 
@@ -986,7 +1004,6 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
                 // Refresh list from server to stay in sync
                 await fetchReservationsFromAPI();
-
                 // Auto switch to Checked Out tab to show the plate as requested
                 setActiveTab('checked-out');
 
@@ -1289,7 +1306,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                     <div className="error-alert">Unknown Permission: You do not have access to Room Service.</div>
                     <button className="back-btn" onClick={() => setView('dashboard')}>
                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                        Back to Dashboard
+                        <span>Back to Dashboard</span>
                     </button>
                 </div>
             );
@@ -1317,7 +1334,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                     <div className="error-alert">Unknown Permission: You do not have access to Housekeeping.</div>
                     <button className="back-btn" onClick={() => setView('dashboard')}>
                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                        Back to Dashboard
+                        <span>Back to Dashboard</span>
                     </button>
                 </div>
             );
@@ -1344,7 +1361,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                     <div className="error-alert">Unknown Permission: You do not have access to create New Reservations.</div>
                     <button className="back-btn" onClick={() => setView('dashboard')}>
                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                        Back to Dashboard
+                        <span>Back to Dashboard</span>
                     </button>
                 </div>
             );
@@ -1433,11 +1450,11 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                     </div>
                                     <div className="form-row">
                                         <label>Arrival From</label>
-                                        <input type="text" value={arrivalFrom} onChange={(e) => setArrivalFrom(e.target.value)} />
+                                        <input type="text" value={arrivalFrom} onChange={(e) => setArrivalFrom(e.target.value)} placeholder="Arrival city/place..." />
                                     </div>
                                     <div className="form-row">
                                         <label>Purpose of Visit</label>
-                                        <input type="text" value={purposeOfVisit} onChange={(e) => setPurposeOfVisit(e.target.value)} />
+                                        <input type="text" value={purposeOfVisit} onChange={(e) => setPurposeOfVisit(e.target.value)} placeholder="Purpose of stay..." />
                                     </div>
                                 </div>
                             </div>
@@ -1892,7 +1909,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                             buttonLabel="More Options"
                                             buttonClassName="tab-option"
                                             reservationStatus={selectedReservation?.status}
-                                            onAction={(action) => handleMoreOptionsAction(action)}
+                                            onAction={(action) => handleMoreOptionsAction(action, selectedReservation)}
                                         />
                                     </div>
 
@@ -1912,9 +1929,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                         </button>
                                         {showPrintMenu && (
                                             <div style={{
-                                                position:'absolute', right:0, top:'calc(100% + 6px)',
-                                                background:'#fff', borderRadius:'12px', boxShadow:'0 10px 40px rgba(0,0,0,0.15)',
-                                                border:'1px solid #f1f5f9', zIndex:50, minWidth:'200px', overflow:'hidden', padding:'6px'
+                                                position: 'absolute', right: 0, top: 'calc(100% + 6px)',
+                                                background: '#fff', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+                                                border: '1px solid #f1f5f9', zIndex: 50, minWidth: '200px', overflow: 'hidden', padding: '6px'
                                             }}>
                                                 {[
                                                     { action: 'print-summary', icon: '📄', label: 'Print Summary', color: '#2563eb' },
@@ -1924,23 +1941,23 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                                 ].map((item, i) => (
                                                     <button key={item.action}
                                                         style={{
-                                                            display:'flex', alignItems:'center', gap:'10px',
-                                                            width:'100%', padding:'10px 12px', border:'none',
-                                                            background:'transparent', cursor:'pointer', borderRadius:'8px',
-                                                            fontSize:'13px', fontWeight:'600', color:'#374151',
-                                                            transition:'background 0.15s', textAlign:'left'
+                                                            display: 'flex', alignItems: 'center', gap: '10px',
+                                                            width: '100%', padding: '10px 12px', border: 'none',
+                                                            background: 'transparent', cursor: 'pointer', borderRadius: '8px',
+                                                            fontSize: '13px', fontWeight: '600', color: '#374151',
+                                                            transition: 'background 0.15s', textAlign: 'left'
                                                         }}
-                                                        onMouseEnter={e => e.currentTarget.style.background='#fef2f2'}
-                                                        onMouseLeave={e => e.currentTarget.style.background='transparent'}
+                                                        onMouseEnter={e => e.currentTarget.style.background = '#fef2f2'}
+                                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                                         onClick={() => {
                                                             setShowPrintMenu(false);
                                                             handleMoreOptionsAction(item.action, selectedReservation);
                                                         }}
                                                     >
                                                         <span style={{
-                                                            width:'28px', height:'28px', borderRadius:'8px',
-                                                            background:`${item.color}15`, display:'flex',
-                                                            alignItems:'center', justifyContent:'center', fontSize:'14px', flexShrink:0
+                                                            width: '28px', height: '28px', borderRadius: '8px',
+                                                            background: `${item.color}15`, display: 'flex',
+                                                            alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0
                                                         }}>{item.icon}</span>
                                                         {item.label}
                                                     </button>
@@ -2013,22 +2030,51 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             />
 
             {/* Invoice Modal */}
-            {showInvoiceModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+            <AnimatePresence>
+                {showInvoiceModal && currentInvoice && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden relative"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={{
+                            position: 'fixed',
+                            inset: 0,
+                            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                            backdropFilter: 'blur(4px)',
+                            zIndex: 99999,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '1rem'
+                        }}
                     >
-                        <InvoiceView
-                            invoice={currentInvoice}
-                            isModal={true}
-                            onClose={() => setShowInvoiceModal(false)}
-                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            style={{
+                                backgroundColor: '#fff',
+                                borderRadius: '1rem',
+                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                                maxWidth: '1000px',
+                                width: '100%',
+                                maxHeight: '90vh',
+                                overflow: 'hidden',
+                                position: 'relative'
+                            }}
+                        >
+                            <InvoiceView
+                                invoice={currentInvoice}
+                                isModal={true}
+                                onClose={() => {
+                                    console.log('🏁 Closing Invoice Modal');
+                                    setShowInvoiceModal(false);
+                                }}
+                            />
+                        </motion.div>
                     </motion.div>
-                </div>
-            )}
+                )}
+            </AnimatePresence>
 
             {/* More Options Action Drawer */}
             <BookingActionsManager

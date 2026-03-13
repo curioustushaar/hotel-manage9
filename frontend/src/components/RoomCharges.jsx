@@ -13,9 +13,8 @@ const RoomCharges = ({ reservation }) => {
         const nights = reservation.nights || 1;
         const rate = reservation.rooms?.[0]?.ratePerNight || 0;
         const roomNo = reservation.rooms?.[0]?.roomNumber || 'TBD';
-        const discount = reservation.discount || 0;
 
-        // Generate daily room charges
+        // 1. Generate daily room charges (Always attributed to Primary Folio implicitly)
         for (let i = 0; i < nights; i++) {
             const date = new Date(checkIn);
             date.setDate(checkIn.getDate() + i);
@@ -24,19 +23,31 @@ const RoomCharges = ({ reservation }) => {
                 date: date.toISOString().split('T')[0],
                 description: `Room Charge - Room ${roomNo}`,
                 amount: rate,
-                type: 'Room Rent'
+                type: 'Room Rent',
+                folioName: 'Primary'
             });
         }
 
-        // Add any actual transactions (if available and not just payments)
+        // 2. Add actual transactions categorized by folio
         if (reservation.transactions && reservation.transactions.length > 0) {
             reservation.transactions.forEach(t => {
-                if (t.type === 'charge' && !t.description.includes('Room Charge')) {
+                // Skip base room tariff transactions as they are generated above virtually for the breakdown
+                if (['Room Tariff', 'Room Rent', 'Room Charges'].includes(t.particulars)) return;
+                
+                if (t.type?.toLowerCase() === 'charge') {
+                    // Identify guest name for the folio if possible
+                    let fName = Number(t.folioId || 0) === 0 ? 'Primary' : `Guest Folio ${t.folioId}`;
+                    if (Number(t.folioId) > 0 && reservation.additionalGuests) {
+                        const guest = reservation.additionalGuests[Number(t.folioId) - 1];
+                        if (guest) fName = guest.name;
+                    }
+
                     items.push({
-                        date: t.date || new Date().toISOString().split('T')[0], // Fallback date
+                        date: t.date || new Date().toISOString().split('T')[0],
                         description: t.description || t.particulars,
                         amount: t.amount,
-                        type: 'Extra'
+                        type: 'Extra',
+                        folioName: fName
                     });
                 }
             });
@@ -71,6 +82,7 @@ const RoomCharges = ({ reservation }) => {
                     <thead>
                         <tr>
                             <th>Date</th>
+                            <th>Folio / Guest</th>
                             <th>Description</th>
                             <th>Type</th>
                             <th className="text-right">Amount</th>
@@ -81,6 +93,9 @@ const RoomCharges = ({ reservation }) => {
                             charges.map((charge, index) => (
                                 <tr key={index}>
                                     <td>{formatDate(charge.date)}</td>
+                                    <td style={{ fontWeight: '600', color: charge.folioName === 'Primary' ? '#111' : '#6366f1' }}>
+                                        {charge.folioName}
+                                    </td>
                                     <td>{charge.description}</td>
                                     <td>
                                         <span className={`status-badge-modal ${charge.type === 'Room Rent' ? 'in_house' : 'reserved'}`}>

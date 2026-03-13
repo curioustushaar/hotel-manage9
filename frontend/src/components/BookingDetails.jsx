@@ -125,36 +125,65 @@ const BookingDetails = ({ reservation }) => {
                 </div>
             </div>
 
-            {/* Section 4: Billing Summary */}
-            <div className="details-section">
-                <h3 className="details-section-title">Billing Summary</h3>
-                <div className="billing-summary-grid">
-                    <div className="billing-row">
-                        <span className="billing-label">Total Room Charges</span>
-                        <span className="billing-value">{formatCurrency(reservation.roomCharges)}</span>
+            {/* Section 4: Billing Summary - Folio Aware */}
+            {(() => {
+                const transactions = reservation.transactions || [];
+                const primaryFolioId = 0;
+
+                const primaryCharges = transactions
+                    .filter(t => Number(t.folioId || 0) === primaryFolioId && t.type?.toLowerCase() === 'charge' && !['Room Tariff', 'Room Rent'].includes(t.particulars))
+                    .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+                
+                const otherCharges = transactions
+                    .filter(t => Number(t.folioId || 0) !== primaryFolioId && t.type?.toLowerCase() === 'charge')
+                    .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+
+                const primaryPaid = transactions
+                    .filter(t => Number(t.folioId || 0) === primaryFolioId && t.type?.toLowerCase() === 'payment')
+                    .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+                
+                const otherPaid = transactions
+                    .filter(t => Number(t.folioId || 0) !== primaryFolioId && t.type?.toLowerCase() === 'payment')
+                    .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+
+                const baseRoom = reservation.roomCharges || 0;
+                const primaryTotal = baseRoom + primaryCharges;
+                const primaryRemaining = primaryTotal - primaryPaid;
+
+                return (
+                    <div className="details-section">
+                        <h3 className="details-section-title">Billing Summary</h3>
+                        <div className="billing-summary-grid">
+                            <div className="billing-row">
+                                <span className="billing-label">Base Room Charges</span>
+                                <span className="billing-value">{formatCurrency(baseRoom)}</span>
+                            </div>
+                            <div className="billing-row">
+                                <span className="billing-label">Folio Charges (Primary)</span>
+                                <span className="billing-value">{formatCurrency(primaryCharges)}</span>
+                            </div>
+                            {otherCharges > 0 && (
+                                <div className="billing-row" style={{ fontStyle: 'italic', color: '#6366f1' }}>
+                                    <span className="billing-label">Other Folio Charges</span>
+                                    <span className="billing-value">{formatCurrency(otherCharges)}</span>
+                                </div>
+                            )}
+                            <div className="billing-row total-row">
+                                <span className="billing-label">Booking Grand Total</span>
+                                <span className="billing-value total">{formatCurrency(reservation.totalAmount)}</span>
+                            </div>
+                            <div className="billing-row">
+                                <span className="billing-label">Primary Folio Paid</span>
+                                <span className="billing-value paid">{formatCurrency(primaryPaid)}</span>
+                            </div>
+                            <div className="billing-row balance-row">
+                                <span className="billing-label">Primary Balance</span>
+                                <span className="billing-value balance">{formatCurrency(primaryRemaining)}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div className="billing-row">
-                        <span className="billing-label">Total Discount</span>
-                        <span className="billing-value discount">-{formatCurrency(reservation.discount)}</span>
-                    </div>
-                    <div className="billing-row">
-                        <span className="billing-label">Tax</span>
-                        <span className="billing-value">{formatCurrency(reservation.tax)}</span>
-                    </div>
-                    <div className="billing-row total-row">
-                        <span className="billing-label">Grand Total</span>
-                        <span className="billing-value total">{formatCurrency(reservation.totalAmount)}</span>
-                    </div>
-                    <div className="billing-row">
-                        <span className="billing-label">Total Paid</span>
-                        <span className="billing-value paid">{formatCurrency(reservation.paidAmount)}</span>
-                    </div>
-                    <div className="billing-row balance-row">
-                        <span className="billing-label">Balance Due</span>
-                        <span className="billing-value balance">{formatCurrency(reservation.balanceDue)}</span>
-                    </div>
-                </div>
-            </div>
+                );
+            })()}
         </div>
     );
 };
