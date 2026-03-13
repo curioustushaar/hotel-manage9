@@ -126,7 +126,10 @@ const CustomerIdentity = () => {
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
                                 <label>Identity Type</label>
-                                <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
+                                <input type="text" value={formData.name} onChange={e => {
+                                    const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                    setFormData({ ...formData, name: value });
+                                }} required />
                             </div>
                             <div className="form-group checkbox-row">
                                 <label className="checkbox-label">

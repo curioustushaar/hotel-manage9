@@ -134,7 +134,10 @@ const ExtraCharge = () => {
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
                                 <label>Charge Name</label>
-                                <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
+                                <input type="text" value={formData.name} onChange={e => {
+                                    const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                    setFormData({ ...formData, name: value });
+                                }} required />
                             </div>
                             <div className="form-group">
                                 <label>Charge Type</label>
@@ -146,7 +149,12 @@ const ExtraCharge = () => {
                             </div>
                             <div className="form-group">
                                 <label>Amount ({cs})</label>
-                                <input type="number" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} required />
+                                <input type="number" value={formData.amount} onChange={e => {
+                                    const val = e.target.value;
+                                    if (val === '' || Number(val) >= 0) {
+                                        setFormData({ ...formData, amount: val });
+                                    }
+                                }} min="0" required />
                             </div>
                             <div className="form-group checkbox-group">
                                 <label>

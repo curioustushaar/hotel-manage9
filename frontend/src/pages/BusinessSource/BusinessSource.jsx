@@ -110,7 +110,10 @@ const BusinessSource = () => {
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
                                 <label>Business Source</label>
-                                <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
+                                <input type="text" value={formData.name} onChange={e => {
+                                    const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                    setFormData({ ...formData, name: value });
+                                }} required />
                             </div>
                             <div className="modal-footer">
                                 <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>

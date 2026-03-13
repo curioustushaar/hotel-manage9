@@ -12,6 +12,8 @@ const FoodMenuDashboard = () => {
     const [menuItems, setMenuItems] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('All Categories');
+    const [addFormData, setAddFormData] = useState({ itemName: '', price: '', foodCode: '', description: '', category: '' });
+    const [editFormData, setEditFormData] = useState({ itemName: '', price: '', foodCode: '', description: '', category: '' });
 
     const categories = ['All Categories', 'Starters', 'Main Course', 'Breakfast', 'Rice', 'Desserts', 'Beverages', 'Chinese', 'Continental'];
 
@@ -57,11 +59,11 @@ const FoodMenuDashboard = () => {
         const foodCode = formData.get('foodCode') || `FC-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`;
 
         const newItem = {
-            itemName: formData.get('itemName'),
-            foodCode: foodCode, // Required by backend
-            category: formData.get('category'),
-            price: parseFloat(formData.get('price')),
-            description: formData.get('description') || '',
+            itemName: addFormData.itemName,
+            foodCode: addFormData.foodCode || foodCode, // Required by backend
+            category: addFormData.category,
+            price: parseFloat(addFormData.price),
+            description: addFormData.description || '',
             status: 'Active'
         };
 
@@ -76,7 +78,7 @@ const FoodMenuDashboard = () => {
                 // Add new item to the TOP of the list
                 setMenuItems([data.data, ...menuItems]);
                 setShowAddForm(false);
-                e.target.reset();
+                setAddFormData({ itemName: '', price: '', foodCode: '', description: '', category: '' });
             } else {
                 alert(data.message || 'Failed to add item. Check if "Food Code" is unique.');
             }
@@ -88,6 +90,13 @@ const FoodMenuDashboard = () => {
 
     const handleEditItem = (item) => {
         setEditingItem(item);
+        setEditFormData({
+            itemName: item.itemName,
+            price: item.price.toString(),
+            foodCode: item.foodCode,
+            description: item.description || '',
+            category: item.category
+        });
         setShowEditModal(true);
     };
 
@@ -95,11 +104,11 @@ const FoodMenuDashboard = () => {
         e.preventDefault();
         const formData = new FormData(e.target);
         const updatedItem = {
-            itemName: formData.get('itemName'),
-            foodCode: formData.get('foodCode') || editingItem.foodCode,
-            category: formData.get('category'),
-            price: parseFloat(formData.get('price')),
-            description: formData.get('description') || ''
+            itemName: editFormData.itemName,
+            foodCode: editFormData.foodCode || editingItem.foodCode,
+            category: editFormData.category,
+            price: parseFloat(editFormData.price),
+            description: editFormData.description || ''
         };
 
         try {
@@ -189,7 +198,7 @@ const FoodMenuDashboard = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px' }}>
                         <div>
                             <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600 }}>Item ID</label>
-                            <input name="foodCode" placeholder="Optional" style={{
+                            <input name="foodCode" value={addFormData.foodCode} onChange={e => setAddFormData({ ...addFormData, foodCode: e.target.value })} placeholder="Optional" style={{
                                 width: '100%',
                                 padding: '10px',
                                 border: '1px solid #e5e7eb',
@@ -198,7 +207,7 @@ const FoodMenuDashboard = () => {
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600 }}>Item Name *</label>
-                            <input name="itemName" required style={{
+                            <input name="itemName" value={addFormData.itemName} onChange={e => setAddFormData({ ...addFormData, itemName: e.target.value.replace(/[^A-Za-z\s]/g, '') })} required style={{
                                 width: '100%',
                                 padding: '10px',
                                 border: '1px solid #e5e7eb',
@@ -207,7 +216,7 @@ const FoodMenuDashboard = () => {
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600 }}>Category *</label>
-                            <select name="category" required style={{
+                            <select name="category" value={addFormData.category} onChange={e => setAddFormData({ ...addFormData, category: e.target.value })} required style={{
                                 width: '100%',
                                 padding: '10px',
                                 border: '1px solid #e5e7eb',
@@ -221,7 +230,12 @@ const FoodMenuDashboard = () => {
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600 }}>Price ({cs}) *</label>
-                            <input name="price" type="number" required style={{
+                            <input name="price" type="number" value={addFormData.price} onChange={e => {
+                                const val = e.target.value;
+                                if (val === '' || parseFloat(val) >= 0) {
+                                    setAddFormData({ ...addFormData, price: val });
+                                }
+                            }} required style={{
                                 width: '100%',
                                 padding: '10px',
                                 border: '1px solid #e5e7eb',
@@ -231,7 +245,7 @@ const FoodMenuDashboard = () => {
                     </div>
                     <div style={{ marginTop: '15px' }}>
                         <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600 }}>Description</label>
-                        <textarea name="description" rows="3" style={{
+                        <textarea name="description" value={addFormData.description} onChange={e => setAddFormData({ ...addFormData, description: e.target.value })} rows="3" style={{
                             width: '100%',
                             padding: '10px',
                             border: '1px solid #e5e7eb',
@@ -445,7 +459,8 @@ const FoodMenuDashboard = () => {
                                 </label>
                                 <input
                                     name="foodCode"
-                                    defaultValue={editingItem.foodCode}
+                                    value={editFormData.foodCode}
+                                    onChange={e => setEditFormData({ ...editFormData, foodCode: e.target.value })}
                                     style={{
                                         width: '100%',
                                         padding: '10px',
@@ -462,7 +477,8 @@ const FoodMenuDashboard = () => {
                                 </label>
                                 <input
                                     name="itemName"
-                                    defaultValue={editingItem.itemName}
+                                    value={editFormData.itemName}
+                                    onChange={e => setEditFormData({ ...editFormData, itemName: e.target.value.replace(/[^A-Za-z\s]/g, '') })}
                                     required
                                     style={{
                                         width: '100%',
@@ -480,7 +496,8 @@ const FoodMenuDashboard = () => {
                                 </label>
                                 <select
                                     name="category"
-                                    defaultValue={editingItem.category}
+                                    value={editFormData.category}
+                                    onChange={e => setEditFormData({ ...editFormData, category: e.target.value })}
                                     required
                                     style={{
                                         width: '100%',
@@ -504,7 +521,13 @@ const FoodMenuDashboard = () => {
                                 <input
                                     name="price"
                                     type="number"
-                                    defaultValue={editingItem.price}
+                                    value={editFormData.price}
+                                    onChange={e => {
+                                        const val = e.target.value;
+                                        if (val === '' || parseFloat(val) >= 0) {
+                                            setEditFormData({ ...editFormData, price: val });
+                                        }
+                                    }}
                                     required
                                     style={{
                                         width: '100%',
@@ -523,7 +546,8 @@ const FoodMenuDashboard = () => {
                                 <textarea
                                     name="description"
                                     rows="4"
-                                    defaultValue={editingItem.description}
+                                    value={editFormData.description}
+                                    onChange={e => setEditFormData({ ...editFormData, description: e.target.value })}
                                     placeholder="Brief description of the item"
                                     style={{
                                         width: '100%',

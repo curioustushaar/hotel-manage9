@@ -160,7 +160,12 @@ const FloorSetup = () => {
                                     <input
                                         type="text"
                                         value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (/^[a-zA-Z\s]*$/.test(val)) {
+                                                setFormData({ ...formData, name: val });
+                                            }
+                                        }}
                                         required
                                         placeholder="e.g. Ground Floor"
                                         className="form-input"

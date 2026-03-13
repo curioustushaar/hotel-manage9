@@ -46,7 +46,7 @@
 }
 
 .nav-item.active {
-    background: #ef4444;
+    background: #E31E24;
     color: #ffffff;
 }
 
@@ -81,7 +81,7 @@
 
 .nav-item.dropdown-open {
     background: #fef2f2;
-    color: #ef4444;
+    color: #E31E24;
 }
 
 .nav-dropdown-menu {
@@ -120,8 +120,8 @@
 
 .nav-dropdown-item.active {
     background: #fef2f2;
-    color: #ef4444;
-    border-left-color: #ef4444;
+    color: #E31E24;
+    border-left-color: #E31E24;
     font-weight: 600;
 }
 
@@ -136,7 +136,7 @@
     display: flex;
     align-items: center;
     padding: 14px 20px;
-    background: #ef4444;
+    background: #E31E24;
     border: none;
     border-radius: 8px;
     cursor: pointer;
@@ -148,9 +148,9 @@
 }
 
 .logout-btn:hover {
-    background: #dc2626;
+    background: #cc1a20;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 4px 12px rgba(227, 30, 36, 0.3);
 }
 
 /* ========== MAIN CONTENT (managed by AdminLayout.css) ========== */

@@ -126,7 +126,10 @@ const ComplimentaryService = () => {
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
                                 <label>Service Name</label>
-                                <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required />
+                                <input type="text" value={formData.name} onChange={e => {
+                                    const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                    setFormData({ ...formData, name: value });
+                                }} required />
                             </div>
                             <div className="form-group">
                                 <label>Category</label>
@@ -138,11 +141,17 @@ const ComplimentaryService = () => {
                             </div>
                             <div className="form-group">
                                 <label>Linked With</label>
-                                <input type="text" value={formData.linkedWith} onChange={e => setFormData({ ...formData, linkedWith: e.target.value })} required placeholder="e.g. All Guests, CP" />
+                                <input type="text" value={formData.linkedWith} onChange={e => {
+                                    const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                    setFormData({ ...formData, linkedWith: value });
+                                }} required placeholder="e.g. All Guests, CP" />
                             </div>
                             <div className="form-group">
                                 <label>Quantity Limit</label>
-                                <input type="text" value={formData.quantityLimit} onChange={e => setFormData({ ...formData, quantityLimit: e.target.value })} required placeholder="e.g. 1 per Stay" />
+                                <input type="text" value={formData.quantityLimit} onChange={e => {
+                                    const value = e.target.value.replace(/\D/g, '');
+                                    setFormData({ ...formData, quantityLimit: value });
+                                }} required placeholder="e.g. 1 per Stay" />
                             </div>
                             <div className="modal-footer">
                                 <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>

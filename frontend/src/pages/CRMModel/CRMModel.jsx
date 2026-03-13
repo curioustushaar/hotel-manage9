@@ -585,19 +585,31 @@ const CRMModel = () => {
                                 <div className="form-grid">
                                     <div className="form-group">
                                         <label>Full Name *</label>
-                                        <input type="text" name="fullName" className="form-input" value={formData.fullName} onChange={handleInputChange} placeholder="Enter full name" required />
+                                        <input type="text" name="fullName" className="form-input" value={formData.fullName} 
+                                            onChange={(e) => {
+                                                const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                                handleInputChange({ target: { name: 'fullName', value } });
+                                            }} 
+                                            placeholder="Enter full name" required />
                                     </div>
                                     <div className="form-group">
                                         <label>Email (Login Username) *</label>
-                                        <input type="email" name="email" className="form-input" value={formData.email} onChange={handleInputChange} placeholder="staff@hotel.com" required />
+                                        <input type="email" name="email" className="form-input" value={formData.email} onChange={handleInputChange} placeholder="Enter email" required />
                                     </div>
                                     <div className="form-group">
                                         <label>Phone</label>
-                                        <input type="text" name="phone" className="form-input" value={formData.phone} onChange={handleInputChange} placeholder="+91 XXXXXXXXXX" />
+                                        <input type="text" name="phone" className="form-input" value={formData.phone} 
+                                            onChange={(e) => {
+                                                const value = e.target.value.replace(/\D/g, '');
+                                                if (value.length <= 10) {
+                                                    handleInputChange({ target: { name: 'phone', value } });
+                                                }
+                                            }} 
+                                            placeholder="Enter phone number" />
                                     </div>
                                     <div className="form-group">
                                         <label>{editingStaff ? 'Password (leave blank to keep)' : 'Password *'}</label>
-                                        <input type="password" name="password" className="form-input" value={formData.password} onChange={handleInputChange} placeholder={editingStaff ? '••••••••' : 'Enter password'} required={!editingStaff} />
+                                        <input type="password" name="password" className="form-input" value={formData.password} onChange={handleInputChange} placeholder={editingStaff ? '' : 'Enter password'} required={!editingStaff} />
                                     </div>
                                     <div className="form-group full-width">
                                         <label>Profile Image URL (Optional)</label>

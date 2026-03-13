@@ -161,7 +161,10 @@ const ReservationType = () => {
                                     <input
                                         type="text"
                                         value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                            setFormData({ ...formData, name: value });
+                                        }}
                                         required
                                         placeholder="e.g. Walk-In, Online Booking"
                                         className="form-input"
