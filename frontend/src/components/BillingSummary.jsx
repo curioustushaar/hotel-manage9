@@ -101,7 +101,14 @@ const BillingSummary = ({
                                     type="number"
                                     className="premium-input-v2"
                                     value={paidAmount}
-                                    onChange={(e) => onPaidAmountChange(e.target.value)}
+                                    onChange={(e) => {
+                                        const value = parseFloat(e.target.value) || 0;
+                                        if (value > totalAmount) {
+                                            onPaidAmountChange(totalAmount);
+                                        } else {
+                                            onPaidAmountChange(e.target.value);
+                                        }
+                                    }}
                                     placeholder="0"
                                 />
                             </div>

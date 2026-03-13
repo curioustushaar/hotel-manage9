@@ -23,7 +23,7 @@ const defaultSettings = {
     roomGst: 12,
     foodGst: 5,
     roomServiceCharge: 5,
-    inclusiveTax: true,
+    inclusiveTax: false,
     invoicePrefix: 'INV-2026-',
     billingInvoicePrefix: 'ATITHI',
     startingInvoiceNumber: '1001',

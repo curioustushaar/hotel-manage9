@@ -20,10 +20,10 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
 
             // Only fetch if category changed. 
             // If it's the first time setting a category (categoryWasEmpty is true), 
-            // only fetch if we don't already have a valid price (prevents overwriting prefilled Quick Book prices).
+            // only fetch if we don't already have a valid base price.
             // If the user IS switching from one category to another, always fetch the new price.
             const shouldFetch = categoryIsNowSet && categoryChanged && (
-                !categoryWasEmpty || (categoryWasEmpty && (!room.ratePerNight || room.ratePerNight === 0))
+                !categoryWasEmpty || (categoryWasEmpty && (!room.baseRate || room.baseRate === 0))
             );
 
             if (shouldFetch) {
@@ -94,10 +94,15 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
     const handleRoomNumberChange = (value) => {
         const selectedRoom = availableRooms.find(r => r.roomNumber === value);
         if (selectedRoom) {
+            const newBaseRate = selectedRoom.price || room.baseRate || 0;
+            const currentMeal = mealTypes.find(m => m.shortCode === room.mealPlan);
+            const mealPrice = currentMeal ? (currentMeal.price || 0) : 0;
+            
             onUpdate(index, {
                 ...room,
                 roomNumber: value,
-                ratePerNight: selectedRoom.price || room.ratePerNight
+                baseRate: newBaseRate,
+                ratePerNight: newBaseRate + mealPrice
             });
         } else {
             handleChange('roomNumber', value);
