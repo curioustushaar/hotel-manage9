@@ -427,15 +427,14 @@ exports.updateBookingStatus = async (req, res) => {
 
             if (!hasRoomTariff) {
                 const b = booking.billing || {};
-                const resTotal = b.totalAmount || booking.totalAmount || 0;
-                if (resTotal > 0) {
-                    totalCharges += resTotal;
-                } else {
-                    const checkIn = booking.checkInDate;
-                    const checkOut = booking.checkOutDate;
-                    const nights = (checkIn && checkOut) ? Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24))) : 1;
-                    const rate = b.roomRate || booking.pricePerNight || 0;
-                    totalCharges += (rate * nights);
+                const checkIn = booking.checkInDate;
+                const checkOut = booking.checkOutDate;
+                const nights = (checkIn && checkOut) ? Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24))) : (booking.duration?.nights || 1);
+                const rate = b.roomRate || booking.pricePerNight || 0;
+                const baseStayValue = (rate * nights);
+                
+                if (baseStayValue > 0) {
+                    totalCharges += baseStayValue;
                 }
             }
 

@@ -210,6 +210,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                         min="1"
                         value={room.adultsCount}
                         onChange={(e) => handleChange('adultsCount', e.target.value)}
+                        placeholder="Number of Adult"
                     />
                 </div>
 
@@ -220,6 +221,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                         min="0"
                         value={room.childrenCount}
                         onChange={(e) => handleChange('childrenCount', e.target.value)}
+                        placeholder="Number of Childern"
                     />
                 </div>
 
@@ -243,6 +245,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                             });
                         }}
                         disabled={readOnly}
+                        placeholder="0.00"
                     />
                 </div>
 
@@ -253,6 +256,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                         min="0"
                         value={room.discount}
                         onChange={(e) => handleChange('discount', e.target.value)}
+                        placeholder="0.00"
                     />
                 </div>
 

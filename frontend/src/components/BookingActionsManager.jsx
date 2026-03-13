@@ -21,20 +21,20 @@ import API_URL from '../config/api';
 import soundManager from '../utils/soundManager';
 
 const ACTION_CONFIG = {
-    'check-in':      { title: '✓ Check-In Guest',       endpoint: (id) => `/api/reservations/checkin/${id}`,      method: 'PUT' },
-    'add-payment':   { title: '💳 Add Payment',          endpoint: (id) => `/api/bookings/add-payment/${id}`,      method: 'POST' },
-    'amend-stay':    { title: '📅 Amend Stay',           endpoint: (id) => `/api/reservations/amend/${id}`,        method: 'PUT' },
-    'room-move':     { title: '🚪 Room Move',            endpoint: (id) => `/api/reservations/${id}/room-move`,    method: 'PUT' },
-    'exchange-room': { title: '⇄ Exchange Room',         endpoint: (id) => `/api/reservations/${id}/exchange-room`, method: 'PUT' },
-    'add-visitor':   { title: '👤 Add Visitor',          endpoint: (id) => `/api/bookings/add-visitor/${id}`,      method: 'POST' },
-    'no-show':       { title: '❌ Mark No-Show',          endpoint: (id) => `/api/reservations/${id}/no-show`,      method: 'PUT' },
-    'void':          { title: '🗑️ Void Reservation',     endpoint: (id) => `/api/reservations/${id}/void`,         method: 'PUT' },
-    'cancel':        { title: '⚠️ Cancel Reservation',   endpoint: (id) => `/api/bookings/cancel/${id}`,           method: 'POST' },
+    'check-in': { title: '✓ Check-In Guest', endpoint: (id) => `/api/reservations/checkin/${id}`, method: 'PUT' },
+    'add-payment': { title: '💳 Add Payment', endpoint: (id) => `/api/bookings/add-payment/${id}`, method: 'POST' },
+    'amend-stay': { title: '📅 Amend Stay', endpoint: (id) => `/api/reservations/amend/${id}`, method: 'PUT' },
+    'room-move': { title: '🚪 Room Move', endpoint: (id) => `/api/reservations/${id}/room-move`, method: 'PUT' },
+    'exchange-room': { title: '⇄ Exchange Room', endpoint: (id) => `/api/reservations/${id}/exchange-room`, method: 'PUT' },
+    'add-visitor': { title: '👤 Add Visitor', endpoint: (id) => `/api/bookings/add-visitor/${id}`, method: 'POST' },
+    'no-show': { title: '❌ Mark No-Show', endpoint: (id) => `/api/reservations/${id}/no-show`, method: 'PUT' },
+    'void': { title: '🗑️ Void Reservation', endpoint: (id) => `/api/reservations/${id}/void`, method: 'PUT' },
+    'cancel': { title: '⚠️ Cancel Reservation', endpoint: (id) => `/api/bookings/cancel/${id}`, method: 'POST' },
     'print-summary': { title: '📄 Print Summary' },
     'print-invoice': { title: '🧾 Print Invoice' },
-    'print-grc':     { title: '📋 Print GRC' },
+    'print-grc': { title: '📋 Print GRC' },
     'print-grc-all': { title: '📋 Print All GRCs' },
-    'send-invoice':  { title: '📧 Send Invoice' },
+    'send-invoice': { title: '📧 Send Invoice' },
 };
 
 const PRINT_ACTIONS = ['print-summary', 'print-invoice', 'print-grc', 'print-grc-all', 'send-invoice'];
@@ -77,12 +77,15 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
             if (data.success) {
                 if (actionType === 'check-in') soundManager.play('success');
 
-                setToast({ message: data.message || `${config.title} completed successfully!`, type: 'success' });
+                if (actionType !== 'add-payment') {
+                    setToast({ message: data.message || `${config.title} completed successfully!`, type: 'success' });
+                }
 
                 const updatedData = data.data || data.updatedReservation;
                 if (updatedData) onSuccess?.(updatedData);
 
-                setTimeout(() => onClose(), 1500);
+                const closingDelay = (actionType === 'add-payment' || actionType === 'check-in') ? 500 : 1500;
+                setTimeout(() => onClose(), closingDelay);
             } else {
                 throw new Error(data.message || 'Action failed');
             }
@@ -99,21 +102,21 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
         const formProps = { booking, onSubmit: handleSubmit, onCancel: onClose };
 
         switch (actionType) {
-            case 'check-in':       return <CheckInForm {...formProps} />;
-            case 'add-payment':    return <AddPaymentForm {...formProps} />;
-            case 'amend-stay':     return <AmendStayForm {...formProps} />;
-            case 'room-move':      return <RoomMoveForm {...formProps} />;
-            case 'exchange-room':  return <ExchangeRoomForm {...formProps} />;
-            case 'add-visitor':    return <AddVisitorForm {...formProps} />;
-            case 'no-show':        return <NoShowForm {...formProps} />;
-            case 'void':           return <VoidReservationForm {...formProps} />;
-            case 'cancel':         return <CancelReservationForm {...formProps} />;
-            case 'print-summary':  return <PrintSummaryForm {...formProps} />;
-            case 'print-invoice':  return <PrintInvoiceForm {...formProps} />;
-            case 'print-grc':      return <PrintGRCForm {...formProps} />;
-            case 'print-grc-all':  return <PrintGRCAllForm {...formProps} />;
-            case 'send-invoice':   return <SendInvoiceForm {...formProps} />;
-            default:               return <div className="p-6 text-center text-gray-500">Invalid action</div>;
+            case 'check-in': return <CheckInForm {...formProps} />;
+            case 'add-payment': return <AddPaymentForm {...formProps} />;
+            case 'amend-stay': return <AmendStayForm {...formProps} />;
+            case 'room-move': return <RoomMoveForm {...formProps} />;
+            case 'exchange-room': return <ExchangeRoomForm {...formProps} />;
+            case 'add-visitor': return <AddVisitorForm {...formProps} />;
+            case 'no-show': return <NoShowForm {...formProps} />;
+            case 'void': return <VoidReservationForm {...formProps} />;
+            case 'cancel': return <CancelReservationForm {...formProps} />;
+            case 'print-summary': return <PrintSummaryForm {...formProps} />;
+            case 'print-invoice': return <PrintInvoiceForm {...formProps} />;
+            case 'print-grc': return <PrintGRCForm {...formProps} />;
+            case 'print-grc-all': return <PrintGRCAllForm {...formProps} />;
+            case 'send-invoice': return <SendInvoiceForm {...formProps} />;
+            default: return <div className="p-6 text-center text-gray-500">Invalid action</div>;
         }
     };
 

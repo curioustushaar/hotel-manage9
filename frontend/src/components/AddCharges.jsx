@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import './AddCharges.css';
-import Toast from './Toast';
 
 // Maps a charge type value to its discount category used in discount rules
 const CHARGE_CATEGORY_MAP = {
@@ -43,7 +42,6 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
 
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [showToast, setShowToast] = useState(false);
 
     // Discount states
     const [discountType, setDiscountType] = useState('PERCENTAGE');
@@ -140,8 +138,7 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
                 timestamp: new Date().toISOString()
             };
             if (onAdd) await onAdd(chargeData);
-            setShowToast(true);
-            setTimeout(() => onClose(), 800);
+            setTimeout(() => onClose(), 500);
         } catch (error) {
             console.error(error);
             setIsSubmitting(false);
@@ -309,7 +306,6 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
                     </button>
                 </div>
             </div>
-            {showToast && <Toast message="Charge Added Successfully!" onClose={() => setShowToast(false)} type="success" />}
         </div>
     );
 };

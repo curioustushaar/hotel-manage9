@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
@@ -75,7 +75,7 @@ const CashierSection = () => {
             const response = await fetch(`${API_URL}/api/bookings/list`);
             const data = await response.json();
             if (data.success) {
-                const checkedIn = data.data.filter(b => b.status === 'Checked-in');
+                const checkedIn = data.data.filter(b => ['Checked-in', 'CheckedIn', 'IN_HOUSE', 'Checked-In'].includes(b.status));
                 setCheckedInRooms(checkedIn);
             }
         } catch (error) {
@@ -167,7 +167,7 @@ const CashierSection = () => {
         setSelectedOrder(order);
     };
 
-    const handlePaymentComplete = async (orderId, amount, mode, type, roomNumber = null) => {
+    const handlePaymentComplete = async (orderId, amount, mode, type, roomNumber = null, folioId = 0) => {
         try {
             const response = await fetch(`${API_URL}/api/guest-meal/orders/${orderId}/settle`, {
                 method: 'POST',
@@ -176,7 +176,8 @@ const CashierSection = () => {
                     paymentMethod: type, // 'Direct Payment' or 'Add to Room'
                     paymentMode: mode,   // 'Cash', 'UPI', etc.
                     amount: amount,
-                    roomNumber: roomNumber
+                    roomNumber: roomNumber,
+                    folioId: folioId
                 })
             });
 
@@ -570,18 +571,33 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
     const [receivedAmount, setReceivedAmount] = useState('');
     const [returnAmount, setReturnAmount] = useState(0);
     const [targetRoom, setTargetRoom] = useState('');
+    const [targetFolioId, setTargetFolioId] = useState(0); // Default to Primary Folio
     const [selectedBooking, setSelectedBooking] = useState(null);
     const [isTendered, setIsTendered] = useState(false);
     const [showPrintDropdown, setShowPrintDropdown] = useState(false);
     const [showEditBill, setShowEditBill] = useState(false);
     const [editItems, setEditItems] = useState([]);
 
+    const printDropdownRef = useRef(null);
+
+    // Derived: list of folios for current booking
+    const availableFolios = useMemo(() => {
+        if (!selectedBooking) return [];
+        const folios = [{ id: 0, name: `Primary - ${selectedBooking.guestName}` }];
+        if (selectedBooking.additionalGuests && Array.isArray(selectedBooking.additionalGuests)) {
+            selectedBooking.additionalGuests.forEach((g, i) => {
+                folios.push({ id: i + 1, name: g.name || `Guest ${i + 1}` });
+            });
+        }
+        return folios;
+    }, [selectedBooking]);
+
     // Discount states
     const [discountType, setDiscountType] = useState('PERCENTAGE');
     const [discountValue, setDiscountValue] = useState('');
     const [discountSource, setDiscountSource] = useState('');
 
-    const printDropdownRef = useRef(null);
+
 
     // Initial state reset when order changes
     useEffect(() => {
@@ -894,8 +910,15 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
             }
         }
 
+        // Percentage discount validation
+        if (discountType === 'PERCENTAGE' && parseFloat(discountValue) > 100) {
+            if (!window.confirm(`⚠️ You have entered a ${discountValue}% discount, which is more than 100%. The net payable will be 0. Continue?`)) {
+                return;
+            }
+        }
+
         // Trigger completion callback
-        onPaymentComplete(order.id, netAfterDiscount, paymentMode, paymentType, targetRoom);
+        onPaymentComplete(order.id, netAfterDiscount, paymentMode, paymentType, targetRoom, targetFolioId);
         setIsTendered(true);
     };
 
@@ -1161,12 +1184,31 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                             <div className="input-box-wrap read-only">
                                 <input
                                     type="text"
-                                    value={selectedBooking ? (selectedBooking.bookingReferenceId || selectedBooking._id.substr(-6).toUpperCase()) : ''}
+                                    value={selectedBooking ? (selectedBooking.bookingReferenceId || selectedBooking.bookingId || selectedBooking._id.substr(-6).toUpperCase()) : ''}
                                     placeholder="Booking ID"
                                     readOnly
                                 />
                             </div>
                         </div>
+
+                        {selectedBooking && availableFolios.length > 1 && (
+                            <div className="payment-input-modern">
+                                <label>Select Folio</label>
+                                <div className="input-box-wrap">
+                                    <span>📄</span>
+                                    <select
+                                        className="folio-select-pos"
+                                        value={targetFolioId}
+                                        onChange={(e) => setTargetFolioId(parseInt(e.target.value))}
+                                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                                    >
+                                        {availableFolios.map(f => (
+                                            <option key={f.id} value={f.id}>{f.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        )}
 
                         {selectedBooking && (
                             <div className="folio-balance-info">
@@ -1175,9 +1217,12 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                         )}
 
                         {selectedBooking && !isPlaceholder && (
-                            <div className="folio-confirm-banner">
-                                <span className="info-icon">ℹ️</span>
-                                <p>Are you sure you want to transfer {cs}{netAfterDiscount.toFixed(2)} to Room {targetRoom} Folio?</p>
+                            <div className="folio-confirm-banner" style={{ background: netAfterDiscount === 0 ? '#fef2f2' : '#eff6ff', borderColor: netAfterDiscount === 0 ? '#fecaca' : '#bfdbfe' }}>
+                                <span className="info-icon">{netAfterDiscount === 0 ? '⚠️' : 'ℹ️'}</span>
+                                <p>
+                                    Are you sure you want to transfer <strong>{cs}{netAfterDiscount.toFixed(2)}</strong> to 
+                                    <strong> Room {targetRoom} ({availableFolios.find(f => f.id === targetFolioId)?.name})</strong>?
+                                </p>
                             </div>
                         )}
                     </div>

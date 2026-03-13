@@ -11,7 +11,7 @@ import ConfirmationModal from './ConfirmationModal';
 import Toast from './Toast';
 import VisitorList from './visitors/VisitorList';
 
-const FolioOperations = ({ reservation, onTotalsChange }) => {
+const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
     const { settings, getCurrencySymbol } = useSettings();
     const cs = getCurrencySymbol();
     const [selectedRoom, setSelectedRoom] = useState(0);
@@ -143,7 +143,7 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
                 const mappedTransactions = data.data.transactions.map(t => ({
                     ...t,
                     folioId: t.folioId !== undefined ? t.folioId : 0,
-                    particulars: t.particulars || (t.type === 'charge' || t.type === 'Charge' ? 'Room Stay' : t.type),
+                    particulars: t.particulars || (t.type?.toLowerCase() === 'charge' ? 'Room Stay' : t.type),
                     description: t.description || t.notes || '',
                     day: t.day || new Date(t.date || Date.now()).toLocaleDateString('en-GB', {
                         day: '2-digit',
@@ -207,12 +207,7 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
                 const selectedFolio = folioList.find(f => f.id === selectedRoom);
                 await fetchTransactions(selectedFolio ? selectedFolio.bookingId : null);
                 setShowAddCharges(false);
-
-                // Show success toast
-                setToast({
-                    message: 'Charge added successfully!',
-                    type: 'success'
-                });
+                if (onRefresh) onRefresh();
             } else {
                 setToast({
                     message: `Failed to add charge: ${data.message}`,
@@ -255,15 +250,9 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
 
             const data = await response.json();
             if (data.success) {
-                const selectedFolio = folioList.find(f => f.id === selectedRoom);
                 await fetchTransactions(selectedFolio ? selectedFolio.bookingId : null);
                 setShowAddPayment(false);
-
-                // Show success toast
-                setToast({
-                    message: 'Payment added successfully!',
-                    type: 'success'
-                });
+                if (onRefresh) onRefresh();
             } else {
                 setToast({
                     message: `Failed to add payment: ${data.message}`,
@@ -287,7 +276,7 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
 
         // Calculate discount amount based on type
         const currentFolioTransactions = allTransactions.filter(t => t.folioId === selectedRoom);
-        const currentCharges = currentFolioTransactions.filter(t => t.type === 'charge').reduce((sum, t) => sum + t.amount, 0);
+        const currentCharges = currentFolioTransactions.filter(t => t.type?.toLowerCase() === 'charge').reduce((sum, t) => sum + t.amount, 0);
 
         let discountAmount = 0;
         if (discountData.discountType === 'percentage') {
@@ -331,12 +320,7 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
                 const selectedFolio = folioList.find(f => f.id === selectedRoom);
                 await fetchTransactions(selectedFolio ? selectedFolio.bookingId : null);
                 setShowApplyDiscount(false);
-
-                // Show success toast
-                setToast({
-                    message: 'Discount applied successfully!',
-                    type: 'success'
-                });
+                if (onRefresh) onRefresh();
             } else {
                 setToast({
                     message: `Failed to apply discount: ${data.message}`,
@@ -660,15 +644,24 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
     const currentFolioTransactions = [...baseTransactions];
     const selectedFolio = folioList.find(f => f.id === selectedRoom);
 
-    const hasRoomTariff = currentFolioTransactions.some(t =>
-        t.particulars === 'Room Tariff' ||
-        t.particulars === 'Room Charges' ||
-        (t.description?.toLowerCase().includes('room charges'))
-    );
+    const hasRoomTariff = currentFolioTransactions.some(t => {
+        const text = `${t.particulars || ''} ${t.description || ''}`.toLowerCase();
+        return text.includes('room tariff') || 
+               text.includes('room rent') || 
+               text.includes('room charges') ||
+               t.particulars === 'Room Charges' ||
+               t.particulars === 'Room Tariff';
+    });
 
     // If this is the Primary Folio and no Room Tariff is posted yet, show it as a virtual entry
     if (!hasRoomTariff && selectedFolio && Number(selectedFolio.folioId) === 0) {
-        const roomTotal = reservation?.billing?.totalAmount || reservation?.totalAmount || 0;
+        // Use ONLY base room charges for the virtual entry, NOT the total booking amount (which includes extras)
+        const roomRate = reservation?.billing?.roomRate || 
+                         reservation?.pricePerNight || 
+                         reservation?.rooms?.[0]?.ratePerNight || 0;
+        const nights = reservation?.duration?.nights || reservation?.nights || 1;
+        const roomTotal = roomRate * nights;
+        
         if (roomTotal > 0) {
             currentFolioTransactions.unshift({
                 _id: 'virtual-room-tariff',
@@ -679,7 +672,7 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
                     weekday: 'short'
                 }),
                 particulars: 'Room Charges',
-                description: `Room Stay (${reservation?.duration?.nights || 1} nights)`,
+                description: `Room Stay (${nights} nights)`,
                 amount: roomTotal,
                 user: 'System',
                 type: 'charge',
@@ -804,8 +797,6 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
                         </div>
                     </div>
                 )}
-
-                {/* Charges Table - Only show when routing section is hidden */}
                 {!showRoutingSection && (
                     <div className="folio-table-container">
                         {loading ? (
@@ -839,7 +830,7 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
                                             </td>
                                             <td>{transaction.day}</td>
                                             <td>
-                                                <span className={transaction.type === 'payment' ? 'payment-badge' : ''}>
+                                                <span className={transaction.type?.toLowerCase() === 'payment' ? 'payment-badge' : ''}>
                                                     {transaction.particulars}
                                                 </span>
                                             </td>
@@ -916,7 +907,12 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
                 <AddPayment
                     onClose={() => setShowAddPayment(false)}
                     onAdd={handleAddPayment}
-                    reservation={reservation}
+                    reservation={{ 
+                        ...reservation, 
+                        totalAmount: totals.grandTotal,
+                        paidAmount: totals.paid,
+                        remainingAmount: totals.remaining 
+                    }}
                 />
             )}
 
@@ -924,8 +920,15 @@ const FolioOperations = ({ reservation, onTotalsChange }) => {
             {showAddCharges && (
                 <AddCharges
                     onClose={() => setShowAddCharges(false)}
-                    onAdd={handleAddCharge}
-                    reservation={reservation}
+                    onAdd={async (chargeData) => {
+                        if (handleAddCharge) await handleAddCharge(chargeData);
+                        setShowAddCharges(false);
+                    }}
+                    reservation={{ 
+                        ...reservation, 
+                        totalAmount: totals.grandTotal,
+                        balanceDue: totals.remaining
+                    }}
                 />
             )}
 

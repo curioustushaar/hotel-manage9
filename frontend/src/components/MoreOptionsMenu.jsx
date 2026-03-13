@@ -26,6 +26,7 @@ const MoreOptionsMenu = ({ onAction, buttonLabel = "More Options", buttonClassNa
 
     const options = [
         { label: 'Check-In', value: 'check-in', icon: '✓', type: 'success', show: isUpcoming },
+        { label: 'View Invoice', value: 'view-invoice', icon: '🧾', type: 'success', show: isClosed },
         { label: 'Add Payment', value: 'add-payment', icon: '💳', type: 'normal', show: !isClosed },
         { label: 'Amend Stay', value: 'amend-stay', icon: '📅', type: 'normal', show: !isClosed },
         { label: 'Room Move', value: 'room-move', icon: '🚪', type: 'normal', show: isCheckedIn },

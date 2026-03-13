@@ -81,38 +81,100 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
                 <span className="nights">{reservation.nights} night(s)</span>
             </div>
 
-            <div className="res-card-rooms">
-                <span className="room-icon">🛏</span>
-                <span>{reservation.rooms?.length || 1} Room(s)</span>
+            <div className="res-card-rooms-v2">
+                <div className="rooms-left">
+                    <span className="icon-v2-sm room">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 4v16"></path><path d="M2 8h18a2 2 0 0 1 2 2v10"></path><path d="M2 17h20"></path><path d="M6 8v9"></path></svg>
+                    </span>
+                    <span className="room-count-text">{reservation.rooms?.length || 1} Room(s)</span>
+                </div>
                 {reservation.roomNumber && (
-                    <span className="room-number-label" style={{ marginLeft: 'auto', color: '#4f46e5', background: '#eef2ff', padding: '2px 8px', borderRadius: '4px', border: '1px solid #c7d2fe' }}>
+                    <span className="room-number-badge">
                         Room: {reservation.roomNumber}
                     </span>
                 )}
             </div>
 
-            <div className="res-card-financials">
-                <div className="fin-col">
-                    <label>AMOUNT</label>
-                    <span className="amount">{cs}{reservation.totalAmount?.toLocaleString('en-IN')}</span>
-                </div>
-                <div className="fin-col">
-                    <label className="text-green">PAID</label>
-                    <span className="amount text-green">{cs}{reservation.paidAmount?.toLocaleString('en-IN')}</span>
-                </div>
-                <div className="fin-col">
-                    <label className="text-red">BALANCE</label>
-                    <span className="amount text-red">{cs}{reservation.balanceDue?.toLocaleString('en-IN')}</span>
-                </div>
-            </div>
+            {/* Folio-aware calculations */}
+            {(() => {
+                const transactions = reservation.transactions || [];
+                const primaryFolioId = 0; // Standard Primary Folio ID
+                
+                // Primary Folio Charges (excluding base room rate which is shown separately)
+                const primaryCharges = transactions
+                    .filter(t => Number(t.folioId || 0) === primaryFolioId && t.type?.toLowerCase() === 'charge' && !['Room Tariff', 'Room Rent'].includes(t.particulars))
+                    .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+
+                // Other Folios Charges (sum of all other folios)
+                const otherCharges = transactions
+                    .filter(t => Number(t.folioId || 0) !== primaryFolioId && t.type?.toLowerCase() === 'charge')
+                    .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+
+                // Payments breakdown
+                const primaryPaid = transactions
+                    .filter(t => Number(t.folioId || 0) === primaryFolioId && t.type?.toLowerCase() === 'payment')
+                    .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+                
+                const otherPaid = transactions
+                    .filter(t => Number(t.folioId || 0) !== primaryFolioId && t.type?.toLowerCase() === 'payment')
+                    .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+
+                const roomCharges = reservation.roomCharges || 0;
+                const totalPaid = primaryPaid + otherPaid;
+                const bookingBalance = (reservation.totalAmount || 0) - totalPaid;
+
+                return (
+                    <div className="res-card-amount-summary">
+                        <div className="amount-summary-header">BILLING SUMMARY</div>
+                        
+                        <div className="summary-row">
+                            <span className="label">Room Charges</span>
+                            <span className="value">{cs}{roomCharges.toLocaleString('en-IN')}</span>
+                        </div>
+
+                        {primaryCharges > 0 && (
+                            <div className="summary-row">
+                                <span className="label">Extra Charges (Primary)</span>
+                                <span className="value">{cs}{primaryCharges.toLocaleString('en-IN')}</span>
+                            </div>
+                        )}
+
+                        {otherCharges > 0 && (
+                            <div className="summary-row" style={{ color: '#6366f1', borderTop: '1px dashed #e5e7eb', marginTop: '4px', paddingTop: '4px' }}>
+                                <span className="label">Other Folios ({transactions.filter(t => Number(t.folioId || 0) !== 0 && t.type?.toLowerCase() === 'charge').length} items)</span>
+                                <span className="value">{cs}{otherCharges.toLocaleString('en-IN')}</span>
+                            </div>
+                        )}
+
+                        <div className="summary-row bold total-row" style={{ marginTop: otherCharges > 0 ? '4px' : '8px' }}>
+                            <span className="label">Grand Total</span>
+                            <span className="value">{cs}{reservation.totalAmount?.toLocaleString('en-IN')}</span>
+                        </div>
+
+                        <div className="summary-row text-green" style={{ borderTop: '1px solid #d1fae5', marginTop: '4px', paddingTop: '4px' }}>
+                            <span className="label">Total Paid Amount</span>
+                            <span className="value">{cs}{totalPaid.toLocaleString('en-IN')}</span>
+                        </div>
+
+                        <div className="summary-row text-red" style={{ borderTop: '1px solid #fee2e2', marginTop: '4px', paddingTop: '4px' }}>
+                            <span className="label">Total Balance Due</span>
+                            <span className="value" style={{ fontWeight: '800' }}>{cs}{Math.max(0, bookingBalance).toLocaleString('en-IN')}</span>
+                        </div>
+                    </div>
+                );
+            })()}
 
             <div className="res-card-contact">
                 <div className="contact-row">
-                    <span className="icon">📞</span>
+                    <span className="icon-v2 phone">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.28-2.28a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                    </span>
                     <span>{reservation.guestPhone}</span>
                 </div>
                 <div className="contact-row">
-                    <span className="icon">📧</span>
+                    <span className="icon-v2 email">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+                    </span>
                     <span className="email-text">{reservation.guestEmail || 'No Email'}</span>
                 </div>
             </div>
@@ -174,18 +236,32 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
                 )}
             </AnimatePresence>
 
-            <div className="res-card-financials multi">
-                <div className="fin-col">
-                    <label>TOTAL AMOUNT</label>
-                    <span className="amount">{cs}{totals.total?.toLocaleString('en-IN')}</span>
+            <div className="res-card-amount-summary">
+                <div className="amount-summary-header">AMOUNT SUMMARY</div>
+                
+                <div className="summary-row">
+                    <span className="label">Room Charges</span>
+                    <span className="value">{cs}{(totals.total - (reservation.folioCharges || 0)).toLocaleString('en-IN')}</span>
                 </div>
-                <div className="fin-col">
-                    <label className="text-green">PAID</label>
-                    <span className="amount text-green">{cs}{totals.paid?.toLocaleString('en-IN')}</span>
+
+                <div className="summary-row">
+                    <span className="label">Folio Charges</span>
+                    <span className="value">{cs}{(reservation.folioCharges || 0).toLocaleString('en-IN')}</span>
                 </div>
-                <div className="fin-col">
-                    <label className="text-red">BALANCE</label>
-                    <span className="amount text-red">{cs}{totals.balance?.toLocaleString('en-IN')}</span>
+
+                <div className="summary-row bold total-row">
+                    <span className="label">Total Amount</span>
+                    <span className="value">{cs}{totals.total?.toLocaleString('en-IN')}</span>
+                </div>
+
+                <div className="summary-row text-green">
+                    <span className="label">Paid</span>
+                    <span className="value">{cs}{totals.paid?.toLocaleString('en-IN')}</span>
+                </div>
+
+                <div className="summary-row text-red">
+                    <span className="label">Balance</span>
+                    <span className="value">{cs}{totals.balance?.toLocaleString('en-IN')}</span>
                 </div>
             </div>
 

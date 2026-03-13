@@ -195,6 +195,7 @@ const EditReservationModal = ({ isOpen, onClose, reservation, onRefresh }) => {
                         <FolioOperations
                             reservation={reservation}
                             onTotalsChange={(newTotals) => setBalance(newTotals.remaining)}
+                            onRefresh={onRefresh}
                         />
                     )}
                     {activeTab === 'booking-details' && (
