@@ -219,11 +219,17 @@ const MaintenanceBlock = () => {
                                 <div className="form-row">
                                     <div className="form-group half">
                                         <label>Room Number</label>
-                                        <input type="text" value={formData.room} onChange={e => setFormData({ ...formData, room: e.target.value })} required placeholder="e.g. 102" />
+                                        <input type="text" value={formData.room} onChange={e => {
+                                            const value = e.target.value.replace(/\D/g, '');
+                                            setFormData({ ...formData, room: value });
+                                        }} required placeholder="e.g. 102" />
                                     </div>
                                     <div className="form-group half">
                                         <label>Block Type</label>
-                                        <input type="text" value={formData.blockType} onChange={e => setFormData({ ...formData, blockType: e.target.value })} required placeholder="e.g. Painting" />
+                                        <input type="text" value={formData.blockType} onChange={e => {
+                                            const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                            setFormData({ ...formData, blockType: value });
+                                        }} required placeholder="e.g. Painting" />
                                     </div>
                                 </div>
 

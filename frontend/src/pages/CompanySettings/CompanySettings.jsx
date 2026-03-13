@@ -167,7 +167,17 @@ const CompanySettings = () => {
     }, [activeTab]);
 
     const handleInputChange = (e) => {
-        const { name, value, type, checked } = e.target;
+        let { name, value, type, checked } = e.target;
+
+        // Apply validations based on field name
+        if (name === 'gstNumber') {
+            value = value.toUpperCase().slice(0, 15).replace(/[^A-Z0-9]/g, '');
+        } else if (name === 'pin') {
+            value = value.replace(/\D/g, '').slice(0, 6);
+        } else if (name === 'panNumber') {
+            value = value.toUpperCase().slice(0, 10).replace(/[^A-Z0-9]/g, '');
+        }
+
         setHotelData(prev => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value
