@@ -1,176 +1,151 @@
 import { useState, useEffect } from 'react';
 import '../AddPayment.css';
-import API_URL from '../../config/api';
 
-const PrintGRCAllForm = ({ onSubmit, onCancel }) => {
-    const [bookings, setBookings] = useState([]);
-    const [selectedBookings, setSelectedBookings] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [filter, setFilter] = useState('all');
-    const [printType, setPrintType] = useState('A4');
+const PrintGRCAllForm = ({ booking, onSubmit, onCancel }) => {
+    const [people, setPeople] = useState([]);
+    const [selectedPeople, setSelectedPeople] = useState([]);
 
-    const printOptions = ['A4', 'A5', 'Thermal', 'Dot Matrix', '3 inch', '2 inch'];
+    useEffect(() => {
+        if (!booking) return;
 
-    useEffect(() => { fetchBookings(); }, [filter]);
+        const allPeople = [];
 
-    const fetchBookings = async () => {
-        setLoading(true);
-        try {
-            const response = await fetch(`${API_URL}/api/bookings/list`);
-            const data = await response.json();
-            if (data.success) {
-                let filtered = data.data;
-                if (filter === 'today') {
-                    const today = new Date().toDateString();
-                    filtered = filtered.filter(b => new Date(b.checkInDate).toDateString() === today);
-                } else if (filter === 'week') {
-                    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
-                    filtered = filtered.filter(b => new Date(b.checkInDate) >= weekAgo);
-                }
-                setBookings(filtered);
-                setSelectedBookings(filtered.map(b => b._id));
-            }
-        } catch (error) { console.error('Error fetching bookings:', error); }
-        finally { setLoading(false); }
-    };
+        // 1. Main Guest
+        allPeople.push({
+            id: 'main-guest',
+            type: 'Main Guest',
+            name: booking.guestName || 'Guest',
+            phone: booking.mobileNumber || 'N/A',
+            email: booking.email || 'N/A'
+        });
+
+        // 2. Additional Guests
+        if (booking.additionalGuests && booking.additionalGuests.length > 0) {
+            booking.additionalGuests.forEach((g, idx) => {
+                allPeople.push({
+                    id: `add-guest-${idx}`,
+                    type: 'Accompanying Guest',
+                    name: g.name || 'Unknown',
+                    phone: g.mobile || 'N/A',
+                    email: g.email || 'N/A'
+                });
+            });
+        }
+
+        // 3. Visitors
+        if (booking.visitors && booking.visitors.length > 0) {
+            booking.visitors.forEach((v, idx) => {
+                allPeople.push({
+                    id: `visitor-${idx}`,
+                    type: 'Visitor',
+                    name: v.name || v.visitorName || 'Unknown',
+                    phone: v.mobile || v.visitorMobile || v.phone || 'N/A',
+                    email: v.email || 'N/A'
+                });
+            });
+        }
+
+        setPeople(allPeople);
+        setSelectedPeople(allPeople.map(p => p.id));
+    }, [booking]);
 
     const handleSelectAll = () => {
-        setSelectedBookings(selectedBookings.length === bookings.length ? [] : bookings.map(b => b._id));
+        if (selectedPeople.length === people.length) {
+            setSelectedPeople([]);
+        } else {
+            setSelectedPeople(people.map(p => p.id));
+        }
     };
 
-    const handleSelectBooking = (bookingId) => {
-        setSelectedBookings(prev => prev.includes(bookingId) ? prev.filter(id => id !== bookingId) : [...prev, bookingId]);
+    const handleSelectPerson = (id) => {
+        setSelectedPeople(prev => 
+            prev.includes(id) ? prev.filter(pid => pid !== id) : [...prev, id]
+        );
     };
 
     const handlePrintAll = () => {
-        const selectedData = bookings.filter(b => selectedBookings.includes(b._id));
-        if (selectedData.length === 0) return;
-        onSubmit({ action: 'print-grc-all', count: selectedData.length, type: printType });
+        if (selectedPeople.length === 0) return;
+        const selectedData = people.filter(p => selectedPeople.includes(p.id));
+        onSubmit({ action: 'print-grc-all', count: selectedData.length, selectedData, booking });
     };
 
     return (
         <div className="add-payment-form-premium" style={{ height: '100%', width: '100%', boxSizing: 'border-box' }}>
-            <div className="add-payment-body">
-                {/* Filter & Format Selection */}
-                <div className="payment-method-grid" style={{ gap: '12px' }}>
-                    <div className="payment-field-group">
-                        <label className="field-label-premium">FILTER BOOKINGS</label>
-                        <select 
-                            value={filter} 
-                            onChange={(e) => setFilter(e.target.value)}
-                            style={{ width: '100%', height: '46px', borderRadius: '12px', border: '2px solid #f1f5f9', padding: '0 12px', background: '#f8fafc', fontSize: '13px', fontWeight: '700' }}
-                        >
-                            <option value="all">All Bookings</option>
-                            <option value="today">Today's Check-ins</option>
-                            <option value="week">Past 7 Days</option>
-                        </select>
+            <div className="add-payment-body" style={{ padding: '24px', overflowY: 'auto' }}>
+                <div className="bookings-list-container">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <label style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>
+                            Select Guests / Visitors to Print GRC
+                        </label>
+                        {people.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={handleSelectAll}
+                                style={{
+                                    background: 'none', border: 'none',
+                                    color: '#2563eb', fontSize: '12px',
+                                    fontWeight: '600', cursor: 'pointer'
+                                }}
+                            >
+                                {selectedPeople.length === people.length ? 'Deselect All' : 'Select All'}
+                            </button>
+                        )}
                     </div>
-                    <div className="payment-field-group">
-                        <label className="field-label-premium">PRINT FORMAT</label>
-                        <select 
-                            value={printType} 
-                            onChange={(e) => setPrintType(e.target.value)}
-                            style={{ width: '100%', height: '46px', borderRadius: '12px', border: '2px solid #f1f5f9', padding: '0 12px', background: '#f8fafc', fontSize: '13px', fontWeight: '700' }}
-                        >
-                            {printOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                        </select>
-                    </div>
-                </div>
 
-                {/* List Header */}
-                <div className="flex-row-between" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                    <button 
-                        type="button" 
-                        onClick={handleSelectAll}
-                        style={{ background: '#f1f5f9', border: 'none', padding: '6px 14px', borderRadius: '10px', fontSize: '11px', fontWeight: '800', color: '#475569', cursor: 'pointer' }}
-                    >
-                        {selectedBookings.length === bookings.length ? 'UNSELECT ALL' : 'SELECT ALL'}
-                    </button>
-                    <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8' }}>
-                        SELECTED: {selectedBookings.length < 10 ? `0${selectedBookings.length}` : selectedBookings.length} / {bookings.length}
-                    </span>
-                </div>
-
-                {/* Scrollable Booking List */}
-                <div className="booking-list-container" style={{ 
-                    flex: 1, 
-                    minHeight: '200px', 
-                    background: '#f8fafc', 
-                    borderRadius: '20px', 
-                    border: '1px solid #e2e8f0',
-                    overflowY: 'auto',
-                    marginTop: '4px'
-                }}>
-                    {loading ? (
-                        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyCenter: 'center', padding: '40px' }}>
-                            <div className="spinner-small" style={{ margin: '0 auto' }}></div>
-                        </div>
-                    ) : bookings.length === 0 ? (
-                        <div style={{ padding: '40px', textCenter: 'center', color: '#94a3b8', fontSize: '13px', fontWeight: '600', textAlign: 'center' }}>
-                            No bookings matching filter
-                        </div>
-                    ) : (
-                        <div style={{ padding: '8px' }}>
-                            {bookings.map(b => (
-                                <div 
-                                    key={b._id}
-                                    onClick={() => handleSelectBooking(b._id)}
-                                    style={{ 
-                                        padding: '12px 16px', 
-                                        background: selectedBookings.includes(b._id) ? '#ffffff' : 'transparent',
-                                        borderRadius: '14px',
-                                        marginBottom: '6px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '12px',
-                                        cursor: 'pointer',
-                                        border: selectedBookings.includes(b._id) ? '2px solid #f43f5e' : '2px solid transparent',
-                                        transition: 'all 0.2s',
-                                        boxShadow: selectedBookings.includes(b._id) ? '0 4px 12px rgba(244, 63, 94, 0.1)' : 'none'
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {people.length === 0 ? (
+                            <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '12px' }}>
+                                No guests or visitors found.
+                            </div>
+                        ) : (
+                            people.map(p => (
+                                <div
+                                    key={p.id}
+                                    onClick={() => handleSelectPerson(p.id)}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: '12px',
+                                        padding: '12px 16px', borderRadius: '12px',
+                                        background: selectedPeople.includes(p.id) ? '#fff1f2' : '#f8fafc',
+                                        border: `1px solid ${selectedPeople.includes(p.id) ? '#fda4af' : '#e2e8f0'}`,
+                                        cursor: 'pointer', transition: 'all 0.2s'
                                     }}
                                 >
-                                    <div style={{ 
-                                        width: '18px', 
-                                        height: '18px', 
-                                        borderRadius: '6px', 
-                                        border: selectedBookings.includes(b._id) ? 'none' : '2px solid #cbd5e1',
-                                        background: selectedBookings.includes(b._id) ? '#f43f5e' : 'white',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: 'white'
+                                    <div style={{
+                                        width: '18px', height: '18px', borderRadius: '6px',
+                                        border: selectedPeople.includes(p.id) ? 'none' : '2px solid #cbd5e1',
+                                        background: selectedPeople.includes(p.id) ? '#f43f5e' : 'white',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white'
                                     }}>
-                                        {selectedBookings.includes(b._id) && <span style={{ fontSize: '12px' }}>✓</span>}
+                                        {selectedPeople.includes(p.id) && <span style={{ fontSize: '12px' }}>✓</span>}
                                     </div>
                                     <div style={{ flex: 1 }}>
-                                        <p style={{ margin: 0, fontSize: '13px', fontWeight: '800', color: selectedBookings.includes(b._id) ? '#1e293b' : '#475569' }}>
-                                            {b.guestName}
+                                        <p style={{ margin: 0, fontSize: '13px', fontWeight: '800', color: selectedPeople.includes(p.id) ? '#1e293b' : '#475569' }}>
+                                            {p.name}
                                         </p>
                                         <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8', fontWeight: '600' }}>
-                                            {b.bookingId} • Room {b.roomNumber || 'TBA'}
+                                            {p.type} • {p.phone}
                                         </p>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
+                            ))
+                        )}
+                    </div>
                 </div>
             </div>
 
-            {/* Footer */}
             <div className="payment-modal-footer">
                 <button type="button" className="btn-secondary" onClick={onCancel} style={{ flex: 1 }}>
                     CANCEL
                 </button>
-                <button 
-                    type="button" 
-                    className="btn-primary" 
-                    onClick={handlePrintAll} 
-                    disabled={selectedBookings.length === 0}
+                <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={handlePrintAll}
+                    disabled={selectedPeople.length === 0}
                     style={{ flex: 2 }}
                 >
                     <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                    PRINT {selectedBookings.length} GRCs
+                    PRINT {selectedPeople.length} GRCs
                 </button>
             </div>
         </div>

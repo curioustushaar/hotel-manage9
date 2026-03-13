@@ -334,6 +334,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             guestEmail: booking.email || '',
             guestPhone: booking.mobileNumber,
             additionalGuests: booking.additionalGuests || [],
+            visitors: booking.visitors || [],
             checkInDate: booking.checkInDate ? (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date(booking.checkInDate)) : '',
             checkInTime: booking.actualCheckIn ? new Date(booking.actualCheckIn).toTimeString().slice(0, 5) : (booking.scheduledCheckInTime || '14:00'),
             checkOutDate: booking.checkOutDate ? (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date(booking.checkOutDate)) : '',
@@ -812,8 +813,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         // NEW: Intercept View Invoice action to open modal directly
         if (actionType === 'view-invoice') {
             console.log('📦 handleMoreOptionsAction: Intercepting view-invoice...');
-            handleGenerateInvoice({ 
-                ...targetReservation, 
+            handleGenerateInvoice({
+                ...targetReservation,
                 actionType: 'viewInvoice',
                 isProforma: targetReservation.status === 'IN_HOUSE'
             });
@@ -845,7 +846,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             status: targetReservation.status === 'RESERVED' ? 'Upcoming' :
                 targetReservation.status === 'IN_HOUSE' ? 'Checked-in' :
                     targetReservation.status === 'CHECKED_OUT' ? 'Checked-out' : 'Upcoming',
-            visitors: [],
+            additionalGuests: targetReservation.additionalGuests || [],
+            visitors: targetReservation.visitors || [],
             transactions: []
         };
 
@@ -902,9 +904,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         if (reservation.actionType === 'viewInvoice') {
             try {
                 console.log('🔍 handleGenerateInvoice: View mode triggered', reservation);
-                
+
                 // 1. Try to find in local invoices state
-                let existingInvoice = invoices.find(inv => 
+                let existingInvoice = invoices.find(inv =>
                     (reservation.invoiceId && inv.invoiceId === reservation.invoiceId) ||
                     (inv.reservationId === reservation.id)
                 );
@@ -929,9 +931,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                     paymentMode: reservation.paymentMode || 'Cash'
                 };
 
-                const invoice = reservation.isProforma 
-                    ? InvoiceGenerator.generateProformaInvoice(reservation, billingDataForInvoice)
-                    : InvoiceGenerator.generateInvoice(reservation, billingDataForInvoice);
+                const invoice = reservation.isProforma
+                    ? InvoiceGenerator.generateProformaInvoice(reservation, billingDataForInvoice, settings)
+                    : InvoiceGenerator.generateInvoice(reservation, billingDataForInvoice, settings);
 
                 if (reservation.invoiceId) invoice.invoiceId = reservation.invoiceId;
                 if (!reservation.isProforma) invoice.invoiceStatus = 'FINAL';
@@ -979,7 +981,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                 checkOutDate: reservation.status === 'IN_HOUSE' ? new Date().toISOString().split('T')[0] : reservation.checkOutDate,
                 checkOutTime: reservation.status === 'IN_HOUSE' ? new Date().toTimeString().slice(0, 5) : reservation.checkOutTime
             };
-            const invoice = InvoiceGenerator.generateInvoice(checkoutData, billingDataForInvoice);
+            const invoice = InvoiceGenerator.generateInvoice(checkoutData, billingDataForInvoice, settings);
             await InvoiceGenerator.saveInvoice(invoice);
 
             setInvoices([...invoices, invoice]);

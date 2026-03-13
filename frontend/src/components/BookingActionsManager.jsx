@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Drawer from './Drawer';
 import Toast from './Toast';
 import CheckInForm from './forms/CheckInForm';
@@ -17,6 +17,7 @@ import PrintGRCForm from './forms/PrintGRCForm';
 import PrintGRCAllForm from './forms/PrintGRCAllForm';
 import SendInvoiceForm from './forms/SendInvoiceForm';
 import AddVisitorDrawer from './visitors/AddVisitorDrawer';
+import PrintTemplates from './PrintTemplates';
 import API_URL from '../config/api';
 import soundManager from '../utils/soundManager';
 
@@ -42,13 +43,27 @@ const PRINT_ACTIONS = ['print-summary', 'print-invoice', 'print-grc', 'print-grc
 const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toast, setToast] = useState(null);
+    const [printData, setPrintData] = useState(null);
+    const printRef = useRef(null);
 
     const config = ACTION_CONFIG[actionType] || {};
 
     const handleSubmit = async (formData) => {
         if (PRINT_ACTIONS.includes(actionType)) {
-            onSuccess?.(booking);
-            onClose();
+            if (actionType === 'send-invoice') {
+                // Handle send invoice logic here
+            } else {
+                console.log(`🖨️ Printing ${actionType}...`, formData);
+                setPrintData({ type: actionType, data: formData });
+
+                // Use a short timeout to ensure the print template is rendered
+                setTimeout(() => {
+                    window.print();
+                    setPrintData(null);
+                    onSuccess?.(booking);
+                    onClose();
+                }, 500);
+            }
             return;
         }
 
@@ -137,6 +152,25 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
             <Drawer isOpen={isOpen} onClose={onClose} title={config.title || 'Action'} height="premium">
                 {renderForm()}
             </Drawer>
+
+            {/* Hidden Print Area */}
+            {printData && (
+                <div className="print-only-container" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'white', zIndex: 99999 }}>
+                    <PrintTemplates type={printData.type} data={printData.data} booking={booking} />
+                </div>
+            )}
+
+            <style>{`
+                @media screen {
+                    .print-only-container { display: none; }
+                }
+                @media print {
+                    body > *:not(.print-only-container) { display: none !important; }
+                    .print-only-container { display: block !important; position: static !important; }
+                    @page { margin: 10mm; }
+                }
+            `}</style>
+
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </>
     );

@@ -30,7 +30,7 @@ const Settings = () => {
         'Cashier Section (Room Service)',
         'Cashier Section (Take Away)',
         'Table View',
-        'View Order',
+        'KOT Order',
         'Customer List',
         'Cashier Logs',
         'Payment Logs',

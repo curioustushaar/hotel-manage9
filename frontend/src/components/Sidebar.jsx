@@ -78,7 +78,7 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
         },
         { id: 'room-service', iconVal: <Icons.Reservation />, label: 'Room Service' },
         { id: 'housekeeping', iconVal: <Icons.Reservation />, label: 'Housekeeping View' },
-        { id: MODULES.VIEW_ORDER, iconVal: <Icons.Report />, label: 'View Order' },
+        { id: MODULES.VIEW_ORDER, iconVal: <Icons.Report />, label: 'KOT Order' },
         { id: MODULES.FOOD_ORDER, iconVal: <Icons.Meal />, label: 'Food Order' },
         { id: MODULES.CASHIER_SECTION, iconVal: <Icons.Cashier />, label: 'Cashier Section' },
         { id: MODULES.GUEST_MEAL_SERVICE, iconVal: <Icons.Meal />, label: 'Table View' },
@@ -112,10 +112,7 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
                 { id: 'booking-source', label: 'Booking Source', iconVal: <Icons.Dot /> },
                 { id: 'business-source', label: 'Business Source', iconVal: <Icons.Dot /> },
                 { id: 'hotel-customer', label: 'Hotel Customer', iconVal: <Icons.Dot /> },
-                { id: 'housekeeping-config', label: 'House Keeping', iconVal: <Icons.Dot /> },
                 { id: 'maintenance-block', label: 'Maintenance Block', iconVal: <Icons.Dot /> },
-                { id: 'table-management', label: 'Table Management', iconVal: <Icons.Dot /> },
-                { id: 'screen-field-rule', label: 'Screen Field Rule', iconVal: <Icons.Dot /> },
                 { id: 'company', label: 'Company', iconVal: <Icons.Dot /> },
                 { id: MODULES.FOOD_MENU, label: 'Food Menu', iconVal: <Icons.Dot /> }
             ]
