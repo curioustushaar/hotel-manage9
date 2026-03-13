@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import soundManager from '../utils/soundManager';
 import RoleBadge from './RoleBadge';
 import { hasModuleAccess, MODULES } from '../config/rbac';
 import './AdminNavbar.css';
@@ -15,13 +14,6 @@ const AdminNavbar = ({
     const navigate = useNavigate();
     const { user, logout } = useAuth(); // Get current user and logout function
     const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-    const [soundEnabled, setSoundEnabled] = useState(soundManager.isEnabled());
-
-    const toggleSound = () => {
-        const newState = !soundEnabled;
-        setSoundEnabled(newState);
-        soundManager.toggle(newState);
-    };
 
     // Dynamic user initials
     const userInitials = user?.name ? (
@@ -78,39 +70,6 @@ const AdminNavbar = ({
                     </button>
                 )}
 
-                {/* 3. Notification/Alert Icon */}
-                <button className="top-icon-btn" title="Notifications">
-                    <div className="icon-with-badge">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                        </svg>
-                        <span className="badge-dot"></span>
-                    </div>
-                </button>
-
-                {/* 4. Sound Toggle */}
-                <button
-                    className="top-icon-btn"
-                    title={soundEnabled ? "Mute Sounds" : "Enable Sounds"}
-                    onClick={toggleSound}
-                >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        {soundEnabled ? (
-                            <>
-                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-                                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                            </>
-                        ) : (
-                            <>
-                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                                <line x1="23" y1="9" x2="17" y2="15"></line>
-                                <line x1="17" y1="9" x2="23" y2="15"></line>
-                            </>
-                        )}
-                    </svg>
-                </button>
 
                 {/* 5. Sync Icon */}
                 {user?.role === 'admin' && (

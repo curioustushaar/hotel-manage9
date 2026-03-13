@@ -2,50 +2,50 @@ class InvoiceGenerator {
     /**
      * Generate a FINAL invoice (immutable after generation)
      */
-    static generateInvoice(reservation, billingData) {
+    static generateInvoice(reservation, billingData, hotelSettings = {}) {
         const invoice = {
             invoiceId: 'INV' + Math.random().toString(36).substr(2, 9).toUpperCase(),
             invoiceDate: new Date().toISOString(),
             invoiceStatus: 'FINAL',
-            
+
             // Reference to reservation
             reservationId: reservation.id,
-            
+
             // Guest info (frozen at checkout)
             guestName: reservation.guestName || 'Guest',
             guestId: reservation.guestId || 'G-' + Date.now(),
             guestEmail: reservation.guestEmail || '',
             guestPhone: reservation.guestPhone || '',
-            
+
             // Stay details (frozen)
             checkInDate: reservation.checkInDate,
             checkInTime: reservation.checkInTime,
             checkOutDate: reservation.checkOutDate,
             checkOutTime: reservation.checkOutTime,
             nights: reservation.nights || 0,
-            
+
             // Room details (frozen - deep copy)
             rooms: JSON.parse(JSON.stringify(reservation.rooms || [])),
-            
+
             // Charges (frozen)
             roomCharges: billingData.roomCharges || 0,
             discounts: billingData.totalDiscount || 0,
             subtotal: billingData.subtotal || 0,
             taxes: billingData.taxAmount || 0,
             totalAmount: billingData.totalAmount || 0,
-            
+
             // Payment (frozen)
             paidAmount: billingData.paidAmount || 0,
             balanceAmount: billingData.balanceDue || 0,
             paymentMode: reservation.paymentMode || 'Cash',
-            
-            // Hotel metadata
-            hotelName: 'Bireena Athithi Hotel',
-            hotelAddress: '123 Hotel Street, City, State 12345',
-            hotelPhone: '+91-1234-567890',
-            hotelEmail: 'info@bireena-athithi.com',
-            hotelGST: '22AACCU1234H1Z0',
-            
+
+            // Hotel metadata from settings
+            hotelName: hotelSettings.name || 'Hotel Management System',
+            hotelAddress: [hotelSettings.address, hotelSettings.city, hotelSettings.state].filter(Boolean).join(', ') || 'Your Address Here',
+            hotelPhone: hotelSettings.phone || '',
+            hotelEmail: hotelSettings.email || '',
+            hotelGST: hotelSettings.gstNumber || '',
+
             // Metadata
             generatedAt: new Date().toISOString(),
             createdAt: new Date().toISOString(),
@@ -53,15 +53,15 @@ class InvoiceGenerator {
             isPaid: (billingData.balanceDue || 0) <= 0,
             isReadOnly: true // FROZEN after generation
         };
-        
+
         return invoice;
     }
 
     /**
      * Generate a DRAFT invoice (mutable preview)
      */
-    static generateProformaInvoice(reservation, billingData) {
-        const invoice = this.generateInvoice(reservation, billingData);
+    static generateProformaInvoice(reservation, billingData, hotelSettings = {}) {
+        const invoice = this.generateInvoice(reservation, billingData, hotelSettings);
         invoice.invoiceStatus = 'DRAFT';
         invoice.isReadOnly = false;
         return invoice;
@@ -102,8 +102,8 @@ class InvoiceGenerator {
     static async downloadInvoicePDF(invoiceId) {
         return new Promise((resolve) => {
             setTimeout(() => {
-                resolve({ 
-                    success: true, 
+                resolve({
+                    success: true,
                     fileName: `Invoice_${invoiceId}.pdf`,
                     message: 'PDF downloaded successfully'
                 });

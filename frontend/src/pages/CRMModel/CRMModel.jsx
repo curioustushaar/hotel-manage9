@@ -85,7 +85,7 @@ const CRMModel = () => {
     const [permissionOptions, setPermissionOptions] = useState([
         'Dashboard', 'Reservations', 'Housekeeping',
         'Room Service', 'Reservation Card',
-        'Table View', 'Food Order', 'View Order',
+        'Table View', 'Food Order', 'KOT Order',
         'Cashier Section (Table)', 'Cashier Section (Room Service)', 'Cashier Section (Take Away)',
         'Customer List', 'Cashier Logs', 'Payment Logs',
         'Property Setup', 'Property Configuration', 'Reports',
@@ -106,10 +106,10 @@ const CRMModel = () => {
     // Default permissions by role
     const ROLE_DEFAULT_PERMISSIONS = {
         staff: [],
-        waiter: ['Table View', 'Food Order', 'View Order'],
+        waiter: ['Table View', 'Food Order', 'KOT Order'],
         manager: ['Dashboard', 'Reservations', 'Housekeeping', 'Room Service', 'Customer List', 'Reports', 'CRM Model'],
         receptionist: ['Dashboard', 'Reservations', 'Reservation Card', 'Customer List'],
-        chef: ['Food Order', 'View Order', 'Room Service'],
+        chef: ['Food Order', 'KOT Order', 'Room Service'],
         housekeeping: ['Housekeeping'],
     };
 
