@@ -126,8 +126,8 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-    border-bottom: 1px solid #e5e7eb;
     padding-bottom: 10px;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .modal-header h3 {
@@ -154,18 +154,20 @@
 
 .form-group label {
     display: block;
-    margin-bottom: 5px;
-    font-size: 14px;
-    font-weight: 500;
-    color: #374151;
+    margin-bottom: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #4b5563;
+    text-transform: uppercase;
 }
 
 .form-input {
     width: 100%;
-    padding: 8px 12px;
+    padding: 10px 12px;
     border: 1px solid #d1d5db;
-    border-radius: 4px;
-    font-size: 14px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    box-sizing: border-box;
 }
 
 .form-input:focus {
@@ -176,35 +178,42 @@
 
 .modal-footer {
     display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    padding-top: 10px;
-    border-top: 1px solid #e5e7eb;
+    justify-content: center;
+    gap: 15px;
+    padding: 15px;
+    background-color: #fafafa;
+    border-radius: 8px;
+    margin-top: 10px;
 }
 
 .btn {
-    padding: 8px 16px;
-    border-radius: 4px;
-    font-weight: 500;
+    padding: 10px 0;
+    border-radius: 6px;
+    font-weight: 700;
     cursor: pointer;
-    border: none;
-    font-size: 14px;
+    font-size: 0.9rem;
+    width: 120px;
+    text-transform: uppercase;
+    transition: all 0.2s;
 }
 
 .btn-secondary {
-    background-color: #f3f4f6;
-    color: #374151;
+    background-color: transparent;
+    color: #f83a4d;
+    border: 1.5px solid #f83a4d;
 }
 
 .btn-secondary:hover {
-    background-color: #e5e7eb;
+    background-color: #fef2f2;
 }
 
 .btn-primary {
     background-color: #f83a4d;
     color: white;
+    border: 1.5px solid #f83a4d;
 }
 
 .btn-primary:hover {
     background-color: #dc2626;
+    border-color: #dc2626;
 }

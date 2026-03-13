@@ -131,10 +131,10 @@
 
 /* Active State - Red Background */
 .nav-item.active {
-    background: #c0392b;
+    background: #E31E24;
     /* Match Image 2 red button */
     color: #ffffff;
-    box-shadow: 0 2px 4px rgba(192, 57, 43, 0.3);
+    box-shadow: 0 2px 4px rgba(227, 30, 36, 0.3);
 }
 
 .nav-item.active .nav-icon {
@@ -176,7 +176,7 @@
 
 .nav-item.dropdown-open {
     background: #fef2f2;
-    color: #c0392b;
+    color: #E31E24;
 }
 
 .nav-dropdown-menu {
@@ -226,11 +226,12 @@
 
 .nav-dropdown-item.active {
     background: #fef2f2;
-    color: #c0392b;
+    color: #E31E24;
     /* Text red for sub-items active */
     font-weight: 600;
 }
 
+/* Logout Button */
 /* Logout Button */
 /* Logout Button */
 .logout-btn {
@@ -240,7 +241,7 @@
     align-items: center;
     justify-content: center;
     padding: 12px 20px;
-    background: #ef4444;
+    background: #E31E24;
     /* Solid Bright Red */
     border: none;
     border-radius: 8px;
@@ -251,15 +252,15 @@
     font-weight: 600;
     gap: 12px;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 6px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 4px 6px rgba(227, 30, 36, 0.3);
     /* Soft red shadow */
 }
 
 .logout-btn:hover {
-    background: #dc2626;
+    background: #cc1a20;
     /* Darker red */
     transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(220, 38, 38, 0.4);
+    box-shadow: 0 6px 12px rgba(227, 30, 36, 0.4);
 }
 
 .logout-btn .nav-icon {
