@@ -9,11 +9,11 @@ const CheckInForm = ({ booking, onSubmit, onCancel }) => {
     const [formData, setFormData] = useState({
         actualCheckInDate: new Date().toISOString().split('T')[0],
         actualCheckInTime: new Date().toTimeString().slice(0, 5),
-        idProofType: booking.idProofType || 'Aadhaar',
-        idProofNumber: booking.idProofNumber || '',
-        numberOfAdults: booking.numberOfAdults || booking.numberOfGuests || 1,
-        numberOfChildren: booking.numberOfChildren || booking.childrenCount || 0,
-        vehicleNumber: '',
+        idProofType: booking.idProofType || booking.idType || 'Aadhaar',
+        idProofNumber: booking.idNumber || booking.idProofNumber || booking.idProof?.number || '',
+        numberOfAdults: booking.numberOfAdults || booking.numberOfGuests || booking.duration?.adults || 1,
+        numberOfChildren: booking.numberOfChildren || booking.childrenCount || booking.duration?.children || 0,
+        vehicleNumber: booking.vehicleNumber || booking.vehicleNo || '',
         securityDeposit: 0,
         checkInRemarks: ''
     });
@@ -23,7 +23,29 @@ const CheckInForm = ({ booking, onSubmit, onCancel }) => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        let finalValue = value;
+
+        if (name === 'securityDeposit') {
+            const absoluteValue = value.replace(/-/g, '');
+            const numVal = parseFloat(absoluteValue) || 0;
+            const maxAllowed = booking.remainingAmount || 0;
+            
+            if (numVal > maxAllowed) {
+                finalValue = maxAllowed.toString();
+            } else {
+                finalValue = absoluteValue;
+            }
+        }
+
+        if (name === 'numberOfAdults' || name === 'numberOfChildren') {
+            finalValue = value.replace(/[^0-9]/g, '');
+        }
+
+        if (name === 'vehicleNumber') {
+            finalValue = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        }
+
+        setFormData(prev => ({ ...prev, [name]: finalValue }));
         if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
     };
 
@@ -124,10 +146,10 @@ const CheckInForm = ({ booking, onSubmit, onCancel }) => {
                     </div>
                 </div>
 
-                <div className="payment-field-group" style={{ 
-                    background: '#f8fafc', 
-                    padding: '20px', 
-                    borderRadius: '24px', 
+                <div className="payment-field-group" style={{
+                    background: '#f8fafc',
+                    padding: '20px',
+                    borderRadius: '24px',
                     border: '1px solid #e2e8f0',
                     marginTop: '4px',
                     width: '100%',
@@ -139,9 +161,9 @@ const CheckInForm = ({ booking, onSubmit, onCancel }) => {
                     <div className="payment-method-grid">
                         <div className="payment-field-group">
                             <label className="field-label-premium">ID TYPE</label>
-                            <select 
-                                name="idProofType" 
-                                value={formData.idProofType} 
+                            <select
+                                name="idProofType"
+                                value={formData.idProofType}
                                 onChange={handleChange}
                                 className="premium-select"
                                 style={{ height: '46px' }}
@@ -177,6 +199,7 @@ const CheckInForm = ({ booking, onSubmit, onCancel }) => {
                             name="numberOfAdults"
                             value={formData.numberOfAdults}
                             onChange={handleChange}
+                            onKeyDown={(e) => ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()}
                             min="1"
                             className={errors.numberOfAdults ? 'error' : ''}
                         />
@@ -188,6 +211,7 @@ const CheckInForm = ({ booking, onSubmit, onCancel }) => {
                             name="numberOfChildren"
                             value={formData.numberOfChildren}
                             onChange={handleChange}
+                            onKeyDown={(e) => ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()}
                             min="0"
                         />
                     </div>
@@ -212,6 +236,7 @@ const CheckInForm = ({ booking, onSubmit, onCancel }) => {
                             name="securityDeposit"
                             value={formData.securityDeposit}
                             onChange={handleChange}
+                            onKeyDown={(e) => ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()}
                             min="0"
                             step="0.01"
                         />
@@ -237,17 +262,17 @@ const CheckInForm = ({ booking, onSubmit, onCancel }) => {
                 <button type="button" className="btn-secondary" onClick={onCancel} disabled={isSubmitting}>
                     CANCEL
                 </button>
-                <button 
-                    type="submit" 
-                    className="btn-primary" 
-                    onClick={handleSubmit} 
+                <button
+                    type="submit"
+                    className="btn-primary"
+                    onClick={handleSubmit}
                     disabled={isSubmitting}
                 >
                     {isSubmitting ? (
                         <div className="spinner-small"></div>
                     ) : (
                         <>
-                           <span>✓</span> CONFIRM CHECK-IN
+                            <span>✓</span> CONFIRM CHECK-IN
                         </>
                     )}
                 </button>

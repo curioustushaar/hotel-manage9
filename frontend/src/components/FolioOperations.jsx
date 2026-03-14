@@ -646,22 +646,22 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
 
     const hasRoomTariff = currentFolioTransactions.some(t => {
         const text = `${t.particulars || ''} ${t.description || ''}`.toLowerCase();
-        return text.includes('room tariff') || 
-               text.includes('room rent') || 
-               text.includes('room charges') ||
-               t.particulars === 'Room Charges' ||
-               t.particulars === 'Room Tariff';
+        return text.includes('room tariff') ||
+            text.includes('room rent') ||
+            text.includes('room charges') ||
+            t.particulars === 'Room Charges' ||
+            t.particulars === 'Room Tariff';
     });
 
     // If this is the Primary Folio and no Room Tariff is posted yet, show it as a virtual entry
     if (!hasRoomTariff && selectedFolio && Number(selectedFolio.folioId) === 0) {
         // Use ONLY base room charges for the virtual entry, NOT the total booking amount (which includes extras)
-        const roomRate = reservation?.billing?.roomRate || 
-                         reservation?.pricePerNight || 
-                         reservation?.rooms?.[0]?.ratePerNight || 0;
+        const roomRate = reservation?.billing?.roomRate ||
+            reservation?.pricePerNight ||
+            reservation?.rooms?.[0]?.ratePerNight || 0;
         const nights = reservation?.duration?.nights || reservation?.nights || 1;
         const roomTotal = roomRate * nights;
-        
+
         if (roomTotal > 0) {
             currentFolioTransactions.unshift({
                 _id: 'virtual-room-tariff',
@@ -695,18 +695,10 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
             .filter(t => t.type?.toLowerCase() === 'payment')
             .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
 
-        // Include advance payment from reservation details if this is the primary folio
-        const selectedFolio = folioList.find(f => f.id === selectedRoom);
-        const advance = (selectedFolio && Number(selectedFolio.folioId) === 0)
-            ? Number(reservation?.billing?.advanceAmount || reservation?.advanceAmount || 0)
-            : 0;
-
-        payments += advance;
-
         const grandTotal = charges - discounts;
         const remaining = grandTotal - payments;
 
-        return { subTotal: charges, grandTotal, paid: payments, remaining, discounts, advance };
+        return { subTotal: charges, grandTotal, paid: payments, remaining, discounts, advance: 0 };
     };
 
     const totals = calculateTotals();
@@ -907,11 +899,11 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
                 <AddPayment
                     onClose={() => setShowAddPayment(false)}
                     onAdd={handleAddPayment}
-                    reservation={{ 
-                        ...reservation, 
+                    reservation={{
+                        ...reservation,
                         totalAmount: totals.grandTotal,
                         paidAmount: totals.paid,
-                        remainingAmount: totals.remaining 
+                        remainingAmount: totals.remaining
                     }}
                 />
             )}
@@ -924,8 +916,8 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
                         if (handleAddCharge) await handleAddCharge(chargeData);
                         setShowAddCharges(false);
                     }}
-                    reservation={{ 
-                        ...reservation, 
+                    reservation={{
+                        ...reservation,
                         totalAmount: totals.grandTotal,
                         balanceDue: totals.remaining
                     }}
@@ -976,6 +968,7 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
                     confirmText="Route Charges"
                     cancelText="Cancel"
                     isProcessing={isProcessingRoute}
+                    variant="danger"
                 />
             )}
 

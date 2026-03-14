@@ -224,6 +224,9 @@ exports.addBooking = async (req, res) => {
             guestName: bookingData.guestName,
             mobileNumber: bookingData.mobileNumber,
             email: bookingData.email,
+            idProofType: bookingData.idProofType,
+            idNumber: bookingData.idNumber,
+            vehicleNumber: bookingData.vehicleNumber,
             referenceId: bookingData.referenceId || bookingData.bookingId,
             rooms: bookingData.rooms || [],
             additionalGuests: Array.isArray(bookingData.additionalGuests) ? bookingData.additionalGuests : []
@@ -432,7 +435,7 @@ exports.updateBookingStatus = async (req, res) => {
                 const nights = (checkIn && checkOut) ? Math.max(1, Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24))) : (booking.duration?.nights || 1);
                 const rate = b.roomRate || booking.pricePerNight || 0;
                 const baseStayValue = (rate * nights);
-                
+
                 if (baseStayValue > 0) {
                     totalCharges += baseStayValue;
                 }

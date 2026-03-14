@@ -37,14 +37,30 @@ const AddPaymentForm = ({ booking, onSubmit, onCancel }) => {
     const [errors, setErrors] = useState({});
 
     const handleChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        let finalValue = value;
+        if (field === 'amount' && value !== '') {
+            // Remove negative sign if pasted or otherwise entered
+            const absoluteValue = value.replace(/-/g, '');
+            const numVal = parseFloat(absoluteValue);
+            finalValue = absoluteValue;
+            
+            if (numVal > balance) {
+                finalValue = balance.toString();
+            }
+        }
+        setFormData(prev => ({ ...prev, [field]: finalValue }));
         if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
     };
 
     const validate = () => {
         const newErrors = {};
         const amt = parseFloat(formData.amount);
-        if (!formData.amount || isNaN(amt) || amt <= 0) newErrors.amount = 'Amount is required';
+        if (!formData.amount || isNaN(amt) || amt <= 0) {
+            newErrors.amount = 'Amount is required';
+        } else if (amt > balance) {
+            newErrors.amount = `Amount cannot exceed balance (${cs}${balance.toLocaleString('en-IN')})`;
+        }
+        
         if (['Card', 'UPI', 'Bank Transfer', 'Cheque', 'Bank'].includes(formData.paymentMethod) && !formData.referenceId?.trim()) {
             newErrors.referenceId = 'Ref ID is required';
         }
@@ -149,6 +165,8 @@ const AddPaymentForm = ({ booking, onSubmit, onCancel }) => {
                             type="number"
                             value={formData.amount}
                             onChange={(e) => handleChange('amount', e.target.value)}
+                            onKeyDown={(e) => ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()}
+                            min="0"
                             placeholder="0.00"
                             className={`amount-input-field ${errors.amount ? 'error' : ''}`}
                         />

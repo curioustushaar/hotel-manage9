@@ -379,6 +379,7 @@
 
 /* Print Styles */
 @media print {
+
     .invoice-modal-header,
     .invoice-actions,
     .invoice-close-btn {
