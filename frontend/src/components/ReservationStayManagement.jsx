@@ -834,6 +834,35 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             return;
         }
 
+        // Calculate correct billing totals (matching ReservationCard logic)
+        const transactions = targetReservation.transactions || [];
+        const isMultiRoom = targetReservation.rooms && targetReservation.rooms.length > 1;
+        
+        // 1. Calculate Core Room Charges
+        let roomCharges = 0;
+        if (isMultiRoom) {
+            roomCharges = targetReservation.rooms.reduce((sum, room) => {
+                return sum + ((room.ratePerNight || 0) * (targetReservation.nights || 1)) - (room.discount || 0);
+            }, 0);
+        } else {
+            roomCharges = targetReservation.roomCharges || 
+                         ((targetReservation.rooms?.[0]?.ratePerNight || 0) * (targetReservation.nights || 1)) - (targetReservation.rooms?.[0]?.discount || 0);
+        }
+
+        // 2. Folio Charges
+        const totalFolioCharges = transactions
+            .filter(t => t.type?.toLowerCase() === 'charge' && 
+                        !['Room Tariff', 'Room Rent', 'Room Charges'].includes(t.particulars))
+            .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+
+        // 3. Paid Amount
+        const totalPaid = transactions
+            .filter(t => t.type?.toLowerCase() === 'payment')
+            .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+
+        const calculatedTotal = roomCharges + totalFolioCharges;
+        const calculatedBalance = calculatedTotal - totalPaid;
+
         // Convert reservation to booking format for the actions
         const bookingData = {
             _id: targetReservation.id,
@@ -853,9 +882,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             numberOfGuests: targetReservation.rooms?.[0]?.adultsCount || 1, // Fallback
             childrenCount: targetReservation.rooms?.[0]?.childrenCount || 0, // Explicit for form
             pricePerNight: targetReservation.rooms?.[0]?.ratePerNight || 0,
-            totalAmount: targetReservation.totalAmount || 0,
-            advancePaid: targetReservation.paidAmount || 0,
-            remainingAmount: targetReservation.balanceDue || 0,
+            totalAmount: calculatedTotal,
+            advancePaid: totalPaid,
+            remainingAmount: calculatedBalance,
             status: targetReservation.status === 'RESERVED' ? 'Upcoming' :
                 targetReservation.status === 'IN_HOUSE' ? 'Checked-in' :
                     targetReservation.status === 'CHECKED_OUT' ? 'Checked-out' : 'Upcoming',
@@ -865,7 +894,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             vehicleNumber: targetReservation.vehicleNumber,
             additionalGuests: targetReservation.additionalGuests || [],
             visitors: targetReservation.visitors || [],
-            transactions: []
+            transactions: transactions
         };
 
         // Open BookingActionsManager drawer for all actions (including print)

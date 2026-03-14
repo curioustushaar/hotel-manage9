@@ -597,41 +597,57 @@ const Rooms = () => {
                             </div>
 
                             <div className="form-group">
-                                <label>FLOOR</label>
+                                <label>FLOOR *</label>
                                 <select
                                     className="form-input"
                                     value={formData.floor || ''}
                                     onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
+                                    style={{
+                                        color: '#000000',
+                                        fontWeight: '700',
+                                        fontSize: '16px',
+                                        opacity: 1,
+                                        WebkitTextFillColor: '#000000',
+                                        backgroundColor: '#ffffff'
+                                    }}
                                 >
-                                    <option value="">-- Select Floor --</option>
+                                    <option value="" style={{ color: '#000000', fontWeight: '700', backgroundColor: '#ffffff' }}>-- Select Floor --</option>
                                     {floors.map(floor => (
-                                        <option key={floor._id} value={floor.name}>{floor.name}</option>
+                                        <option key={floor._id} value={floor.name} style={{ color: '#000000', fontWeight: '700', backgroundColor: '#ffffff' }}>{floor.name}</option>
                                     ))}
                                 </select>
                             </div>
 
                             <div className="form-group">
-                                <label>ROOM TYPE</label>
+                                <label>ROOM TYPE *</label>
                                 {!isAddingRoomType ? (
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         <select
                                             className="form-input"
                                             value={formData.roomType}
                                             onChange={(e) => setFormData({ ...formData, roomType: e.target.value })}
-                                            style={{ flex: 1 }}
+                                            style={{
+                                                flex: 1,
+                                                color: '#000000',
+                                                fontWeight: '700',
+                                                fontSize: '16px',
+                                                opacity: 1,
+                                                WebkitTextFillColor: '#000000',
+                                                backgroundColor: '#ffffff'
+                                            }}
                                         >
-                                            <option value="">-- Select Room Type --</option>
+                                            <option value="" style={{ color: '#000000', fontWeight: '700', backgroundColor: '#ffffff' }}>-- Select Room Type --</option>
                                             {Object.entries(roomTypeCategories).map(([category, types]) => (
-                                                <optgroup key={category} label={category}>
+                                                <optgroup key={category} label={category} style={{ color: '#000000', fontWeight: '700', backgroundColor: '#f3f4f6' }}>
                                                     {types.map(type => (
-                                                        <option key={type} value={type}>{type}</option>
+                                                        <option key={type} value={type} style={{ color: '#000000', fontWeight: '700', backgroundColor: '#ffffff' }}>{type}</option>
                                                     ))}
                                                 </optgroup>
                                             ))}
                                             {customRoomTypes.length > 0 && (
-                                                <optgroup label="Custom Types">
+                                                <optgroup label="Custom Types" style={{ color: '#000000', fontWeight: '700', backgroundColor: '#f3f4f6' }}>
                                                     {customRoomTypes.map(type => (
-                                                        <option key={type} value={type}>{type}</option>
+                                                        <option key={type} value={type} style={{ color: '#000000', fontWeight: '700', backgroundColor: '#ffffff' }}>{type}</option>
                                                     ))}
                                                 </optgroup>
                                             )}
@@ -677,7 +693,7 @@ const Rooms = () => {
                             </div>
 
                             <div className="form-group">
-                                <label>BASE PRICE</label>
+                                <label>PRICE PER NIGHT ({cs}) *</label>
                                 <input
                                     type="number"
                                     className="form-input"
@@ -687,17 +703,33 @@ const Rooms = () => {
                                         const val = Math.max(0, Number(e.target.value));
                                         setFormData({ ...formData, price: val.toString() });
                                     }}
+                                    style={{
+                                        color: '#000000',
+                                        fontWeight: '700',
+                                        fontSize: '16px',
+                                        opacity: 1,
+                                        WebkitTextFillColor: '#000000',
+                                        backgroundColor: '#ffffff'
+                                    }}
                                 />
                             </div>
 
                             <div className="form-group">
-                                <label>CAPACITY</label>
+                                <label>ROOM CAPACITY *</label>
                                 <input
                                     type="number"
                                     className="form-input"
                                     placeholder="1"
                                     value={formData.capacity}
                                     onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
+                                    style={{
+                                        color: '#000000',
+                                        fontWeight: '700',
+                                        fontSize: '16px',
+                                        opacity: 1,
+                                        WebkitTextFillColor: '#000000',
+                                        backgroundColor: '#ffffff'
+                                    }}
                                 />
                             </div>
 
@@ -739,7 +771,7 @@ const Rooms = () => {
 
                         <form onSubmit={handleSubmit}>
                             <div className="form-group">
-                                <label>ROOM NUMBER</label>
+                                <label>ROOM NUMBER *</label>
                                 <input
                                     type="text"
                                     className="form-input"
@@ -750,7 +782,7 @@ const Rooms = () => {
                             </div>
 
                             <div className="form-group">
-                                <label>FLOOR</label>
+                                <label>FLOOR *</label>
                                 <select
                                     className="form-input"
                                     value={formData.floor || ''}
@@ -764,7 +796,7 @@ const Rooms = () => {
                             </div>
 
                             <div className="form-group">
-                                <label>ROOM TYPE</label>
+                                <label>ROOM TYPE *</label>
                                 {!isAddingRoomType ? (
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         <select
@@ -830,7 +862,7 @@ const Rooms = () => {
                             </div>
 
                             <div className="form-group">
-                                <label>BASE PRICE</label>
+                                <label>PRICE PER NIGHT ({cs}) *</label>
                                 <input
                                     type="number"
                                     className="form-input"
@@ -844,7 +876,7 @@ const Rooms = () => {
                             </div>
 
                             <div className="form-group">
-                                <label>CAPACITY</label>
+                                <label>ROOM CAPACITY *</label>
                                 <input
                                     type="number"
                                     className="form-input"
