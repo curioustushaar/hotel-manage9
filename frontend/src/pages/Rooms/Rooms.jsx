@@ -387,30 +387,30 @@ const Rooms = () => {
                 </div>
                 <div className="header-right">
                     <div className="view-toggle">
-                        <button 
+                        <button
                             className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
                             onClick={() => setViewMode('grid')}
                             title="Grid View"
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
-                                <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
-                                <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
-                                <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2"/>
+                                <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+                                <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+                                <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+                                <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
                             </svg>
                         </button>
-                        <button 
+                        <button
                             className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
                             onClick={() => setViewMode('list')}
                             title="List View"
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                <line x1="8" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                <line x1="8" y1="18" x2="21" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                <line x1="3" y1="6" x2="4" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                <line x1="3" y1="12" x2="4" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                <line x1="3" y1="18" x2="4" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="8" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="8" y1="18" x2="21" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="3" y1="6" x2="4" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="3" y1="12" x2="4" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="3" y1="18" x2="4" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                             </svg>
                         </button>
                     </div>
@@ -585,9 +585,9 @@ const Rooms = () => {
                                     placeholder="e.g., 101, 102"
                                     value={formData.roomNumber}
                                     onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value.replace(/\D/g, '') })}
-                                    style={{ 
-                                        color: '#000000', 
-                                        fontWeight: '700', 
+                                    style={{
+                                        color: '#000000',
+                                        fontWeight: '700',
                                         fontSize: '16px',
                                         opacity: 1,
                                         WebkitTextFillColor: '#000000',
@@ -602,9 +602,9 @@ const Rooms = () => {
                                     className="form-input"
                                     value={formData.floor || ''}
                                     onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
-                                    style={{ 
-                                        color: '#000000', 
-                                        fontWeight: '700', 
+                                    style={{
+                                        color: '#000000',
+                                        fontWeight: '700',
                                         fontSize: '16px',
                                         opacity: 1,
                                         WebkitTextFillColor: '#000000',
@@ -626,10 +626,10 @@ const Rooms = () => {
                                             className="form-input"
                                             value={formData.roomType}
                                             onChange={(e) => setFormData({ ...formData, roomType: e.target.value })}
-                                            style={{ 
-                                                flex: 1, 
-                                                color: '#000000', 
-                                                fontWeight: '700', 
+                                            style={{
+                                                flex: 1,
+                                                color: '#000000',
+                                                fontWeight: '700',
                                                 fontSize: '16px',
                                                 opacity: 1,
                                                 WebkitTextFillColor: '#000000',
@@ -703,9 +703,9 @@ const Rooms = () => {
                                         const val = Math.max(0, Number(e.target.value));
                                         setFormData({ ...formData, price: val.toString() });
                                     }}
-                                    style={{ 
-                                        color: '#000000', 
-                                        fontWeight: '700', 
+                                    style={{
+                                        color: '#000000',
+                                        fontWeight: '700',
                                         fontSize: '16px',
                                         opacity: 1,
                                         WebkitTextFillColor: '#000000',
@@ -722,9 +722,9 @@ const Rooms = () => {
                                     placeholder="1"
                                     value={formData.capacity}
                                     onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
-                                    style={{ 
-                                        color: '#000000', 
-                                        fontWeight: '700', 
+                                    style={{
+                                        color: '#000000',
+                                        fontWeight: '700',
                                         fontSize: '16px',
                                         opacity: 1,
                                         WebkitTextFillColor: '#000000',

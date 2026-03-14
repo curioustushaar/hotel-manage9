@@ -184,21 +184,21 @@ const InvoiceView = ({ invoice, onClose, onPrint, isModal = false }) => {
             {/* Action Buttons */}
             {isModal && (
                 <div className="invoice-actions">
-                    <button 
+                    <button
                         className="btn btn-secondary"
                         onClick={handlePrint}
                         disabled={isPrinting}
                     >
                         {isPrinting ? '⏳ Printing...' : '🖨️ Print Invoice'}
                     </button>
-                    <button 
+                    <button
                         className="btn btn-primary"
                         onClick={handleDownloadPDF}
                         disabled={isDownloading}
                     >
                         {isDownloading ? '⏳ Downloading...' : '⬇️ Download PDF'}
                     </button>
-                    <button 
+                    <button
                         className="btn btn-outline"
                         onClick={onClose}
                     >

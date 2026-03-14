@@ -60,7 +60,10 @@ router.get('/:id', async (req, res) => {
                     balance: booking.remainingAmount,
                     status: booking.status,
                     roomNumber: booking.roomNumber,
-                    roomType: booking.roomType
+                    roomType: booking.roomType,
+                    idProofType: booking.idProofType,
+                    idNumber: booking.idNumber,
+                    vehicleNumber: booking.vehicleNumber
                 };
             }
         } else {
@@ -83,7 +86,10 @@ router.get('/:id', async (req, res) => {
                 balance: data.balance,
                 status: data.status,
                 roomNumber: data.roomNumber,
-                roomType: data.roomType
+                roomType: data.roomType,
+                idProofType: data.idProofType,
+                idNumber: data.idNumber,
+                vehicleNumber: data.vehicleNumber
             };
         }
 

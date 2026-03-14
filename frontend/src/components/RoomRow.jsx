@@ -97,7 +97,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
             const newBaseRate = selectedRoom.price || room.baseRate || 0;
             const currentMeal = mealTypes.find(m => m.shortCode === room.mealPlan);
             const mealPrice = currentMeal ? (currentMeal.price || 0) : 0;
-            
+
             onUpdate(index, {
                 ...room,
                 roomNumber: value,
@@ -270,7 +270,7 @@ const RoomRow = ({ room, index, roomCategories, onUpdate, onRemove, mealTypes = 
                     <input
                         type="text"
                         disabled
-                        value={`${cs}${(( (parseFloat(room.ratePerNight) || 0) - (parseFloat(room.discount) || 0) ) * nights).toFixed(2)}`}
+                        value={`${cs}${(((parseFloat(room.ratePerNight) || 0) - (parseFloat(room.discount) || 0)) * nights).toFixed(2)}`}
                         className="total-field"
                     />
                 </div>

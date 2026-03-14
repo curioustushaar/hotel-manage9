@@ -42,32 +42,97 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
 
     const isMultiRoom = reservation.rooms && reservation.rooms.length > 1;
 
-    // Financial calculations for Multi-Room
-    const calculateMultiRoomTotals = () => {
-        if (!isMultiRoom) return { total: reservation.totalAmount, paid: reservation.paidAmount, balance: reservation.balanceDue };
+    // Enhanced Billing Calculation for both Single and Multi-Room
+    const billingSummary = React.useMemo(() => {
+        const transactions = reservation.transactions || [];
+        
+        // 1. Calculate Core Room Charges (Base Rent)
+        let roomCharges = 0;
+        if (isMultiRoom) {
+            roomCharges = reservation.rooms.reduce((sum, room) => {
+                return sum + ((room.ratePerNight || 0) * (reservation.nights || 1)) - (room.discount || 0);
+            }, 0);
+        } else {
+            roomCharges = reservation.roomCharges || 
+                         ((reservation.rooms?.[0]?.ratePerNight || 0) * (reservation.nights || 1)) - (reservation.rooms?.[0]?.discount || 0);
+        }
 
-        const total = reservation.rooms.reduce((sum, room) => {
-            const rate = room.ratePerNight || 0;
-            const discount = room.discount || 0;
-            return sum + (rate * (reservation.nights || 1)) - discount;
-        }, 0);
+        // 2. Extra Charges (Folio Postings)
+        // Group charges by primary vs others for Single Room view, or combine for summary
+        const primaryFolioId = 0;
+        
+        const primaryExtraCharges = transactions
+            .filter(t => Number(t.folioId || 0) === primaryFolioId && 
+                        t.type?.toLowerCase() === 'charge' && 
+                        !['Room Tariff', 'Room Rent', 'Room Charges'].includes(t.particulars))
+            .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
 
-        const paid = reservation.paidAmount || 0;
-        const balance = total - paid;
+        const otherFolioCharges = transactions
+            .filter(t => Number(t.folioId || 0) !== primaryFolioId && 
+                        t.type?.toLowerCase() === 'charge')
+            .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
 
-        return { total, paid, balance };
-    };
+        const totalFolioCharges = primaryExtraCharges + otherFolioCharges;
 
-    const totals = calculateMultiRoomTotals();
+        // 3. Paid Amount
+        const totalPaid = transactions
+            .filter(t => t.type?.toLowerCase() === 'payment')
+            .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+
+        // 4. Grand Totals
+        const grandTotal = roomCharges + totalFolioCharges;
+        const balance = grandTotal - totalPaid;
+
+        return {
+            roomCharges,
+            primaryExtraCharges,
+            otherFolioCharges,
+            totalFolioCharges,
+            totalPaid,
+            grandTotal,
+            balance,
+            transactionCount: transactions.length
+        };
+    }, [reservation, isMultiRoom]);
+
+    const totals = billingSummary; // Re-alias for compatibility if needed
 
     const renderSingleRoomCard = () => (
         <>
             <div className="res-card-header">
-                <h3 className="guest-name">{reservation.guestName}</h3>
-                <span className={`status-text ${reservation.status.toLowerCase()}`}>
-                    {reservation.status === 'IN_HOUSE' ? 'IN_HOUSE' :
-                        reservation.status === 'CHECKED_OUT' ? 'CHECKED_OUT' : 'RESERVED'}
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <h3 className="guest-name">{reservation.guestName}</h3>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <button
+                        className="delete-card-btn"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (onDelete) onDelete(reservation.id || reservation._id);
+                        }}
+                        title="Delete Reservation"
+                        style={{
+                            background: '#fee2e2',
+                            border: 'none',
+                            color: '#ef4444',
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        🗑️
+                    </button>
+                    <span className={`status-text ${reservation.status.toLowerCase()}`}>
+                        {reservation.status === 'IN_HOUSE' ? 'IN_HOUSE' :
+                            reservation.status === 'CHECKED_OUT' ? 'CHECKED_OUT' : 'RESERVED'}
+                    </span>
+                </div>
             </div>
 
             <div className="res-card-ref">
@@ -95,74 +160,44 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
                 )}
             </div>
 
-            {/* Folio-aware calculations */}
-            {(() => {
-                const transactions = reservation.transactions || [];
-                const primaryFolioId = 0; // Standard Primary Folio ID
-                
-                // Primary Folio Charges (excluding base room rate which is shown separately)
-                const primaryCharges = transactions
-                    .filter(t => Number(t.folioId || 0) === primaryFolioId && t.type?.toLowerCase() === 'charge' && !['Room Tariff', 'Room Rent'].includes(t.particulars))
-                    .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+            {/* Billing summary from consolidated totals */}
+            <div className="res-card-amount-summary">
+                <div className="amount-summary-header">BILLING SUMMARY</div>
 
-                // Other Folios Charges (sum of all other folios)
-                const otherCharges = transactions
-                    .filter(t => Number(t.folioId || 0) !== primaryFolioId && t.type?.toLowerCase() === 'charge')
-                    .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+                <div className="summary-row">
+                    <span className="label">Room Charges</span>
+                    <span className="value">{cs}{totals.roomCharges.toLocaleString('en-IN')}</span>
+                </div>
 
-                // Payments breakdown
-                const primaryPaid = transactions
-                    .filter(t => Number(t.folioId || 0) === primaryFolioId && t.type?.toLowerCase() === 'payment')
-                    .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
-                
-                const otherPaid = transactions
-                    .filter(t => Number(t.folioId || 0) !== primaryFolioId && t.type?.toLowerCase() === 'payment')
-                    .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
-
-                const roomCharges = reservation.roomCharges || 0;
-                const totalPaid = primaryPaid + otherPaid;
-                const bookingBalance = (reservation.totalAmount || 0) - totalPaid;
-
-                return (
-                    <div className="res-card-amount-summary">
-                        <div className="amount-summary-header">BILLING SUMMARY</div>
-                        
-                        <div className="summary-row">
-                            <span className="label">Room Charges</span>
-                            <span className="value">{cs}{roomCharges.toLocaleString('en-IN')}</span>
-                        </div>
-
-                        {primaryCharges > 0 && (
-                            <div className="summary-row">
-                                <span className="label">Extra Charges (Primary)</span>
-                                <span className="value">{cs}{primaryCharges.toLocaleString('en-IN')}</span>
-                            </div>
-                        )}
-
-                        {otherCharges > 0 && (
-                            <div className="summary-row" style={{ color: '#6366f1', borderTop: '1px dashed #e5e7eb', marginTop: '4px', paddingTop: '4px' }}>
-                                <span className="label">Other Folios ({transactions.filter(t => Number(t.folioId || 0) !== 0 && t.type?.toLowerCase() === 'charge').length} items)</span>
-                                <span className="value">{cs}{otherCharges.toLocaleString('en-IN')}</span>
-                            </div>
-                        )}
-
-                        <div className="summary-row bold total-row" style={{ marginTop: otherCharges > 0 ? '4px' : '8px' }}>
-                            <span className="label">Grand Total</span>
-                            <span className="value">{cs}{reservation.totalAmount?.toLocaleString('en-IN')}</span>
-                        </div>
-
-                        <div className="summary-row text-green" style={{ borderTop: '1px solid #d1fae5', marginTop: '4px', paddingTop: '4px' }}>
-                            <span className="label">Total Paid Amount</span>
-                            <span className="value">{cs}{totalPaid.toLocaleString('en-IN')}</span>
-                        </div>
-
-                        <div className="summary-row text-red" style={{ borderTop: '1px solid #fee2e2', marginTop: '4px', paddingTop: '4px' }}>
-                            <span className="label">Total Balance Due</span>
-                            <span className="value" style={{ fontWeight: '800' }}>{cs}{Math.max(0, bookingBalance).toLocaleString('en-IN')}</span>
-                        </div>
+                {totals.primaryExtraCharges > 0 && (
+                    <div className="summary-row">
+                        <span className="label">Extra Charges (Primary)</span>
+                        <span className="value">{cs}{totals.primaryExtraCharges.toLocaleString('en-IN')}</span>
                     </div>
-                );
-            })()}
+                )}
+
+                {totals.otherFolioCharges > 0 && (
+                    <div className="summary-row" style={{ color: '#6366f1', borderTop: '1px dashed #e5e7eb', marginTop: '4px', paddingTop: '4px' }}>
+                        <span className="label">Other Folios</span>
+                        <span className="value">{cs}{totals.otherFolioCharges.toLocaleString('en-IN')}</span>
+                    </div>
+                )}
+
+                <div className="summary-row bold total-row" style={{ marginTop: totals.otherFolioCharges > 0 ? '4px' : '8px' }}>
+                    <span className="label">Grand Total</span>
+                    <span className="value">{cs}{totals.grandTotal.toLocaleString('en-IN')}</span>
+                </div>
+
+                <div className="summary-row text-green" style={{ borderTop: '1px solid #d1fae5', marginTop: '4px', paddingTop: '4px' }}>
+                    <span className="label">Total Paid Amount</span>
+                    <span className="value">{cs}{totals.totalPaid.toLocaleString('en-IN')}</span>
+                </div>
+
+                <div className="summary-row text-red" style={{ borderTop: '1px solid #fee2e2', marginTop: '4px', paddingTop: '4px' }}>
+                    <span className="label">Total Balance Due</span>
+                    <span className="value" style={{ fontWeight: '800' }}>{cs}{Math.max(0, totals.balance).toLocaleString('en-IN')}</span>
+                </div>
+            </div>
 
             <div className="res-card-contact">
                 <div className="contact-row">
@@ -189,10 +224,36 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
 
             <div className="res-card-header">
                 <h3 className="guest-name">{reservation.guestName}</h3>
-                <span className={`status-text ${reservation.status.toLowerCase()}`}>
-                    {reservation.status === 'IN_HOUSE' ? 'IN_HOUSE' :
-                        reservation.status === 'CHECKED_OUT' ? 'CHECKED_OUT' : 'RESERVED'}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <button
+                        className="delete-card-btn"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (onDelete) onDelete(reservation.id || reservation._id);
+                        }}
+                        title="Delete Reservation"
+                        style={{
+                            background: '#fee2e2',
+                            border: 'none',
+                            color: '#ef4444',
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        🗑️
+                    </button>
+                    <span className={`status-text ${reservation.status.toLowerCase()}`}>
+                        {reservation.status === 'IN_HOUSE' ? 'IN_HOUSE' :
+                            reservation.status === 'CHECKED_OUT' ? 'CHECKED_OUT' : 'RESERVED'}
+                    </span>
+                 </div>
             </div>
 
             <div className="res-card-dates-nights">
@@ -238,30 +299,30 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
 
             <div className="res-card-amount-summary">
                 <div className="amount-summary-header">AMOUNT SUMMARY</div>
-                
+
                 <div className="summary-row">
                     <span className="label">Room Charges</span>
-                    <span className="value">{cs}{(totals.total - (reservation.folioCharges || 0)).toLocaleString('en-IN')}</span>
+                    <span className="value">{cs}{totals.roomCharges.toLocaleString('en-IN')}</span>
                 </div>
 
                 <div className="summary-row">
                     <span className="label">Folio Charges</span>
-                    <span className="value">{cs}{(reservation.folioCharges || 0).toLocaleString('en-IN')}</span>
+                    <span className="value">{cs}{totals.totalFolioCharges.toLocaleString('en-IN')}</span>
                 </div>
 
                 <div className="summary-row bold total-row">
                     <span className="label">Total Amount</span>
-                    <span className="value">{cs}{totals.total?.toLocaleString('en-IN')}</span>
+                    <span className="value">{cs}{totals.grandTotal.toLocaleString('en-IN')}</span>
                 </div>
 
                 <div className="summary-row text-green">
                     <span className="label">Paid</span>
-                    <span className="value">{cs}{totals.paid?.toLocaleString('en-IN')}</span>
+                    <span className="value">{cs}{totals.totalPaid.toLocaleString('en-IN')}</span>
                 </div>
 
                 <div className="summary-row text-red">
                     <span className="label">Balance</span>
-                    <span className="value">{cs}{totals.balance?.toLocaleString('en-IN')}</span>
+                    <span className="value">{cs}{Math.max(0, totals.balance).toLocaleString('en-IN')}</span>
                 </div>
             </div>
 

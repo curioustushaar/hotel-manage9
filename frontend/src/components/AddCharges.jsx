@@ -69,7 +69,7 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
             const discounts = JSON.parse(localStorage.getItem('discounts') || '[]');
             const match = discounts.find(
                 d => d.status === 'ACTIVE' && d.autoApply &&
-                Array.isArray(d.appliesTo) && d.appliesTo.includes(category)
+                    Array.isArray(d.appliesTo) && d.appliesTo.includes(category)
             );
             if (match) {
                 setDiscountType(match.type === 'FLAT' ? 'FLAT' : 'PERCENTAGE');
@@ -145,7 +145,10 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
         }
     };
 
-    const balance = reservation ? (reservation.remainingAmount || (reservation.totalAmount - (reservation.paidAmount || reservation.advancePaid || 0))) : 0;
+    const balance = reservation ? (
+        reservation.balanceDue !== undefined ? reservation.balanceDue :
+            (reservation.remainingAmount || (reservation.totalAmount - (reservation.paidAmount || reservation.advancePaid || 0)))
+    ) : 0;
 
     return (
         <div className="add-payment-overlay" onClick={onClose}>
@@ -200,11 +203,11 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
                     <div className="payment-field-group">
                         <label className="field-label-premium">Select Charge Type</label>
                         <div className="modern-select-wrapper">
-                            <select 
+                            <select
                                 className="premium-dropdown-select"
                                 value={formData.chargeType}
                                 onChange={(e) => {
-                                    if(e.target.value === 'add') setShowAddCustom(true);
+                                    if (e.target.value === 'add') setShowAddCustom(true);
                                     else handleChange('chargeType', e.target.value);
                                 }}
                             >
@@ -214,7 +217,7 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
                                         {opt.icon} {opt.label}
                                     </option>
                                 ))}
-                                <option value="add" className="add-option" style={{color:'#e11d48', fontWeight:'bold'}}>
+                                <option value="add" className="add-option" style={{ color: '#e11d48', fontWeight: 'bold' }}>
                                     ＋ Add Custom Type...
                                 </option>
                             </select>
@@ -226,70 +229,70 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
 
                     {showAddCustom && (
                         <div className="custom-type-entry animate-in">
-                            <input 
-                                value={newCustomLabel} 
-                                onChange={(e) => setNewCustomLabel(e.target.value)} 
-                                placeholder="Minibar, Extra Bed, etc..." 
+                            <input
+                                value={newCustomLabel}
+                                onChange={(e) => setNewCustomLabel(e.target.value)}
+                                placeholder="Minibar, Extra Bed, etc..."
                             />
                             <button onClick={handleAddCustomChargeType}>Add</button>
                         </div>
                     )}
 
-                    <div style={{display:'flex', gap:'12px'}}>
-                        <div className="payment-field-group" style={{flex:2}}>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <div className="payment-field-group" style={{ flex: 2 }}>
                             <label className="field-label-premium">Amount per unit</label>
                             <div className="amount-input-container">
                                 <span className="currency-indicator">{cs}</span>
-                                <input 
-                                    type="number" 
+                                <input
+                                    type="number"
                                     className="amount-input-field"
-                                    value={formData.amount} 
+                                    value={formData.amount}
                                     onChange={(e) => handleChange('amount', e.target.value)}
                                     placeholder="0.00"
                                 />
                             </div>
                         </div>
-                        <div className="payment-field-group" style={{flex:1}}>
+                        <div className="payment-field-group" style={{ flex: 1 }}>
                             <label className="field-label-premium">Qty</label>
-                            <input 
-                                type="number" 
-                                value={formData.quantity} 
-                                onChange={(e) => handleChange('quantity', e.target.value)} 
+                            <input
+                                type="number"
+                                value={formData.quantity}
+                                onChange={(e) => handleChange('quantity', e.target.value)}
                                 min="1"
                             />
                         </div>
                     </div>
 
                     {/* Discount Box */}
-                    <div className="new-balance-preview animate-in" style={{background:'#f0f9ff', borderColor:'#bae6fd', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
-                        <div className="preview-label" style={{color:'#0369a1', flex: 1}}>
-                            Discount {discountSource && <span style={{fontSize:'10px', opacity:0.7}}>(Auto: {discountSource})</span>}
+                    <div className="new-balance-preview animate-in" style={{ background: '#f0f9ff', borderColor: '#bae6fd', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div className="preview-label" style={{ color: '#0369a1', flex: 1 }}>
+                            Discount {discountSource && <span style={{ fontSize: '10px', opacity: 0.7 }}>(Auto: {discountSource})</span>}
                         </div>
-                        <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                             <div className="disc-toggle">
                                 <button className={discountType === 'PERCENTAGE' ? 'active' : ''} onClick={() => setDiscountType('PERCENTAGE')}>%</button>
                                 <button className={discountType === 'FLAT' ? 'active' : ''} onClick={() => setDiscountType('FLAT')}>{cs}</button>
                             </div>
-                            <input 
-                                type="number" 
+                            <input
+                                type="number"
                                 className="disc-val-input"
-                                value={discountValue} 
+                                value={discountValue}
                                 onChange={(e) => setDiscountValue(e.target.value)}
                                 placeholder="0"
                             />
                         </div>
                     </div>
-                    
+
                     {totalAmount > 0 && (
                         <div className="gross-net-preview animate-in">
-                           <div className="preview-row">
-                               <span>Gross Total</span>
-                               <span>{cs}{totalAmount.toLocaleString('en-IN')}</span>
-                           </div>
-                           <div className="preview-row net">
-                               <span>Net Charge</span>
-                               <span>{cs}{netAmount.toLocaleString('en-IN')}</span>
-                           </div>
+                            <div className="preview-row">
+                                <span>Gross Total</span>
+                                <span>{cs}{totalAmount.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div className="preview-row net">
+                                <span>Net Charge</span>
+                                <span>{cs}{netAmount.toLocaleString('en-IN')}</span>
+                            </div>
                         </div>
                     )}
 

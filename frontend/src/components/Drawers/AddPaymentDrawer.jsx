@@ -16,7 +16,19 @@ const AddPaymentDrawer = ({ isOpen, onClose, reservation }) => {
     const [errors, setErrors] = useState({});
 
     const handleChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        let finalValue = value;
+        if (field === 'amount' && value !== '') {
+            const balance = reservation ? ((reservation.totalAmount || 0) - (reservation.paidAmount || 0)) : 0;
+            const absoluteValue = value.replace(/-/g, '');
+            const numVal = parseFloat(absoluteValue);
+            finalValue = absoluteValue;
+            
+            if (numVal > balance) {
+                finalValue = balance.toString();
+            }
+        }
+
+        setFormData(prev => ({ ...prev, [field]: finalValue }));
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: '' }));
         }
@@ -24,9 +36,14 @@ const AddPaymentDrawer = ({ isOpen, onClose, reservation }) => {
 
     const validate = () => {
         const newErrors = {};
+        const balance = reservation ? ((reservation.totalAmount || 0) - (reservation.paidAmount || 0)) : 0;
+        
         if (!formData.amount || formData.amount <= 0) {
             newErrors.amount = 'Valid amount is required';
+        } else if (parseFloat(formData.amount) > balance) {
+            newErrors.amount = `Amount cannot exceed balance (${cs}${balance.toLocaleString('en-IN')})`;
         }
+
         if (['Card', 'UPI', 'Bank'].includes(formData.paymentMethod) && !formData.referenceId) {
             newErrors.referenceId = 'Reference ID is required for this payment method';
         }
@@ -99,6 +116,8 @@ const AddPaymentDrawer = ({ isOpen, onClose, reservation }) => {
                             type="number"
                             value={formData.amount}
                             onChange={(e) => handleChange('amount', e.target.value)}
+                            onKeyDown={(e) => ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()}
+                            min="0"
                             placeholder="0.00"
                             className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${errors.amount ? 'border-red-500' : 'border-gray-300'
                                 }`}

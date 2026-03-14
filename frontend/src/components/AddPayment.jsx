@@ -38,7 +38,18 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        let finalValue = value;
+        if (field === 'amount' && value !== '') {
+            const absoluteValue = value.replace(/-/g, '');
+            const numVal = parseFloat(absoluteValue);
+            finalValue = absoluteValue;
+            
+            if (numVal > balance) {
+                finalValue = balance.toString();
+            }
+        }
+
+        setFormData(prev => ({ ...prev, [field]: finalValue }));
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: '' }));
         }
@@ -48,7 +59,13 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
         const newErrors = {};
         if (!formData.date) newErrors.date = 'Date is required';
         if (!formData.paymentMethod) newErrors.paymentMethod = 'Method is required';
-        if (!formData.amount || parseFloat(formData.amount) <= 0) newErrors.amount = 'Enter valid amount';
+        
+        const amountValue = parseFloat(formData.amount);
+        if (!formData.amount || amountValue <= 0) {
+            newErrors.amount = 'Enter valid amount';
+        } else if (amountValue > balance) {
+            newErrors.amount = `Amount cannot exceed balance (${cs}${balance.toLocaleString('en-IN')})`;
+        }
         
         if (['Card', 'UPI', 'Bank Transfer'].includes(formData.paymentMethod) && !formData.referenceId) {
             newErrors.referenceId = 'Ref ID is required';
@@ -79,7 +96,10 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
         }
     };
 
-    const balance = reservation ? (reservation.remainingAmount || (reservation.totalAmount - (reservation.paidAmount || reservation.advancePaid || 0))) : 0;
+    const balance = reservation ? (
+        reservation.balanceDue !== undefined ? reservation.balanceDue :
+        (reservation.remainingAmount || (reservation.totalAmount - (reservation.paidAmount || reservation.advancePaid || 0)))
+    ) : 0;
 
     return (
         <div className="add-payment-overlay" onClick={onClose}>
@@ -177,6 +197,8 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
                                 type="number"
                                 value={formData.amount}
                                 onChange={(e) => handleChange('amount', e.target.value)}
+                                onKeyDown={(e) => ["e", "E", "+", "-"].includes(e.key) && e.preventDefault()}
+                                min="0"
                                 placeholder="0.00"
                                 className={`amount-input-field ${errors.amount ? 'error' : ''}`}
                             />

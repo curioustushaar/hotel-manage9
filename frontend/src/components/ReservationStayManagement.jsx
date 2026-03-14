@@ -295,6 +295,10 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                 balanceDue: reservation.balance || 0,
                                 paymentMode: 'Cash',
                                 taxExempt: false,
+                                idProofType: reservation.idProofType,
+                                idNumber: reservation.idNumber,
+                                idProofNumber: reservation.idNumber,
+                                vehicleNumber: reservation.vehicleNumber,
                                 createdAt: reservation.createdAt || new Date().toISOString(),
                                 updatedAt: reservation.updatedAt || new Date().toISOString()
                             });
@@ -344,8 +348,12 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             actualCheckIn: booking.actualCheckIn,
             actualCheckOut: booking.actualCheckOut,
             flexibleCheckout: false,
+            status: booking.status,
             roomNumber: booking.roomNumber,
             roomType: booking.roomType,
+            idProofType: booking.idProofType,
+            idNumber: booking.idNumber,
+            vehicleNumber: booking.vehicleNumber,
             rooms: booking.rooms && booking.rooms.length > 0
                 ? booking.rooms.map((r, idx) => ({
                     id: idx + 1,
@@ -381,7 +389,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             taxExempt: false,
             invoiceId: booking.invoiceId,
             idProofType: booking.idProofType,
-            idProofNumber: booking.idProofNumber,
+            idNumber: booking.idNumber || booking.idProofNumber,
+            idProofNumber: booking.idNumber || booking.idProofNumber,
             vehicleNumber: booking.vehicleNumber,
             auditTrail: booking.auditTrail || [],
             transactions: booking.transactions || [],
@@ -850,6 +859,10 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             status: targetReservation.status === 'RESERVED' ? 'Upcoming' :
                 targetReservation.status === 'IN_HOUSE' ? 'Checked-in' :
                     targetReservation.status === 'CHECKED_OUT' ? 'Checked-out' : 'Upcoming',
+            idProofType: targetReservation.idProofType,
+            idNumber: targetReservation.idNumber || targetReservation.idProofNumber,
+            idProofNumber: targetReservation.idNumber || targetReservation.idProofNumber,
+            vehicleNumber: targetReservation.vehicleNumber,
             additionalGuests: targetReservation.additionalGuests || [],
             visitors: targetReservation.visitors || [],
             transactions: []
@@ -1144,6 +1157,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             guestName: selectedGuests[0].fullName || selectedGuests[0].name || selectedGuests[0].guestName,
             mobileNumber: selectedGuests[0].mobile || selectedGuests[0].phone || selectedGuests[0].mobileNumber,
             email: selectedGuests[0].email || selectedGuests[0].guestEmail,
+            idProofType: selectedGuests[0].idProof?.type || selectedGuests[0].idType || 'Aadhaar',
+            idNumber: selectedGuests[0].idProof?.number || selectedGuests[0].idNumber || '',
+            vehicleNumber: selectedGuests[0].vehicleNumber || '',
             additionalGuests: selectedGuests.slice(1).map(g => ({
                 name: g.fullName || g.name || g.guestName,
                 mobile: g.mobile || g.phone || g.mobileNumber,
@@ -1487,16 +1503,20 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                                 </button>
                                             </div>
                                         ))}
-                                        <button type="button" className="btn btn-sm btn-outline" onClick={() => setShowGuestModal(true)}>
-                                            + Add / Change Guests
-                                        </button>
+                                        <div className="guest-selection-footer">
+                                            <button type="button" className="btn btn-sm btn-outline" onClick={() => setShowGuestModal(true)}>
+                                                + Add / Change Guests
+                                            </button>
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="no-guest-selected">
                                         <p>No guest selected</p>
-                                        <button type="button" className="btn btn-primary" onClick={() => setShowGuestModal(true)}>
-                                            + Select or Create Guest
-                                        </button>
+                                        <div className="guest-selection-footer">
+                                            <button type="button" className="btn btn-primary" onClick={() => setShowGuestModal(true)}>
+                                                + Select or Create Guest
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                                 <GuestModal

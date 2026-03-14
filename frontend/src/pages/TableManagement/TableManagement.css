@@ -756,10 +756,13 @@
 }
 
 @keyframes pulse {
-    0%, 100% {
+
+    0%,
+    100% {
         opacity: 1;
         transform: scale(1);
     }
+
     50% {
         opacity: 0.85;
         transform: scale(1.02);
@@ -850,7 +853,9 @@
 
 .modal-actions .btn-primary:hover {
     background-color: #2563eb;
-}/* ============== RIGHT SIDE DRAWER FOR ADD TABLE ============== */
+}
+
+/* ============== RIGHT SIDE DRAWER FOR ADD TABLE ============== */
 .drawer-overlay {
     position: fixed;
     top: 0;
@@ -1174,7 +1179,7 @@
         font-size: 1.6rem;
     }
 
-    .dining-header > div:last-child {
+    .dining-header>div:last-child {
         width: 100%;
         display: flex;
         gap: 8px;
@@ -1634,7 +1639,7 @@
 
 /* --------------- SURFACE DUO (≤540px) ---------------------------- */
 @media (max-width: 540px) {
-    .dining-header > div:last-child {
+    .dining-header>div:last-child {
         flex-direction: column;
     }
 
@@ -1715,7 +1720,7 @@
         width: 100%;
     }
 
-    .dining-header > div:last-child {
+    .dining-header>div:last-child {
         justify-content: center;
     }
 
@@ -2253,33 +2258,38 @@
         align-items: flex-start !important;
         text-align: left !important;
     }
+
     .header-content {
         flex-direction: column !important;
         align-items: flex-start !important;
         width: 100% !important;
     }
+
     .header-content h1 {
         text-align: left !important;
         font-size: 1.6rem !important;
         line-height: 1.2 !important;
     }
+
     .subtitle {
         text-align: left !important;
         display: block !important;
         margin-top: 4px !important;
         width: 100% !important;
     }
-    .dining-header > div:last-child {
+
+    .dining-header>div:last-child {
         justify-content: flex-start !important;
         width: 100% !important;
         margin-top: 10px !important;
     }
-    
+
     .stats-grid {
         display: grid !important;
         grid-template-columns: repeat(2, 1fr) !important;
         gap: 12px !important;
     }
+
     .stat-card {
         width: 100% !important;
         flex-direction: column !important;
@@ -2287,5 +2297,3 @@
         text-align: left !important;
     }
 }
-
-
