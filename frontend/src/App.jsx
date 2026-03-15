@@ -100,7 +100,7 @@ const AppRoutes = () => {
           <Navbar />
         </>
       )}
-      <div key={location.pathname} className="page-fade-in">
+      <div>
         <Routes location={location}>
           {/* Public Routes */}
           <Route path="/" element={<HomePageContent />} />
