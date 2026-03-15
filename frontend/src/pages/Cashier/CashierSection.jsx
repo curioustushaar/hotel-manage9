@@ -444,11 +444,11 @@ const CashierSection = () => {
                         </div>
                         <div className="modal-body-custom">
                             <div className="form-group-custom" style={{ display: 'flex', gap: '10px' }}>
-                                <input
+                                    <input
                                     type="text"
                                     placeholder="Enter Phone Number or Order ID..."
                                     value={trackQuery}
-                                    onChange={(e) => setTrackQuery(e.target.value)}
+                                    onChange={(e) => setTrackQuery(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
                                     style={{ flex: 1 }}
                                     onKeyDown={(e) => e.key === 'Enter' && handleTrackOrderSearch()}
                                 />
@@ -1051,10 +1051,13 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                                         type="number"
                                         value={discountValue}
                                         onChange={(e) => {
-                                            setDiscountValue(e.target.value);
-                                            setDiscountSource(prev => e.target.value
-                                                ? (prev && !prev.endsWith('(Edited)') ? `${prev} (Edited)` : prev || 'Manual')
-                                                : '');
+                                            const val = e.target.value;
+                                            if (val === '' || parseFloat(val) >= 0) {
+                                                setDiscountValue(val);
+                                                setDiscountSource(prev => val
+                                                    ? (prev && !prev.endsWith('(Edited)') ? `${prev} (Edited)` : prev || 'Manual')
+                                                    : '');
+                                            }
                                         }}
                                         placeholder={discountType === 'PERCENTAGE' ? '0 %' : '0'}
                                         min="0"
@@ -1142,8 +1145,14 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                             <input
                                 type="number"
                                 placeholder="0.00"
+                                min="0"
                                 value={receivedAmount}
-                                onChange={(e) => setReceivedAmount(e.target.value)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === '' || parseFloat(val) >= 0) {
+                                        setReceivedAmount(val);
+                                    }
+                                }}
                                 disabled={isPlaceholder}
                             />
                         </div>

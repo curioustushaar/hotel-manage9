@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import RoleBadge from './RoleBadge';
 import { hasModuleAccess, MODULES } from '../config/rbac';
 import './AdminNavbar.css';
+import Logo from '../assets/final logo.png';
 
 const AdminNavbar = ({
     sidebarOpen,
@@ -42,9 +43,11 @@ const AdminNavbar = ({
                         <span></span>
                     </button>
                 )}
-                <div className="top-bar-logo">
-                    {topBarTitle}
-                </div>
+                {!sidebarOpen && (
+                    <div className="top-bar-logo">
+                        <img src={Logo} alt={topBarTitle} className="top-bar-logo-img" />
+                    </div>
+                )}
 
             </div>
 
