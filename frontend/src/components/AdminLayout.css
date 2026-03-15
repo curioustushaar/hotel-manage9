@@ -15,7 +15,7 @@
     bottom: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    transition: left 0.3s ease;
+    transition: none; /* Disabled to match sidebar snappiness and prevent flickering */
     background: #f5f5f5;
     scroll-behavior: smooth;
 }

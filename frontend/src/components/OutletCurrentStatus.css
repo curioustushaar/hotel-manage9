@@ -220,7 +220,7 @@
 
 .highlight-red {
     background: #fef2f2;
-    color: #dc2626;
+    color: #E31E24;
     border: 1px solid #fee2e2;
 }
 
@@ -340,7 +340,7 @@
 
 .load-high {
     background: #fef2f2;
-    color: #dc2626;
+    color: #E31E24;
 }
 
 .staff-normal {
@@ -355,7 +355,7 @@
 
 .staff-busy {
     background: #fef2f2;
-    color: #dc2626;
+    color: #E31E24;
 }
 
 .risk-minimal {
@@ -370,7 +370,7 @@
 
 .risk-high {
     background: #fef2f2;
-    color: #dc2626;
+    color: #E31E24;
 }
 
 .operational-tips {

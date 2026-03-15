@@ -90,12 +90,12 @@ input[type="time"] {
 }
 
 input:focus {
-    border-color: #dc2626;
+    border-color: #E31E24;
     outline: none;
 }
 
 .error-text {
-    color: #dc2626;
+    color: #E31E24;
     font-size: 11px;
     margin-top: 4px;
     display: block;
@@ -119,7 +119,7 @@ input:focus {
 
 .btn-reserve {
     padding: 10px 20px;
-    background: #dc2626;
+    background: #E31E24;
     color: white;
     border: none;
     border-radius: 6px;

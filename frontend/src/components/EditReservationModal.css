@@ -312,7 +312,7 @@
 .modal-content-area .room-folio-item.active {
     background: #fef2f2;
     border: 1.5px solid #ef4444;
-    border-left: 4px solid #dc2626;
+    border-left: 4px solid #E31E24;
     box-shadow: 0 2px 8px rgba(239, 68, 68, 0.12);
 }
 
@@ -739,7 +739,7 @@
 }
 
 .billing-value.discount {
-    color: #dc2626;
+    color: #E31E24;
 }
 
 .billing-row.total-row {
@@ -763,7 +763,7 @@
 
 .billing-row.balance-row .billing-value {
     font-size: 1rem;
-    color: #dc2626;
+    color: #E31E24;
 }
 
 /* Audit Trail Styles */

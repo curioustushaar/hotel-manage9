@@ -44,7 +44,7 @@
 }
 
 .common-table th {
-    background-color: #dc2626;
+    background-color: #E31E24;
     color: white;
     padding: 12px 20px;
     text-align: left;
@@ -59,7 +59,7 @@
 .checkbox-display input {
     height: 18px;
     width: 18px;
-    accent-color: #dc2626;
+    accent-color: #E31E24;
 }
 
 .action-btns {

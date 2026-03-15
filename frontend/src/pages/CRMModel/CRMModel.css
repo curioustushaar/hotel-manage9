@@ -914,7 +914,7 @@
 
 .perm-card-count.has-staff {
     background: #fee2e2;
-    color: #dc2626;
+    color: #E31E24;
 }
 
 .perm-card-count.no-staff {
@@ -1229,7 +1229,7 @@
 .role-receptionist { background: #f3e8ff; color: #7c3aed; }
 .role-chef { background: #ffedd5; color: #c2410c; }
 .role-housekeeping { background: #dcfce7; color: #166534; }
-.role-admin { background: #fee2e2; color: #dc2626; }
+.role-admin { background: #fee2e2; color: #E31E24; }
 
 /* ===== Action Buttons ===== */
 .action-buttons {
@@ -1339,7 +1339,7 @@
 }
 
 .btn-delete-confirm:hover {
-    background: #dc2626;
+    background: #E31E24;
 }
 
 /* ===== Shift Modal Cards ===== */
@@ -1548,7 +1548,7 @@
 .action-icon-btn.delete-btn:hover {
     background: #fee2e2;
     border-color: #ef4444;
-    color: #dc2626;
+    color: #E31E24;
 }
 
 /* ===== Custom Permission Input ===== */

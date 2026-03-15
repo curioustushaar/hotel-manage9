@@ -53,7 +53,7 @@
 }
 
 .rr-btn-primary {
-    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    background: linear-gradient(135deg, #E31E24, #b91c1c);
     color: #fff;
     box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
 }
@@ -71,8 +71,8 @@
 }
 
 .rr-btn-outline:hover {
-    border-color: #dc2626;
-    color: #dc2626;
+    border-color: #E31E24;
+    color: #E31E24;
     background: #fff5f5;
 }
 
@@ -128,7 +128,7 @@
 
 .rr-filter-group select:focus,
 .rr-filter-group input[type="date"]:focus {
-    border-color: #dc2626;
+    border-color: #E31E24;
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
 }
 
@@ -146,7 +146,7 @@
     width: 40px;
     height: 40px;
     border: 3px solid #f0f0f0;
-    border-top: 3px solid #dc2626;
+    border-top: 3px solid #E31E24;
     border-radius: 50%;
     animation: rr-spin 0.8s linear infinite;
 }
@@ -198,7 +198,7 @@
 .rr-card-2:hover { border-color: #86efac; }
 .rr-card-3 .rr-card-icon { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #d97706; }
 .rr-card-3:hover { border-color: #fcd34d; }
-.rr-card-4 .rr-card-icon { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #dc2626; }
+.rr-card-4 .rr-card-icon { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #E31E24; }
 .rr-card-4:hover { border-color: #fca5a5; }
 .rr-card-5 .rr-card-icon { background: linear-gradient(135deg, #ede9fe, #ddd6fe); color: #7c3aed; }
 .rr-card-5:hover { border-color: #c4b5fd; }
@@ -275,7 +275,7 @@
 
 .rr-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, #dc2626, #ef4444);
+    background: linear-gradient(90deg, #E31E24, #ef4444);
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -381,7 +381,7 @@
 .rr-tab:hover { background: #f5f5f5; color: #333; }
 
 .rr-tab.active {
-    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    background: linear-gradient(135deg, #E31E24, #b91c1c);
     color: #fff;
     box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
 }
@@ -412,7 +412,7 @@
 
 .rr-badge-count {
     background: #fee2e2;
-    color: #dc2626;
+    color: #E31E24;
     padding: 5px 12px;
     border-radius: 8px;
     font-size: 12px;
@@ -433,7 +433,7 @@
 }
 
 .rr-search-box:focus-within {
-    border-color: #dc2626;
+    border-color: #E31E24;
     background: #fff;
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
 }
@@ -457,7 +457,7 @@
     line-height: 1;
 }
 
-.rr-search-clear:hover { color: #dc2626; }
+.rr-search-clear:hover { color: #E31E24; }
 
 /* Table */
 .rr-table-wrapper {
@@ -488,7 +488,7 @@
     transition: color 0.2s;
 }
 
-.rr-table thead th:hover { color: #dc2626; }
+.rr-table thead th:hover { color: #E31E24; }
 
 .rr-table tbody tr {
     border-bottom: 1px solid #f5f5f5;
@@ -516,7 +516,7 @@
     width: 34px;
     height: 34px;
     border-radius: 10px;
-    background: linear-gradient(135deg, #dc2626, #ef4444);
+    background: linear-gradient(135deg, #E31E24, #ef4444);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -566,7 +566,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #dc2626, #ef4444);
+    background: linear-gradient(135deg, #E31E24, #ef4444);
     color: #fff;
     width: 28px;
     height: 28px;
@@ -576,7 +576,7 @@
 }
 
 .rr-sort-icon { font-size: 12px; color: #ccc; margin-left: 4px; }
-.rr-sort-icon.active { color: #dc2626; }
+.rr-sort-icon.active { color: #E31E24; }
 .rr-empty { text-align: center; padding: 40px !important; color: #999; font-size: 14px; }
 
 /* Utilization Bar */
@@ -636,7 +636,7 @@
     width: 44px;
     height: 44px;
     border-radius: 12px;
-    background: linear-gradient(135deg, #dc2626, #ef4444);
+    background: linear-gradient(135deg, #E31E24, #ef4444);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -663,7 +663,7 @@
 
 .rr-repeat-visits {
     background: #fee2e2;
-    color: #dc2626;
+    color: #E31E24;
     padding: 3px 10px;
     border-radius: 6px;
     font-size: 12px;

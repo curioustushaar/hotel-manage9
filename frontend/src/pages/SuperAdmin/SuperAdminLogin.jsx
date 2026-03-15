@@ -132,7 +132,7 @@ const SuperAdminLogin = () => {
 
                             {error && (
                                 <div style={{
-                                    color: '#dc2626',
+                                    color: '#E31E24',
                                     background: '#fee2e2',
                                     padding: '10px',
                                     borderRadius: '6px',

@@ -167,7 +167,7 @@ const SendInvoiceForm = ({ booking, onSubmit, onCancel }) => {
                             <hr style={{ margin: '10px 0', borderColor: '#bfdbfe' }} />
                             <p><strong>Total Amount:</strong> {cs}{(booking.totalAmount || 0).toLocaleString('en-IN')}</p>
                             <p style={{ color: '#16a34a' }}><strong>Paid:</strong> {cs}{(booking.advancePaid || 0).toLocaleString('en-IN')}</p>
-                            <p style={{ color: '#dc2626' }}><strong>Balance:</strong> {cs}{(booking.remainingAmount || 0).toLocaleString('en-IN')}</p>
+                            <p style={{ color: '#E31E24' }}><strong>Balance:</strong> {cs}{(booking.remainingAmount || 0).toLocaleString('en-IN')}</p>
                         </div>
                     </div>
 

@@ -194,7 +194,7 @@
 }
 
 .sa-stat-card {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    background: linear-gradient(135deg, #ef4444, #E31E24);
     border-radius: 16px;
     padding: 24px;
     color: white;
@@ -393,7 +393,7 @@
 }
 
 .sa-modal-header {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    background: linear-gradient(135deg, #ef4444, #E31E24);
     padding: 20px 24px;
     display: flex;
     justify-content: space-between;
@@ -482,7 +482,7 @@
 }
 
 .btn-primary:hover {
-    background: #dc2626;
+    background: #E31E24;
 }
 
 /* Responsive */
@@ -539,7 +539,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    background: linear-gradient(135deg, #EF4444 0%, #E31E24 100%);
     color: white;
     border: none;
     border-radius: 8px;
@@ -621,7 +621,7 @@
 }
 
 .filter-btn.active {
-    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    background: linear-gradient(135deg, #EF4444 0%, #E31E24 100%);
     color: white;
     border-color: #EF4444;
 }
@@ -808,7 +808,7 @@
     align-items: center;
     gap: 0.375rem;
     font-size: 0.8125rem;
-    color: #dc2626;
+    color: #E31E24;
 }
 
 .subscription-warning svg {
@@ -848,7 +848,7 @@
 }
 
 .suspend-btn {
-    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    background: linear-gradient(135deg, #EF4444 0%, #E31E24 100%);
     color: white;
     border-color: #EF4444;
 }
@@ -901,7 +901,7 @@
 }
 
 .pagination-btn.active {
-    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    background: linear-gradient(135deg, #EF4444 0%, #E31E24 100%);
     color: white;
     border-color: #EF4444;
 }
@@ -1054,7 +1054,7 @@
 }
 
 .btn-create {
-    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    background: linear-gradient(135deg, #EF4444 0%, #E31E24 100%);
     color: white;
     border: none;
 }
@@ -1160,7 +1160,7 @@
     font-weight: 700;
     color: #1f2937;
     margin: 0;
-    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    background: linear-gradient(135deg, #EF4444 0%, #E31E24 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -1387,7 +1387,7 @@
 }
 
 .form-actions .btn-create {
-    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    background: linear-gradient(135deg, #EF4444 0%, #E31E24 100%);
     color: white;
     border: none;
     min-width: 180px;
@@ -1542,7 +1542,7 @@
 }
 
 .text-danger {
-    color: #dc2626 !important;
+    color: #E31E24 !important;
     font-weight: 600;
 }
 
@@ -1586,7 +1586,7 @@
 }
 
 .btn-danger {
-    background: linear-gradient(135deg, #DC2626 0%, #991b1b 100%);
+    background: linear-gradient(135deg, #E31E24 0%, #991b1b 100%);
 }
 
 .btn-danger:hover:not(:disabled) {
@@ -1604,7 +1604,7 @@
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    background: linear-gradient(135deg, #EF4444 0%, #E31E24 100%);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -1783,7 +1783,7 @@
 
 .notification-item.high .notification-icon {
     background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-    color: #dc2626;
+    color: #E31E24;
 }
 
 .notification-item.medium .notification-icon {
@@ -1995,7 +1995,7 @@
     gap: 8px;
     padding: 10px 18px;
     background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-    color: #dc2626;
+    color: #E31E24;
     border: 2px solid transparent;
     border-radius: 10px;
     font-size: 14px;
@@ -2086,7 +2086,7 @@
 }
 
 .suspend-btn:hover:not(:disabled) {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: linear-gradient(135deg, #ef4444 0%, #E31E24 100%);
     color: white;
     transform: translateY(-2px) scale(1.05);
     box-shadow: 0 6px 16px rgba(220, 38, 38, 0.3);
@@ -2253,7 +2253,7 @@
 }
 
 .action-btn.danger {
-    background-color: #dc2626;
+    background-color: #E31E24;
     color: white;
 }
 

@@ -48,7 +48,7 @@
 }
 
 .btn-generate-top:hover {
-    background: #dc2626;
+    background: #E31E24;
 }
 
 .btn-generate-top:active {
@@ -448,8 +448,8 @@
 }
 
 .report-actions button:hover {
-    border-color: #dc2626;
-    color: #dc2626;
+    border-color: #E31E24;
+    color: #E31E24;
     background: #fff5f5;
 }
 

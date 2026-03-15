@@ -525,11 +525,11 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
             </table>
             <div class="totals-wrap"><table class="totals-table">
                 <tr><td>Subtotal</td><td style="text-align:right">${cs} ${totals.subTotal.toFixed(2)}</td></tr>
-                ${totals.discounts > 0 ? `<tr><td>Discount</td><td style="text-align:right;color:#dc2626">&minus; ${cs} ${totals.discounts.toFixed(2)}</td></tr>` : ''}
+                ${totals.discounts > 0 ? `<tr><td>Discount</td><td style="text-align:right;color:#E31E24">&minus; ${cs} ${totals.discounts.toFixed(2)}</td></tr>` : ''}
                 <tr class="grand"><td>Grand Total</td><td style="text-align:right">${cs} ${totals.grandTotal.toFixed(2)}</td></tr>
                 <tr><td>Paid</td><td style="text-align:right;color:#16a34a">${cs} ${totals.paid.toFixed(2)}</td></tr>
-                <tr><td style="color:${totals.remaining > 0 ? '#dc2626' : '#16a34a'};font-weight:600">Remaining</td>
-                    <td style="text-align:right;color:${totals.remaining > 0 ? '#dc2626' : '#16a34a'};font-weight:700">${cs} ${totals.remaining.toFixed(2)}</td></tr>
+                <tr><td style="color:${totals.remaining > 0 ? '#E31E24' : '#16a34a'};font-weight:600">Remaining</td>
+                    <td style="text-align:right;color:${totals.remaining > 0 ? '#E31E24' : '#16a34a'};font-weight:700">${cs} ${totals.remaining.toFixed(2)}</td></tr>
             </table></div>
             <div class="footer">Thank you for staying with us &mdash; ${hotelName}</div>
             <script>window.onload=function(){window.print();setTimeout(()=>window.close(),500)}<\/script>

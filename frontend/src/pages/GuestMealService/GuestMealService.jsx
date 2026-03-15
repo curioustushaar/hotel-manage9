@@ -1327,7 +1327,7 @@ const GuestMealService = () => {
                                 color: '#111827'
                             }}
                         />
-                        <span style={{ position: 'absolute', left: '14px', top: '12px', color: '#dc2626' }}>📅</span>
+                        <span style={{ position: 'absolute', left: '14px', top: '12px', color: '#E31E24' }}>📅</span>
                     </div>
 
                     <div style={{ position: 'relative', flex: '0.6' }}>
@@ -1358,7 +1358,7 @@ const GuestMealService = () => {
                                 color: '#111827'
                             }}
                         />
-                        <span style={{ position: 'absolute', left: '14px', top: '12px', color: '#dc2626' }}>⏰</span>
+                        <span style={{ position: 'absolute', left: '14px', top: '12px', color: '#E31E24' }}>⏰</span>
                     </div>
 
                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -1370,7 +1370,7 @@ const GuestMealService = () => {
                             }}
                             style={{
                                 padding: '12px 24px',
-                                background: '#dc2626',
+                                background: '#E31E24',
                                 color: '#fff',
                                 border: 'none',
                                 borderRadius: '12px',
@@ -1396,7 +1396,7 @@ const GuestMealService = () => {
                             style={{
                                 padding: '12px',
                                 background: '#fef2f2',
-                                color: '#dc2626',
+                                color: '#E31E24',
                                 border: '1px solid #fee2e2',
                                 borderRadius: '12px',
                                 cursor: 'pointer',
@@ -1414,7 +1414,7 @@ const GuestMealService = () => {
                         style={{
                             padding: '12px 24px',
                             background: '#fef2f2',
-                            color: '#dc2626',
+                            color: '#E31E24',
                             border: '2px solid #fee2e2',
                             borderRadius: '12px',
                             fontWeight: '800',
@@ -1440,7 +1440,7 @@ const GuestMealService = () => {
                             onClick={() => setStatusFilter(status)}
                             style={{
                                 padding: '8px 16px', borderRadius: '10px', border: '1px solid #e5e7eb',
-                                background: statusFilter === status ? '#dc2626' : '#fff',
+                                background: statusFilter === status ? '#E31E24' : '#fff',
                                 color: statusFilter === status ? '#fff' : '#6b7280',
                                 fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s',
                                 fontSize: '0.85rem'
@@ -1688,7 +1688,7 @@ const GuestMealService = () => {
                                         <button
                                             onClick={() => setIsAddingTableType(false)}
                                             style={{
-                                                padding: '0 14px', background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                                                padding: '0 14px', background: 'linear-gradient(135deg, #ef4444, #E31E24)',
                                                 color: 'white', border: 'none', borderRadius: '10px',
                                                 cursor: 'pointer', fontSize: '14px', fontWeight: 600,
                                                 boxShadow: '0 2px 8px rgba(239,68,68,0.3)'
@@ -1788,7 +1788,7 @@ const GuestMealService = () => {
 
                             <div className="modal-footer" style={{ padding: '16px 24px', background: '#f9fafb', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                                 <button className="btn btn-secondary" onClick={() => setShowSplitModal(false)}>Cancel</button>
-                                <button className="btn btn-primary" style={{ background: '#dc2626' }} onClick={handleSplitSubmit}>Confirm Split</button>
+                                <button className="btn btn-primary" style={{ background: '#E31E24' }} onClick={handleSplitSubmit}>Confirm Split</button>
                             </div>
                         </div>
                     </div>
@@ -1819,15 +1819,15 @@ const GuestMealService = () => {
                                         </div>
                                     </div>
 
-                                    <div style={{ fontSize: '1.5rem', color: '#dc2626' }}>➞</div>
+                                    <div style={{ fontSize: '1.5rem', color: '#E31E24' }}>➞</div>
 
                                     <div style={{ flex: 1, textAlign: 'center' }}>
                                         <div style={{ fontSize: '0.75rem', color: '#6b7280', textTransform: 'uppercase', marginBottom: '8px', fontWeight: '600' }}>To</div>
-                                        <div style={{ background: '#fff', padding: '0', borderRadius: '12px', border: '2px dashed #dc2626', minHeight: '82px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <div style={{ background: '#fff', padding: '0', borderRadius: '12px', border: '2px dashed #E31E24', minHeight: '82px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                             <select
                                                 value={moveTargetTableId}
                                                 onChange={(e) => setMoveTargetTableId(e.target.value)}
-                                                style={{ width: '100%', border: 'none', background: 'transparent', padding: '16px', fontSize: '1.2rem', fontWeight: '800', textAlign: 'center', outline: 'none', color: '#dc2626', cursor: 'pointer' }}
+                                                style={{ width: '100%', border: 'none', background: 'transparent', padding: '16px', fontSize: '1.2rem', fontWeight: '800', textAlign: 'center', outline: 'none', color: '#E31E24', cursor: 'pointer' }}
                                             >
                                                 <option value="">Table?</option>
                                                 {getValidMoveTargets().map(t => (
@@ -1849,7 +1849,7 @@ const GuestMealService = () => {
                                 <button className="btn btn-secondary" onClick={() => setShowMoveModal(false)}>Cancel</button>
                                 <button
                                     className="btn btn-primary"
-                                    style={{ background: moveTargetTableId ? '#dc2626' : '#d1d5db', cursor: moveTargetTableId ? 'pointer' : 'not-allowed' }}
+                                    style={{ background: moveTargetTableId ? '#E31E24' : '#d1d5db', cursor: moveTargetTableId ? 'pointer' : 'not-allowed' }}
                                     disabled={!moveTargetTableId}
                                     onClick={handleMoveSubmit}
                                 >
@@ -2034,7 +2034,7 @@ const GuestMealService = () => {
                                                 width: '100%',
                                                 padding: '12px 12px 12px 32px',
                                                 borderRadius: '12px',
-                                                border: '2px solid #dc2626',
+                                                border: '2px solid #E31E24',
                                                 fontSize: '1.2rem',
                                                 fontWeight: '800',
                                                 color: '#111827',
@@ -2060,7 +2060,7 @@ const GuestMealService = () => {
                                     const conflict = checkReservationConflict(reserveTargetTable, reserveFormData);
                                     if (conflict) {
                                         return (
-                                            <div style={{ marginTop: '12px', padding: '10px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#dc2626', fontSize: '0.85rem', fontWeight: '600' }}>
+                                            <div style={{ marginTop: '12px', padding: '10px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#E31E24', fontSize: '0.85rem', fontWeight: '600' }}>
                                                 ⚠️ Reservation Overlap Detected: <br />
                                                 {conflict.startTime} - {conflict.endTime} ({conflict.name})
                                             </div>
@@ -2084,7 +2084,7 @@ const GuestMealService = () => {
                                     onClick={handleReserveSubmit}
                                     style={{
                                         padding: '10px 24px', border: 'none', borderRadius: '8px',
-                                        background: '#dc2626', color: '#fff', fontWeight: '700', cursor: 'pointer',
+                                        background: '#E31E24', color: '#fff', fontWeight: '700', cursor: 'pointer',
                                         boxShadow: '0 4px 6px -1px rgba(220, 38, 38, 0.4)'
                                     }}
                                 >
@@ -2109,7 +2109,7 @@ const GuestMealService = () => {
                             <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
                                 <div style={{ marginBottom: '20px', padding: '16px', background: '#fef2f2', borderRadius: '12px', border: '1px solid #fee2e2' }}>
                                     <div style={{ fontSize: '0.9rem', color: '#991b1b', fontWeight: '600' }}>Merging into:</div>
-                                    <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#dc2626' }}>{mergeSourceTable.tableName.replace('_MERGED_', '')}</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#E31E24' }}>{mergeSourceTable.tableName.replace('_MERGED_', '')}</div>
                                 </div>
 
                                 <label style={{ display: 'block', marginBottom: '12px', fontSize: '1rem', fontWeight: '700', color: '#374151' }}>
@@ -2142,9 +2142,9 @@ const GuestMealService = () => {
                                                 >
                                                     <div style={{
                                                         width: '24px', height: '24px', borderRadius: '6px',
-                                                        border: `2px solid ${isSelected ? '#dc2626' : '#d1d5db'}`,
+                                                        border: `2px solid ${isSelected ? '#E31E24' : '#d1d5db'}`,
                                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        background: isSelected ? '#dc2626' : '#fff',
+                                                        background: isSelected ? '#E31E24' : '#fff',
                                                         transition: 'all 0.2s ease'
                                                     }}>
                                                         {isSelected && <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 'bold' }}>✓</span>}
@@ -2167,7 +2167,7 @@ const GuestMealService = () => {
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', alignItems: 'center', borderTop: '1px solid #e5e7eb', paddingTop: '12px' }}>
                                             <span style={{ color: '#6b7280', fontWeight: '600' }}>Total Capacity:</span>
-                                            <span style={{ fontWeight: '800', color: '#dc2626', fontSize: '1.2rem' }}>
+                                            <span style={{ fontWeight: '800', color: '#E31E24', fontSize: '1.2rem' }}>
                                                 {mergeSourceTable.capacity + tables.filter(t => mergeSelectedTargetIds.includes(t.tableId)).reduce((sum, t) => sum + (t.capacity || 4), 0)} Persons
                                             </span>
                                         </div>
@@ -2180,7 +2180,7 @@ const GuestMealService = () => {
                                 <button
                                     className="btn btn-primary"
                                     style={{
-                                        background: '#dc2626',
+                                        background: '#E31E24',
                                         opacity: mergeSelectedTargetIds.length === 0 ? 0.5 : 1,
                                         padding: '12px 24px', fontSize: '0.95rem', fontWeight: '700'
                                     }}
@@ -2247,7 +2247,7 @@ const GuestMealService = () => {
                                                             {res.guests || 0} Guests • {res.source || 'Phone'} • {res.phone || 'No Phone'} {res.date && `• ${res.date}`}
                                                             {res.advancePayment > 0 && <span style={{ color: '#10b981', fontWeight: '800', marginLeft: '8px' }}>• Advance: {cs}{res.advancePayment}</span>}
                                                         </div>
-                                                        {res.note && <div style={{ fontSize: '0.8rem', color: '#dc2626', marginTop: '4px' }}>Note: {res.note}</div>}
+                                                        {res.note && <div style={{ fontSize: '0.8rem', color: '#E31E24', marginTop: '4px' }}>Note: {res.note}</div>}
                                                     </div>
                                                     <div style={{ display: 'flex', gap: '8px' }}>
                                                         <button
@@ -2258,7 +2258,7 @@ const GuestMealService = () => {
                                                         <button
                                                             className="action-btn-small"
                                                             onClick={() => handleCancelReservation(reservationListTable, res.id)}
-                                                            style={{ padding: '6px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fff', color: '#dc2626', cursor: 'pointer' }}
+                                                            style={{ padding: '6px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fff', color: '#E31E24', cursor: 'pointer' }}
                                                         >🗑️</button>
                                                     </div>
                                                 </div>
@@ -2269,7 +2269,7 @@ const GuestMealService = () => {
                             </div>
                             <div className="modal-footer" style={{ padding: '16px 24px', background: '#f9fafb', borderTop: '1px solid #f3f4f6', textAlign: 'right' }}>
                                 <button className="btn btn-secondary" onClick={() => setShowReservationListModal(false)}>Close</button>
-                                <button className="btn btn-primary" style={{ marginLeft: '12px', background: '#dc2626' }} onClick={() => { setShowReservationListModal(false); openReserveModal(reservationListTable); }}>Add New</button>
+                                <button className="btn btn-primary" style={{ marginLeft: '12px', background: '#E31E24' }} onClick={() => { setShowReservationListModal(false); openReserveModal(reservationListTable); }}>Add New</button>
                             </div>
                         </div>
                     </div>
@@ -2406,7 +2406,7 @@ const GuestMealService = () => {
                                 <button
                                     className="btn btn-primary"
                                     style={{
-                                        background: '#dc2626',
+                                        background: '#E31E24',
                                         borderRadius: '12px',
                                         fontWeight: '800',
                                         height: '56px',
@@ -2484,7 +2484,7 @@ const GuestMealService = () => {
                                     <div style={{ height: '1px', background: '#e5e7eb', margin: '8px 0' }}></div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', alignItems: 'center' }}>
                                         <span style={{ color: '#111827', fontWeight: '600' }}>Total Amount</span>
-                                        <span style={{ fontWeight: '900', color: '#dc2626', fontSize: '1.5rem' }}>{cs}{closeTableData.amount}</span>
+                                        <span style={{ fontWeight: '900', color: '#E31E24', fontSize: '1.5rem' }}>{cs}{closeTableData.amount}</span>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#166534', background: '#f0fdf4', padding: '10px', borderRadius: '8px', fontSize: '0.9rem', fontWeight: '600' }}>
@@ -2494,7 +2494,7 @@ const GuestMealService = () => {
 
                             <div className="modal-footer" style={{ padding: '16px 24px', background: '#f9fafb', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                                 <button className="btn btn-secondary" onClick={() => setShowCloseModal(false)}>Back</button>
-                                <button className="btn btn-primary" style={{ backgroundColor: '#dc2626' }} onClick={handleCloseSubmit}>Close & Release Table</button>
+                                <button className="btn btn-primary" style={{ backgroundColor: '#E31E24' }} onClick={handleCloseSubmit}>Close & Release Table</button>
                             </div>
                         </div>
                     </div>
@@ -2702,9 +2702,9 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                                             <MenuItem icon="🔗" label="Merge Table" onClick={(e) => handleAction('Merge Table', e)} />
                                         )}
                                         {(table.amount === 0 || !table.currentOrderId) && (
-                                            <MenuItem icon="↺" label="Release Table" color="#dc2626" onClick={(e) => handleAction('Release Table', e)} />
+                                            <MenuItem icon="↺" label="Release Table" color="#E31E24" onClick={(e) => handleAction('Release Table', e)} />
                                         )}
-                                        <MenuItem icon="✓" label="Close Table" color="#dc2626" onClick={(e) => handleAction('Close Table', e)} />
+                                        <MenuItem icon="✓" label="Close Table" color="#E31E24" onClick={(e) => handleAction('Close Table', e)} />
                                     </>
                                 )}
 
@@ -2713,11 +2713,11 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                                 )}
 
                                 {table.status === 'Billed' && (
-                                    <MenuItem icon="✓" label="Close Table" color="#dc2626" onClick={(e) => handleAction('Close Table', e)} />
+                                    <MenuItem icon="✓" label="Close Table" color="#E31E24" onClick={(e) => handleAction('Close Table', e)} />
                                 )}
 
                                 {((table.mergedTableIds && table.mergedTableIds.length > 0) || (table.tableName && table.tableName.includes(','))) && (
-                                    <MenuItem icon="🔓" label="Release Table" color="#dc2626" weight="700" onClick={(e) => handleAction('Release Table', e)} />
+                                    <MenuItem icon="🔓" label="Release Table" color="#E31E24" weight="700" onClick={(e) => handleAction('Release Table', e)} />
                                 )}
                             </div>
                         </div>
@@ -2745,7 +2745,7 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                                 return (
                                     <div style={{
                                         fontSize: '0.8rem',
-                                        color: isNear ? '#dc2626' : '#6b7280',
+                                        color: isNear ? '#E31E24' : '#6b7280',
                                         marginTop: '8px',
                                         padding: '6px 10px',
                                         background: isNear ? '#fef2f2' : '#f9fafb',
@@ -2792,10 +2792,10 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }} onClick={onCardClick}>
-                    <span style={{ color: '#dc2626', fontWeight: '700', fontSize: '0.9rem' }}>
+                    <span style={{ color: '#E31E24', fontWeight: '700', fontSize: '0.9rem' }}>
                         {(table.status === 'Available' || table.status === 'Occupied') ? 'Tap to Order' : 'Manage Order'}
                     </span>
-                    <span style={{ fontSize: '1.2rem', color: '#dc2626', fontWeight: '800' }}>→</span>
+                    <span style={{ fontSize: '1.2rem', color: '#E31E24', fontWeight: '800' }}>→</span>
                 </div>
 
                 {(statusToUse === 'Running') && (
@@ -2804,7 +2804,7 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                         title="Send final bill to cashier"
                         style={{
                             padding: '8px 16px', borderRadius: '8px',
-                            background: '#dc2626', color: 'white', border: 'none',
+                            background: '#E31E24', color: 'white', border: 'none',
                             fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem',
                             boxShadow: '0 2px 4px rgba(220, 38, 38, 0.3)',
                             transition: 'all 0.2s ease',

@@ -267,7 +267,7 @@ const AddVisitorDrawer = ({ isOpen, onClose, reservationId, booking, onVisitorAd
                                     padding: '12px',
                                     borderRadius: '8px',
                                     border: 'none',
-                                    backgroundColor: '#DC2626', // Red-600
+                                    backgroundColor: '#E31E24', // Red-600
                                     color: '#FFFFFF',
                                     fontWeight: '600',
                                     cursor: 'pointer'

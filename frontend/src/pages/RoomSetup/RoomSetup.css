@@ -1,10 +1,20 @@
 /* RoomSetup.css */
 .room-setup-container {
-    padding: 20px;
-    background-color: #eef2f6;
+    padding: 0 5px 30px 5px; /* Further reduced from 10px to 5px */
+    background-color: #f5f5f5;
     min-height: 100vh;
     font-family: 'Inter', sans-serif;
 }
+
+/* Page specific layout overrides for AdminLayout card */
+.rooms-page-layout .layout-main-card {
+    background-color: #f5f5f5 !important;
+    padding-top: 5px !important; 
+    padding-left: 5px !important; /* Further reduced from default 10px to 5px */
+    padding-right: 5px !important;
+}
+
+
 
 /* Header Section */
 .room-setup-header {
@@ -12,27 +22,39 @@
 }
 
 .room-setup-header h2 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 700;
-    color: #1e293b;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    font-size: 20px !important;
+    background: #C80815 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    margin-top: 0 !important; /* Remove top margin to push it up */
+    margin-bottom: 25px !important;
+    padding: 15px 25px !important;
+    border-radius: 8px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.5px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    width: 100% !important;
+    text-align: left !important;
+    box-shadow: 0 4px 12px rgba(227, 30, 36, 0.2) !important;
+    border: none !important;
+    box-sizing: border-box !important;
 }
 
 /* Controls Bar */
 .controls-bar {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 10px; /* Reduced from 15px */
     margin-bottom: 30px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap; /* Prevent horizontal flickering during sidebar toggle */
 }
 
 .date-range-picker-wrapper {
     position: relative;
     z-index: 100;
+    flex-shrink: 0; /* Don't allow it to change size during flex recalculations */
 }
 
 .date-range-picker {
@@ -41,19 +63,19 @@
     background: #fff0f1;
     border: 1px solid #ffcbd1;
     border-radius: 6px;
-    padding: 8px 16px;
+    padding: 8px 12px; /* Reduced padding */
     color: #b91c1c;
     font-weight: 700;
     font-size: 14px;
-    min-width: 250px;
+    min-width: 220px; /* Reduced from 250px */
     justify-content: space-between;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: none; /* Removed transitions to keep it static during parent resize */
 }
 
 .date-range-picker:hover {
     box-shadow: 0 2px 8px rgba(220, 38, 38, 0.1);
-    border-color: #dc2626;
+    border-color: #E31E24;
 }
 
 .date-picker-dropdown {
@@ -197,7 +219,7 @@
 }
 
 .dp-apply-btn {
-    background: #dc2626;
+    background: #E31E24;
     color: white;
     border: none;
     padding: 10px 30px;
@@ -217,30 +239,30 @@
     background-color: #f1f5f9;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
-    padding: 10px 16px;
+    padding: 10px 12px;
     color: #475569;
     font-size: 14px;
-    min-width: 140px;
+    min-width: 110px;
     cursor: pointer;
+    flex-shrink: 0; /* Prevent flickering during resize */
 }
 
 .add-room-btn {
-    background-color: #dc2626;
-    /* Red color */
-    color: white;
-    border: none;
-    padding: 10px 24px;
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    margin-left: auto;
-    /* Push to right */
-    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+    background: #E31E24 !important;
+    color: white !important;
+    border: none !important;
+    padding: 10px 16px !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    cursor: pointer !important;
+    margin-left: auto !important;
+    box-shadow: 0 2px 4px rgba(227, 30, 36, 0.3) !important;
+    transition: none !important;
 }
 
 .add-room-btn:hover {
-    background-color: #b91c1c;
+    background: #cc1a20 !important;
 }
 
 /* View Toggle Buttons */
@@ -267,11 +289,11 @@
 
 .view-toggle-btn:hover {
     background: rgba(220, 38, 38, 0.1);
-    color: #dc2626;
+    color: #E31E24;
 }
 
 .view-toggle-btn.active {
-    background: #dc2626;
+    background: #E31E24;
     color: white;
 }
 
@@ -286,6 +308,7 @@
     flex-direction: column;
     gap: 10px;
     margin-bottom: 25px;
+    transition: none !important;
 }
 
 .sub-header h3 {
@@ -524,7 +547,7 @@
 
 .dirty-badge-small {
     display: inline-block;
-    background: #dc2626;
+    background: #E31E24;
     color: white;
     font-size: 9px;
     font-weight: 700;
@@ -693,7 +716,7 @@
 }
 
 .btn-primary {
-    background-color: #dc2626;
+    background-color: #E31E24;
     color: white;
 }
 

@@ -101,7 +101,7 @@
 }
 
 .add-room-btn:hover {
-    background: #dc2626;
+    background: #E31E24;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
@@ -309,7 +309,7 @@
 
 .edit-btn:hover {
     background: #fef2f2;
-    color: #dc2626;
+    color: #E31E24;
     box-shadow: 0 0 0 2px #ef4444;
     transform: translateY(-1px);
 }
@@ -587,7 +587,7 @@ select.form-input option:checked {
 }
 
 .btn-submit:hover {
-    background: #dc2626;
+    background: #E31E24;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
@@ -697,7 +697,7 @@ select.form-input option:checked {
 }
 
 .room-list-actions .edit-btn:hover {
-    background: #dc2626;
+    background: #E31E24;
     transform: translateY(-2px);
 }
 

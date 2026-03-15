@@ -724,7 +724,7 @@ const UniversalReport = ({ type }) => {
                             </div>
                         </div>
                         <div className="summary-stat-card">
-                            <div className="stat-icon" style={{ background: '#fee2e2', color: '#dc2626' }}>❌</div>
+                            <div className="stat-icon" style={{ background: '#fee2e2', color: '#E31E24' }}>❌</div>
                             <div className="stat-info">
                                 <span className="stat-value">{resSummary.summary?.cancelledCount || 0}</span>
                                 <span className="stat-label">Cancellations</span>

@@ -219,7 +219,7 @@
 
 .refunds-group .trends-section-title {
     border-color: #fee2e2;
-    color: #dc2626;
+    color: #E31E24;
 }
 
 /* Metrics Grid */
@@ -404,7 +404,7 @@
 }
 
 .pink-icon {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    background: linear-gradient(135deg, #ef4444, #E31E24);
     color: white;
 }
 
@@ -827,7 +827,7 @@
 }
 
 .refund-type {
-    color: #dc2626;
+    color: #E31E24;
     font-weight: 600;
     background: #fef2f2;
     padding: 4px 10px;
@@ -842,7 +842,7 @@
 }
 
 .negative-value {
-    color: #dc2626;
+    color: #E31E24;
     font-weight: 700;
 }
 

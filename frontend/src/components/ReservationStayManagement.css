@@ -445,7 +445,7 @@
 }
 
 .summary-row.text-red .value {
-    color: #dc2626;
+    color: #E31E24;
 }
 
 /* Contact Section */
@@ -587,7 +587,7 @@
 }
 
 .res-card-header:hover .guest-name {
-    color: #dc2626;
+    color: #E31E24;
 }
 
 .status-text {
@@ -800,7 +800,7 @@
 
 .btn-main-action.btn-check-in,
 .btn-main-action.btn-check-out {
-    background-color: #dc2626;
+    background-color: #E31E24;
     /* Premium red from Image 2 */
 }
 
@@ -812,7 +812,7 @@
 }
 
 .btn-main-action.btn-invoice {
-    background-color: #dc2626;
+    background-color: #E31E24;
 }
 
 .btn-main-action.btn-invoice:hover {
@@ -1794,7 +1794,7 @@
 
 .btn-remove-guest:hover {
     background: #fee2e2;
-    color: #dc2626;
+    color: #E31E24;
     border-color: #fca5a5;
 }
 
@@ -2960,7 +2960,7 @@ select:disabled {
 }
 
 .history-table .amount.overdue {
-    color: #dc2626;
+    color: #E31E24;
 }
 
 .history-table .text-right {

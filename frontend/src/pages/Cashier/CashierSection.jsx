@@ -1071,7 +1071,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                                 </div>
                             </div>
                             {discountAmt > 0 && (
-                                <div className="summary-row-modern" style={{ color: '#dc2626' }}>
+                                <div className="summary-row-modern" style={{ color: '#E31E24' }}>
                                     <span>Discount ({discountType === 'PERCENTAGE' ? `${discountValue}%` : `${cs}${discountValue}`})</span>
                                     <span>−{cs} {discountAmt.toFixed(0)}</span>
                                 </div>

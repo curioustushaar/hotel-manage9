@@ -33,7 +33,7 @@
 }
 
 .add-meal-btn:hover {
-    background-color: #dc2626;
+    background-color: #E31E24;
 }
 
 .meal-type-table-container {
@@ -49,7 +49,7 @@
 }
 
 .meal-type-table thead tr {
-    background-color: #dc2626;
+    background-color: #E31E24;
     color: white;
 }
 
@@ -263,5 +263,5 @@
 }
 
 .btn-primary:hover {
-    background-color: #dc2626;
+    background-color: #E31E24;
 }

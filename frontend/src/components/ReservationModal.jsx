@@ -241,7 +241,7 @@ const ReservationModal = ({ table, onClose, onReserve }) => {
                                 }
                             }}
                             placeholder="0.00"
-                            style={{ paddingLeft: '25px', border: '2px solid #dc2626' }}
+                            style={{ paddingLeft: '25px', border: '2px solid #E31E24' }}
                         />
                     </div>
                     <p className="hint-text">* Enter the advance amount collected from the guest.</p>

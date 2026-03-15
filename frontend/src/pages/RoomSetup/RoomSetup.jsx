@@ -528,12 +528,7 @@ const RoomSetup = () => {
     };
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="room-setup-container"
-        >
+        <div className="room-setup-container">
             <RoomDetailsPanel
                 roomId={selectedRoomIdForPanel}
                 computedStatus={selectedRoomStatusForPanel}
@@ -695,7 +690,6 @@ const RoomSetup = () => {
 
             {/* Sub-Header Section */}
             <div className="sub-header">
-                <h3><span role="img" aria-label="bed">🛏️</span> Rooms Management</h3>
                 <div className="status-info-bar">
                     <span className="status-dot-green"></span>
                     Available rooms between {new Date(startDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })} – {new Date(endDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
@@ -1005,7 +999,7 @@ const RoomSetup = () => {
                 cancelText="Cancel"
                 isProcessing={deleteModal.isProcessing}
             />
-        </motion.div >
+        </div>
     );
 };
 

@@ -40,7 +40,7 @@
 
 .statistics-section .section-title {
     font-size: 20px !important;
-    background: #E31E24 !important;
+    background: #C80815 !important;
     color: #ffffff !important;
     font-weight: 700 !important;
     margin-top: 5px !important;
@@ -239,7 +239,7 @@
     align-items: center;
     justify-content: center;
     font-size: 28px;
-    color: #dc2626;
+    color: #E31E24;
 }
 
 .stat-card-current-guests .stat-label {
@@ -1147,11 +1147,11 @@
 }
 
 .total-revenue-card h3 {
-    color: #dc2626;
+    color: #E31E24;
 }
 
 .breakup-card h3 {
-    color: #dc2626;
+    color: #E31E24;
 }
 
 .avg-rate-card h3 {
@@ -1195,12 +1195,12 @@
 
 .percentage-badge.down {
     background: #fee2e2;
-    color: #dc2626;
+    color: #E31E24;
 }
 
 .revenue-percentage.negative .percentage-badge {
     background: #fee2e2;
-    color: #dc2626;
+    color: #E31E24;
 }
 
 .breakup-grid {
@@ -1325,7 +1325,7 @@
 .chart-card-analytics h3 {
     font-size: 17px;
     font-weight: 700;
-    color: #dc2626;
+    color: #E31E24;
     margin-bottom: 20px;
 }
 
@@ -1346,7 +1346,7 @@
 }
 
 .next-days {
-    color: #dc2626;
+    color: #E31E24;
     font-weight: 600;
     margin-left: 5px;
 }
