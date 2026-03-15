@@ -10,7 +10,7 @@
     left: 0;
     top: 0;
     z-index: 100;
-    transition: all 0.3s ease;
+    /* transition: all 0.3s ease; removed for snappiness */
     padding-top: 10px;
     overflow: hidden;
 }
@@ -79,7 +79,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    transition: all 0.2s ease;
+    /* transition: all 0.2s ease; removed for snappiness */
     color: #4b5563;
     font-size: 14px;
     font-weight: 500;
@@ -130,7 +130,7 @@
 }
 
 .nav-item .dropdown-arrow {
-    transition: transform 0.3s ease;
+    /* transition: transform 0.3s ease; removed for snappiness */
     color: currentColor;
     margin-left: auto;
 }
@@ -147,7 +147,7 @@
 .nav-dropdown-menu {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.3s ease;
+    /* transition: max-height 0.3s ease; removed for snappiness */
     background: #ffffff;
     padding-left: 10px;
 }
@@ -174,7 +174,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    transition: all 0.2s ease;
+    /* transition: all 0.2s ease; removed for snappiness */
     color: #6b7280;
     font-size: 13px;
     font-weight: 500;
@@ -216,7 +216,7 @@
     font-size: 16px;
     font-weight: 600;
     gap: 12px;
-    transition: all 0.3s ease;
+    /* transition: all 0.3s ease; removed for snappiness */
     box-shadow: 0 4px 6px rgba(227, 30, 36, 0.3);
     /* Soft red shadow */
 }

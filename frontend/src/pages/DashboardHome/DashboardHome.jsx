@@ -548,7 +548,7 @@ const DashboardHome = () => {
                                     cy="100"
                                     r="70"
                                     fill="none"
-                                    stroke="#ef4444"
+                                    stroke="#E31E24"
                                     strokeWidth="20"
                                     strokeDasharray={circleProgress.circumference}
                                     strokeDashoffset={circleProgress.offset}
@@ -714,7 +714,7 @@ const DashboardHome = () => {
                                     cy="70"
                                     r="50"
                                     fill="none"
-                                    stroke="#ef4444"
+                                    stroke="#E31E24"
                                     strokeWidth="16"
                                     strokeDasharray={`${(departureStats.checkOut / (departureStats.total || 1)) * 314} 314`}
                                     strokeDashoffset={-((departureStats.pending / (departureStats.total || 1)) * 314)}
@@ -729,7 +729,7 @@ const DashboardHome = () => {
                                 <span>Pending ({departureStats.pending})</span>
                             </div>
                             <div className="donut-legend-item">
-                                <span className="dot" style={{ background: '#ef4444' }}></span>
+                                <span className="dot" style={{ background: '#E31E24' }}></span>
                                 <span>Check Out ({departureStats.checkOut})</span>
                             </div>
                         </div>
@@ -749,7 +749,7 @@ const DashboardHome = () => {
                                     cy="70"
                                     r="50"
                                     fill="none"
-                                    stroke="#ef4444"
+                                    stroke="#E31E24"
                                     strokeWidth="16"
                                     strokeDasharray={`${(guestInHouse.adults / (guestInHouse.total || 1)) * 314} 314`}
                                     strokeDashoffset="0"
@@ -772,7 +772,7 @@ const DashboardHome = () => {
                         </div>
                         <div className="donut-legend">
                             <div className="donut-legend-item">
-                                <span className="dot" style={{ background: '#ef4444' }}></span>
+                                <span className="dot" style={{ background: '#E31E24' }}></span>
                                 <span>Adults ({guestInHouse.adults})</span>
                             </div>
                             <div className="donut-legend-item">
@@ -796,7 +796,7 @@ const DashboardHome = () => {
                                     cy="70"
                                     r="50"
                                     fill="none"
-                                    stroke="#ef4444"
+                                    stroke="#E31E24"
                                     strokeWidth="16"
                                     strokeDasharray={`${(roomStats.available / (roomStats.total || 1)) * 314} 314`}
                                     strokeDashoffset="0"
@@ -831,7 +831,7 @@ const DashboardHome = () => {
                         </div>
                         <div className="donut-legend">
                             <div className="donut-legend-item">
-                                <span className="dot" style={{ background: '#ef4444' }}></span>
+                                <span className="dot" style={{ background: '#E31E24' }}></span>
                                 <span>Vacant ({roomStats.available})</span>
                             </div>
                             <div className="donut-legend-item">
@@ -883,7 +883,7 @@ const DashboardHome = () => {
                                 <div className="gauge-footer">
                                     <div className="gauge-label">Today</div>
                                     <div className="gauge-stats">
-                                        <span className="gauge-stat"><span className="dot" style={{ background: '#ef4444' }}></span> {advancedOccupancy.todayOccupied} Occupied</span>
+                                        <span className="gauge-stat"><span className="dot" style={{ background: '#E31E24' }}></span> {advancedOccupancy.todayOccupied} Occupied</span>
                                         <span className="gauge-stat"><span className="dot" style={{ background: '#fb923c' }}></span> {advancedOccupancy.todayBooked} Booked</span>
                                     </div>
                                 </div>
@@ -953,7 +953,7 @@ const DashboardHome = () => {
                                 <div className="gauge-footer">
                                     <div className="gauge-label">This Month</div>
                                     <div className="gauge-stats">
-                                        <span className="gauge-stat"><span className="dot" style={{ background: '#ef4444' }}></span> {advancedOccupancy.monthAvailable} Available</span>
+                                        <span className="gauge-stat"><span className="dot" style={{ background: '#E31E24' }}></span> {advancedOccupancy.monthAvailable} Available</span>
                                         <span className="gauge-stat"><span className="dot" style={{ background: '#10b981' }}></span> {advancedOccupancy.monthBooked} Booked</span>
                                     </div>
                                 </div>
@@ -986,7 +986,7 @@ const DashboardHome = () => {
                         </div>
                         <div className="payment-methods">
                             <div className="payment-item">
-                                <span className="dot" style={{ background: '#ef4444' }}></span>
+                                <span className="dot" style={{ background: '#E31E24' }}></span>
                                 <span>Cash</span>
                             </div>
                             <div className="payment-item">
@@ -1086,7 +1086,7 @@ const DashboardHome = () => {
                                     </div>
                                 </div>
                                 <div className="payment-icons">
-                                    <div className="payment-item"><span className="dot" style={{ background: '#ef4444' }}></span><span>Cash</span></div>
+                                    <div className="payment-item"><span className="dot" style={{ background: '#E31E24' }}></span><span>Cash</span></div>
                                     <div className="payment-item"><span className="dot" style={{ background: '#fb923c' }}></span><span>Online</span></div>
                                     <div className="payment-item"><span className="dot" style={{ background: '#10b981' }}></span><span>{revenue.total > 0 ? ((((revenue.receipts.diCard + revenue.receipts.bank + revenue.receipts.card) / revenue.total) * 100).toFixed(1) + '%') : '0%'}</span></div>
                                     <div className="payment-item"><span className="dot" style={{ background: '#6b7280' }}></span><span>Bank</span></div>
@@ -1123,8 +1123,8 @@ const DashboardHome = () => {
                                         {/* Dirty */}
                                         {(() => {
                                             const h = Math.max((housekeepingStats.dirty / (roomStats.total || 1)) * 200, 2); return (
-                                                <><rect x="250" y={250 - h} width="80" height={h} fill="#ef4444" rx="6" />
-                                                    <text x="290" y={244 - h} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#ef4444">{housekeepingStats.dirty}</text>
+                                                <><rect x="250" y={250 - h} width="80" height={h} fill="#E31E24" rx="6" />
+                                                    <text x="290" y={244 - h} textAnchor="middle" fontSize="14" fontWeight="bold" fill="#E31E24">{housekeepingStats.dirty}</text>
                                                     <text x="290" y="275" textAnchor="middle" fontSize="12" fill="#6b7280">Dirty</text></>
                                             );
                                         })()}
@@ -1186,7 +1186,7 @@ const DashboardHome = () => {
                 )}
             </div>
             {/* End of Zotaki Dashboard */}
-        </motion.div>
+    </motion.div>
     );
 };
 
