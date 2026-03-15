@@ -450,7 +450,6 @@ const CashierSection = () => {
                             </div>
                             <button className="premium-close-btn" onClick={() => { setShowTrackModal(false); setTrackedOrders(null); setTrackQuery(''); }}>×</button>
                         </div>
-
                         <div className="add-payment-body">
                             <div className="payment-field-group">
                                 <label className="field-label-premium">ORDER DETAILS *</label>
@@ -460,7 +459,7 @@ const CashierSection = () => {
                                         type="text"
                                         placeholder="Enter Phone Number or Order ID..."
                                         value={trackQuery}
-                                        onChange={(e) => setTrackQuery(e.target.value)}
+                                        onChange={(e) => setTrackQuery(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
                                         onKeyDown={(e) => e.key === 'Enter' && handleTrackOrderSearch()}
                                     />
                                     <button 
@@ -481,8 +480,11 @@ const CashierSection = () => {
                                     </button>
                                 </div>
                             </div>
+                        </div>
 
-                            <div className="track-results-area" style={{ marginTop: '10px' }}>
+                        <div className="track-results-area" style={{ marginTop: '10px' }}>
+
+
                                 {trackedOrders === null ? (
                                     <div className="placeholder-text" style={{ textAlign: 'center', color: '#94a3b8', marginTop: '40px' }}>
                                         Enter details to track status
@@ -534,7 +536,6 @@ const CashierSection = () => {
                             </div>
                         </div>
                     </div>
-                </div>
             )}
 
             {showNewOrderModal && (
@@ -1096,10 +1097,13 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                                         type="number"
                                         value={discountValue}
                                         onChange={(e) => {
-                                            setDiscountValue(e.target.value);
-                                            setDiscountSource(prev => e.target.value
-                                                ? (prev && !prev.endsWith('(Edited)') ? `${prev} (Edited)` : prev || 'Manual')
-                                                : '');
+                                            const val = e.target.value;
+                                            if (val === '' || parseFloat(val) >= 0) {
+                                                setDiscountValue(val);
+                                                setDiscountSource(prev => val
+                                                    ? (prev && !prev.endsWith('(Edited)') ? `${prev} (Edited)` : prev || 'Manual')
+                                                    : '');
+                                            }
                                         }}
                                         placeholder={discountType === 'PERCENTAGE' ? '0 %' : '0'}
                                         min="0"
@@ -1187,8 +1191,14 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                             <input
                                 type="number"
                                 placeholder="0.00"
+                                min="0"
                                 value={receivedAmount}
-                                onChange={(e) => setReceivedAmount(e.target.value)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === '' || parseFloat(val) >= 0) {
+                                        setReceivedAmount(val);
+                                    }
+                                }}
                                 disabled={isPlaceholder}
                             />
                         </div>
