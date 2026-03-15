@@ -19,19 +19,19 @@
 /* Drawer Container */
 .drawer-container {
     position: fixed;
-    top: 0;
-    right: 0;
-    height: 100vh;
+    top: 16px;
+    right: 16px;
+    height: calc(100vh - 32px);
     width: 460px;
-    max-width: calc(100vw - 20px);
+    max-width: calc(100vw - 40px);
     background: #ffffff;
-    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.15);
+    box-shadow: -10px 10px 40px rgba(0, 0, 0, 0.15);
     z-index: 9999;
     display: flex;
     flex-direction: column;
-    border-radius: 0; /* Flush to edges */
+    border-radius: 32px;
     overflow: hidden;
-    border-left: 1px solid #f1f5f9;
+    border: 1px solid #f1f5f9;
 }
 
 /* Premium Variation for Drawer */
