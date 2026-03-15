@@ -96,7 +96,7 @@
 .room-folio-item.active {
     background: #fee2e2;
     border: 2px solid #ef4444;
-    border-left: 4px solid #dc2626;
+    border-left: 4px solid #E31E24;
     padding-left: 16px;
     box-shadow: 0 2px 12px rgba(239, 68, 68, 0.2);
 }
@@ -506,7 +506,7 @@
 }
 
 .summary-amount.remaining {
-    color: #dc2626;
+    color: #E31E24;
     font-weight: 700;
 }
 
@@ -522,7 +522,7 @@
 }
 
 .summary-row-right:nth-child(3) .summary-amount-right {
-    color: #dc2626;
+    color: #E31E24;
     font-weight: 700;
 }
 
@@ -624,7 +624,7 @@
 }
 
 .action-dropdown button:last-child {
-    color: #dc2626;
+    color: #E31E24;
     font-weight: 500;
 }
 
@@ -767,5 +767,5 @@
 }
 
 .btn-save:hover {
-    background: #dc2626;
+    background: #E31E24;
 }

@@ -33,7 +33,7 @@
 }
 
 .add-facility-btn:hover {
-    background-color: #dc2626;
+    background-color: #E31E24;
 }
 
 .facility-type-table-container {
@@ -57,7 +57,7 @@
 
 /* Overriding previous dark red header if needed to match Image 1 strictly. 
    Image 1 Table Header: Light Red Background, Red Text.
-   Previous CSS had: background-color: #dc2626; color: white;
+   Previous CSS had: background-color: #E31E24; color: white;
    Let's check Image 1 again. 
    Image 1: Header row background is a very light red/pink. Text is red-ish.
 */

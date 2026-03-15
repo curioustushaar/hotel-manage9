@@ -163,7 +163,7 @@
 }
 
 .confirmation-confirm-btn.variant-danger {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: linear-gradient(135deg, #ef4444 0%, #E31E24 100%);
     color: white;
     box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
 }
@@ -195,7 +195,7 @@
 }
 
 .confirmation-confirm-btn.danger:hover:not(:disabled) {
-    background: #dc2626;
+    background: #E31E24;
     box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);
 }
 

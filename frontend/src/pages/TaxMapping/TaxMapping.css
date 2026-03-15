@@ -723,7 +723,7 @@
 }
 
 .action-menu-dropdown .menu-item.remove {
-    color: #dc2626;
+    color: #E31E24;
 }
 
 .action-menu-dropdown .menu-item.remove:hover {
@@ -798,7 +798,7 @@
 }
 
 .form-label .required {
-    color: #dc2626;
+    color: #E31E24;
     margin-left: 2px;
 }
 
@@ -841,7 +841,7 @@
 }
 
 .form-select.error {
-    border-color: #dc2626;
+    border-color: #E31E24;
 }
 
 .form-select.error:focus {
@@ -939,7 +939,7 @@
 }
 
 .tax-checkbox-list.error {
-    border-color: #dc2626;
+    border-color: #E31E24;
 }
 
 .tax-checkbox-item {
@@ -1074,7 +1074,7 @@
 
 /* Error Message */
 .error-message {
-    color: #dc2626;
+    color: #E31E24;
     font-size: 12px;
     font-weight: 500;
     margin-top: -4px;

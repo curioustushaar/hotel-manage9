@@ -8,7 +8,7 @@
 /* Button style - Red Theme */
 .more-options-btn {
     padding: 8px 16px;
-    background-color: #dc2626; /* Red background */
+    background-color: #E31E24; /* Red background */
     color: #ffffff; /* White text */
     border: 1px solid #b91c1c;
     border-radius: 6px;
@@ -25,7 +25,7 @@
 
 .more-options-btn:hover {
     background-color: #ef4444; /* Lighter red on hover */
-    border-color: #dc2626;
+    border-color: #E31E24;
 }
 
 .more-options-btn.active {
@@ -106,10 +106,10 @@
 }
 .more-options-item.normal:hover {
     background-color: #fef2f2; /* Light red hover */
-    color: #dc2626;
+    color: #E31E24;
 }
 .more-options-item.normal:hover .option-icon {
-    color: #dc2626;
+    color: #E31E24;
 }
 
 /* Success Actions (Check-In) */
@@ -126,7 +126,7 @@
 
 /* Danger Actions (Void, Cancel, No-Show) */
 .more-options-item.danger {
-    color: #dc2626;
+    color: #E31E24;
 }
 .more-options-item.danger .option-icon {
     color: #ef4444;

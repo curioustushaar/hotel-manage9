@@ -739,7 +739,7 @@
 }
 
 .action-menu-dropdown .menu-item.remove {
-    color: #dc2626;
+    color: #E31E24;
 }
 
 .action-menu-dropdown .menu-item.remove:hover {
@@ -925,7 +925,7 @@
 
 .checkbox-label span {
     font-size: 13px;
-    color: #dc2626;
+    color: #E31E24;
     font-weight: 700;
     text-transform: uppercase;
 }

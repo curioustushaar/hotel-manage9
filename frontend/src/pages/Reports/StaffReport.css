@@ -53,7 +53,7 @@
 }
 
 .sr-btn-primary {
-    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    background: linear-gradient(135deg, #E31E24, #b91c1c);
     color: #fff;
     box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
 }
@@ -71,8 +71,8 @@
 }
 
 .sr-btn-outline:hover {
-    border-color: #dc2626;
-    color: #dc2626;
+    border-color: #E31E24;
+    color: #E31E24;
     background: #fff5f5;
 }
 
@@ -122,7 +122,7 @@
 }
 
 .sr-filter-group select:focus {
-    border-color: #dc2626;
+    border-color: #E31E24;
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
 }
 
@@ -140,7 +140,7 @@
     width: 40px;
     height: 40px;
     border: 3px solid #f0f0f0;
-    border-top: 3px solid #dc2626;
+    border-top: 3px solid #E31E24;
     border-radius: 50%;
     animation: sr-spin 0.8s linear infinite;
 }
@@ -195,7 +195,7 @@
 .sr-card-active:hover { border-color: #86efac; }
 .sr-card-performance .sr-card-icon { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #d97706; }
 .sr-card-performance:hover { border-color: #fcd34d; }
-.sr-card-top .sr-card-icon { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #dc2626; }
+.sr-card-top .sr-card-icon { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #E31E24; }
 .sr-card-top:hover { border-color: #fca5a5; }
 
 .sr-card-content {
@@ -264,7 +264,7 @@
 }
 
 .sr-tab.active {
-    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    background: linear-gradient(135deg, #E31E24, #b91c1c);
     color: #fff;
     box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
 }
@@ -309,7 +309,7 @@
 }
 
 .sr-search-box:focus-within {
-    border-color: #dc2626;
+    border-color: #E31E24;
     background: #fff;
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
 }
@@ -334,7 +334,7 @@
 }
 
 .sr-search-clear:hover {
-    color: #dc2626;
+    color: #E31E24;
 }
 
 /* Table */
@@ -367,7 +367,7 @@
 }
 
 .sr-table thead th:hover {
-    color: #dc2626;
+    color: #E31E24;
 }
 
 .sr-table tbody tr {
@@ -418,7 +418,7 @@
     display: inline-block;
     font-size: 10px;
     background: #fee2e2;
-    color: #dc2626;
+    color: #E31E24;
     padding: 1px 6px;
     border-radius: 4px;
     margin-left: 6px;
@@ -520,7 +520,7 @@
 }
 
 .sr-sort-icon.active {
-    color: #dc2626;
+    color: #E31E24;
 }
 
 /* Attendance Cards */
@@ -554,7 +554,7 @@
 }
 
 .sr-att-present .sr-att-number { color: #16a34a; }
-.sr-att-absent .sr-att-number { color: #dc2626; }
+.sr-att-absent .sr-att-number { color: #E31E24; }
 .sr-att-leave .sr-att-number { color: #d97706; }
 
 .sr-att-label {
@@ -581,7 +581,7 @@
 }
 
 .sr-att-present .sr-att-bar-fill { background: #16a34a; }
-.sr-att-absent .sr-att-bar-fill { background: #dc2626; }
+.sr-att-absent .sr-att-bar-fill { background: #E31E24; }
 .sr-att-leave .sr-att-bar-fill { background: #d97706; }
 
 .sr-att-percent {
@@ -650,7 +650,7 @@
 .sr-dist-bar-fill {
     height: 100%;
     border-radius: 4px;
-    background: linear-gradient(90deg, #dc2626, #ef4444);
+    background: linear-gradient(90deg, #E31E24, #ef4444);
     transition: width 0.5s ease;
 }
 
@@ -735,7 +735,7 @@
 .sr-payroll-amount {
     font-size: 28px;
     font-weight: 800;
-    color: #dc2626;
+    color: #E31E24;
 }
 
 /* Empty State */

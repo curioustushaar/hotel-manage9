@@ -42,7 +42,7 @@ const AdminLayout = ({ children, activeMenu, onMenuClick, onLogout, noPadding = 
                 onLogout={onLogout}
             />
 
-            <div className={`main-content ${sidebarOpen ? '' : 'full-width'} ${noPadding ? 'no-padding' : ''}`}>
+            <div className={`main-content ${sidebarOpen ? '' : 'full-width'} ${noPadding ? 'no-padding' : ''} ${activeMenu}-page-layout`}>
                 <div className={`layout-content ${noPadding ? 'no-padding' : ''}`}>
                     {noPadding ? children : <div className="layout-main-card">{children}</div>}
                 </div>

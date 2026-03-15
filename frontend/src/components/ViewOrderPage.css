@@ -32,8 +32,8 @@
 
 .tab-btn.active {
   background-color: white;
-  color: #dc2626;
-  border: 1.5px solid #dc2626;
+  color: #E31E24;
+  border: 1.5px solid #E31E24;
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.12);
 }
 
@@ -87,7 +87,7 @@
 }
 
 .filter-search-input:focus {
-  border-color: #dc2626;
+  border-color: #E31E24;
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
   outline: none;
 }
@@ -151,7 +151,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #dc2626;
+  background-color: #E31E24;
   color: white;
   min-height: 24px;
   flex-shrink: 0;
@@ -216,7 +216,7 @@
 
 .status-strip.pending-delay {
   background-color: #fff1f2;
-  color: #dc2626;
+  color: #E31E24;
 }
 
 .status-strip.preparing-timer {
@@ -541,7 +541,7 @@
 }
 
 .action-btn.done:hover {
-  background-color: #dc2626;
+  background-color: #E31E24;
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(220, 38, 38, 0.3);
 }
@@ -635,7 +635,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #dc2626;
+  background-color: #E31E24;
   color: white;
 }
 
@@ -712,7 +712,7 @@
 
 .bill-status-badge span.billed {
   background: #fef2f2;
-  color: #dc2626;
+  color: #E31E24;
   border: 1px solid #fecdd3;
 }
 
@@ -761,7 +761,7 @@
 
 .bill-action-btn.view {
   background-color: #fef2f2;
-  color: #dc2626;
+  color: #E31E24;
   border-color: #fee2e2;
 }
 
@@ -777,7 +777,7 @@
 }
 
 .bill-action-btn.delete:hover {
-  background-color: #dc2626;
+  background-color: #E31E24;
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(220, 38, 38, 0.3);
 }

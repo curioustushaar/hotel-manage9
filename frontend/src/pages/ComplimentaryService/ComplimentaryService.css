@@ -33,7 +33,7 @@
 }
 
 .add-btn:hover {
-    background-color: #dc2626;
+    background-color: #E31E24;
 }
 
 .table-container {
@@ -49,7 +49,7 @@
 }
 
 .common-table th {
-    background-color: #dc2626;
+    background-color: #E31E24;
     color: white;
     padding: 12px 20px;
     text-align: left;

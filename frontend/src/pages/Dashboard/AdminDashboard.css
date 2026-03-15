@@ -257,7 +257,7 @@
     width: 45px;
     height: 45px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: linear-gradient(135deg, #ef4444 0%, #E31E24 100%);
     color: #ffffff;
     display: flex;
     align-items: center;
@@ -370,7 +370,7 @@
 }
 
 .profile-card-header {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: linear-gradient(135deg, #ef4444 0%, #E31E24 100%);
     padding: 25px 30px;
 }
 
@@ -399,7 +399,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: linear-gradient(135deg, #ef4444 0%, #E31E24 100%);
     color: #ffffff;
     font-size: 48px;
     font-weight: 700;
@@ -435,7 +435,7 @@
 }
 
 .role-badge {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: linear-gradient(135deg, #ef4444 0%, #E31E24 100%);
     color: #ffffff;
     padding: 6px 16px;
     border-radius: 20px;
@@ -468,7 +468,7 @@
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: linear-gradient(135deg, #ef4444 0%, #E31E24 100%);
     color: #ffffff;
 }
 
@@ -546,7 +546,7 @@
 }
 
 .stat-icon.revenue {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: linear-gradient(135deg, #ef4444 0%, #E31E24 100%);
 }
 
 .stat-info h3 {
@@ -708,7 +708,7 @@
 
 .alert-error {
     background: #fef2f2;
-    color: #dc2626;
+    color: #E31E24;
     border: 1px solid #fecaca;
 }
 
@@ -879,7 +879,7 @@
 }
 
 .add-room-btn:hover {
-    background: #dc2626;
+    background: #E31E24;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
@@ -1033,7 +1033,7 @@
 
 .edit-btn:hover {
     background: #fef2f2;
-    color: #dc2626;
+    color: #E31E24;
     box-shadow: 0 0 0 2px #ef4444;
     transform: translateY(-1px);
 }
@@ -1195,7 +1195,7 @@
 }
 
 .btn-submit:hover {
-    background: #dc2626;
+    background: #E31E24;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
@@ -1212,7 +1212,7 @@
 }
 
 .qr-header {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: linear-gradient(135deg, #ef4444 0%, #E31E24 100%);
     padding: 30px 35px;
     border-radius: 16px;
     box-shadow: 0 10px 30px rgba(239, 68, 68, 0.2);
@@ -1483,7 +1483,7 @@
     justify-content: space-between;
     align-items: flex-start;
     padding: 20px 28px;
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: linear-gradient(135deg, #ef4444 0%, #E31E24 100%);
     color: white;
 }
 
@@ -1669,7 +1669,7 @@
 }
 
 .btn-red:hover {
-    background: #dc2626;
+    background: #E31E24;
     transform: translateY(-1px);
     box-shadow: 0 6px 12px rgba(239, 68, 68, 0.3);
 }

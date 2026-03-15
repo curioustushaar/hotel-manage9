@@ -151,7 +151,7 @@ const ReservationReport = () => {
     const sortedTimeEntries = Object.entries(distributions.time || {}).sort((a, b) => a[0].localeCompare(b[0]));
 
     // Pie chart colors
-    const pieColors = ['#dc2626', '#2563eb', '#16a34a', '#f59e0b', '#8b5cf6'];
+    const pieColors = ['#E31E24', '#2563eb', '#16a34a', '#f59e0b', '#8b5cf6'];
     const sourceEntries = Object.entries(distributions.source || {}).filter(([, v]) => v > 0);
     const sourceTotal = sourceEntries.reduce((s, [, v]) => s + v, 0);
 

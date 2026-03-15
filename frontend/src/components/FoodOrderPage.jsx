@@ -906,12 +906,12 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                             <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bill Comment</div>
                                 {billComment ? (
-                                    <div style={{ fontSize: '0.85rem', color: '#dc2626', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{billComment}</div>
+                                    <div style={{ fontSize: '0.85rem', color: '#E31E24', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{billComment}</div>
                                 ) : (
                                     <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>Tap to add comment...</div>
                                 )}
                             </div>
-                            {billComment && <span style={{ color: '#dc2626', fontWeight: '700', fontSize: '14px' }}>✓</span>}
+                            {billComment && <span style={{ color: '#E31E24', fontWeight: '700', fontSize: '14px' }}>✓</span>}
                         </div>
 
                         {/* Special Note (KOT) - Inline */}
@@ -950,7 +950,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
 
                         <div className="pos-total-row final" style={{ borderTop: '2px solid #e2e8f0', marginTop: '6px', paddingTop: '8px' }}>
                             <span style={{ fontSize: '1.1rem', fontWeight: '800' }}>Grand Total</span>
-                            <span style={{ fontSize: '1.4rem', color: '#dc2626' }}>{cs}{total.toFixed(2)}</span>
+                            <span style={{ fontSize: '1.4rem', color: '#E31E24' }}>{cs}{total.toFixed(2)}</span>
                         </div>
 
                         {/* KOT ROW */}
@@ -1031,7 +1031,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                                         onChange={(e) => setSelectedCustomer({ ...selectedCustomer, name: e.target.value, type: 'walkin' })}
                                     />
 
-                                    <div style={{ background: '#fef2f2', padding: '10px', borderRadius: '6px', fontSize: '13px', color: '#dc2626' }}>
+                                    <div style={{ background: '#fef2f2', padding: '10px', borderRadius: '6px', fontSize: '13px', color: '#E31E24' }}>
                                         {selectedCustomer ? `Linked to: ${selectedCustomer.name}` : 'No customer linked'}
                                     </div>
                                 </div>
@@ -1062,7 +1062,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                             style={{ width: '420px', borderRadius: '12px', overflow: 'hidden' }}
                         >
                             <div className="pos-modal-header" style={{
-                                background: activeNoteType === 'KOT' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                                background: activeNoteType === 'KOT' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #E31E24, #b91c1c)',
                                 color: '#fff',
                                 padding: '14px 20px'
                             }}>
@@ -1210,16 +1210,16 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                                     />
                                 </div>
                                 <div className="form-field">
-                                    <label>Mobile Number {!smsModal.phone && <span style={{ color: '#dc2626' }}>*</span>}</label>
+                                    <label>Mobile Number {!smsModal.phone && <span style={{ color: '#E31E24' }}>*</span>}</label>
                                     <input
                                         type="text"
                                         maxLength="10"
                                         value={smsModal.phone}
                                         onChange={(e) => setSmsModal({ ...smsModal, phone: e.target.value.replace(/\D/g, '') })}
                                         placeholder="Enter 10-digit mobile number"
-                                        style={{ borderColor: validationErrors.phone ? '#dc2626' : '#e2e8f0' }}
+                                        style={{ borderColor: validationErrors.phone ? '#E31E24' : '#e2e8f0' }}
                                     />
-                                    {validationErrors.phone && <span className="error-text" style={{ color: '#dc2626', fontSize: '11px', marginTop: '4px', display: 'block' }}>{validationErrors.phone}</span>}
+                                    {validationErrors.phone && <span className="error-text" style={{ color: '#E31E24', fontSize: '11px', marginTop: '4px', display: 'block' }}>{validationErrors.phone}</span>}
                                 </div>
                                 <div className="template-preview" style={{ marginTop: '15px' }}>
                                     <strong style={{ fontSize: '12px', color: '#64748b' }}>SMS Receipt Preview (Mall Style):</strong>

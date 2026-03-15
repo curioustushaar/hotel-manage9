@@ -288,7 +288,7 @@
 
 .status-pill.dirty {
     background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-    color: #dc2626;
+    color: #E31E24;
     border: 1px solid #fecaca;
 }
 
@@ -391,7 +391,7 @@
 
 .card-status.dirty {
     background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-    color: #dc2626;
+    color: #E31E24;
     border: 1px solid #fecaca;
 }
 
@@ -661,7 +661,7 @@
 
 .toggle-btn.inactive-state {
     background: #fff;
-    color: #dc2626;
+    color: #E31E24;
     /* Red for Inactive */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
@@ -707,8 +707,8 @@
 }
 
 .btn-modal-save:hover {
-    background: #dc2626;
-    border-color: #dc2626;
+    background: #E31E24;
+    border-color: #E31E24;
     transform: translateY(-1px);
     box-shadow: 0 4px 6px -1px rgba(220, 53, 69, 0.2);
 }

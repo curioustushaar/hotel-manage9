@@ -37,7 +37,7 @@
 }
 
 .add-table-btn {
-    background-color: #dc2626;
+    background-color: #E31E24;
     color: white;
     border: none;
     padding: 12px 24px;
@@ -160,9 +160,9 @@
 }
 
 .filter-btn.active {
-    background: #dc2626;
+    background: #E31E24;
     color: white;
-    border-color: #dc2626;
+    border-color: #E31E24;
 }
 
 .type-dropdown {
@@ -817,7 +817,7 @@
 }
 
 .type-action-btn.cancel:hover {
-    background-color: #dc2626;
+    background-color: #E31E24;
     transform: scale(1.05);
 }
 
@@ -2973,3 +2973,4 @@
     border-color: #e11d48;
     box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.1);
 }
+

@@ -295,7 +295,7 @@ const HotelDetails = () => {
                             background: '#fee2e2',
                             border: '1px solid #ef4444',
                             borderRadius: '8px',
-                            color: '#dc2626',
+                            color: '#E31E24',
                             fontSize: '14px',
                             fontWeight: '500'
                         }}>
@@ -339,7 +339,7 @@ const HotelDetails = () => {
                                     width: '48px',
                                     height: '48px',
                                     borderRadius: '12px',
-                                    background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                                    background: 'linear-gradient(135deg, #EF4444 0%, #E31E24 100%)',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -446,7 +446,7 @@ const HotelDetails = () => {
                                         fontSize: '13px',
                                         fontWeight: '600',
                                         background: hotel.isActive ? '#d1fae5' : '#fee2e2',
-                                        color: hotel.isActive ? '#047857' : '#dc2626'
+                                        color: hotel.isActive ? '#047857' : '#E31E24'
                                     }}>
                                         {hotel.isActive ? <FaCheckCircle /> : <FaTimesCircle />}
                                         {hotel.isActive ? 'Active' : 'Suspended'}
@@ -469,7 +469,7 @@ const HotelDetails = () => {
                                     width: '48px',
                                     height: '48px',
                                     borderRadius: '12px',
-                                    background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                                    background: 'linear-gradient(135deg, #EF4444 0%, #E31E24 100%)',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -570,7 +570,7 @@ const HotelDetails = () => {
                                 width: '48px',
                                 height: '48px',
                                 borderRadius: '12px',
-                                background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                                background: 'linear-gradient(135deg, #EF4444 0%, #E31E24 100%)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -660,7 +660,7 @@ const HotelDetails = () => {
                                     <div style={{ 
                                         fontSize: '20px', 
                                         fontWeight: '700',
-                                        color: isExpired ? '#dc2626' : daysRemaining <= 7 ? '#f59e0b' : '#10b981'
+                                        color: isExpired ? '#E31E24' : daysRemaining <= 7 ? '#f59e0b' : '#10b981'
                                     }}>
                                         {isExpired ? 'Expired' : `${daysRemaining} days`}
                                     </div>
@@ -689,7 +689,7 @@ const HotelDetails = () => {
                                     fontWeight: '600',
                                     cursor: actionLoading ? 'not-allowed' : 'pointer',
                                     transition: 'all 0.2s',
-                                    background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                                    background: 'linear-gradient(135deg, #EF4444 0%, #E31E24 100%)',
                                     color: 'white',
                                     boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
                                     opacity: actionLoading ? 0.7 : 1,

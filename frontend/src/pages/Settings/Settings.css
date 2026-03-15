@@ -147,7 +147,7 @@
 }
 
 .add-staff-btn:hover {
-    background: #dc2626;
+    background: #E31E24;
 }
 
 .btn-icon {
@@ -338,7 +338,7 @@
 .toggle-btn:hover {
     background: #fecaca;
     transform: scale(1.08);
-    border-color: #dc2626;
+    border-color: #E31E24;
 }
 
 .permission-btn {
@@ -596,7 +596,7 @@
 }
 
 .staff-chip-status.inactive {
-    color: #dc2626;
+    color: #E31E24;
     font-weight: 700;
 }
 
@@ -672,7 +672,7 @@
 
 .modal-close:hover {
     background: #fee2e2;
-    color: #dc2626;
+    color: #E31E24;
     transform: rotate(90deg);
 }
 
@@ -789,7 +789,7 @@
 }
 
 .btn-submit:hover {
-    background: #dc2626;
+    background: #E31E24;
 }
 
 /* Responsive */

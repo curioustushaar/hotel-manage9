@@ -37,7 +37,7 @@
 }
 
 .generate-report-btn:hover:not(:disabled) {
-    background-color: #dc2626;
+    background-color: #E31E24;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
@@ -75,7 +75,7 @@
 }
 
 .error-message p {
-    color: #dc2626;
+    color: #E31E24;
     margin: 0;
     font-size: 14px;
 }

@@ -35,8 +35,8 @@
 }
 
 .reservation-tab-btn.active {
-    color: #dc2626;
-    border-bottom-color: #dc2626;
+    color: #E31E24;
+    border-bottom-color: #E31E24;
     font-weight: 600;
     background-color: transparent;
 }
@@ -48,7 +48,7 @@
     left: 0;
     right: 0;
     height: 2px;
-    background: #dc2626;
+    background: #E31E24;
     transform: scaleX(0);
     transition: transform 0.2s ease;
 }

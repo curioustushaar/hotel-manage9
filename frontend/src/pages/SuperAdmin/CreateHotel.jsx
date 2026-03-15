@@ -244,7 +244,7 @@ const CreateHotel = () => {
                                 background: '#fee2e2',
                                 border: '1px solid #ef4444',
                                 borderRadius: '8px',
-                                color: '#dc2626',
+                                color: '#E31E24',
                                 fontSize: '14px',
                                 fontWeight: '500'
                             }}>
@@ -685,7 +685,7 @@ const CreateHotel = () => {
                                         fontWeight: '600',
                                         cursor: 'pointer',
                                         transition: 'all 0.2s',
-                                        background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                                        background: 'linear-gradient(135deg, #EF4444 0%, #E31E24 100%)',
                                         color: 'white',
                                         boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
                                         opacity: loading ? 0.7 : 1

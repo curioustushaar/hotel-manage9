@@ -158,7 +158,7 @@ const VisitorList = ({ reservationId, refreshTrigger }) => {
                                     borderRadius: '6px',
                                     border: '1px solid #e5e7eb',
                                     backgroundColor: '#fff',
-                                    color: '#dc2626',
+                                    color: '#E31E24',
                                     fontSize: '13px',
                                     fontWeight: '500',
                                     cursor: 'pointer',
