@@ -115,37 +115,81 @@ const CustomerIdentity = () => {
                 </div>
             )}
 
+            {/* Premium Modal */}
             {isModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h3>{modalMode === 'add' ? 'Add ID Type' : 'Edit ID Type'}</h3>
-                            <button className="close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
+                <div className="add-payment-overlay">
+                    <div className="add-payment-modal add-id-premium">
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap">
+                                <span style={{ fontSize: '20px' }}>🆔</span>
+                            </div>
+                            <div className="header-text">
+                                <h3>{modalMode === 'add' ? 'Add ID Type' : 'Edit ID Type'}</h3>
+                                <span>IDENTITY SETUP</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
                         </div>
 
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label>Identity Type</label>
-                                <input type="text" value={formData.name} onChange={e => {
-                                    const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
-                                    setFormData({ ...formData, name: value });
-                                }} required />
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                            <div className="add-payment-body">
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">IDENTITY TYPE</label>
+                                    <div className="premium-input-wrap">
+                                        <input
+                                            type="text"
+                                            value={formData.name}
+                                            onChange={e => {
+                                                const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                                setFormData({ ...formData, name: value });
+                                            }}
+                                            required
+                                            placeholder="e.g. Aadhaar, Passport, Driving License"
+                                            className="premium-input"
+                                            autoFocus
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">LAW & REGULATIONS</label>
+                                    <div 
+                                        className={`modern-checkbox-card ${formData.requiredByLaw ? 'active' : ''}`}
+                                        onClick={() => setFormData({ ...formData, requiredByLaw: !formData.requiredByLaw })}
+                                    >
+                                        <div className="checkbox-card-info">
+                                            <span className="checkbox-card-title">Required by Law?</span>
+                                            <span className="checkbox-card-sub">This ID is mandatory for check-in</span>
+                                        </div>
+                                        <div className={`checkbox-custom-wrap ${formData.requiredByLaw ? 'checked' : ''}`}>
+                                            {formData.requiredByLaw && <span className="check-icon">✓</span>}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">RESERVATION SETTINGS</label>
+                                    <div 
+                                        className={`modern-checkbox-card ${formData.usedForReservations ? 'active' : ''}`}
+                                        onClick={() => setFormData({ ...formData, usedForReservations: !formData.usedForReservations })}
+                                    >
+                                        <div className="checkbox-card-info">
+                                            <span className="checkbox-card-title">Used for Reservations?</span>
+                                            <span className="checkbox-card-sub">Allow this ID for making reservations</span>
+                                        </div>
+                                        <div className={`checkbox-custom-wrap ${formData.usedForReservations ? 'checked' : ''}`}>
+                                            {formData.usedForReservations && <span className="check-icon">✓</span>}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="form-group checkbox-row">
-                                <label className="checkbox-label">
-                                    <input type="checkbox" checked={formData.requiredByLaw} onChange={e => setFormData({ ...formData, requiredByLaw: e.target.checked })} />
-                                    Required by Law?
-                                </label>
-                            </div>
-                            <div className="form-group checkbox-row">
-                                <label className="checkbox-label">
-                                    <input type="checkbox" checked={formData.usedForReservations} onChange={e => setFormData({ ...formData, usedForReservations: e.target.checked })} />
-                                    Used for Reservations?
-                                </label>
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="btn-primary">{modalMode === 'add' ? 'Add' : 'Update'}</button>
+
+                            <div className="payment-modal-footer">
+                                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+                                    CANCEL
+                                </button>
+                                <button type="submit" className="btn-primary">
+                                    {modalMode === 'add' ? 'ADD ID TYPE' : 'UPDATE ID TYPE'}
+                                </button>
                             </div>
                         </form>
                     </div>

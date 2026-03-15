@@ -19,7 +19,7 @@ const TaxConfiguration = () => {
     });
     const [formErrors, setFormErrors] = useState({});
     const [openMenuId, setOpenMenuId] = useState(null);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [showModal, setShowModal] = useState(false);
     const menuRef = useRef(null);
 
     const [applyToOptions, setApplyToOptions] = useState([
@@ -162,11 +162,11 @@ const TaxConfiguration = () => {
         setTaxes(updatedTaxes);
         saveToLocalStorage(updatedTaxes);
         handleResetForm();
-        setIsSidebarOpen(false);
+        setShowModal(false);
     };
 
     const handleEditTax = (tax) => {
-        setIsSidebarOpen(true);
+        setShowModal(true);
         setSelectedTax(tax);
         setIsEditMode(true);
         setFormData({
@@ -183,7 +183,7 @@ const TaxConfiguration = () => {
 
     const handleCreateTax = () => {
         handleResetForm();
-        setIsSidebarOpen(true);
+        setShowModal(true);
     };
 
     const handleToggleStatus = (id) => {
@@ -236,20 +236,17 @@ const TaxConfiguration = () => {
 
     return (
         <div className="tax-configuration-page">
-            <div className="tax-page-header">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                        <h1>Tax Configuration</h1>
-                        <p>Configure and manage tax rules for your hotel services</p>
-                    </div>
-                    <button
-                        className="btn-save"
-                        onClick={handleCreateTax}
-                        style={{ maxWidth: '160px' }}
-                    >
-                        + Create Tax
-                    </button>
+            <div className="dining-header">
+                <div className="header-content">
+                    <h1 className="page-title">Tax Configuration</h1>
+                    <p className="subtitle">Configure and manage tax rules for your hotel services</p>
                 </div>
+                <button
+                    className="add-table-btn"
+                    onClick={handleCreateTax}
+                >
+                    + CREATE TAX
+                </button>
             </div>
 
             <div className="tax-main-layout">
@@ -361,198 +358,204 @@ const TaxConfiguration = () => {
                             </tbody>
                         </table>
                     </div>
-                </div>
-
-                {/* SIDEBAR OVERLAY */}
-                {isSidebarOpen && (
-                    <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)} style={{ opacity: 1 }}></div>
-                )}
-
-                {/* SIDEBAR FORM */}
-                <div className={`tax-sidebar ${isSidebarOpen ? 'open' : ''}`}>
-                    <div className="sidebar-header">
-                        <h2>
-                            <span style={{ color: '#ef4444', marginRight: '8px', fontSize: '24px' }}>+</span>
-                            {isEditMode ? 'Edit Tax' : 'Create Tax'}
-                        </h2>
-                        <button className="close-sidebar-btn" onClick={() => setIsSidebarOpen(false)}>×</button>
-                    </div>
-
-                    <div className="sidebar-content">
-                        <div className="tax-form">
-                            {/* Tax Name */}
-                            <div className="form-group">
-                                <label>Tax Name <span className="required">*</span></label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g., GST, Service Tax"
-                                    value={formData.name}
-                                    onChange={(e) => {
-                                        const value = e.target.value;
-                                        if (/^[A-Za-z\s]*$/.test(value)) {
-                                            setFormData({ ...formData, name: value });
-                                        }
-                                    }}
-                                    className={formErrors.name ? 'error' : ''}
-                                />
-                                {formErrors.name && <span className="error-message">{formErrors.name}</span>}
-                            </div>
-
-                            {/* Tax Type */}
-                            <div className="form-group">
-                                <label>Tax Type <span className="required">*</span></label>
-                                <select
-                                    value={formData.type}
-                                    onChange={(e) => setFormData({ ...formData, type: e.target.value, value: '' })}
-                                >
-                                    <option value="PERCENTAGE">Percentage (%)</option>
-                                    <option value="FLAT">Flat Amount ({cs})</option>
-                                </select>
-                            </div>
-
-                            {/* Tax Value */}
-                            <div className="form-group">
-                                <label>
-                                    Tax Value <span className="required">*</span>
-                                    {formData.type === 'PERCENTAGE' && <span className="label-hint">(0-100%)</span>}
-                                </label>
-                                <div className="input-with-prefix">
-                                    {formData.type === 'FLAT' && <span className="input-prefix">{cs}</span>}
-                                    <input
-                                        type="number"
-                                        placeholder={formData.type === 'PERCENTAGE' ? 'Enter percentage' : 'Enter amount'}
-                                        value={formData.value}
-                                        onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                                        min="0"
-                                        max={formData.type === 'PERCENTAGE' ? '100' : undefined}
-                                        step="0.01"
-                                        className={formErrors.value ? 'error' : ''}
-                                    />
-                                    {formData.type === 'PERCENTAGE' && <span className="input-suffix">%</span>}
+                            {/* Centered Premium Modal */}
+                {showModal && (
+                    <div className="add-payment-overlay">
+                        <div className="add-payment-modal add-tax-premium">
+                            <div className="premium-payment-header">
+                                <div className="header-icon-wrap">
+                                    <span style={{ fontSize: '20px' }}>🧾</span>
                                 </div>
-                                {formErrors.value && <span className="error-message">{formErrors.value}</span>}
+                                <div className="header-text">
+                                    <h3>{isEditMode ? 'Edit Tax Rule' : 'Create Tax Rule'}</h3>
+                                    <span>TAX CONFIGURATION</span>
+                                </div>
+                                <button className="premium-close-btn" onClick={() => setShowModal(false)}>✕</button>
                             </div>
 
-                            {/* Applies To */}
-                            <div className="form-group">
-                                <label>Applies To <span className="required">*</span></label>
-                                {!isAddingApplyTo ? (
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <select
-                                            value={formData.appliesTo}
-                                            onChange={(e) => setFormData({ ...formData, appliesTo: e.target.value })}
-                                            style={{ flex: 1 }}
-                                        >
-                                            {applyToOptions.map(option => (
-                                                <option key={option.value} value={option.value}>
-                                                    {option.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <button
-                                            className="btn-save"
-                                            type="button"
-                                            onClick={() => setIsAddingApplyTo(true)}
-                                            style={{ width: '42px', padding: '0', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                        >
-                                            +
-                                        </button>
+                            <div className="add-payment-body scrollable-modal-body">
+                                <div className="tax-form">
+                                    {/* Tax Name */}
+                                    <div className="payment-field-group">
+                                        <label className="field-label-premium">TAX NAME <span className="required">*</span></label>
+                                        <div className="premium-input-wrap">
+                                            <input
+                                                type="text"
+                                                placeholder="e.g., GST, Service Tax"
+                                                value={formData.name}
+                                                onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    if (/^[A-Za-z\s]*$/.test(value)) {
+                                                        setFormData({ ...formData, name: value });
+                                                    }
+                                                }}
+                                                className={`premium-input ${formErrors.name ? 'error' : ''}`}
+                                                autoFocus
+                                            />
+                                        </div>
+                                        {formErrors.name && <span className="error-message">{formErrors.name}</span>}
                                     </div>
-                                ) : (
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter new category..."
-                                            value={newApplyTo}
-                                            onChange={(e) => setNewApplyTo(e.target.value)}
-                                            autoFocus
-                                            style={{ flex: 1 }}
-                                        />
-                                        <button
-                                            className="btn-save"
-                                            type="button"
-                                            onClick={handleAddApplyTo}
-                                            style={{ width: '42px', padding: '0' }}
-                                        >
-                                            ✓
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="btn-reset"
-                                            onClick={() => { setIsAddingApplyTo(false); setNewApplyTo(''); }}
-                                            style={{ width: '42px', padding: '0' }}
-                                        >
-                                            ✕
-                                        </button>
+
+                                    {/* Type and Value Row */}
+                                    <div className="premium-form-row">
+                                        <div className="payment-field-group flex-1">
+                                            <label className="field-label-premium">TAX TYPE <span className="required">*</span></label>
+                                            <select
+                                                className="premium-input"
+                                                value={formData.type}
+                                                onChange={(e) => setFormData({ ...formData, type: e.target.value, value: '' })}
+                                            >
+                                                <option value="PERCENTAGE">Percentage (%)</option>
+                                                <option value="FLAT">Flat Amount ({cs})</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="payment-field-group flex-1">
+                                            <label className="field-label-premium">
+                                                TAX VALUE <span className="required">*</span>
+                                            </label>
+                                            <div className="premium-input-wrap">
+                                                <input
+                                                    type="number"
+                                                    placeholder={formData.type === 'PERCENTAGE' ? '0.00' : '0.00'}
+                                                    value={formData.value}
+                                                    onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+                                                    min="0"
+                                                    max={formData.type === 'PERCENTAGE' ? '100' : undefined}
+                                                    step="0.01"
+                                                    className={`premium-input ${formErrors.value ? 'error' : ''}`}
+                                                />
+                                                <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold' }}>
+                                                    {formData.type === 'PERCENTAGE' ? '%' : cs}
+                                                </span>
+                                            </div>
+                                            {formErrors.value && <span className="error-message">{formErrors.value}</span>}
+                                        </div>
                                     </div>
-                                )}
-                            </div>
 
-                            {/* Compound Tax */}
-                            <div className="form-group">
-                                <label className="toggle-label">
-                                    <span>Compound Tax</span>
-                                    <div className="toggle-switch">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.isCompound}
-                                            onChange={(e) => setFormData({ ...formData, isCompound: e.target.checked })}
-                                        />
-                                        <span className="toggle-slider"></span>
+                                    {/* Applies To */}
+                                    <div className="payment-field-group">
+                                        <label className="field-label-premium">APPLIES TO <span className="required">*</span></label>
+                                        {!isAddingApplyTo ? (
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <select
+                                                    className="premium-input"
+                                                    value={formData.appliesTo}
+                                                    onChange={(e) => setFormData({ ...formData, appliesTo: e.target.value })}
+                                                    style={{ flex: 1 }}
+                                                >
+                                                    {applyToOptions.map(option => (
+                                                        <option key={option.value} value={option.value}>
+                                                            {option.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                    className="btn-primary"
+                                                    type="button"
+                                                    onClick={() => setIsAddingApplyTo(true)}
+                                                    style={{ width: '45px', minWidth: '45px', padding: '0' }}
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <input
+                                                    type="text"
+                                                    className="premium-input"
+                                                    placeholder="Enter new category..."
+                                                    value={newApplyTo}
+                                                    onChange={(e) => setNewApplyTo(e.target.value)}
+                                                    autoFocus
+                                                    style={{ flex: 1 }}
+                                                />
+                                                <button
+                                                    className="btn-primary"
+                                                    type="button"
+                                                    onClick={handleAddApplyTo}
+                                                    style={{ width: '45px', minWidth: '45px', padding: '0' }}
+                                                >
+                                                    ✓
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn-secondary"
+                                                    onClick={() => { setIsAddingApplyTo(false); setNewApplyTo(''); }}
+                                                    style={{ width: '45px', minWidth: '45px', padding: '0' }}
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
-                                </label>
-                                <p className="form-hint">Apply tax on top of other taxes (compound tax calculation)</p>
-                            </div>
 
-                            {/* Status */}
-                            <div className="form-group">
-                                <label className="toggle-label">
-                                    <span>Status</span>
-                                    <div className="toggle-switch">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.status === 'ACTIVE'}
-                                            onChange={(e) => setFormData({ ...formData, status: e.target.checked ? 'ACTIVE' : 'INACTIVE' })}
-                                        />
-                                        <span className="toggle-slider"></span>
+                                    {/* Toggles Row */}
+                                    <div className="premium-form-row">
+                                        <div className="payment-field-group flex-1">
+                                            <label className="toggle-label-premium">
+                                                <span>Compound Tax</span>
+                                                <div className="toggle-switch-p">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={formData.isCompound}
+                                                        onChange={(e) => setFormData({ ...formData, isCompound: e.target.checked })}
+                                                    />
+                                                    <span className="toggle-slider-p"></span>
+                                                </div>
+                                            </label>
+                                        </div>
+
+                                        <div className="payment-field-group flex-1">
+                                            <label className="toggle-label-premium">
+                                                <span>Status</span>
+                                                <div className="toggle-switch-p">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={formData.status === 'ACTIVE'}
+                                                        onChange={(e) => setFormData({ ...formData, status: e.target.checked ? 'ACTIVE' : 'INACTIVE' })}
+                                                    />
+                                                    <span className="toggle-slider-p"></span>
+                                                </div>
+                                            </label>
+                                        </div>
                                     </div>
-                                </label>
-                                <p className="form-hint">
-                                    {formData.status === 'ACTIVE' ? 'Tax is active and will be applied' : 'Tax is inactive'}
-                                </p>
+
+                                    {/* Description */}
+                                    <div className="payment-field-group">
+                                        <label className="field-label-premium">DESCRIPTION</label>
+                                        <div className="premium-input-wrap">
+                                            <textarea
+                                                className="premium-input premium-textarea"
+                                                placeholder="Add notes about this tax rule..."
+                                                value={formData.description}
+                                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                                rows="2"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Description */}
-                            <div className="form-group">
-                                <label>Description</label>
-                                <textarea
-                                    placeholder="Add description or notes about this tax..."
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    rows="3"
-                                />
-                            </div>
-
-                            {/* Form Actions */}
-                            <div className="form-actions">
+                            <div className="payment-modal-footer">
                                 <button
                                     type="button"
-                                    className="btn-reset"
-                                    onClick={handleResetForm}
+                                    className="btn-secondary"
+                                    onClick={() => setShowModal(false)}
                                 >
-                                    Reset
+                                    CANCEL
                                 </button>
                                 <button
                                     type="button"
-                                    className="btn-save"
+                                    className="btn-primary"
                                     onClick={handleSaveTax}
                                 >
-                                    {isEditMode ? 'Update Tax' : 'Save Tax'}
+                                    {isEditMode ? 'UPDATE TAX' : 'SAVE TAX'}
                                 </button>
                             </div>
                         </div>
                     </div>
-                </div>
+                )}             </div>
             </div>
         </div>
     );

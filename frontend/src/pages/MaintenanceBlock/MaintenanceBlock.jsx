@@ -206,72 +206,127 @@ const MaintenanceBlock = () => {
             )
             }
 
-            {
-                isModalOpen && (
-                    <div className="modal-overlay">
-                        <div className="modal-content">
-                            <div className="modal-header">
+            {/* Premium Modal */}
+            {isModalOpen && (
+                <div className="add-payment-overlay">
+                    <div className="add-payment-modal add-maintenance-premium">
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap">
+                                <span style={{ fontSize: '20px' }}>🔧</span>
+                            </div>
+                            <div className="header-text">
                                 <h3>{modalMode === 'add' ? 'Add Maintenance Block' : 'Edit Maintenance Block'}</h3>
-                                <button className="close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
+                                <span>ROOM MAINTENANCE</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                            <div className="add-payment-body scrollable-modal-body">
+                                <div className="premium-form-row">
+                                    <div className="payment-field-group flex-1">
+                                        <label className="field-label-premium">ROOM NUMBER</label>
+                                        <div className="premium-input-wrap">
+                                            <input
+                                                type="text"
+                                                value={formData.room}
+                                                onChange={e => {
+                                                    const value = e.target.value.replace(/\D/g, '');
+                                                    setFormData({ ...formData, room: value });
+                                                }}
+                                                required
+                                                placeholder="e.g. 102"
+                                                className="premium-input"
+                                                autoFocus
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="payment-field-group flex-1">
+                                        <label className="field-label-premium">BLOCK TYPE</label>
+                                        <div className="premium-input-wrap">
+                                            <input
+                                                type="text"
+                                                value={formData.blockType}
+                                                onChange={e => {
+                                                    const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                                    setFormData({ ...formData, blockType: value });
+                                                }}
+                                                required
+                                                placeholder="e.g. Painting"
+                                                className="premium-input"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="premium-form-row">
+                                    <div className="payment-field-group flex-1">
+                                        <label className="field-label-premium">START DATE</label>
+                                        <div className="premium-input-wrap">
+                                            <input
+                                                type="date"
+                                                value={formData.startDate}
+                                                onChange={e => setFormData({ ...formData, startDate: e.target.value })}
+                                                required
+                                                className="premium-input"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="payment-field-group flex-1">
+                                        <label className="field-label-premium">END DATE</label>
+                                        <div className="premium-input-wrap">
+                                            <input
+                                                type="date"
+                                                value={formData.endDate}
+                                                onChange={e => setFormData({ ...formData, endDate: e.target.value })}
+                                                required
+                                                className="premium-input"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">STATUS</label>
+                                    <div className="premium-input-wrap">
+                                        <select
+                                            value={formData.status}
+                                            onChange={e => setFormData({ ...formData, status: e.target.value })}
+                                            className="premium-input"
+                                        >
+                                            <option value="Blocked">Blocked</option>
+                                            <option value="In Progress">In Progress</option>
+                                            <option value="Completed">Completed</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">REASON/NOTES</label>
+                                    <div className="premium-input-wrap">
+                                        <textarea
+                                            value={formData.reason}
+                                            onChange={e => setFormData({ ...formData, reason: e.target.value })}
+                                            rows="3"
+                                            placeholder="Enter details..."
+                                            className="premium-input premium-textarea"
+                                        ></textarea>
+                                    </div>
+                                </div>
                             </div>
 
-                            <form onSubmit={handleSubmit}>
-                                <div className="form-row">
-                                    <div className="form-group half">
-                                        <label>Room Number</label>
-                                        <input type="text" value={formData.room} onChange={e => {
-                                            const value = e.target.value.replace(/\D/g, '');
-                                            setFormData({ ...formData, room: value });
-                                        }} required placeholder="e.g. 102" />
-                                    </div>
-                                    <div className="form-group half">
-                                        <label>Block Type</label>
-                                        <input type="text" value={formData.blockType} onChange={e => {
-                                            const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
-                                            setFormData({ ...formData, blockType: value });
-                                        }} required placeholder="e.g. Painting" />
-                                    </div>
-                                </div>
-
-                                <div className="form-row">
-                                    <div className="form-group half">
-                                        <label>Start Date</label>
-                                        <input type="date" value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} required />
-                                    </div>
-                                    <div className="form-group half">
-                                        <label>End Date</label>
-                                        <input type="date" value={formData.endDate} onChange={e => setFormData({ ...formData, endDate: e.target.value })} required />
-                                    </div>
-                                </div>
-
-                                <div className="form-group">
-                                    <label>Status</label>
-                                    <select value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })}>
-                                        <option value="Blocked">Blocked</option>
-                                        <option value="In Progress">In Progress</option>
-                                        <option value="Completed">Completed</option>
-                                    </select>
-                                </div>
-
-                                <div className="form-group">
-                                    <label>Reason/Notes</label>
-                                    <textarea
-                                        value={formData.reason}
-                                        onChange={e => setFormData({ ...formData, reason: e.target.value })}
-                                        rows="3"
-                                        placeholder="Enter details..."
-                                    ></textarea>
-                                </div>
-
-                                <div className="modal-footer">
-                                    <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                    <button type="submit" className="btn-primary">{modalMode === 'add' ? 'Add' : 'Update'}</button>
-                                </div>
-                            </form>
-                        </div>
+                            <div className="payment-modal-footer">
+                                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+                                    CANCEL
+                                </button>
+                                <button type="submit" className="btn-primary">
+                                    {modalMode === 'add' ? 'ADD BLOCK' : 'UPDATE BLOCK'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                )
-            }
+                </div>
+            )}
         </div >
     );
 };

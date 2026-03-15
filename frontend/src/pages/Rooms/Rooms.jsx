@@ -555,19 +555,17 @@ const Rooms = () => {
 
             {/* Add Room Modal */}
             {showAddModal && (
-                <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-                    <motion.div
-                        className="modal-content room-modal"
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3 }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="modal-header">
-                            <h2>Add New Room</h2>
-                            <button className="modal-close" onClick={() => setShowAddModal(false)}>
-                                ✕
-                            </button>
+                <div className="add-payment-overlay" onClick={() => setShowAddModal(false)}>
+                    <div className="add-payment-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap">
+                                <span role="img" aria-label="room">🏠</span>
+                            </div>
+                            <div className="header-text">
+                                <h3>Add New Room</h3>
+                                <span>Room Configuration</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={() => setShowAddModal(false)}>×</button>
                         </div>
 
                         {errorMessage && (
@@ -576,173 +574,149 @@ const Rooms = () => {
                             </div>
                         )}
 
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label>ROOM NUMBER *</label>
-                                <input
-                                    type="text"
-                                    className="form-input"
-                                    placeholder="e.g., 101, 102"
-                                    value={formData.roomNumber}
-                                    onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value.replace(/\D/g, '') })}
-                                    style={{
-                                        color: '#000000',
-                                        fontWeight: '700',
-                                        fontSize: '16px',
-                                        opacity: 1,
-                                        WebkitTextFillColor: '#000000',
-                                        backgroundColor: '#ffffff'
-                                    }}
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label>FLOOR *</label>
-                                <select
-                                    className="form-input"
-                                    value={formData.floor || ''}
-                                    onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
-                                    style={{
-                                        color: '#000000',
-                                        fontWeight: '700',
-                                        fontSize: '16px',
-                                        opacity: 1,
-                                        WebkitTextFillColor: '#000000',
-                                        backgroundColor: '#ffffff'
-                                    }}
-                                >
-                                    <option value="" style={{ color: '#000000', fontWeight: '700', backgroundColor: '#ffffff' }}>-- Select Floor --</option>
-                                    {floors.map(floor => (
-                                        <option key={floor._id} value={floor.name} style={{ color: '#000000', fontWeight: '700', backgroundColor: '#ffffff' }}>{floor.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="form-group">
-                                <label>ROOM TYPE *</label>
-                                {!isAddingRoomType ? (
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <select
-                                            className="form-input"
-                                            value={formData.roomType}
-                                            onChange={(e) => setFormData({ ...formData, roomType: e.target.value })}
-                                            style={{
-                                                flex: 1,
-                                                color: '#000000',
-                                                fontWeight: '700',
-                                                fontSize: '16px',
-                                                opacity: 1,
-                                                WebkitTextFillColor: '#000000',
-                                                backgroundColor: '#ffffff'
-                                            }}
-                                        >
-                                            <option value="" style={{ color: '#000000', fontWeight: '700', backgroundColor: '#ffffff' }}>-- Select Room Type --</option>
-                                            {Object.entries(roomTypeCategories).map(([category, types]) => (
-                                                <optgroup key={category} label={category} style={{ color: '#000000', fontWeight: '700', backgroundColor: '#f3f4f6' }}>
-                                                    {types.map(type => (
-                                                        <option key={type} value={type} style={{ color: '#000000', fontWeight: '700', backgroundColor: '#ffffff' }}>{type}</option>
-                                                    ))}
-                                                </optgroup>
-                                            ))}
-                                            {customRoomTypes.length > 0 && (
-                                                <optgroup label="Custom Types" style={{ color: '#000000', fontWeight: '700', backgroundColor: '#f3f4f6' }}>
-                                                    {customRoomTypes.map(type => (
-                                                        <option key={type} value={type} style={{ color: '#000000', fontWeight: '700', backgroundColor: '#ffffff' }}>{type}</option>
-                                                    ))}
-                                                </optgroup>
-                                            )}
-                                        </select>
-                                        <button
-                                            type="button"
-                                            className="add-room-btn"
-                                            onClick={() => setIsAddingRoomType(true)}
-                                            style={{ width: '42px', padding: '0', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                        >
-                                            +
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <div className="add-payment-body">
+                            <form onSubmit={handleSubmit} id="add-room-form">
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">ROOM NUMBER *</label>
+                                    <div className="premium-input-wrapper">
+                                        <div className="input-icon-prefix">🚪</div>
                                         <input
                                             type="text"
-                                            className="form-input"
-                                            placeholder="Enter new room type..."
-                                            value={newRoomType}
-                                            onChange={(e) => setNewRoomType(e.target.value)}
-                                            autoFocus
-                                            style={{ flex: 1 }}
+                                            placeholder="e.g., 101, 102"
+                                            value={formData.roomNumber}
+                                            onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value.replace(/\D/g, '') })}
+                                            required
                                         />
-                                        <button
-                                            type="button"
-                                            className="btn-submit"
-                                            onClick={handleAddRoomType}
-                                            style={{ width: '42px', padding: '0' }}
-                                        >
-                                            ✓
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="btn-cancel"
-                                            onClick={() => { setIsAddingRoomType(false); setNewRoomType(''); }}
-                                            style={{ width: '42px', padding: '0' }}
-                                        >
-                                            ✕
-                                        </button>
                                     </div>
-                                )}
-                            </div>
+                                </div>
 
-                            <div className="form-group">
-                                <label>PRICE PER NIGHT ({cs}) *</label>
-                                <input
-                                    type="number"
-                                    className="form-input"
-                                    placeholder="0"
-                                    value={formData.price}
-                                    onChange={(e) => {
-                                        const val = Math.max(0, Number(e.target.value));
-                                        setFormData({ ...formData, price: val.toString() });
-                                    }}
-                                    style={{
-                                        color: '#000000',
-                                        fontWeight: '700',
-                                        fontSize: '16px',
-                                        opacity: 1,
-                                        WebkitTextFillColor: '#000000',
-                                        backgroundColor: '#ffffff'
-                                    }}
-                                />
-                            </div>
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">FLOOR *</label>
+                                    <div className="premium-input-wrapper">
+                                        <div className="input-icon-prefix">🏢</div>
+                                        <select
+                                            value={formData.floor || ''}
+                                            onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
+                                            required
+                                        >
+                                            <option value="">-- Select Floor --</option>
+                                            {floors.map(floor => (
+                                                <option key={floor._id} value={floor.name}>{floor.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
 
-                            <div className="form-group">
-                                <label>ROOM CAPACITY *</label>
-                                <input
-                                    type="number"
-                                    className="form-input"
-                                    placeholder="1"
-                                    value={formData.capacity}
-                                    onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
-                                    style={{
-                                        color: '#000000',
-                                        fontWeight: '700',
-                                        fontSize: '16px',
-                                        opacity: 1,
-                                        WebkitTextFillColor: '#000000',
-                                        backgroundColor: '#ffffff'
-                                    }}
-                                />
-                            </div>
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">ROOM TYPE *</label>
+                                    <div className="premium-input-wrapper">
+                                        <div className="input-icon-prefix">🛌</div>
+                                        {!isAddingRoomType ? (
+                                            <div style={{ display: 'flex', gap: '8px', flex: 1 }}>
+                                                <select
+                                                    value={formData.roomType}
+                                                    onChange={(e) => setFormData({ ...formData, roomType: e.target.value })}
+                                                    style={{ flex: 1 }}
+                                                    required
+                                                >
+                                                    <option value="">-- Select Room Type --</option>
+                                                    {Object.entries(roomTypeCategories).map(([category, types]) => (
+                                                        <optgroup key={category} label={category}>
+                                                            {types.map(type => (
+                                                                <option key={type} value={type}>{type}</option>
+                                                            ))}
+                                                        </optgroup>
+                                                    ))}
+                                                    {customRoomTypes.length > 0 && (
+                                                        <optgroup label="Custom Types">
+                                                            {customRoomTypes.map(type => (
+                                                                <option key={type} value={type}>{type}</option>
+                                                            ))}
+                                                        </optgroup>
+                                                    )}
+                                                </select>
+                                                <button
+                                                    type="button"
+                                                    className="btn-primary"
+                                                    onClick={() => setIsAddingRoomType(true)}
+                                                    style={{ width: '42px', height: '42px', padding: '0', display: 'flex', alignItems: 'center', justifySelf: 'center', marginTop: '4px', marginRight: '4px', borderRadius: '8px' }}
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', gap: '8px', flex: 1, padding: '4px' }}>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Enter new room type..."
+                                                    value={newRoomType}
+                                                    onChange={(e) => setNewRoomType(e.target.value)}
+                                                    autoFocus
+                                                    style={{ flex: 1 }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="btn-primary"
+                                                    onClick={handleAddRoomType}
+                                                    style={{ width: '36px', height: '36px', padding: '0', borderRadius: '8px' }}
+                                                >
+                                                    ✓
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn-secondary"
+                                                    onClick={() => { setIsAddingRoomType(false); setNewRoomType(''); }}
+                                                    style={{ width: '36px', height: '36px', padding: '0', borderRadius: '8px' }}
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
 
-                            <div className="modal-actions">
-                                <button type="button" className="btn-cancel" onClick={() => setShowAddModal(false)}>
-                                    Cancel
-                                </button>
-                                <button type="submit" className="btn-submit">
-                                    Add Room
-                                </button>
-                            </div>
-                        </form>
-                    </motion.div>
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">PRICE PER NIGHT ({cs}) *</label>
+                                    <div className="premium-input-wrapper">
+                                        <div className="input-icon-prefix">{cs}</div>
+                                        <input
+                                            type="number"
+                                            placeholder="0"
+                                            value={formData.price}
+                                            onChange={(e) => {
+                                                const val = Math.max(0, Number(e.target.value));
+                                                setFormData({ ...formData, price: val.toString() });
+                                            }}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">ROOM CAPACITY *</label>
+                                    <div className="premium-input-wrapper">
+                                        <div className="input-icon-prefix">👥</div>
+                                        <input
+                                            type="number"
+                                            placeholder="1"
+                                            value={formData.capacity}
+                                            onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div className="payment-modal-footer">
+                            <button type="button" className="btn-secondary" onClick={() => setShowAddModal(false)}>
+                                CANCEL
+                            </button>
+                            <button type="submit" form="add-room-form" className="btn-primary">
+                                ADD ROOM
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 

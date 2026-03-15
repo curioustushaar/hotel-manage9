@@ -149,10 +149,14 @@ const RoomDetailsPanel = ({ roomId, isOpen, onClose, onUpdateStatus, onEdit, onQ
                     >
                         {/* Header */}
                         <div className="panel-header">
-                            <div className="header-content">
-                                <h2>ROOM DETAILS – Room {room?.roomNumber || '...'}</h2>
-                                <button className="panel-close-btn" onClick={onClose}>✕</button>
+                            <div className="header-icon-wrap">
+                                <span role="img" aria-label="room">ℹ️</span>
                             </div>
+                            <div className="header-text">
+                                <h2>ROOM DETAILS – Room {room?.roomNumber || '...'}</h2>
+                                <span style={{fontSize: '11px', opacity: 0.9, textTransform: 'uppercase'}}>Live Preview & Actions</span>
+                            </div>
+                            <button className="panel-close-btn" onClick={onClose}>✕</button>
                         </div>
 
                         <div className="panel-body">
@@ -184,10 +188,6 @@ const RoomDetailsPanel = ({ roomId, isOpen, onClose, onUpdateStatus, onEdit, onQ
                                             <div className="info-item">
                                                 <label>Floor</label>
                                                 <span>{room.floor || 'N/A'}</span>
-                                            </div>
-                                            <div className="info-item">
-                                                <label>Bed Type</label>
-                                                <span>{room.bedType || 'Double'}</span>
                                             </div>
                                             <div className="info-item">
                                                 <label>Capacity</label>

@@ -189,58 +189,72 @@ const MealType = () => {
                     <span>Showing {mealTypes.length} Meal Types</span>
                 </div>
             </div>
-
-            {/* Modal */}
+                     {/* Premium Modal */}
             {isModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h3>{modalMode === 'add' ? 'Add Meal Type' : 'Edit Meal Type'}</h3>
-                            <button className="modal-close" onClick={() => setIsModalOpen(false)}>✕</button>
+                <div className="add-payment-overlay">
+                    <div className="add-payment-modal add-meal-premium">
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap">
+                                <span style={{ fontSize: '20px' }}>🍽️</span>
+                            </div>
+                            <div className="header-text">
+                                <h3>{modalMode === 'add' ? 'Add Meal Type' : 'Edit Meal Type'}</h3>
+                                <span>MEAL SETUP</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
                         </div>
-                        <form onSubmit={handleSubmit}>
-                            <div className="modal-body">
-                                <div className="form-group">
-                                    <label>Meal Type Name</label>
-                                    <input
-                                        type="text"
-                                        value={formData.name}
-                                        onChange={(e) => {
-                                            const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
-                                            setFormData({ ...formData, name: value });
-                                        }}
-                                        required
-                                        placeholder="e.g. Continental Plan"
-                                        className="form-input"
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Short Code</label>
-                                    <input
-                                        type="text"
-                                        value={formData.shortCode}
-                                        onChange={(e) => setFormData({ ...formData, shortCode: e.target.value })}
-                                        required
-                                        placeholder="e.g. CP"
-                                        className="form-input"
-                                        style={{ textTransform: 'uppercase' }}
-                                    />
+
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                            <div className="add-payment-body scrollable-modal-body">
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">MEAL TYPE NAME</label>
+                                    <div className="premium-input-wrap">
+                                        <input
+                                            type="text"
+                                            value={formData.name}
+                                            onChange={(e) => {
+                                                const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                                setFormData({ ...formData, name: value });
+                                            }}
+                                            required
+                                            placeholder="e.g. Continental Plan"
+                                            className="premium-input"
+                                            autoFocus
+                                        />
+                                    </div>
                                 </div>
 
-                                <div className="form-group">
-                                    <label>Price</label>
-                                    <input
-                                        type="number"
-                                        value={formData.price}
-                                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                                        placeholder="Enter Price"
-                                        className="form-input"
-                                        min="0"
-                                    />
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">SHORT CODE</label>
+                                    <div className="premium-input-wrap">
+                                        <input
+                                            type="text"
+                                            value={formData.shortCode}
+                                            onChange={(e) => setFormData({ ...formData, shortCode: e.target.value })}
+                                            required
+                                            placeholder="e.g. CP"
+                                            className="premium-input"
+                                            style={{ textTransform: 'uppercase' }}
+                                        />
+                                    </div>
                                 </div>
 
-                                <div className="form-group">
-                                    <label>Included Meals</label>
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">PRICE</label>
+                                    <div className="premium-input-wrap">
+                                        <input
+                                            type="number"
+                                            value={formData.price}
+                                            onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                            placeholder="Enter Price"
+                                            className="premium-input"
+                                            min="0"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">INCLUDED MEALS</label>
                                     <div className="checkbox-group">
                                         {standardMeals.map(meal => (
                                             <label
@@ -260,8 +274,8 @@ const MealType = () => {
                                     </div>
                                 </div>
 
-                                <div className="form-group">
-                                    <label>Chargeable Meals</label>
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">CHARGEABLE MEALS</label>
                                     <div className="checkbox-group">
                                         {standardMeals.map(meal => (
                                             <label
@@ -281,9 +295,14 @@ const MealType = () => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">{modalMode === 'add' ? 'Add' : 'Update'}</button>
+
+                            <div className="payment-modal-footer">
+                                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+                                    CANCEL
+                                </button>
+                                <button type="submit" className="btn-primary">
+                                    {modalMode === 'add' ? 'ADD MEAL' : 'UPDATE MEAL'}
+                                </button>
                             </div>
                         </form>
                     </div>

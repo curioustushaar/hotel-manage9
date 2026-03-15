@@ -1,25 +1,61 @@
 /* Tax Mapping Page */
 .tax-mapping-page {
     padding: 0px 24px 24px 24px;
-    background: #f9fafb;
+    background: #fffafb;
     min-height: 100vh;
+    font-family: 'Poppins', sans-serif;
 }
 
-.tax-mapping-page-header {
+/* Header Section */
+.dining-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 24px;
+    padding-top: 15px;
 }
 
-.tax-mapping-page-header h1 {
-    font-size: 28px;
+.header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.header-content h1 {
+    font-size: 2rem;
     font-weight: 700;
     color: #111827;
-    margin: 0 0 8px 0;
+    margin: 0;
+    line-height: 1.2;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
-.tax-mapping-page-header p {
-    font-size: 14px;
+.subtitle {
     color: #6b7280;
+    font-size: 0.95rem;
     margin: 0;
+}
+
+.add-table-btn {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+    letter-spacing: 0.5px;
+}
+
+.add-table-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(239, 68, 68, 0.3);
 }
 
 /* Main Content Layout - 70/30 Split */
@@ -64,6 +100,313 @@
 /* ====================================
    SIDEBAR (SLIDE-IN FORM)
    ==================================== */
+
+/* Premium Modal Styles */
+.add-payment-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.add-payment-modal {
+    background: white;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(20px) scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+.premium-payment-header {
+    padding: 24px 32px;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    position: relative;
+}
+
+.header-icon-wrap {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(4px);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.header-text h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+}
+
+.header-text span {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+}
+
+.premium-close-btn {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.premium-close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: rotate(90deg);
+}
+
+.add-payment-body {
+    padding: 32px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.scrollable-modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scrollable-modal-body::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+.payment-field-group {
+    margin-bottom: 24px;
+}
+
+.field-label-premium {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+}
+
+.premium-input-wrap {
+    position: relative;
+}
+
+.premium-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    color: #1e293b;
+    transition: all 0.2s;
+    font-family: 'Poppins', sans-serif;
+    box-sizing: border-box;
+}
+
+.premium-input:focus {
+    outline: none;
+    border-color: #ef4444;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
+.premium-textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.premium-form-row {
+    display: flex;
+    gap: 20px;
+}
+
+.flex-1 {
+    flex: 1;
+}
+
+.checkbox-grid-group-premium {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.checkbox-item-premium {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.checkbox-item-premium:hover {
+    background: #f1f5f9;
+}
+
+.checkbox-item-premium.checked {
+    background: #fef2f2;
+    border-color: #ef4444;
+}
+
+.checkbox-item-premium input {
+    accent-color: #ef4444;
+}
+
+.checkbox-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.toggle-label-premium {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+}
+
+.toggle-label-premium span {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.toggle-switch-p {
+    position: relative;
+    width: 44px;
+    height: 24px;
+}
+
+.toggle-switch-p input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider-p {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #cbd5e1;
+    transition: 0.3s;
+    border-radius: 24px;
+}
+
+.toggle-slider-p:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.toggle-switch-p input:checked + .toggle-slider-p {
+    background-color: #10b981;
+}
+
+.toggle-switch-p input:checked + .toggle-slider-p:before {
+    transform: translateX(20px);
+}
+
+.payment-modal-footer {
+    padding: 24px 32px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(239, 68, 68, 0.3);
+}
+
+.btn-secondary {
+    background: white;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    background: #f8fafc;
+    color: #1e293b;
+}
 
 .sidebar-overlay {
     position: fixed;

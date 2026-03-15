@@ -124,47 +124,100 @@ const ExtraCharge = () => {
                 </div>
             )}
 
+            {/* Premium Modal */}
             {isModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h3>{modalMode === 'add' ? 'Add Charge' : 'Edit Charge'}</h3>
-                            <button className="close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
+                <div className="add-payment-overlay">
+                    <div className="add-payment-modal add-charge-premium">
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap">
+                                <span style={{ fontSize: '20px' }}>💰</span>
+                            </div>
+                            <div className="header-text">
+                                <h3>{modalMode === 'add' ? 'Add Charge' : 'Edit Charge'}</h3>
+                                <span>BILLING SETUP</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
                         </div>
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label>Charge Name</label>
-                                <input type="text" value={formData.name} onChange={e => {
-                                    const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
-                                    setFormData({ ...formData, name: value });
-                                }} required />
+
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                            <div className="add-payment-body">
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">CHARGE NAME</label>
+                                    <div className="premium-input-wrap">
+                                        <input
+                                            type="text"
+                                            value={formData.name}
+                                            onChange={e => {
+                                                const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                                setFormData({ ...formData, name: value });
+                                            }}
+                                            required
+                                            placeholder="e.g. Service Charge, Extra Bed"
+                                            className="premium-input"
+                                            autoFocus
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">CHARGE TYPE</label>
+                                    <div className="premium-input-wrap">
+                                        <select
+                                            value={formData.chargeType}
+                                            onChange={e => setFormData({ ...formData, chargeType: e.target.value })}
+                                            className="premium-input"
+                                        >
+                                            <option value="Fixed">Fixed</option>
+                                            <option value="Per Night">Per Night</option>
+                                            <option value="Per Item">Per Item</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">AMOUNT ({cs})</label>
+                                    <div className="premium-input-wrap">
+                                        <input
+                                            type="number"
+                                            value={formData.amount}
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                if (val === '' || Number(val) >= 0) {
+                                                    setFormData({ ...formData, amount: val });
+                                                }
+                                            }}
+                                            min="0"
+                                            placeholder="0.00"
+                                            required
+                                            className="premium-input"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">TAX CONFIGURATION</label>
+                                    <div
+                                        className={`modern-checkbox-card ${formData.taxApplicable ? 'active' : ''}`}
+                                        onClick={() => setFormData({ ...formData, taxApplicable: !formData.taxApplicable })}
+                                    >
+                                        <div className="checkbox-card-info">
+                                            <span className="checkbox-card-title">Tax Applicable (GST)</span>
+                                            <span className="checkbox-card-sub">Enable GST calculation for this charge</span>
+                                        </div>
+                                        <div className={`checkbox-custom-wrap ${formData.taxApplicable ? 'checked' : ''}`}>
+                                            {formData.taxApplicable && <span className="check-icon">✓</span>}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label>Charge Type</label>
-                                <select value={formData.chargeType} onChange={e => setFormData({ ...formData, chargeType: e.target.value })}>
-                                    <option value="Fixed">Fixed</option>
-                                    <option value="Per Night">Per Night</option>
-                                    <option value="Per Item">Per Item</option>
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label>Amount ({cs})</label>
-                                <input type="number" value={formData.amount} onChange={e => {
-                                    const val = e.target.value;
-                                    if (val === '' || Number(val) >= 0) {
-                                        setFormData({ ...formData, amount: val });
-                                    }
-                                }} min="0" required />
-                            </div>
-                            <div className="form-group checkbox-group">
-                                <label>
-                                    <input type="checkbox" checked={formData.taxApplicable} onChange={e => setFormData({ ...formData, taxApplicable: e.target.checked })} />
-                                    Tax Applicable (GST)
-                                </label>
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="btn-primary">{modalMode === 'add' ? 'Add' : 'Update'}</button>
+
+                            <div className="payment-modal-footer">
+                                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+                                    CANCEL
+                                </button>
+                                <button type="submit" className="btn-primary">
+                                    {modalMode === 'add' ? 'ADD CHARGE' : 'UPDATE CHARGE'}
+                                </button>
                             </div>
                         </form>
                     </div>

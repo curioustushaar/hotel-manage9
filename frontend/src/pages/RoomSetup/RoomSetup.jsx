@@ -840,54 +840,75 @@ const RoomSetup = () => {
             {/* Add/Edit Modal */}
             {
                 isModalOpen && (
-                    <div className="modal-overlay">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h3>{modalMode === 'add' ? 'Add New Room' : 'Edit Room'}</h3>
-                                <button className="modal-close" onClick={() => setIsModalOpen(false)}>✕</button>
+                <div className="add-payment-overlay" onClick={() => setIsModalOpen(false)}>
+                    <div className="add-payment-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap">
+                                <span role="img" aria-label="room">🏠</span>
                             </div>
-                            <form onSubmit={handleSubmit}>
-                                <div className="modal-body">
-                                    <div className="form-group">
-                                        <label>Room Number</label>
+                            <div className="header-text">
+                                <h3>{modalMode === 'add' ? 'Add New Room' : 'Edit Room'}</h3>
+                                <span>Room Configuration</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={() => setIsModalOpen(false)}>×</button>
+                        </div>
+                        <div className="add-payment-body">
+                            <form onSubmit={handleSubmit} id="room-setup-form">
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">ROOM NUMBER *</label>
+                                    <div className="premium-input-wrapper">
+                                        <div className="input-icon-prefix">🚪</div>
                                         <input
                                             type="text"
                                             name="roomNumber"
                                             value={formData.roomNumber}
                                             onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value.replace(/\D/g, '') })}
                                             required
-                                            className="form-input"
+                                            placeholder="e.g., 101, 102"
                                         />
                                     </div>
-                                    <div className="form-group">
-                                        <label>Floor</label>
-                                        <select name="floor" value={formData.floor} onChange={handleInputChange} className="form-input">
-                                            <option value="">Select Floor</option>
-                                            {floors.map(floor => {
-                                                const currentCount = rooms.filter(r => r.floor === floor.name).length;
-                                                const isFull = currentCount >= floor.roomCount;
-                                                // Disable if full, UNLESS we are in edit mode and this is the room's current floor
-                                                const isDisabled = isFull && !(modalMode === 'edit' && currentRoom?.floor === floor.name);
+                                </div>
 
-                                                return (
-                                                    <option key={floor._id} value={floor.name} disabled={isDisabled}>
-                                                        {floor.name} {isDisabled ? '(Full)' : `(${currentCount}/${floor.roomCount})`}
-                                                    </option>
-                                                );
-                                            })}
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">FLOOR *</label>
+                                    <div className="premium-input-wrapper">
+                                        <div className="input-icon-prefix">🏢</div>
+                                        <select
+                                            name="floor"
+                                            value={formData.floor}
+                                            onChange={handleInputChange}
+                                            required
+                                        >
+                                            <option value="">-- Select Floor --</option>
+                                            {floors.map(floor => (
+                                                <option key={floor._id} value={floor.name}>{floor.name}</option>
+                                            ))}
                                         </select>
                                     </div>
-                                    <div className="form-group">
-                                        <label>Room Type</label>
-                                        <select name="roomType" value={formData.roomType} onChange={handleInputChange} className="form-input">
-                                            <option value="">Select Room Type</option>
+                                </div>
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">ROOM TYPE *</label>
+                                    <div className="premium-input-wrapper">
+                                        <div className="input-icon-prefix">🛌</div>
+                                        <select
+                                            name="roomType"
+                                            value={formData.roomType}
+                                            onChange={handleInputChange}
+                                            required
+                                        >
+                                            <option value="">-- Select Room Type --</option>
                                             {roomTypes.map(type => (
                                                 <option key={type._id} value={type.name}>{type.name}</option>
                                             ))}
                                         </select>
                                     </div>
-                                    <div className="form-group">
-                                        <label>Capacity</label>
+                                </div>
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">ROOM CAPACITY *</label>
+                                    <div className="premium-input-wrapper">
+                                        <div className="input-icon-prefix">👥</div>
                                         <input
                                             type="number"
                                             name="capacity"
@@ -895,97 +916,84 @@ const RoomSetup = () => {
                                             onChange={handleInputChange}
                                             required
                                             min="1"
-                                            className="form-input"
+                                            placeholder="2"
                                         />
                                     </div>
-                                    <div className="form-group">
-                                        <label>Base Price</label>
+                                </div>
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">BASE PRICE ({cs}) *</label>
+                                    <div className="premium-input-wrapper">
+                                        <div className="input-icon-prefix">{cs}</div>
                                         <input
                                             type="number"
                                             name="basePrice"
                                             value={formData.basePrice}
-                                            onChange={(e) => {
-                                                const val = Math.max(0, Number(e.target.value));
-                                                setFormData({ ...formData, basePrice: val.toString() });
-                                            }}
+                                            onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })}
                                             required
-                                            className="form-input"
+                                            placeholder="0"
                                         />
                                     </div>
+                                </div>
 
-                                    {/* PHASE 2 UPGRADE: Enterprise-level fields */}
-                                    <div className="enterprise-fields-section">
-                                        <div className="section-divider">
-                                            <span className="section-title">Room Details</span>
-                                        </div>
-
-                                        <div className="form-row">
-                                            <div className="form-group">
-                                                <label>Room View Type</label>
-                                                <select
-                                                    name="roomViewType"
-                                                    value={formData.roomViewType}
-                                                    onChange={handleInputChange}
-                                                    className="form-input"
-                                                >
-                                                    <option value="Sea View">Sea View</option>
-                                                    <option value="City View">City View</option>
-                                                    <option value="Garden View">Garden View</option>
-                                                    <option value="Pool View">Pool View</option>
-                                                    <option value="Mountain View">Mountain View</option>
-                                                </select>
-                                            </div>
-
-                                            <div className="form-group">
-                                                <label>Smoking Policy</label>
-                                                <select
-                                                    name="smokingPolicy"
-                                                    value={formData.smokingPolicy}
-                                                    onChange={handleInputChange}
-                                                    className="form-input"
-                                                >
-                                                    <option value="Non-Smoking">Non-Smoking</option>
-                                                    <option value="Smoking">Smoking</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div className="form-row">
-                                            <div className="form-group">
-                                                <label>Room Size</label>
-                                                <div className="input-with-suffix">
-                                                    <input
-                                                        type="number"
-                                                        name="roomSize"
-                                                        value={formData.roomSize}
-                                                        onChange={handleInputChange}
-                                                        min="0"
-                                                        className="form-input"
-                                                    />
-                                                    <span className="input-suffix">sq ft</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label>Status</label>
-                                        <select name="status" value={formData.status} onChange={handleInputChange} className="form-input">
-                                            <option value="Available">Available</option>
-                                            <option value="Booked">Booked</option>
-                                            <option value="Occupied">Occupied</option>
-                                            <option value="Under Maintenance">Under Maintenance</option>
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">ROOM VIEW TYPE</label>
+                                    <div className="premium-input-wrapper">
+                                        <div className="input-icon-prefix">🌅</div>
+                                        <select
+                                            name="roomViewType"
+                                            value={formData.roomViewType}
+                                            onChange={handleInputChange}
+                                        >
+                                            <option value="City View">City View</option>
+                                            <option value="Pool View">Pool View</option>
+                                            <option value="Garden View">Garden View</option>
+                                            <option value="Sea View">Sea View</option>
                                         </select>
                                     </div>
                                 </div>
-                                <div className="modal-footer">
-                                    <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                    <button type="submit" className="btn btn-primary">{modalMode === 'add' ? 'Add Room' : 'Update Room'}</button>
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">SMOKING POLICY</label>
+                                    <div className="premium-input-wrapper">
+                                        <div className="input-icon-prefix">🚭</div>
+                                        <select
+                                            name="smokingPolicy"
+                                            value={formData.smokingPolicy}
+                                            onChange={handleInputChange}
+                                        >
+                                            <option value="Non-Smoking">Non-Smoking</option>
+                                            <option value="Smoking Allowed">Smoking Allowed</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">ROOM SIZE (SQ FT)</label>
+                                    <div className="premium-input-wrapper">
+                                        <div className="input-icon-prefix">📐</div>
+                                        <input
+                                            type="number"
+                                            name="roomSize"
+                                            value={formData.roomSize}
+                                            onChange={handleInputChange}
+                                            placeholder="e.g., 250"
+                                        />
+                                    </div>
                                 </div>
                             </form>
-                        </div >
-                    </div >
-                )
+                        </div>
+                        <div className="payment-modal-footer">
+                            <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+                                CANCEL
+                            </button>
+                            <button type="submit" form="room-setup-form" className="btn-primary">
+                                {modalMode === 'add' ? 'ADD ROOM' : 'UPDATE ROOM'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )
             }
 
             {/* Custom Delete Confirmation Modal */}
