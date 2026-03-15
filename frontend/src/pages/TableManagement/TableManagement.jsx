@@ -558,68 +558,97 @@ const TableManagement = () => {
             {/* Add Table Drawer (Right Side) */}
             {/* Add Table Modal */}
             {showAddTableModal && (
-                <div className="modal-overlay">
-                    <div className="modal-content add-table-modal">
-                        <div className="modal-header">
-                            <h2>Add New Table</h2>
-                            <button className="close-btn" onClick={closeAddTableModal}>×</button>
+                <div className="add-payment-overlay" onClick={closeAddTableModal}>
+                    <div className="add-payment-modal add-table-premium" onClick={(e) => e.stopPropagation()}>
+                        {/* Modern Premium Header */}
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v18M3 12h18"></path></svg>
+                            </div>
+                            <div className="header-text">
+                                <h3>Add New Table</h3>
+                                <span>Create dining capacity</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={closeAddTableModal}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
                         </div>
-                        <div className="modal-body">
-                            <div className="form-group">
-                                <label>TABLE NAME/NUMBER</label>
-                                <input
-                                    type="text"
-                                    className="form-input"
-                                    placeholder="e.g., T15, VIP-1"
-                                    value={newTableData.tableName}
-                                    onChange={(e) => setNewTableData({ ...newTableData, tableName: e.target.value })}
-                                />
+
+                        <div className="add-payment-body">
+                            {/* Table Name Field */}
+                            <div className="payment-field-group">
+                                <label className="field-label-premium">TABLE NAME / NUMBER <span className="req-star">*</span></label>
+                                <div className="input-with-icon-premium">
+                                    <span className="field-icon">🍽️</span>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g., T15, VIP-1"
+                                        value={newTableData.tableName}
+                                        onChange={(e) => setNewTableData({ ...newTableData, tableName: e.target.value })}
+                                        className="premium-input-field"
+                                    />
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label>CAPACITY</label>
-                                <input
-                                    type="number"
-                                    className="form-input"
-                                    placeholder="e.g., 4"
-                                    min="1"
-                                    value={newTableData.capacity}
-                                    onChange={(e) => setNewTableData({ ...newTableData, capacity: parseInt(e.target.value) })}
-                                />
+
+                            {/* Capacity Field */}
+                            <div className="payment-field-group">
+                                <label className="field-label-premium">CAPACITY <span className="req-star">*</span></label>
+                                <div className="input-with-icon-premium">
+                                    <span className="field-icon">👥</span>
+                                    <input
+                                        type="number"
+                                        placeholder="e.g., 4"
+                                        min="1"
+                                        value={newTableData.capacity}
+                                        onChange={(e) => setNewTableData({ ...newTableData, capacity: parseInt(e.target.value) })}
+                                        className="premium-input-field"
+                                    />
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label>TABLE TYPE</label>
+
+                            {/* Table Type Field */}
+                            <div className="payment-field-group">
+                                <label className="field-label-premium">TABLE TYPE <span className="req-star">*</span></label>
+
                                 {newTableType === '' ? (
-                                    <div className="type-select-group">
-                                        <div className="custom-type-dropdown" ref={typeDropdownRef}>
+                                    <div className="type-selection-container">
+                                        <div className="custom-premium-select" ref={typeDropdownRef}>
                                             <div
-                                                className="custom-type-dropdown-selected"
+                                                className="select-trigger-premium"
                                                 onClick={() => setShowTypeDropdown(!showTypeDropdown)}
                                             >
-                                                <span>{newTableData.type || 'Select Type'}</span>
-                                                <span className="dropdown-arrow">{showTypeDropdown ? '▲' : '▼'}</span>
+                                                <span>{newTableData.type || 'Select Table Type'}</span>
+                                                <span className="select-arrow">{showTypeDropdown ? '▲' : '▼'}</span>
                                             </div>
+
                                             {showTypeDropdown && (
-                                                <div className="custom-type-dropdown-options">
+                                                <div className="select-dropdown-options-premium">
+                                                    <div
+                                                        className="select-option-premium create-new-type-btn"
+                                                        onClick={() => { setNewTableType(' '); setShowTypeDropdown(false); }}
+                                                    >
+                                                        + CREATE NEW TYPE
+                                                    </div>
                                                     {['General', 'AC', 'Non-AC', 'Garden'].map(type => (
                                                         <div
                                                             key={type}
-                                                            className={`custom-type-option${newTableData.type === type ? ' selected' : ''}`}
+                                                            className={`select-option-premium ${newTableData.type === type ? 'active' : ''}`}
                                                             onClick={() => { setNewTableData({ ...newTableData, type }); setShowTypeDropdown(false); }}
                                                         >
-                                                            <span>{type}</span>
+                                                            {type}
                                                         </div>
                                                     ))}
                                                     {tableTypes.filter(t => !['General', 'AC', 'Non-AC', 'Garden'].includes(t)).map(type => (
                                                         <div
                                                             key={type}
-                                                            className={`custom-type-option${newTableData.type === type ? ' selected' : ''}`}
+                                                            className={`select-option-premium ${newTableData.type === type ? 'active' : ''}`}
+                                                            onClick={() => { setNewTableData({ ...newTableData, type }); setShowTypeDropdown(false); }}
                                                         >
-                                                            <span onClick={() => { setNewTableData({ ...newTableData, type }); setShowTypeDropdown(false); }}>{type}</span>
+                                                            <span>{type}</span>
                                                             <button
                                                                 type="button"
-                                                                className="type-delete-btn"
+                                                                className="type-delete-small"
                                                                 onClick={(e) => { e.stopPropagation(); handleDeleteTableType(type); }}
-                                                                title={`Delete ${type}`}
                                                             >
                                                                 ✕
                                                             </button>
@@ -628,65 +657,48 @@ const TableManagement = () => {
                                                 </div>
                                             )}
                                         </div>
-                                        <button
-                                            type="button"
-                                            className="add-type-btn"
-                                            onClick={() => setNewTableType(' ')}
-                                            title="Add new table type"
-                                        >
-                                            + Add New Type
-                                        </button>
                                     </div>
                                 ) : (
-                                    <div className="type-input-group">
+                                    <div className="new-type-input-group-premium">
                                         <input
                                             type="text"
-                                            className="form-input new-type-input"
-                                            placeholder="Enter new type (e.g., Top Floor, VIP)"
+                                            className="premium-input-field"
+                                            placeholder="Enter new type (e.g. Roof Top)"
                                             value={newTableType.trim()}
                                             onChange={(e) => setNewTableType(e.target.value)}
                                             autoFocus
                                         />
-                                        <button
-                                            type="button"
-                                            className="type-action-btn success"
-                                            onClick={handleAddNewType}
-                                            disabled={!newTableType.trim()}
-                                        >
-                                            ✓
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="type-action-btn cancel"
-                                            onClick={handleCancelNewType}
-                                        >
-                                            ✕
-                                        </button>
-                                    </div>
-                                )}
-                                {newTableType === '' && newTableData.type && (
-                                    <div className="selected-type-info">
-                                        Selected type: <strong>{newTableData.type}</strong>
-                                        {!['General', 'AC', 'Non-AC', 'Garden'].includes(newTableData.type) &&
-                                            !tableTypes.includes(newTableData.type) && (
-                                                <span className="new-type-badge">✨ New Type - Will be added to filter</span>
-                                            )}
-                                    </div>
-                                )}
-                                {newTableType !== '' && (
-                                    <div className="type-hint">
-                                        💡 Create a custom table type. It will automatically appear in the filter dropdown.
+                                        <div className="type-actions-group">
+                                            <button className="action-btn-p success" onClick={handleAddNewType}>✓</button>
+                                            <button className="action-btn-p cancel" onClick={handleCancelNewType}>✕</button>
+                                        </div>
                                     </div>
                                 )}
                             </div>
+
+                            {/* Help Text */}
+                            <div className="premium-help-card">
+                                <div className="help-icon">💡</div>
+                                <div className="help-text">
+                                    Creating specific types helps in filtering your dining dashboard efficiently.
+                                </div>
+                            </div>
                         </div>
-                        <div className="modal-actions">
-                            <button className="btn btn-secondary" onClick={closeAddTableModal}>Cancel</button>
-                            <button className="btn btn-primary" onClick={handleAddTableSubmit}>Create Table</button>
+
+                        {/* Modern Premium Footer */}
+                        <div className="payment-modal-footer">
+                            <button className="btn-secondary" onClick={closeAddTableModal}>
+                                Cancel
+                            </button>
+                            <button className="btn-primary" onClick={handleAddTableSubmit}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+                                Create Table
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
+
 
             {/* Reservation Creation Modal */}
             {showReservationModal && selectedTableForReservation && (
@@ -703,54 +715,97 @@ const TableManagement = () => {
                     table={selectedTableForList}
                     onClose={() => setShowReservationListModal(false)}
                     onCancel={handleCancelReservation}
+                    onAdd={() => {
+                        setShowReservationListModal(false);
+                        handleMenuAction('Reserve Table', selectedTableForList);
+                    }}
                 />
             )}
 
             {/* Split Modal */}
             {showSplitModal && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h2>Split Table {tables.find(t => t._id === splitTableId)?.tableName}</h2>
-                            <button className="close-btn" onClick={() => setShowSplitModal(false)}>×</button>
-                        </div>
-                        <div className="form-group">
-                            <label>Split Into</label>
-                            <select className="form-select" value={splitParts} onChange={handleSplitPartsChange}>
-                                <option value={2}>2 Parts</option>
-                                <option value={3}>3 Parts</option>
-                                <option value={4}>4 Parts</option>
-                            </select>
-                        </div>
-                        <div className="sub-tables-container">
-                            <div className="sub-table-header">
-                                <span>Sub Table</span>
-                                <span>Capacity</span>
-                                <span>Waiter</span>
+                <div className="add-payment-overlay" onClick={() => setShowSplitModal(false)}>
+                    <div className="add-payment-modal split-table-premium" onClick={(e) => e.stopPropagation()}>
+                        {/* Modern Premium Header */}
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 2a2 2 0 0 0-2 2v5H4a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h5v5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-5h5a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-5V4a2 2 0 0 0-2-2h-2z"></path></svg>
                             </div>
-                            {splitSubTables.map((sub, index) => (
-                                <div key={index} className="sub-table-row">
-                                    <div className="sub-table-display">{sub.name}</div>
-                                    <input
-                                        type="number"
-                                        className="form-input"
-                                        value={sub.guests}
-                                        min="1"
-                                        onChange={(e) => handleSubTableChange(index, 'guests', parseInt(e.target.value))}
-                                    />
-                                    <select
-                                        className="form-select"
-                                        value={sub.waiter}
-                                        onChange={(e) => handleSubTableChange(index, 'waiter', e.target.value)}
+                            <div className="header-text">
+                                <h3>Split Table - {tables.find(t => t._id === splitTableId)?.tableName}</h3>
+                                <span>TABLE CONFIGURATION</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={() => setShowSplitModal(false)}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+
+                        <div className="add-payment-body">
+                            {/* Capacity Info */}
+                            <div className="split-info-card">
+                                <div className="info-item">
+                                    <span className="label">Total Capacity</span>
+                                    <span className="value">{tables.find(t => t._id === splitTableId)?.capacity || 0}</span>
+                                </div>
+                                <div className="info-divider"></div>
+                                <div className="info-item">
+                                    <span className="label">Current Guests</span>
+                                    <span className="value">{tables.find(t => t._id === splitTableId)?.guests || 0}</span>
+                                </div>
+                            </div>
+
+                            {/* Split Configuration */}
+                            <div className="payment-field-group">
+                                <label className="field-label-premium">SPLIT INTO</label>
+                                <div className="input-with-icon-premium">
+                                    <span className="field-icon">🔗</span>
+                                    <select 
+                                        className="premium-input-field" 
+                                        value={splitParts} 
+                                        onChange={handleSplitPartsChange}
+                                        style={{ appearance: 'none', paddingLeft: '40px' }}
                                     >
-                                        {waiters.map(w => <option key={w} value={w}>{w}</option>)}
+                                        <option value={2}>2 Sub-tables</option>
+                                        <option value={3}>3 Sub-tables</option>
+                                        <option value={4}>4 Sub-tables</option>
                                     </select>
                                 </div>
-                            ))}
+                            </div>
+
+                            {/* Sub Tables Grid */}
+                            <div className="sub-tables-premium-container">
+                                {splitSubTables.map((sub, index) => (
+                                    <div key={index} className="sub-table-premium-row">
+                                        <div className="sub-name-tag">{sub.name}</div>
+                                        <div className="sub-field-group">
+                                            <input
+                                                type="number"
+                                                className="sub-input-premium"
+                                                value={sub.guests}
+                                                min="1"
+                                                onChange={(e) => handleSubTableChange(index, 'guests', parseInt(e.target.value))}
+                                                placeholder="Seats"
+                                            />
+                                        </div>
+                                        <div className="sub-field-group">
+                                            <select
+                                                className="sub-select-premium"
+                                                value={sub.waiter}
+                                                onChange={(e) => handleSubTableChange(index, 'waiter', e.target.value)}
+                                            >
+                                                {waiters.map(w => <option key={w} value={w}>{w}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                        <div className="modal-actions">
-                            <button className="btn btn-secondary" onClick={() => setShowSplitModal(false)}>Cancel</button>
-                            <button className="btn btn-primary" onClick={handleSplitSubmit}>Split Table</button>
+
+                        <div className="payment-modal-footer">
+                            <button className="btn-secondary" onClick={() => setShowSplitModal(false)}>CANCEL</button>
+                            <button className="btn-primary" onClick={handleSplitSubmit}>
+                                <span>CONFIRM SPLIT</span>
+                            </button>
                         </div>
                     </div>
                 </div>

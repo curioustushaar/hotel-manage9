@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API_URL from '../../config/api';
 import { useSettings } from '../../context/SettingsContext';
+import ReservationListModal from '../../components/ReservationListModal';
 import './GuestMealService.css';
 
 // MenuItem helper component for premium feel
@@ -1486,309 +1487,241 @@ const GuestMealService = () => {
                 )
             }
 
-            {/* Add Table Modal */}
+            {/* Add Table Modal (Premium Drawer Style) */}
             {showAddTableModal && (
-                <div
-                    style={{
-                        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                        background: 'rgba(0,0,0,0.5)', zIndex: 1000,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        backdropFilter: 'blur(4px)'
-                    }}
-                    onClick={() => setShowAddTableModal(false)}
-                >
-                    <div
-                        style={{
-                            background: 'white', borderRadius: '16px', width: '420px', maxWidth: '92vw',
-                            boxShadow: '0 20px 60px rgba(0,0,0,0.2)', overflow: 'visible'
-                        }}
-                        onClick={e => e.stopPropagation()}
-                    >
-                        {/* Header */}
-                        <div style={{
-                            padding: '20px 24px', borderBottom: '1px solid #f0f0f0',
-                            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                        }}>
-                            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#111827' }}>Add New Table</h2>
-                            <button
-                                onClick={() => setShowAddTableModal(false)}
-                                style={{
-                                    background: '#f3f4f6', border: 'none', width: '32px', height: '32px',
-                                    borderRadius: '8px', fontSize: '16px', cursor: 'pointer', color: '#6b7280',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s'
-                                }}
-                                onMouseEnter={e => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.color = '#ef4444'; }}
-                                onMouseLeave={e => { e.currentTarget.style.background = '#f3f4f6'; e.currentTarget.style.color = '#6b7280'; }}
-                            >✕</button>
+                <div className="add-payment-overlay" onClick={() => setShowAddTableModal(false)}>
+                    <div className="add-payment-modal add-table-premium" onClick={e => e.stopPropagation()}>
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="3" y1="9" x2="21" y2="9"></line>
+                                    <line x1="9" y1="21" x2="9" y2="9"></line>
+                                </svg>
+                            </div>
+                            <div className="header-text">
+                                <h3>Add New Table</h3>
+                                <span>Restaurant Setup</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={() => setShowAddTableModal(false)}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
                         </div>
 
-                        {/* Body */}
-                        <div style={{ padding: '24px' }}>
+                        <div className="add-payment-body">
                             {/* Table Name */}
-                            <div style={{ marginBottom: '18px' }}>
-                                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.8rem', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                    Table Name / Number
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g., T15, VIP-1"
-                                    value={newTableData.tableName}
-                                    onChange={e => setNewTableData({ ...newTableData, tableName: e.target.value })}
-                                    style={{
-                                        width: '100%', padding: '11px 14px', borderRadius: '10px',
-                                        border: '1.5px solid #e5e7eb', fontSize: '0.95rem', outline: 'none',
-                                        transition: 'border-color 0.2s', boxSizing: 'border-box'
-                                    }}
-                                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
-                                    onBlur={e => e.target.style.borderColor = '#e5e7eb'}
-                                />
+                            <div className="payment-field-group">
+                                <label className="field-label-premium">Table Name / Number</label>
+                                <div className="input-with-icon-premium">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                                    <input
+                                        type="text"
+                                        className="premium-input-field"
+                                        placeholder="e.g., T15, VIP-1"
+                                        value={newTableData.tableName}
+                                        onChange={e => setNewTableData({ ...newTableData, tableName: e.target.value })}
+                                    />
+                                </div>
                             </div>
 
                             {/* Capacity */}
-                            <div style={{ marginBottom: '18px' }}>
-                                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.8rem', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                    Capacity
-                                </label>
-                                <input
-                                    type="number"
-                                    placeholder="e.g., 4"
-                                    min="1"
-                                    value={newTableData.capacity}
-                                    onChange={e => setNewTableData({ ...newTableData, capacity: e.target.value })}
-                                    style={{
-                                        width: '100%', padding: '11px 14px', borderRadius: '10px',
-                                        border: '1.5px solid #e5e7eb', fontSize: '0.95rem', outline: 'none',
-                                        transition: 'border-color 0.2s', boxSizing: 'border-box'
-                                    }}
-                                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
-                                    onBlur={e => e.target.style.borderColor = '#e5e7eb'}
-                                />
+                            <div className="payment-field-group">
+                                <label className="field-label-premium">Table Capacity</label>
+                                <div className="input-with-icon-premium">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                                    <input
+                                        type="number"
+                                        className="premium-input-field"
+                                        placeholder="Number of seats"
+                                        min="1"
+                                        value={newTableData.capacity}
+                                        onChange={e => setNewTableData({ ...newTableData, capacity: e.target.value })}
+                                    />
+                                </div>
                             </div>
 
                             {/* Table Type */}
-                            <div style={{ marginBottom: '24px' }}>
-                                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 600, fontSize: '0.8rem', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                    Table Type
-                                </label>
-                                {!isAddingTableType ? (
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
-                                        <div ref={typeDropdownRef} style={{ flex: 1, position: 'relative' }}>
+                            <div className="payment-field-group">
+                                <label className="field-label-premium">Environment / Type</label>
+                                <div className="type-selection-container">
+                                    {!isAddingTableType ? (
+                                        <div className="custom-premium-select" ref={typeDropdownRef}>
                                             <div
+                                                className={`select-trigger-premium ${showTypeDropdown ? 'active' : ''}`}
                                                 onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-                                                style={{
-                                                    padding: '11px 14px', borderRadius: '10px',
-                                                    border: showTypeDropdown ? '1.5px solid #3b82f6' : '1.5px solid #e5e7eb',
-                                                    background: 'white', cursor: 'pointer',
-                                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                    transition: 'border-color 0.2s'
-                                                }}
                                             >
-                                                <span style={{ color: newTableData.type ? '#111827' : '#9ca3af', fontSize: '0.95rem' }}>
-                                                    {newTableData.type || 'Select Type'}
-                                                </span>
-                                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ transform: showTypeDropdown ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
-                                                    <path d="M2 4L6 8L10 4" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                                </svg>
+                                                <div className="trigger-content">
+                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                                                    <span>{newTableData.type || 'Select Table Type'}</span>
+                                                </div>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ transform: showTypeDropdown ? 'rotate(180deg)' : 'none', transition: '0.3s' }}><polyline points="6 9 12 15 18 9"></polyline></svg>
                                             </div>
+
                                             {showTypeDropdown && (
-                                                <div style={{
-                                                    position: 'absolute', top: 'calc(100% + 6px)',
-                                                    left: 0, right: 0, background: 'white',
-                                                    border: '1px solid #e5e7eb', borderRadius: '12px',
-                                                    boxShadow: '0 12px 36px rgba(0,0,0,0.15)',
-                                                    zIndex: 9999, maxHeight: '220px', overflowY: 'auto',
-                                                    padding: '4px'
-                                                }}>
-                                                    {tableTypes.map(type => {
-                                                        const isDefault = ['General', 'AC', 'Non-AC', 'Garden'].includes(type);
-                                                        const isSelected = newTableData.type === type;
-                                                        return (
+                                                <div className="select-dropdown-options-premium">
+                                                    {tableTypes.map(type => (
+                                                        <div
+                                                            key={type}
+                                                            className={`select-option-premium ${newTableData.type === type ? 'selected' : ''}`}
+                                                            onClick={() => {
+                                                                setNewTableData({ ...newTableData, type });
+                                                                setShowTypeDropdown(false);
+                                                            }}
+                                                        >
+                                                            <span>{type}</span>
                                                             <div
-                                                                key={type}
-                                                                style={{
-                                                                    padding: '9px 12px', cursor: 'pointer',
-                                                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                                    borderRadius: '8px', margin: '1px 0',
-                                                                    background: isSelected ? '#eff6ff' : 'transparent',
-                                                                    color: isSelected ? '#2563eb' : '#374151',
-                                                                    fontWeight: isSelected ? 600 : 400,
-                                                                    fontSize: '0.93rem', transition: 'all 0.12s'
+                                                                className="type-delete-small"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setTableTypes(tableTypes.filter(t => t !== type));
+                                                                    if (newTableData.type === type) {
+                                                                        setNewTableData({ ...newTableData, type: '' });
+                                                                    }
                                                                 }}
-                                                                onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = '#f9fafb'; }}
-                                                                onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
                                                             >
-                                                                <span
-                                                                    style={{ flex: 1 }}
-                                                                    onClick={() => { setNewTableData({ ...newTableData, type }); setShowTypeDropdown(false); }}
-                                                                >
-                                                                    {isSelected && <span style={{ marginRight: '6px' }}>✓</span>}
-                                                                    {type}
-                                                                </span>
-                                                                <span
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setTableTypes(tableTypes.filter(t => t !== type));
-                                                                        if (newTableData.type === type) {
-                                                                            setNewTableData({ ...newTableData, type: '' });
-                                                                        }
-                                                                    }}
-                                                                    style={{
-                                                                        width: '24px', height: '24px', display: 'flex',
-                                                                        alignItems: 'center', justifyContent: 'center',
-                                                                        borderRadius: '6px', color: '#d1d5db',
-                                                                        fontSize: '13px', cursor: 'pointer',
-                                                                        transition: 'all 0.15s', flexShrink: 0
-                                                                    }}
-                                                                    onMouseEnter={e => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.color = '#ef4444'; }}
-                                                                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#d1d5db'; }}
-                                                                    title={`Delete "${type}"`}
-                                                                >✕</span>
+                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                                                             </div>
-                                                        );
-                                                    })}
+                                                        </div>
+                                                    ))}
+                                                    <button
+                                                        className="add-new-type-action-btn"
+                                                        onClick={() => setIsAddingTableType(true)}
+                                                    >
+                                                        + Create New Type
+                                                    </button>
                                                 </div>
                                             )}
                                         </div>
-                                        <button
-                                            onClick={() => setIsAddingTableType(true)}
-                                            style={{
-                                                padding: '0 14px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                                                color: 'white', border: 'none', borderRadius: '10px',
-                                                cursor: 'pointer', fontSize: '18px', fontWeight: 600,
-                                                transition: 'all 0.15s', boxShadow: '0 2px 8px rgba(59,130,246,0.3)'
-                                            }}
-                                            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                                            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-                                            title="Add New Type"
-                                        >+</button>
-                                    </div>
-                                ) : (
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter new type..."
-                                            value={newTableType}
-                                            onChange={e => setNewTableType(e.target.value)}
-                                            autoFocus
-                                            style={{
-                                                flex: 1, padding: '11px 14px', borderRadius: '10px',
-                                                border: '1.5px solid #3b82f6', fontSize: '0.95rem', outline: 'none',
-                                                boxSizing: 'border-box'
-                                            }}
-                                        />
-                                        <button
-                                            onClick={handleAddTableType}
-                                            style={{
-                                                padding: '0 14px', background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                                                color: 'white', border: 'none', borderRadius: '10px',
-                                                cursor: 'pointer', fontSize: '16px', fontWeight: 600,
-                                                boxShadow: '0 2px 8px rgba(34,197,94,0.3)'
-                                            }}
-                                        >✓</button>
-                                        <button
-                                            onClick={() => setIsAddingTableType(false)}
-                                            style={{
-                                                padding: '0 14px', background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                                                color: 'white', border: 'none', borderRadius: '10px',
-                                                cursor: 'pointer', fontSize: '14px', fontWeight: 600,
-                                                boxShadow: '0 2px 8px rgba(239,68,68,0.3)'
-                                            }}
-                                        >✕</button>
-                                    </div>
-                                )}
+                                    ) : (
+                                        <div className="new-type-input-group-premium">
+                                            <input
+                                                type="text"
+                                                className="premium-input-field"
+                                                placeholder="New type name..."
+                                                value={newTableType}
+                                                onChange={e => setNewTableType(e.target.value)}
+                                                autoFocus
+                                            />
+                                            <button className="action-btn-p confirm" onClick={handleAddTableType}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                            </button>
+                                            <button className="action-btn-p cancel" onClick={() => setIsAddingTableType(false)}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Help Card */}
+                            <div className="premium-help-card">
+                                <div className="help-icon">💡</div>
+                                <div className="help-content">
+                                    <h4>Design Tip</h4>
+                                    <p>Unique table names help waiters identify zones faster. (e.g., Garden-1, Roof-2)</p>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Footer */}
-                        <div style={{
-                            padding: '16px 24px', borderTop: '1px solid #f0f0f0',
-                            display: 'flex', gap: '12px'
-                        }}>
-                            <button
-                                onClick={() => setShowAddTableModal(false)}
-                                style={{
-                                    flex: 1, padding: '12px', background: '#f3f4f6', color: '#374151',
-                                    border: 'none', borderRadius: '10px', cursor: 'pointer',
-                                    fontWeight: 600, fontSize: '0.95rem', transition: 'all 0.15s'
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#e5e7eb'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#f3f4f6'}
-                            >Cancel</button>
-                            <button
-                                onClick={handleCreateTable}
-                                style={{
-                                    flex: 1, padding: '12px',
-                                    background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                                    color: 'white', border: 'none', borderRadius: '10px',
-                                    cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem',
-                                    boxShadow: '0 4px 12px rgba(59,130,246,0.3)', transition: 'all 0.15s'
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-                            >Create Table</button>
+                        <div className="payment-modal-footer">
+                            <button className="btn-secondary" onClick={() => setShowAddTableModal(false)}>
+                                CANCEL
+                            </button>
+                            <button className="btn-primary" onClick={handleCreateTable}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                CREATE TABLE
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
 
+
             {/* Split Table Modal */}
             {
                 showSplitModal && (
-                    <div className="modal-overlay">
-                        <div className="modal-content" style={{ width: '420px', padding: '0', overflow: 'hidden' }}>
-                            <div className="modal-header" style={{ padding: '20px 24px', background: '#fff', borderBottom: '1px solid #f3f4f6' }}>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: '800' }}>Split Table – {tables.find(t => t.tableId === splitTableId)?.tableName}</h2>
-                                <button className="close-btn" onClick={() => setShowSplitModal(false)}>×</button>
+                    <div className="add-payment-overlay" onClick={() => setShowSplitModal(false)}>
+                        <div className="add-payment-modal split-table-premium" onClick={(e) => e.stopPropagation()}>
+                            {/* Modern Premium Header */}
+                            <div className="premium-payment-header">
+                                <div className="header-icon-wrap">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 2a2 2 0 0 0-2 2v5H4a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h5v5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-5h5a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-5V4a2 2 0 0 0-2-2h-2z"></path></svg>
+                                </div>
+                                <div className="header-text">
+                                    <h3>Split Table - {tables.find(t => t.tableId === splitTableId)?.tableName}</h3>
+                                    <span>TABLE CONFIGURATION</span>
+                                </div>
+                                <button className="premium-close-btn" onClick={() => setShowSplitModal(false)}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                </button>
                             </div>
 
-                            <div style={{ padding: '24px' }}>
-                                <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: '20px', fontSize: '0.9rem' }}>
-                                    <span>Capacity: <strong>{tables.find(t => t.tableId === splitTableId)?.capacity}</strong></span>
-                                    <span>Current Guests: <strong>{tables.find(t => t.tableId === splitTableId)?.guests || 0}</strong></span>
+                            <div className="add-payment-body">
+                                {/* Capacity Summary Info */}
+                                <div className="split-info-card">
+                                    <div className="info-item">
+                                        <span className="label">Total Capacity</span>
+                                        <span className="value">{tables.find(t => t.tableId === splitTableId)?.capacity || 0}</span>
+                                    </div>
+                                    <div className="info-divider"></div>
+                                    <div className="info-item">
+                                        <span className="label">Current Guests</span>
+                                        <span className="value">{tables.find(t => t.tableId === splitTableId)?.guests || 0}</span>
+                                    </div>
                                 </div>
 
-                                <div className="form-group" style={{ marginBottom: '20px' }}>
-                                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#4b5563' }}>Split Into</label>
-                                    <select
-                                        className="form-select"
-                                        value={splitParts}
-                                        onChange={handleSplitPartsChange}
-                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                                    >
-                                        <option value={2}>2 Sub-tables</option>
-                                        <option value={3}>3 Sub-tables</option>
-                                        <option value={4}>4 Sub-tables</option>
-                                    </select>
+                                {/* Split Configuration */}
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">SPLIT INTO</label>
+                                    <div className="input-with-icon-premium">
+                                        <span className="field-icon">🔗</span>
+                                        <select
+                                            className="premium-input-field"
+                                            value={splitParts}
+                                            onChange={handleSplitPartsChange}
+                                            style={{ appearance: 'none', paddingLeft: '40px' }}
+                                        >
+                                            <option value={2}>2 Sub-tables</option>
+                                            <option value={3}>3 Sub-tables</option>
+                                            <option value={4}>4 Sub-tables</option>
+                                        </select>
+                                    </div>
                                 </div>
 
-                                <div className="sub-tables-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {/* Sub Tables Grid */}
+                                <div className="sub-tables-premium-container">
                                     {splitSubTables.map((sub, index) => (
-                                        <div key={index} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1.5fr', gap: '8px', alignItems: 'center' }}>
-                                            <div style={{ background: '#f3f4f6', padding: '10px', borderRadius: '6px', fontWeight: '700', textAlign: 'center', fontSize: '0.9rem' }}>{sub.name}</div>
-                                            <input
-                                                type="number"
-                                                className="form-input"
-                                                value={sub.guests}
-                                                min="1"
-                                                onChange={(e) => handleSubTableChange(index, 'guests', parseInt(e.target.value))}
-                                                style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb', textAlign: 'center' }}
-                                            />
-                                            <select
-                                                className="form-select"
-                                                value={sub.waiter}
-                                                onChange={(e) => handleSubTableChange(index, 'waiter', e.target.value)}
-                                                style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e5e7eb' }}
-                                            >
-                                                {waiters.map(w => <option key={w} value={w}>{w}</option>)}
-                                            </select>
+                                        <div key={index} className="sub-table-premium-row">
+                                            <div className="sub-name-tag">{sub.name}</div>
+                                            <div className="sub-field-group">
+                                                <input
+                                                    type="number"
+                                                    className="sub-input-premium"
+                                                    value={sub.guests}
+                                                    min="1"
+                                                    onChange={(e) => handleSubTableChange(index, 'guests', parseInt(e.target.value))}
+                                                    placeholder="Seats"
+                                                />
+                                            </div>
+                                            <div className="sub-field-group">
+                                                <select
+                                                    className="sub-select-premium"
+                                                    value={sub.waiter}
+                                                    onChange={(e) => handleSubTableChange(index, 'waiter', e.target.value)}
+                                                >
+                                                    {waiters.map(w => <option key={w} value={w}>{w}</option>)}
+                                                </select>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
                             </div>
 
-                            <div className="modal-footer" style={{ padding: '16px 24px', background: '#f9fafb', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                                <button className="btn btn-secondary" onClick={() => setShowSplitModal(false)}>Cancel</button>
-                                <button className="btn btn-primary" style={{ background: '#dc2626' }} onClick={handleSplitSubmit}>Confirm Split</button>
+                            <div className="payment-modal-footer">
+                                <button className="btn-secondary" onClick={() => setShowSplitModal(false)}>CANCEL</button>
+                                <button className="btn-primary" onClick={handleSplitSubmit}>
+                                    <span>CONFIRM SPLIT</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -1802,32 +1735,42 @@ const GuestMealService = () => {
             {/* Move Guest Modal */}
             {
                 showMoveModal && moveSourceTable && (
-                    <div className="modal-overlay">
-                        <div className="modal-content" style={{ width: '450px', padding: '0', overflow: 'hidden' }}>
-                            <div className="modal-header" style={{ padding: '20px 24px', background: '#fff', borderBottom: '1px solid #f3f4f6' }}>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: '800' }}>Move Guests</h2>
-                                <button className="close-btn" onClick={() => setShowMoveModal(false)}>×</button>
+                    <div className="add-payment-overlay" onClick={() => setShowMoveModal(false)}>
+                        <div className="add-payment-modal" onClick={(e) => e.stopPropagation()} style={{ width: '420px' }}>
+                            {/* Premium Header */}
+                            <div className="premium-payment-header">
+                                <div className="header-icon-wrap">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                                </div>
+                                <div className="header-text">
+                                    <h3>Move Guests</h3>
+                                    <span>TABLE TRANSFER</span>
+                                </div>
+                                <button className="premium-close-btn" onClick={() => setShowMoveModal(false)}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                </button>
                             </div>
 
-                            <div style={{ padding: '24px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', marginBottom: '24px' }}>
+                            <div className="add-payment-body">
+                                {/* From → To Cards */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
                                     <div style={{ flex: 1, textAlign: 'center' }}>
-                                        <div style={{ fontSize: '0.75rem', color: '#6b7280', textTransform: 'uppercase', marginBottom: '8px', fontWeight: '600' }}>From</div>
-                                        <div style={{ background: '#f9fafb', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-                                            <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#111827' }}>{moveSourceTable.tableName}</div>
-                                            <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '4px' }}>{moveSourceTable.guests} Guests</div>
+                                        <div className="field-label-premium" style={{ marginBottom: '8px' }}>FROM</div>
+                                        <div className="input-with-icon-premium" style={{ justifyContent: 'center', flexDirection: 'column', gap: '4px', padding: '16px 12px' }}>
+                                            <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#111827' }}>{moveSourceTable.tableName}</div>
+                                            <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{moveSourceTable.guests} Guests</div>
                                         </div>
                                     </div>
 
-                                    <div style={{ fontSize: '1.5rem', color: '#dc2626' }}>➞</div>
+                                    <div style={{ fontSize: '1.5rem', color: '#e11d48', fontWeight: '700' }}>→</div>
 
                                     <div style={{ flex: 1, textAlign: 'center' }}>
-                                        <div style={{ fontSize: '0.75rem', color: '#6b7280', textTransform: 'uppercase', marginBottom: '8px', fontWeight: '600' }}>To</div>
-                                        <div style={{ background: '#fff', padding: '0', borderRadius: '12px', border: '2px dashed #dc2626', minHeight: '82px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <div className="field-label-premium" style={{ marginBottom: '8px' }}>TO</div>
+                                        <div style={{ background: '#fff8f1', borderRadius: '16px', border: '2px dashed #e11d48', minHeight: '72px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                             <select
                                                 value={moveTargetTableId}
                                                 onChange={(e) => setMoveTargetTableId(e.target.value)}
-                                                style={{ width: '100%', border: 'none', background: 'transparent', padding: '16px', fontSize: '1.2rem', fontWeight: '800', textAlign: 'center', outline: 'none', color: '#dc2626', cursor: 'pointer' }}
+                                                style={{ width: '100%', border: 'none', background: 'transparent', padding: '16px', fontSize: '1.1rem', fontWeight: '800', textAlign: 'center', outline: 'none', color: '#e11d48', cursor: 'pointer' }}
                                             >
                                                 <option value="">Table?</option>
                                                 {getValidMoveTargets().map(t => (
@@ -1839,55 +1782,58 @@ const GuestMealService = () => {
                                 </div>
 
                                 {moveTargetTableId && (
-                                    <div style={{ background: '#fffbeb', border: '1px solid #fef3c7', padding: '12px', borderRadius: '8px', display: 'flex', gap: '8px', alignItems: 'center', color: '#92400e', fontSize: '0.85rem' }}>
-                                        <span>ℹ️</span> Moving all orders and guests to {tables.find(t => t.tableId === moveTargetTableId)?.tableName}.
+                                    <div style={{ background: '#fffbeb', border: '1px solid #fef3c7', padding: '12px 16px', borderRadius: '12px', display: 'flex', gap: '8px', alignItems: 'center', color: '#92400e', fontSize: '0.85rem', fontWeight: '600' }}>
+                                        <span>ℹ️</span> Moving all orders and guests to <strong style={{ marginLeft: '4px' }}>{tables.find(t => t.tableId === moveTargetTableId)?.tableName}</strong>.
                                     </div>
                                 )}
-                            </div>
 
-                            <div className="modal-footer" style={{ padding: '16px 24px', background: '#f9fafb', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                                <button className="btn btn-secondary" onClick={() => setShowMoveModal(false)}>Cancel</button>
-                                <button
-                                    className="btn btn-primary"
-                                    style={{ background: moveTargetTableId ? '#dc2626' : '#d1d5db', cursor: moveTargetTableId ? 'pointer' : 'not-allowed' }}
-                                    disabled={!moveTargetTableId}
-                                    onClick={handleMoveSubmit}
-                                >
-                                    Confirm Move
-                                </button>
+                                <div className="payment-modal-footer" style={{ margin: '0 -24px -24px', paddingTop: '20px' }}>
+                                    <button className="btn-secondary" onClick={() => setShowMoveModal(false)}>CANCEL</button>
+                                    <button
+                                        className="btn-primary"
+                                        style={{ opacity: moveTargetTableId ? 1 : 0.4 }}
+                                        disabled={!moveTargetTableId}
+                                        onClick={handleMoveSubmit}
+                                    >
+                                        <span>CONFIRM MOVE</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 )
             }
 
-            {/* Reserve Table Modal (Right Side Drawer) */}
+            {/* Reserve Table Modal (Center Premium Dialog) */}
             {
                 showReserveModal && reserveTargetTable && (
-                    <div className="modal-overlay" style={{ justifyContent: 'flex-end', alignItems: 'stretch' }} onClick={() => setShowReserveModal(false)}>
-                        <div className="modal-content" style={{
-                            width: '450px',
-                            height: '100%',
-                            borderRadius: '0',
-                            padding: '0',
-                            overflowY: 'auto',
-                            animation: 'slideInRight 0.3s ease-out',
-                            display: 'flex',
-                            flexDirection: 'column'
-                        }} onClick={e => e.stopPropagation()}>
-                            <div className="modal-header" style={{ padding: '20px 24px', background: '#fff', borderBottom: '1px solid #f3f4f6' }}>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#111827' }}>{reserveFormData.id ? 'Modify' : 'Reserve'} Table – {reserveTargetTable.tableName}</h2>
-                                <button className="close-btn" onClick={() => setShowReserveModal(false)} style={{ fontSize: '1.5rem', color: '#9ca3af' }}>×</button>
+                    <div className="add-payment-overlay" onClick={() => setShowReserveModal(false)}>
+                        <div className="add-payment-modal reserve-table-premium" onClick={(e) => e.stopPropagation()} style={{ width: '480px' }}>
+                            {/* Modern Premium Header */}
+                            <div className="premium-payment-header">
+                                <div className="header-icon-wrap">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                </div>
+                                <div className="header-text">
+                                    <h3>{reserveFormData.id ? 'Modify' : 'Reserve'} Table – {reserveTargetTable.tableName}</h3>
+                                    <span>RESERVATION DETAILS</span>
+                                </div>
+                                <button className="premium-close-btn" onClick={() => setShowReserveModal(false)}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                </button>
                             </div>
 
-                            <div style={{ padding: '24px' }}>
-                                <div className="form-group" style={{ marginBottom: '16px' }}>
-                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#4b5563' }}>Guest Mobile Number</label>
-                                    <div style={{ position: 'relative' }}>
+                            <div className="add-payment-body">
+                                {/* Guest Phone Field */}
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">GUEST MOBILE NUMBER <span className="req-star">*</span></label>
+                                    <div className="input-with-icon-premium">
+                                        <span className="field-icon">📱</span>
                                         <input
-                                            type="tel" className="form-input" placeholder="Enter phone number (10 digits)"
+                                            type="tel"
+                                            placeholder="Enter 10 digit number"
                                             maxLength={10}
-                                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '1rem' }}
+                                            className="premium-input-field"
                                             value={reserveFormData.phone}
                                             onChange={e => {
                                                 const val = e.target.value.replace(/\D/g, '').slice(0, 10);
@@ -1900,41 +1846,51 @@ const GuestMealService = () => {
                                                 setReserveFormData({ ...reserveFormData, phone: val, name: existingName || reserveFormData.name });
                                             }}
                                         />
-                                        <span style={{ position: 'absolute', right: '12px', top: '10px', color: '#9ca3af' }}>🔍</span>
                                     </div>
                                 </div>
 
-                                <div className="form-group" style={{ marginBottom: '16px' }}>
-                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#4b5563' }}>Guest Name</label>
-                                    <input
-                                        type="text" className="form-input" placeholder="Enter guest name (Alphabets only)"
-                                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '1rem' }}
-                                        value={reserveFormData.name}
-                                        onChange={e => {
-                                            if (/^[a-zA-Z\s]*$/.test(e.target.value)) {
-                                                setReserveFormData({ ...reserveFormData, name: e.target.value });
-                                            }
-                                        }}
-                                    />
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                                    <div className="form-group">
-                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#4b5563' }}>Date</label>
+                                {/* Guest Name Field */}
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">GUEST NAME <span className="req-star">*</span></label>
+                                    <div className="input-with-icon-premium">
+                                        <span className="field-icon">👤</span>
                                         <input
-                                            type="date" className="form-input"
-                                            min={new Date().toISOString().split('T')[0]} // Restrict past dates
-                                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                                            value={reserveFormData.date}
-                                            onChange={e => setReserveFormData({ ...reserveFormData, date: e.target.value })}
+                                            type="text"
+                                            placeholder="Enter Guest Name (Alphabets only)"
+                                            className="premium-input-field"
+                                            value={reserveFormData.name}
+                                            onChange={e => {
+                                                if (/^[a-zA-Z\s]*$/.test(e.target.value)) {
+                                                    setReserveFormData({ ...reserveFormData, name: e.target.value });
+                                                }
+                                            }}
                                         />
                                     </div>
-                                    <div className="form-group">
-                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#4b5563' }}>Time (Session)</label>
-                                        <div style={{ position: 'relative' }}>
+                                </div>
+
+                                <div className="payment-row-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                    {/* Date */}
+                                    <div className="payment-field-group" style={{ marginBottom: 0 }}>
+                                        <label className="field-label-premium">DATE <span className="req-star">*</span></label>
+                                        <div className="input-with-icon-premium">
+                                            <span className="field-icon">📅</span>
                                             <input
-                                                type="time" className="form-input"
-                                                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '1rem' }}
+                                                type="date"
+                                                min={new Date().toISOString().split('T')[0]} // Restrict past dates
+                                                className="premium-input-field"
+                                                value={reserveFormData.date}
+                                                onChange={e => setReserveFormData({ ...reserveFormData, date: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Session */}
+                                    <div className="payment-field-group" style={{ marginBottom: 0 }}>
+                                        <label className="field-label-premium">TIME (SESSION) <span className="req-star">*</span></label>
+                                        <div className="premium-time-range">
+                                            <input
+                                                type="time"
+                                                className="time-input"
                                                 value={reserveFormData.startTime}
                                                 onChange={e => {
                                                     const newStart = e.target.value;
@@ -1966,80 +1922,89 @@ const GuestMealService = () => {
                                                     });
                                                 }}
                                             />
-                                            {reserveFormData.endTime && (
-                                                <div style={{ marginTop: '4px', fontSize: '0.75rem', color: '#10b981', fontWeight: '700' }}>
-                                                    Session End: {reserveFormData.endTime}
-                                                </div>
-                                            )}
+                                        </div>
+                                        {reserveFormData.endTime && (
+                                            <div style={{ marginTop: '4px', fontSize: '0.75rem', color: '#10b981', fontWeight: '700' }}>
+                                                Session End: {reserveFormData.endTime}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="payment-row-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '20px' }}>
+                                    {/* Guests Count */}
+                                    <div className="payment-field-group" style={{ marginBottom: 0 }}>
+                                        <label className="field-label-premium">GUESTS COUNT <span className="req-star">*</span></label>
+                                        <div className="input-with-icon-premium">
+                                            <span className="field-icon">👥</span>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                className="premium-input-field"
+                                                value={reserveFormData.guests}
+                                                onChange={e => {
+                                                    const val = e.target.value.replace(/[^0-9]/g, '');
+                                                    setReserveFormData({ ...reserveFormData, guests: val !== '' ? parseInt(val) : '' });
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (['-', '+', 'e', 'E', '.'].includes(e.key)) {
+                                                        e.preventDefault();
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="payment-field-group" style={{ marginBottom: 0 }}>
+                                        <label className="field-label-premium">RESERVATION SOURCE</label>
+                                        <div className="input-with-icon-premium">
+                                            <span className="field-icon">🛎️</span>
+                                            <select
+                                                className="premium-input-field"
+                                                style={{
+                                                    appearance: 'none',
+                                                    background: 'transparent url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%236b7280\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E") no-repeat right 0px center',
+                                                    backgroundSize: '16px',
+                                                    paddingRight: '16px'
+                                                }}
+                                                value={reserveFormData.source}
+                                                onChange={e => setReserveFormData({ ...reserveFormData, source: e.target.value })}
+                                            >
+                                                <option value="Phone">Phone Number</option>
+                                                <option value="Walk-In">Walk In</option>
+                                                <option value="Online">Online</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                                    <div className="form-group">
-                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#4b5563' }}>Guests Count</label>
+                                <div className="payment-field-group" style={{ marginTop: '20px' }}>
+                                    <label className="field-label-premium">SPECIAL NOTE</label>
+                                    <div className="input-with-icon-premium">
+                                        <span className="field-icon">📝</span>
                                         <input
-                                            type="number" className="form-input"
-                                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                                            value={reserveFormData.guests}
-                                            onChange={e => {
-                                                const val = e.target.value.replace(/[^0-9]/g, '');
-                                                setReserveFormData({ ...reserveFormData, guests: val !== '' ? parseInt(val) : '' });
-                                            }}
-                                            onKeyDown={(e) => {
-                                                if (['-', '+', 'e', 'E', '.'].includes(e.key)) {
-                                                    e.preventDefault();
-                                                }
-                                            }}
-                                            min="1"
+                                            type="text"
+                                            placeholder="e.g. Birthday, Anniversary..."
+                                            className="premium-input-field"
+                                            value={reserveFormData.note || ''}
+                                            onChange={e => setReserveFormData({ ...reserveFormData, note: e.target.value })}
                                         />
                                     </div>
-                                    <div className="form-group">
-                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#4b5563' }}>Reservation Source</label>
-                                        <select
-                                            className="form-select"
-                                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '1rem', background: '#fff' }}
-                                            value={reserveFormData.source}
-                                            onChange={e => setReserveFormData({ ...reserveFormData, source: e.target.value })}
-                                        >
-                                            <option value="Phone">Phone Number</option>
-                                            <option value="Walk-In">Walk In</option>
-                                            <option value="Online">Online</option>
-                                        </select>
-                                    </div>
                                 </div>
 
-                                <div className="form-group" style={{ marginBottom: '16px' }}>
-                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#4b5563' }}>Special Note</label>
-                                    <input
-                                        type="text" className="form-input" placeholder="e.g. Birthday"
-                                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                                        value={reserveFormData.note || ''}
-                                        onChange={e => setReserveFormData({ ...reserveFormData, note: e.target.value })}
-                                    />
-                                </div>
-
-                                <div className="form-group" style={{ marginBottom: '24px' }}>
-                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '700', color: '#111827', display: 'flex', justifyContent: 'space-between' }}>
-                                        Advance Payment
-                                        {reserveFormData.advancePayment > 0 && <span style={{ color: '#10b981', fontSize: '0.8rem' }}>Amount Added ✅</span>}
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium" style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                                        ADVANCE PAYMENT
+                                        {reserveFormData.advancePayment > 0 && <span style={{ color: '#10b981', fontSize: '10px' }}>Amount Added ✅</span>}
                                     </label>
-                                    <div style={{ position: 'relative' }}>
-                                        <span style={{ position: 'absolute', left: '12px', top: '10px', color: '#6b7280', fontSize: '1.1rem', fontWeight: '700' }}>{cs}</span>
+                                    <div className="input-with-icon-premium">
+                                        <span className="field-icon" style={{ color: '#059669', background: '#ecfdf5' }}>{cs}</span>
                                         <input
                                             type="number"
-                                            className="form-input"
                                             placeholder="0.00"
-                                            style={{
-                                                width: '100%',
-                                                padding: '12px 12px 12px 32px',
-                                                borderRadius: '12px',
-                                                border: '2px solid #dc2626',
-                                                fontSize: '1.2rem',
-                                                fontWeight: '800',
-                                                color: '#111827',
-                                                background: '#fef2f2'
-                                            }}
+                                            min="0"
+                                            className="premium-input-field has-value"
+                                            style={{ border: '1.5px solid #10b981' }}
                                             value={reserveFormData.advancePayment || ''}
                                             onChange={e => {
                                                 const val = e.target.value.replace(/[^0-9]/g, '');
@@ -2050,10 +2015,9 @@ const GuestMealService = () => {
                                                     e.preventDefault();
                                                 }
                                             }}
-                                            min="0"
                                         />
                                     </div>
-                                    <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: '#6b7280' }}>* Enter the advance amount collected from the guest.</p>
+                                    <p className="hint-text-premium">* Enter the advance amount collected from the guest.</p>
                                 </div>
 
                                 {(() => {
@@ -2068,28 +2032,13 @@ const GuestMealService = () => {
                                     }
                                     return null;
                                 })()}
-                            </div>
 
-                            <div className="modal-footer" style={{ padding: '16px 24px', background: '#f9fafb', borderTop: '1px solid #f3f4f6', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                                <button
-                                    onClick={() => setShowReserveModal(false)}
-                                    style={{
-                                        padding: '10px 20px', border: '1px solid #e5e7eb', borderRadius: '8px',
-                                        background: '#fff', color: '#374151', fontWeight: '600', cursor: 'pointer'
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleReserveSubmit}
-                                    style={{
-                                        padding: '10px 24px', border: 'none', borderRadius: '8px',
-                                        background: '#dc2626', color: '#fff', fontWeight: '700', cursor: 'pointer',
-                                        boxShadow: '0 4px 6px -1px rgba(220, 38, 38, 0.4)'
-                                    }}
-                                >
-                                    {reserveFormData.id ? 'Save Changes' : 'Reserve Table'}
-                                </button>
+                                <div className="payment-modal-footer">
+                                    <button className="btn-secondary" onClick={() => setShowReserveModal(false)}>CANCEL</button>
+                                    <button className="btn-primary" onClick={handleReserveSubmit}>
+                                        <span>{reserveFormData.id ? 'SAVE CHANGES' : 'RESERVE TABLE'}</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2099,24 +2048,34 @@ const GuestMealService = () => {
             {/* Merge Table Modal */}
             {
                 showMergeModal && mergeSourceTable && (
-                    <div className="modal-overlay">
-                        <div className="modal-content" style={{ width: '500px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-                            <div className="modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: '800' }}>Merge Multiple Tables</h2>
-                                <button className="close-btn" onClick={() => setShowMergeModal(false)} style={{ fontSize: '1.5rem', color: '#9ca3af' }}>×</button>
+                    <div className="add-payment-overlay" onClick={() => setShowMergeModal(false)}>
+                        <div className="add-payment-modal" onClick={(e) => e.stopPropagation()} style={{ width: '460px' }}>
+                            {/* Premium Header */}
+                            <div className="premium-payment-header">
+                                <div className="header-icon-wrap">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3M12 8v8M9 12h6"></path></svg>
+                                </div>
+                                <div className="header-text">
+                                    <h3>Merge Multiple Tables</h3>
+                                    <span>TABLE COMBINATION</span>
+                                </div>
+                                <button className="premium-close-btn" onClick={() => setShowMergeModal(false)}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                </button>
                             </div>
 
-                            <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
-                                <div style={{ marginBottom: '20px', padding: '16px', background: '#fef2f2', borderRadius: '12px', border: '1px solid #fee2e2' }}>
-                                    <div style={{ fontSize: '0.9rem', color: '#991b1b', fontWeight: '600' }}>Merging into:</div>
-                                    <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#dc2626' }}>{mergeSourceTable.tableName.replace('_MERGED_', '')}</div>
+                            <div className="add-payment-body" style={{ overflow: 'hidden', flexDirection: 'column', display: 'flex', gap: '16px', padding: '24px', flex: 1, minHeight: 0 }}>
+                                {/* Merging Into badge */}
+                                <div style={{ padding: '14px 16px', background: 'linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%)', borderRadius: '14px', border: '1px solid #fee2e2' }}>
+                                    <div className="field-label-premium" style={{ color: '#991b1b', marginBottom: '4px' }}>MERGING INTO</div>
+                                    <div style={{ fontSize: '1.6rem', fontWeight: '900', color: '#e11d48' }}>{mergeSourceTable.tableName.replace('_MERGED_', '')}</div>
                                 </div>
 
-                                <label style={{ display: 'block', marginBottom: '12px', fontSize: '1rem', fontWeight: '700', color: '#374151' }}>
-                                    Select Tables to Merge:
-                                </label>
+                                {/* Table list label */}
+                                <label className="field-label-premium">SELECT TABLES TO MERGE</label>
 
-                                <div style={{ border: '1px solid #e5e7eb', borderRadius: '12px', padding: '8px', marginBottom: '20px' }}>
+                                {/* Scrollable list */}
+                                <div style={{ border: '2px solid #f1f5f9', borderRadius: '14px', padding: '8px', overflowY: 'auto', maxHeight: '260px', flex: 1 }}>
                                     {tables
                                         .filter(t => t.tableId !== mergeSourceTable.tableId && !t.tableName.startsWith('_MERGED_'))
                                         .map(t => {
@@ -2133,7 +2092,7 @@ const GuestMealService = () => {
                                                     }}
                                                     style={{
                                                         display: 'flex', alignItems: 'center', gap: '12px',
-                                                        padding: '12px', borderRadius: '8px', cursor: 'pointer',
+                                                        padding: '12px 14px', borderRadius: '10px', cursor: 'pointer',
                                                         background: isSelected ? '#fff1f2' : 'transparent',
                                                         border: isSelected ? '1px solid #fecaca' : '1px solid transparent',
                                                         transition: 'all 0.2s ease',
@@ -2141,17 +2100,18 @@ const GuestMealService = () => {
                                                     }}
                                                 >
                                                     <div style={{
-                                                        width: '24px', height: '24px', borderRadius: '6px',
-                                                        border: `2px solid ${isSelected ? '#dc2626' : '#d1d5db'}`,
+                                                        width: '22px', height: '22px', borderRadius: '6px',
+                                                        border: `2px solid ${isSelected ? '#e11d48' : '#d1d5db'}`,
                                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        background: isSelected ? '#dc2626' : '#fff',
+                                                        background: isSelected ? '#e11d48' : '#fff',
+                                                        flexShrink: 0,
                                                         transition: 'all 0.2s ease'
                                                     }}>
-                                                        {isSelected && <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 'bold' }}>✓</span>}
+                                                        {isSelected && <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 'bold' }}>✓</span>}
                                                     </div>
                                                     <div style={{ flex: 1 }}>
-                                                        <div style={{ fontWeight: '700', color: '#111827', fontSize: '1rem' }}>{t.tableName}</div>
-                                                        <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>Capacity: {t.capacity} | Status: {t.status}</div>
+                                                        <div style={{ fontWeight: '700', color: '#111827', fontSize: '0.95rem' }}>{t.tableName}</div>
+                                                        <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>Capacity: {t.capacity} | Status: {t.status}</div>
                                                     </div>
                                                 </div>
                                             );
@@ -2159,36 +2119,33 @@ const GuestMealService = () => {
                                     }
                                 </div>
 
+                                {/* Result summary */}
                                 {mergeSelectedTargetIds.length > 0 && (
-                                    <div style={{ padding: '16px', background: '#f9fafb', borderRadius: '12px', border: '1px solid #f3f4f6' }}>
-                                        <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '4px' }}>Resulting Table Name:</div>
-                                        <div style={{ fontWeight: '800', color: '#111827', fontSize: '1.1rem' }}>
+                                    <div style={{ padding: '14px 16px', background: '#f8fafc', borderRadius: '14px', border: '1px solid #f1f5f9' }}>
+                                        <div className="field-label-premium" style={{ marginBottom: '4px' }}>RESULTING TABLE NAME</div>
+                                        <div style={{ fontWeight: '800', color: '#111827', fontSize: '1rem' }}>
                                             {[mergeSourceTable, ...tables.filter(t => mergeSelectedTargetIds.includes(t.tableId))].map(t => t.tableName.replace('_MERGED_', '')).join(', ')}
                                         </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', alignItems: 'center', borderTop: '1px solid #e5e7eb', paddingTop: '12px' }}>
-                                            <span style={{ color: '#6b7280', fontWeight: '600' }}>Total Capacity:</span>
-                                            <span style={{ fontWeight: '800', color: '#dc2626', fontSize: '1.2rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', alignItems: 'center', borderTop: '1px solid #e5e7eb', paddingTop: '10px' }}>
+                                            <span style={{ color: '#6b7280', fontWeight: '600', fontSize: '0.85rem' }}>Total Capacity:</span>
+                                            <span style={{ fontWeight: '900', color: '#e11d48', fontSize: '1.1rem' }}>
                                                 {mergeSourceTable.capacity + tables.filter(t => mergeSelectedTargetIds.includes(t.tableId)).reduce((sum, t) => sum + (t.capacity || 4), 0)} Persons
                                             </span>
                                         </div>
                                     </div>
                                 )}
-                            </div>
 
-                            <div className="modal-footer" style={{ padding: '20px 24px', background: '#f9fafb', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                                <button className="btn btn-secondary" onClick={() => setShowMergeModal(false)} style={{ padding: '12px 24px', fontSize: '0.95rem' }}>Cancel</button>
-                                <button
-                                    className="btn btn-primary"
-                                    style={{
-                                        background: '#dc2626',
-                                        opacity: mergeSelectedTargetIds.length === 0 ? 0.5 : 1,
-                                        padding: '12px 24px', fontSize: '0.95rem', fontWeight: '700'
-                                    }}
-                                    disabled={mergeSelectedTargetIds.length === 0}
-                                    onClick={handleMergeSubmit}
-                                >
-                                    Merge {mergeSelectedTargetIds.length + 1} Tables
-                                </button>
+                                <div className="payment-modal-footer" style={{ margin: '0 -24px -24px' }}>
+                                    <button className="btn-secondary" onClick={() => setShowMergeModal(false)}>CANCEL</button>
+                                    <button
+                                        className="btn-primary"
+                                        style={{ opacity: mergeSelectedTargetIds.length === 0 ? 0.4 : 1 }}
+                                        disabled={mergeSelectedTargetIds.length === 0}
+                                        onClick={handleMergeSubmit}
+                                    >
+                                        <span>MERGE {mergeSelectedTargetIds.length + 1} TABLES</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2198,136 +2155,57 @@ const GuestMealService = () => {
             {/* Reservation List Modal */}
             {
                 showReservationListModal && reservationListTable && (
-                    <div className="modal-overlay">
-                        <div className="modal-content" style={{ width: '500px', padding: '0', overflow: 'hidden' }}>
-                            <div className="modal-header" style={{ padding: '20px 24px', background: '#fff', borderBottom: '1px solid #f3f4f6' }}>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#111827' }}>Reservations – {reservationListTable.tableName}</h2>
-                                <button className="close-btn" onClick={() => setShowReservationListModal(false)} style={{ fontSize: '1.5rem' }}>×</button>
-                            </div>
-                            <div style={{ padding: '20px 24px', maxHeight: '450px', overflowY: 'auto' }}>
-                                <div className="reservation-search" style={{ position: 'relative', marginBottom: '16px' }}>
-                                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }}>🔍</span>
-                                    <input
-                                        type="text"
-                                        placeholder="Search by name or phone..."
-                                        value={reservationSearchQuery}
-                                        onChange={(e) => setReservationSearchQuery(e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '10px 12px 10px 40px',
-                                            borderRadius: '10px',
-                                            border: '1px solid #e5e7eb',
-                                            fontSize: '0.9rem',
-                                            outline: 'none'
-                                        }}
-                                    />
-                                </div>
-
-                                {(!reservationListTable.reservations || reservationListTable.reservations.length === 0) ? (
-                                    <div style={{ textAlign: 'center', padding: '40px 0', color: '#9ca3af' }}>
-                                        <div style={{ fontSize: '3rem', marginBottom: '10px' }}>📅</div>
-                                        <p>No reservations found for this table.</p>
-                                    </div>
-                                ) : (
-                                    <div className="reservation-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                        {(reservationListTable.reservations || [])
-                                            .filter(res => res && (
-                                                (res.name || '').toLowerCase().includes((reservationSearchQuery || '').toLowerCase()) ||
-                                                (res.phone || '').includes(reservationSearchQuery || '')
-                                            ))
-                                            .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''))
-                                            .map((res, index) => (
-                                                <div key={res.id || index} style={{
-                                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                    padding: '12px 16px', background: '#f9fafb', borderRadius: '12px', border: '1px solid #f3f4f6'
-                                                }}>
-                                                    <div>
-                                                        <div style={{ fontWeight: '700', color: '#111827', fontSize: '1rem' }}>{res.startTime || 'N/A'} - {res.name || 'Guest'}</div>
-                                                        <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                                                            {res.guests || 0} Guests • {res.source || 'Phone'} • {res.phone || 'No Phone'} {res.date && `• ${res.date}`}
-                                                            {res.advancePayment > 0 && <span style={{ color: '#10b981', fontWeight: '800', marginLeft: '8px' }}>• Advance: {cs}{res.advancePayment}</span>}
-                                                        </div>
-                                                        {res.note && <div style={{ fontSize: '0.8rem', color: '#dc2626', marginTop: '4px' }}>Note: {res.note}</div>}
-                                                    </div>
-                                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                                        <button
-                                                            className="action-btn-small"
-                                                            onClick={() => openReserveModal(reservationListTable, res)}
-                                                            style={{ padding: '6px', borderRadius: '6px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer' }}
-                                                        >✏️</button>
-                                                        <button
-                                                            className="action-btn-small"
-                                                            onClick={() => handleCancelReservation(reservationListTable, res.id)}
-                                                            style={{ padding: '6px', borderRadius: '6px', border: '1px solid #fee2e2', background: '#fff', color: '#dc2626', cursor: 'pointer' }}
-                                                        >🗑️</button>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        }
-                                    </div>
-                                )}
-                            </div>
-                            <div className="modal-footer" style={{ padding: '16px 24px', background: '#f9fafb', borderTop: '1px solid #f3f4f6', textAlign: 'right' }}>
-                                <button className="btn btn-secondary" onClick={() => setShowReservationListModal(false)}>Close</button>
-                                <button className="btn btn-primary" style={{ marginLeft: '12px', background: '#dc2626' }} onClick={() => { setShowReservationListModal(false); openReserveModal(reservationListTable); }}>Add New</button>
-                            </div>
-                        </div>
-                    </div>
+                    <ReservationListModal
+                        table={reservationListTable}
+                        onClose={() => setShowReservationListModal(false)}
+                        onCancel={(resId) => handleCancelReservation(reservationListTable, resId)}
+                        onAdd={() => {
+                            setShowReservationListModal(false);
+                            openReserveModal(reservationListTable);
+                        }}
+                    />
                 )
             }
 
-            {/* Verify User Modal (Right Side Drawer) */}
+            {/* Verify User Modal (Premium Center Dialog) */}
             {
                 showVerifyModal && (
-                    <div className="modal-overlay" style={{ justifyContent: 'flex-end', alignItems: 'stretch' }} onClick={() => setShowVerifyModal(false)}>
-                        <div className="modal-content" style={{
-                            width: '450px',
-                            height: '100%',
-                            borderRadius: '0',
-                            padding: '0',
-                            overflowY: 'auto',
-                            animation: 'slideInRight 0.3s ease-out',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            border: 'none',
-                            boxShadow: '-10px 0 30px rgba(0,0,0,0.1)'
-                        }} onClick={e => e.stopPropagation()}>
-                            <div className="modal-header" style={{ padding: '24px', background: '#fff', borderBottom: '1px solid #f3f4f6' }}>
-                                <h2 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#111827', margin: 0 }}>Verify Reservation</h2>
-                                <button className="close-btn" onClick={() => setShowVerifyModal(false)} style={{ fontSize: '1.8rem', color: '#9ca3af', fontWeight: '300' }}>×</button>
+                    <div className="add-payment-overlay" onClick={() => setShowVerifyModal(false)}>
+                        <div className="add-payment-modal" onClick={(e) => e.stopPropagation()} style={{ width: '480px' }}>
+                            {/* Premium Header */}
+                            <div className="premium-payment-header">
+                                <div className="header-icon-wrap">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.41 2 2 0 0 1 3.6 1.23h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                </div>
+                                <div className="header-text">
+                                    <h3>Verify Reservation</h3>
+                                    <span>GUEST PHONE VERIFICATION</span>
+                                </div>
+                                <button className="premium-close-btn" onClick={() => setShowVerifyModal(false)}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                </button>
                             </div>
 
-                            <div style={{ padding: '32px 24px', flex: 1 }}>
-                                <div className="form-group" style={{ marginBottom: '24px' }}>
-                                    <label style={{ display: 'block', marginBottom: '12px', fontWeight: '800', color: '#111827', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Enter Linked Phone Number</label>
-                                    <div style={{ position: 'relative' }}>
+                            <div className="add-payment-body">
+                                {/* Phone Input */}
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">ENTER LINKED PHONE NUMBER <span className="req-star">*</span></label>
+                                    <div className="input-with-icon-premium">
+                                        <span className="field-icon">📱</span>
                                         <input
                                             type="tel"
-                                            className="form-input"
                                             placeholder="e.g. 9876543210"
+                                            className="premium-input-field"
                                             value={verifyPhoneInput}
                                             onChange={(e) => setVerifyPhoneInput(e.target.value)}
-                                            style={{
-                                                width: '100%',
-                                                padding: '16px 20px',
-                                                border: '2px solid #f3f4f6',
-                                                background: '#f9fafb',
-                                                borderRadius: '12px',
-                                                fontSize: '1.1rem',
-                                                fontWeight: '600',
-                                                transition: 'all 0.2s',
-                                                outline: 'none',
-                                                color: '#111827'
-                                            }}
                                             autoFocus
                                         />
-                                        <span style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '1.2rem', opacity: '0.4' }}>🔍</span>
                                     </div>
                                 </div>
 
                                 {(() => {
                                     if (!verifyPhoneInput || verifyPhoneInput.length < 3) return (
-                                        <div style={{ textAlign: 'center', marginTop: '40px', color: '#9ca3af' }}>
+                                        <div style={{ textAlign: 'center', marginTop: '32px', color: '#9ca3af' }}>
                                             <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📱</div>
                                             <div style={{ fontSize: '0.95rem', fontWeight: '600' }}>Waiting for guest phone number...</div>
                                         </div>
@@ -2354,19 +2232,19 @@ const GuestMealService = () => {
                                     if (match) {
                                         return (
                                             <div style={{
-                                                marginTop: '10px',
-                                                padding: '24px',
+                                                marginTop: '16px',
+                                                padding: '20px',
                                                 background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
                                                 borderRadius: '16px',
                                                 border: '1px solid #bbf7d0',
                                                 boxShadow: '0 4px 12px rgba(22, 101, 52, 0.05)'
                                             }}>
-                                                <div style={{ color: '#166534', fontWeight: '900', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>Reservation Found</div>
+                                                <div style={{ color: '#166534', fontWeight: '900', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>✅ Reservation Found</div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                                    <div style={{ fontSize: '1.4rem', fontWeight: '900', color: '#111827' }}>{match.name}</div>
+                                                    <div style={{ fontSize: '1.3rem', fontWeight: '900', color: '#111827' }}>{match.name}</div>
                                                     <div style={{ padding: '6px 12px', background: '#166534', color: '#fff', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '800' }}>Table {matchedTableName}</div>
                                                 </div>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px' }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                                                     <div style={{ background: 'rgba(255,255,255,0.5)', padding: '12px', borderRadius: '10px' }}>
                                                         <div style={{ fontSize: '0.7rem', color: '#166534', fontWeight: '800', textTransform: 'uppercase' }}>Date</div>
                                                         <div style={{ fontWeight: '700', color: '#111827' }}>{match.date}</div>
@@ -2376,7 +2254,7 @@ const GuestMealService = () => {
                                                         <div style={{ fontWeight: '700', color: '#111827' }}>{match.startTime}</div>
                                                     </div>
                                                 </div>
-                                                <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <div style={{ fontSize: '0.9rem', color: '#4b5563', fontWeight: '600' }}>
                                                         Guests: <span style={{ color: '#111827', fontWeight: '800' }}>{match.guests} Persons</span>
                                                     </div>
@@ -2390,7 +2268,7 @@ const GuestMealService = () => {
                                         );
                                     } else if (verifyPhoneInput.length >= 10) {
                                         return (
-                                            <div style={{ marginTop: '20px', padding: '20px', background: '#fff', borderRadius: '16px', border: '2px dashed #fee2e2', color: '#991b1b', fontSize: '0.95rem', textAlign: 'center' }}>
+                                            <div style={{ marginTop: '16px', padding: '20px', background: '#fff', borderRadius: '16px', border: '2px dashed #fee2e2', color: '#991b1b', fontSize: '0.95rem', textAlign: 'center' }}>
                                                 <div style={{ fontSize: '2rem', marginBottom: '8px' }}>❌</div>
                                                 <div style={{ fontWeight: '700' }}>No active reservation found</div>
                                                 <div style={{ fontSize: '0.85rem', opacity: 0.8, marginTop: '4px' }}>Please double check the phone number</div>
@@ -2399,39 +2277,32 @@ const GuestMealService = () => {
                                     }
                                     return null;
                                 })()}
-                            </div>
 
-                            <div className="modal-footer" style={{ padding: '24px', background: '#fff', borderTop: '1px solid #f3f4f6', display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
-                                <button className="btn btn-secondary" style={{ borderRadius: '12px', fontWeight: '800', height: '56px', border: '2px solid #f3f4f6', background: '#fff', color: '#4b5563' }} onClick={() => setShowVerifyModal(false)}>CANCEL</button>
-                                <button
-                                    className="btn btn-primary"
-                                    style={{
-                                        background: '#dc2626',
-                                        borderRadius: '12px',
-                                        fontWeight: '800',
-                                        height: '56px',
-                                        fontSize: '1rem',
-                                        letterSpacing: '0.025em',
-                                        boxShadow: '0 4px 12px rgba(220, 38, 38, 0.2)',
-                                        opacity: (() => {
+                                <div className="payment-modal-footer" style={{ marginTop: '24px' }}>
+                                    <button className="btn-secondary" onClick={() => setShowVerifyModal(false)}>CANCEL</button>
+                                    <button
+                                        className="btn-primary"
+                                        style={{
+                                            opacity: (() => {
+                                                if (verifyTableId) {
+                                                    return tables.find(t => t.tableId === verifyTableId)?.reservations?.some(r => r.phone === verifyPhoneInput) ? 1 : 0.5;
+                                                } else {
+                                                    return tables.some(t => (t.reservations || []).some(r => r.phone === verifyPhoneInput)) ? 1 : 0.5;
+                                                }
+                                            })()
+                                        }}
+                                        onClick={handleVerifyUser}
+                                        disabled={(() => {
                                             if (verifyTableId) {
-                                                return tables.find(t => t.tableId === verifyTableId)?.reservations?.some(r => r.phone === verifyPhoneInput) ? 1 : 0.5;
+                                                return !tables.find(t => t.tableId === verifyTableId)?.reservations?.some(r => r.phone === verifyPhoneInput);
                                             } else {
-                                                return tables.some(t => (t.reservations || []).some(r => r.phone === verifyPhoneInput)) ? 1 : 0.5;
+                                                return !tables.some(t => (t.reservations || []).some(r => r.phone === verifyPhoneInput));
                                             }
-                                        })()
-                                    }}
-                                    onClick={handleVerifyUser}
-                                    disabled={(() => {
-                                        if (verifyTableId) {
-                                            return !tables.find(t => t.tableId === verifyTableId)?.reservations?.some(r => r.phone === verifyPhoneInput);
-                                        } else {
-                                            return !tables.some(t => (t.reservations || []).some(r => r.phone === verifyPhoneInput));
-                                        }
-                                    })()}
-                                >
-                                    VERIFY & OPEN TABLE
-                                </button>
+                                        })()}
+                                    >
+                                        <span>VERIFY &amp; OPEN TABLE</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
