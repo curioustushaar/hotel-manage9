@@ -101,35 +101,66 @@ const BookingSource = () => {
                 </div>
             )}
 
+            {/* Premium Modal */}
             {isModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h3>{modalMode === 'add' ? 'Add Booking Source' : 'Edit Booking Source'}</h3>
-                            <button className="close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
+                <div className="add-payment-overlay">
+                    <div className="add-payment-modal add-source-premium">
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap">
+                                <span style={{ fontSize: '20px' }}>🌐</span>
+                            </div>
+                            <div className="header-text">
+                                <h3>{modalMode === 'add' ? 'Add Booking Source' : 'Edit Booking Source'}</h3>
+                                <span>SOURCE SETUP</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
                         </div>
 
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label>Booking Source</label>
-                                <input type="text" value={formData.name} onChange={e => {
-                                    const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
-                                    setFormData({ ...formData, name: value });
-                                }} required />
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                            <div className="add-payment-body">
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">BOOKING SOURCE</label>
+                                    <div className="premium-input-wrap">
+                                        <input
+                                            type="text"
+                                            value={formData.name}
+                                            onChange={(e) => {
+                                                const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                                setFormData({ ...formData, name: value });
+                                            }}
+                                            required
+                                            placeholder="e.g. Booking.com, Expedia"
+                                            className="premium-input"
+                                            autoFocus
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">TYPE</label>
+                                    <div className="premium-input-wrap">
+                                        <select
+                                            value={formData.type}
+                                            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                            className="premium-input"
+                                        >
+                                            <option value="Direct">Direct</option>
+                                            <option value="OTA">OTA</option>
+                                            <option value="Corporate">Corporate</option>
+                                            <option value="Travel Agent">Travel Agent</option>
+                                            <option value="Referral Source">Referral Source</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label>Type</label>
-                                <select value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })}>
-                                    <option value="Direct">Direct</option>
-                                    <option value="OTA">OTA</option>
-                                    <option value="Corporate">Corporate</option>
-                                    <option value="Travel Agent">Travel Agent</option>
-                                    <option value="Referral Source">Referral Source</option>
-                                </select>
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="btn-primary">{modalMode === 'add' ? 'Add' : 'Update'}</button>
+
+                            <div className="payment-modal-footer">
+                                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+                                    CANCEL
+                                </button>
+                                <button type="submit" className="btn-primary">
+                                    {modalMode === 'add' ? 'ADD SOURCE' : 'UPDATE SOURCE'}
+                                </button>
                             </div>
                         </form>
                     </div>

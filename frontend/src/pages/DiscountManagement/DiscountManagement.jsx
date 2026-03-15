@@ -21,7 +21,7 @@ const DiscountManagement = () => {
     });
     const [formErrors, setFormErrors] = useState({});
     const [openMenuId, setOpenMenuId] = useState(null);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [showModal, setShowModal] = useState(false);
     const [showAppliesTo, setShowAppliesTo] = useState(false);
     const menuRef = useRef(null);
 
@@ -183,11 +183,11 @@ const DiscountManagement = () => {
         setDiscounts(updatedDiscounts);
         saveToLocalStorage(updatedDiscounts);
         handleResetForm();
-        setIsSidebarOpen(false);
+        setShowModal(false);
     };
 
     const handleEditDiscount = (discount) => {
-        setIsSidebarOpen(true);
+        setShowModal(true);
         setSelectedDiscount(discount);
         setIsEditMode(true);
         setFormData({
@@ -205,7 +205,7 @@ const DiscountManagement = () => {
 
     const handleCreateDiscount = () => {
         handleResetForm();
-        setIsSidebarOpen(true);
+        setShowModal(true);
     };
 
     const handleToggleStatus = (id) => {
@@ -262,20 +262,17 @@ const DiscountManagement = () => {
 
     return (
         <div className="discount-management-page">
-            <div className="discount-page-header">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                        <h1>Discount Management</h1>
-                        <p>Manage discount rules and offers for your hotel</p>
-                    </div>
-                    <button
-                        className="btn-save"
-                        onClick={handleCreateDiscount}
-                        style={{ maxWidth: '180px' }}
-                    >
-                        + Create Discount
-                    </button>
+            <div className="dining-header">
+                <div className="header-content">
+                    <h1 className="page-title">Discount Management</h1>
+                    <p className="subtitle">Manage discount rules and offers for your hotel</p>
                 </div>
+                <button
+                    className="add-table-btn"
+                    onClick={handleCreateDiscount}
+                >
+                    + CREATE DISCOUNT
+                </button>
             </div>
 
             <div className="discount-main-layout">
@@ -389,225 +386,218 @@ const DiscountManagement = () => {
                         </table>
                     </div>
                 </div>
-
-                {/* SIDEBAR OVERLAY */}
-                {isSidebarOpen && (
-                    <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)} style={{ opacity: 1 }}></div>
-                )}
-
-                <div className={`discount-sidebar ${isSidebarOpen ? 'open' : ''}`}>
-                    <div className="sidebar-header">
-                        <h2>
-                            <span style={{ color: '#ef4444', marginRight: '8px', fontSize: '24px' }}>+</span>
-                            {isEditMode ? 'Edit Discount' : 'Create Discount'}
-                        </h2>
-                        <button className="close-sidebar-btn" onClick={() => setIsSidebarOpen(false)}>×</button>
-                    </div>
-
-                    <div className="sidebar-content">
-                        <div className="discount-form">
-                            {/* Discount Name */}
-                            <div className="form-group">
-                                <label>Discount Name <span className="required">*</span></label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g., Early Bird Special"
-                                    value={formData.name}
-                                    onChange={(e) => {
-                                        const value = e.target.value;
-                                        if (/^[A-Za-z\s]*$/.test(value)) {
-                                            setFormData({ ...formData, name: value });
-                                        }
-                                    }}
-                                    className={formErrors.name ? 'error' : ''}
-                                />
-                                {formErrors.name && <span className="error-message">{formErrors.name}</span>}
-                            </div>
-
-                            {/* Discount Type */}
-                            <div className="form-group">
-                                <label>Discount Type <span className="required">*</span></label>
-                                <select
-                                    value={formData.type}
-                                    onChange={(e) => setFormData({ ...formData, type: e.target.value, value: '' })}
-                                >
-                                    <option value="PERCENTAGE">Percentage (%)</option>
-                                    <option value="FLAT">Flat Amount ({cs})</option>
-                                </select>
-                            </div>
-
-                            {/* Discount Value */}
-                            <div className="form-group">
-                                <label>
-                                    Discount Value <span className="required">*</span>
-                                    {formData.type === 'PERCENTAGE' && (
-                                        <span className="label-hint">
-                                            (0-{maxDiscountType === 'PERCENTAGE' && maxDiscount > 0 ? maxDiscount : 100}%)
-                                        </span>
-                                    )}
-                                    {formData.type === 'FLAT' && maxDiscountType === 'FLAT' && maxDiscount > 0 && (
-                                        <span className="label-hint"> (Max {cs}{maxDiscount})</span>
-                                    )}
-                                </label>
-                                <div className="input-with-prefix">
-                                    {formData.type === 'FLAT' && <span className="input-prefix">{cs}</span>}
-                                    <input
-                                        type="number"
-                                        placeholder={formData.type === 'PERCENTAGE' ? 'Enter percentage' : 'Enter amount'}
-                                        value={formData.value}
-                                        onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                                        min="0"
-                                        max={
-                                            formData.type === 'PERCENTAGE'
-                                                ? (maxDiscountType === 'PERCENTAGE' && maxDiscount > 0 ? maxDiscount : 100)
-                                                : (maxDiscountType === 'FLAT' && maxDiscount > 0 ? maxDiscount : undefined)
-                                        }
-                                        className={formErrors.value ? 'error' : ''}
-                                    />
-                                    {formData.type === 'PERCENTAGE' && <span className="input-suffix">%</span>}
+                          {/* Centered Premium Modal */}
+                {showModal && (
+                    <div className="add-payment-overlay">
+                        <div className="add-payment-modal add-discount-premium">
+                            <div className="premium-payment-header">
+                                <div className="header-icon-wrap">
+                                    <span style={{ fontSize: '20px' }}>🏷️</span>
                                 </div>
-                                {formErrors.value && <span className="error-message">{formErrors.value}</span>}
+                                <div className="header-text">
+                                    <h3>{isEditMode ? 'Edit Discount' : 'Create Discount'}</h3>
+                                    <span>OFFERS & RULES</span>
+                                </div>
+                                <button className="premium-close-btn" onClick={() => setShowModal(false)}>✕</button>
                             </div>
 
-                            {/* Applies To - Dropdown */}
-                            <div className="form-group">
-                                <label>Applies To <span className="required">*</span></label>
-
-                                {!isAddingApplyTo ? (
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                        <div
-                                            className="applies-to-dropdown"
-                                            onClick={() => setShowAppliesTo(!showAppliesTo)}
-                                            style={{ flex: 1 }}
-                                        >
-                                            <span className="dropdown-text">
-                                                {formData.appliesTo.length > 0
-                                                    ? `${formData.appliesTo.length} selected`
-                                                    : 'Select categories'}
-                                            </span>
-                                            <span className="dropdown-arrow">{showAppliesTo ? '▲' : '▼'}</span>
-                                        </div>
-                                        <button
-                                            className="btn-save"
-                                            onClick={() => setIsAddingApplyTo(true)}
-                                            style={{ width: '42px', padding: '0', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                        >
-                                            +
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div style={{ display: 'flex', gap: '8px' }}>
+                            <div className="add-payment-body scrollable-modal-body">
+                                <div className="discount-form">
+                                    {/* Discount Name */}
+                                    <div className="payment-field-group">
+                                        <label className="field-label-premium">DISCOUNT NAME <span className="required">*</span></label>
                                         <input
                                             type="text"
-                                            placeholder="Enter new category..."
-                                            value={newApplyTo}
-                                            onChange={(e) => setNewApplyTo(e.target.value)}
-                                            autoFocus
-                                            style={{ flex: 1 }}
+                                            placeholder="e.g., Early Bird Special"
+                                            value={formData.name}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                if (/^[A-Za-z\s]*$/.test(value)) {
+                                                    setFormData({ ...formData, name: value });
+                                                }
+                                            }}
+                                            className={`premium-input ${formErrors.name ? 'error' : ''}`}
                                         />
-                                        <button
-                                            className="btn-save"
-                                            onClick={handleAddApplyTo}
-                                            style={{ width: '42px', padding: '0' }}
-                                        >
-                                            ✓
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="btn-reset"
-                                            onClick={() => { setIsAddingApplyTo(false); setNewApplyTo(''); }}
-                                            style={{ width: '42px', padding: '0' }}
-                                        >
-                                            ✕
-                                        </button>
+                                        {formErrors.name && <span className="error-message">{formErrors.name}</span>}
                                     </div>
-                                )}
 
-                                {showAppliesTo && !isAddingApplyTo && (
-                                    <div className="checkbox-grid-group">
-                                        {applyToOptions.map(option => (
-                                            <label key={option.id} className="checkbox-grid-item">
+                                    {/* Discount Type */}
+                                    <div className="payment-field-group">
+                                        <label className="field-label-premium">DISCOUNT TYPE <span className="required">*</span></label>
+                                        <select
+                                            className="premium-input"
+                                            value={formData.type}
+                                            onChange={(e) => setFormData({ ...formData, type: e.target.value, value: '' })}
+                                        >
+                                            <option value="PERCENTAGE">Percentage (%)</option>
+                                            <option value="FLAT">Flat Amount ({cs})</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Discount Value */}
+                                    <div className="payment-field-group">
+                                        <label className="field-label-premium">
+                                            DISCOUNT VALUE <span className="required">*</span>
+                                            {formData.type === 'PERCENTAGE' && (
+                                                <span style={{ color: '#ef4444', fontSize: '0.7rem', marginLeft: '8px' }}>
+                                                    (0-{maxDiscountType === 'PERCENTAGE' && maxDiscount > 0 ? maxDiscount : 100}%)
+                                                </span>
+                                            )}
+                                            {formData.type === 'FLAT' && maxDiscountType === 'FLAT' && maxDiscount > 0 && (
+                                                <span style={{ color: '#ef4444', fontSize: '0.7rem', marginLeft: '8px' }}> (Max {cs}{maxDiscount})</span>
+                                            )}
+                                        </label>
+                                        <div className="premium-input-wrap">
+                                            {formData.type === 'FLAT' && <span className="input-prefix" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', zIndex: '1', color: '#64748b', fontWeight: 'bold' }}>{cs}</span>}
+                                            <input
+                                                type="number"
+                                                placeholder={formData.type === 'PERCENTAGE' ? 'Enter percentage' : 'Enter amount'}
+                                                value={formData.value}
+                                                onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+                                                style={{ paddingLeft: formData.type === 'FLAT' ? '30px' : '16px' }}
+                                                className={`premium-input ${formErrors.value ? 'error' : ''}`}
+                                            />
+                                            {formData.type === 'PERCENTAGE' && <span className="input-suffix" style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#64748b', fontWeight: 'bold' }}>%</span>}
+                                        </div>
+                                        {formErrors.value && <span className="error-message">{formErrors.value}</span>}
+                                    </div>
+
+                                    {/* Applies To */}
+                                    <div className="payment-field-group">
+                                        <label className="field-label-premium">APPLIES TO <span className="required">*</span></label>
+                                        {!isAddingApplyTo ? (
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <div
+                                                    className="premium-input"
+                                                    onClick={() => setShowAppliesTo(!showAppliesTo)}
+                                                    style={{ flex: 1, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                                                >
+                                                    <span>
+                                                        {formData.appliesTo.length > 0
+                                                            ? `${formData.appliesTo.length} selected`
+                                                            : 'Select categories'}
+                                                    </span>
+                                                    <span>{showAppliesTo ? '▲' : '▼'}</span>
+                                                </div>
+                                                <button
+                                                    className="btn-primary"
+                                                    onClick={() => setIsAddingApplyTo(true)}
+                                                    style={{ width: '45px', minWidth: '45px', padding: '0' }}
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', gap: '8px' }}>
                                                 <input
-                                                    type="checkbox"
-                                                    checked={formData.appliesTo.includes(option.id)}
-                                                    onChange={() => handleCheckboxChange(option.id)}
+                                                    type="text"
+                                                    className="premium-input"
+                                                    placeholder="Enter new category..."
+                                                    value={newApplyTo}
+                                                    onChange={(e) => setNewApplyTo(e.target.value)}
+                                                    autoFocus
+                                                    style={{ flex: 1 }}
                                                 />
-                                                <span className="checkbox-label">{option.label}</span>
-                                            </label>
-                                        ))}
+                                                <button
+                                                    className="btn-primary"
+                                                    onClick={handleAddApplyTo}
+                                                    style={{ width: '45px', minWidth: '45px', padding: '0' }}
+                                                >
+                                                    ✓
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn-secondary"
+                                                    onClick={() => { setIsAddingApplyTo(false); setNewApplyTo(''); }}
+                                                    style={{ width: '45px', minWidth: '45px', padding: '0' }}
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        )}
+                                        {showAppliesTo && !isAddingApplyTo && (
+                                            <div className="checkbox-grid-group-premium">
+                                                {applyToOptions.map(option => (
+                                                    <label key={option.id} className={`checkbox-item-premium ${formData.appliesTo.includes(option.id) ? 'checked' : ''}`}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={formData.appliesTo.includes(option.id)}
+                                                            onChange={() => handleCheckboxChange(option.id)}
+                                                        />
+                                                        <span className="checkbox-label">{option.label}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {formErrors.appliesTo && <span className="error-message">{formErrors.appliesTo}</span>}
                                     </div>
-                                )}
-                                {formErrors.appliesTo && <span className="error-message">{formErrors.appliesTo}</span>}
-                            </div>
 
-                            {/* Auto Apply and Status - Single Row */}
-                            <div className="form-group-row">
-                                {/* Auto Apply */}
-                                <div className="form-group-half">
-                                    <label className="toggle-label">
-                                        <span>Auto Apply</span>
-                                        <div className="toggle-switch">
-                                            <input
-                                                type="checkbox"
-                                                checked={formData.autoApply}
-                                                onChange={(e) => setFormData({ ...formData, autoApply: e.target.checked })}
-                                            />
-                                            <span className="toggle-slider"></span>
+                                    {/* Toggles Row */}
+                                    <div className="premium-form-row">
+                                        <div className="payment-field-group flex-1">
+                                            <label className="toggle-label-premium">
+                                                <span>Auto Apply</span>
+                                                <div className="toggle-switch-p">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={formData.autoApply}
+                                                        onChange={(e) => setFormData({ ...formData, autoApply: e.target.checked })}
+                                                    />
+                                                    <span className="toggle-slider-p"></span>
+                                                </div>
+                                            </label>
                                         </div>
-                                    </label>
-                                    <p className="form-hint">Automatically apply this discount when conditions are met</p>
-                                </div>
 
-                                {/* Status */}
-                                <div className="form-group-half">
-                                    <label className="toggle-label">
-                                        <span>Status</span>
-                                        <div className="toggle-switch">
-                                            <input
-                                                type="checkbox"
-                                                checked={formData.status === 'ACTIVE'}
-                                                onChange={(e) => setFormData({ ...formData, status: e.target.checked ? 'ACTIVE' : 'INACTIVE' })}
-                                            />
-                                            <span className="toggle-slider"></span>
+                                        <div className="payment-field-group flex-1">
+                                            <label className="toggle-label-premium">
+                                                <span>Status</span>
+                                                <div className="toggle-switch-p">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={formData.status === 'ACTIVE'}
+                                                        onChange={(e) => setFormData({ ...formData, status: e.target.checked ? 'ACTIVE' : 'INACTIVE' })}
+                                                    />
+                                                    <span className="toggle-slider-p"></span>
+                                                </div>
+                                            </label>
                                         </div>
-                                    </label>
-                                    <p className="form-hint">
-                                        {formData.status === 'ACTIVE' ? 'Active' : 'Inactive'}
-                                    </p>
+                                    </div>
+
+                                    {/* Description */}
+                                    <div className="payment-field-group">
+                                        <label className="field-label-premium">DESCRIPTION</label>
+                                        <div className="premium-input-wrap">
+                                            <textarea
+                                                className="premium-input premium-textarea"
+                                                placeholder="Add description or terms and conditions..."
+                                                value={formData.description}
+                                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                                rows="2"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Description */}
-                            <div className="form-group">
-                                <label>Description</label>
-                                <textarea
-                                    placeholder="Add description or terms and conditions..."
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    rows="2"
-                                />
-                            </div>
-
-                            {/* Form Actions */}
-                            <div className="form-actions">
+                            <div className="payment-modal-footer">
                                 <button
                                     type="button"
-                                    className="btn-reset"
-                                    onClick={handleResetForm}
+                                    className="btn-secondary"
+                                    onClick={() => setShowModal(false)}
                                 >
-                                    Reset
+                                    CANCEL
                                 </button>
                                 <button
                                     type="button"
-                                    className="btn-save"
+                                    className="btn-primary"
                                     onClick={handleSaveDiscount}
                                 >
-                                    {isEditMode ? 'Update' : 'Save'}
+                                    {isEditMode ? 'UPDATE DISCOUNT' : 'SAVE DISCOUNT'}
                                 </button>
                             </div>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );

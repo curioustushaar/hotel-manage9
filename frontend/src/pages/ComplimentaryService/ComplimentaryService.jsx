@@ -115,47 +115,98 @@ const ComplimentaryService = () => {
                 </div>
             )}
 
+            {/* Premium Modal */}
             {isModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h3>{modalMode === 'add' ? 'Add Service' : 'Edit Service'}</h3>
-                            <button className="close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
+                <div className="add-payment-overlay">
+                    <div className="add-payment-modal add-service-premium">
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap">
+                                <span style={{ fontSize: '20px' }}>🌟</span>
+                            </div>
+                            <div className="header-text">
+                                <h3>{modalMode === 'add' ? 'Add Service' : 'Edit Service'}</h3>
+                                <span>SERVICE SETUP</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
                         </div>
 
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label>Service Name</label>
-                                <input type="text" value={formData.name} onChange={e => {
-                                    const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
-                                    setFormData({ ...formData, name: value });
-                                }} required />
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                            <div className="add-payment-body">
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">SERVICE NAME</label>
+                                    <div className="premium-input-wrap">
+                                        <input
+                                            type="text"
+                                            value={formData.name}
+                                            onChange={e => {
+                                                const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                                setFormData({ ...formData, name: value });
+                                            }}
+                                            required
+                                            placeholder="e.g. Breakfest, WiFi"
+                                            className="premium-input"
+                                            autoFocus
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">CATEGORY</label>
+                                    <div className="premium-input-wrap">
+                                        <select
+                                            value={formData.category}
+                                            onChange={e => setFormData({ ...formData, category: e.target.value })}
+                                            className="premium-input"
+                                        >
+                                            <option value="Food & Beverage">Food & Beverage</option>
+                                            <option value="Facility">Facility</option>
+                                            <option value="Room Service">Room Service</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">LINKED WITH</label>
+                                    <div className="premium-input-wrap">
+                                        <input
+                                            type="text"
+                                            value={formData.linkedWith}
+                                            onChange={e => {
+                                                const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                                setFormData({ ...formData, linkedWith: value });
+                                            }}
+                                            required
+                                            placeholder="e.g. All Guests, CP"
+                                            className="premium-input"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">QUANTITY LIMIT</label>
+                                    <div className="premium-input-wrap">
+                                        <input
+                                            type="text"
+                                            value={formData.quantityLimit}
+                                            onChange={e => {
+                                                const value = e.target.value.replace(/\D/g, '');
+                                                setFormData({ ...formData, quantityLimit: value });
+                                            }}
+                                            required
+                                            placeholder="e.g. 1 per Stay"
+                                            className="premium-input"
+                                        />
+                                    </div>
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label>Category</label>
-                                <select value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
-                                    <option value="Food & Beverage">Food & Beverage</option>
-                                    <option value="Facility">Facility</option>
-                                    <option value="Room Service">Room Service</option>
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label>Linked With</label>
-                                <input type="text" value={formData.linkedWith} onChange={e => {
-                                    const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
-                                    setFormData({ ...formData, linkedWith: value });
-                                }} required placeholder="e.g. All Guests, CP" />
-                            </div>
-                            <div className="form-group">
-                                <label>Quantity Limit</label>
-                                <input type="text" value={formData.quantityLimit} onChange={e => {
-                                    const value = e.target.value.replace(/\D/g, '');
-                                    setFormData({ ...formData, quantityLimit: value });
-                                }} required placeholder="e.g. 1 per Stay" />
-                            </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="btn-primary">{modalMode === 'add' ? 'Add' : 'Update'}</button>
+
+                            <div className="payment-modal-footer">
+                                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+                                    CANCEL
+                                </button>
+                                <button type="submit" className="btn-primary">
+                                    {modalMode === 'add' ? 'ADD SERVICE' : 'UPDATE SERVICE'}
+                                </button>
                             </div>
                         </form>
                     </div>

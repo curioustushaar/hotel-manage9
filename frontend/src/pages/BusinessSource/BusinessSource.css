@@ -71,47 +71,210 @@
     cursor: pointer;
 }
 
-/* Modal */
-.modal-overlay {
+/* Premium Modal Styles */
+.add-payment-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(8px);
     display: flex;
     justify-content: center;
     align-items: center;
+    z-index: 1100;
+    animation: fadeIn-P 0.3s ease-out;
 }
 
-.modal-content {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    width: 400px;
+@keyframes fadeIn-P {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 500;
-}
-
-.form-group input,
-.form-group select {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-.modal-footer {
+.add-payment-modal {
+    background: #ffffff;
+    width: 380px;
+    max-width: 90vw;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
     display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 20px;
+    flex-direction: column;
+    position: relative;
+    border-radius: 24px;
+    overflow: hidden;
+    animation: modalSlideUp-P 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+@keyframes modalSlideUp-P {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.add-business-premium {
+    width: 440px !important;
+}
+
+.premium-payment-header {
+    background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+    padding: 24px;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: relative;
+}
+
+.header-icon-wrap {
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.header-text h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+}
+
+.header-text span {
+    font-size: 10px;
+    opacity: 0.9;
+    text-transform: uppercase;
+    display: block;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+}
+
+.premium-close-btn {
+    margin-left: auto;
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.premium-close-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: rotate(90deg);
+}
+
+.add-payment-body {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.payment-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.field-label-premium {
+    font-size: 11px;
+    font-weight: 800;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-left: 4px;
+}
+
+.premium-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.premium-input {
+    width: 100%;
+    height: 48px;
+    padding: 0 16px;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.premium-textarea {
+    height: auto !important;
+    padding: 12px 16px !important;
+    min-height: 100px;
+    resize: none;
+}
+
+.premium-input:focus {
+    background: #ffffff;
+    border-color: #f43f5e;
+    box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.1);
+}
+
+.payment-modal-footer {
+    padding: 20px 24px;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    gap: 12px;
+    background: #f8fafc;
+}
+
+.add-business-premium .btn-secondary {
+    flex: 1;
+    height: 48px;
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+    background: #ffffff;
+    color: #64748b;
+    font-weight: 800;
+    cursor: pointer;
+    font-size: 13px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+}
+
+.add-business-premium .btn-secondary:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.add-business-premium .btn-primary {
+    flex: 1.5;
+    height: 48px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+    color: #ffffff;
+    font-weight: 800;
+    cursor: pointer;
+    font-size: 13px;
+    text-transform: uppercase;
+    box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3);
+    transition: all 0.2s;
+}
+
+.add-business-premium .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(225, 29, 72, 0.4);
+}
+
+.add-business-premium .btn-primary:active {
+    transform: translateY(0);
 }

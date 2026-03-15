@@ -99,25 +99,49 @@ const BusinessSource = () => {
                 </div>
             )}
 
+            {/* Premium Modal */}
             {isModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h3>{modalMode === 'add' ? 'Add Business Source' : 'Edit Business Source'}</h3>
-                            <button className="close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
+                <div className="add-payment-overlay">
+                    <div className="add-payment-modal add-business-premium">
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap">
+                                <span style={{ fontSize: '20px' }}>💼</span>
+                            </div>
+                            <div className="header-text">
+                                <h3>{modalMode === 'add' ? 'Add Business Source' : 'Edit Business Source'}</h3>
+                                <span>BUSINESS SETUP</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
                         </div>
 
-                        <form onSubmit={handleSubmit}>
-                            <div className="form-group">
-                                <label>Business Source</label>
-                                <input type="text" value={formData.name} onChange={e => {
-                                    const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
-                                    setFormData({ ...formData, name: value });
-                                }} required />
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                            <div className="add-payment-body">
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">BUSINESS SOURCE</label>
+                                    <div className="premium-input-wrap">
+                                        <input
+                                            type="text"
+                                            value={formData.name}
+                                            onChange={e => {
+                                                const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                                setFormData({ ...formData, name: value });
+                                            }}
+                                            required
+                                            placeholder="e.g. Corporate, Agency"
+                                            className="premium-input"
+                                            autoFocus
+                                        />
+                                    </div>
+                                </div>
                             </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="btn-primary">{modalMode === 'add' ? 'Add' : 'Update'}</button>
+
+                            <div className="payment-modal-footer">
+                                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+                                    CANCEL
+                                </button>
+                                <button type="submit" className="btn-primary">
+                                    {modalMode === 'add' ? 'ADD SOURCE' : 'UPDATE SOURCE'}
+                                </button>
                             </div>
                         </form>
                     </div>

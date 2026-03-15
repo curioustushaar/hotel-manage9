@@ -152,46 +152,62 @@ const RoomFacilityType = () => {
                 </div>
             </div>
 
-            {/* Modal */}
+            {/* Premium Modal */}
             {isModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h3>{modalMode === 'add' ? 'Add Facility' : 'Edit Facility'}</h3>
-                            <button className="modal-close" onClick={() => setIsModalOpen(false)}>✕</button>
+                <div className="add-payment-overlay">
+                    <div className="add-payment-modal add-facility-premium">
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap">
+                                <span style={{ fontSize: '20px' }}>🛋️</span>
+                            </div>
+                            <div className="header-text">
+                                <h3>{modalMode === 'add' ? 'Add Facility' : 'Edit Facility'}</h3>
+                                <span>FACILITY MANAGEMENT</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
                         </div>
-                        <form onSubmit={handleSubmit}>
-                            <div className="modal-body">
-                                <div className="form-group">
-                                    <label>FACILITY</label>
-                                    <input
-                                        type="text"
-                                        value={formData.name}
-                                        onChange={(e) => {
-                                            const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
-                                            setFormData({ ...formData, name: value });
-                                        }}
-                                        required
-                                        placeholder="e.g. Standard Room"
-                                        className="form-input"
-                                        autoFocus
-                                    />
+
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                            <div className="add-payment-body">
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">FACILITY NAME</label>
+                                    <div className="premium-input-wrap">
+                                        <input
+                                            type="text"
+                                            value={formData.name}
+                                            onChange={(e) => {
+                                                const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                                setFormData({ ...formData, name: value });
+                                            }}
+                                            required
+                                            placeholder="e.g. Standard Room"
+                                            className="premium-input"
+                                            autoFocus
+                                        />
+                                    </div>
                                 </div>
-                                <div className="form-group">
-                                    <label>FACILITY TYPE</label>
-                                    <textarea
-                                        value={formData.description}
-                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        placeholder="e.g. Double/Queen Bed, AC/Fan, TV..."
-                                        className="form-input"
-                                        rows="3"
-                                        style={{ resize: 'vertical' }}
-                                    />
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">FACILITY DESCRIPTION</label>
+                                    <div className="premium-input-wrap">
+                                        <textarea
+                                            value={formData.description}
+                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                            placeholder="e.g. Double/Queen Bed, AC/Fan, TV..."
+                                            className="premium-input premium-textarea"
+                                            rows="3"
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">{modalMode === 'add' ? 'Add' : 'Update'}</button>
+
+                            <div className="payment-modal-footer">
+                                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+                                    CANCEL
+                                </button>
+                                <button type="submit" className="btn-primary">
+                                    {modalMode === 'add' ? 'ADD FACILITY' : 'UPDATE FACILITY'}
+                                </button>
                             </div>
                         </form>
                     </div>
