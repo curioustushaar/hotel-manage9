@@ -469,23 +469,33 @@ const AdminDashboard = () => {
 
     const handleMenuClick = (menuId) => {
         const prefix = '/admin';
+        // Immediately update active menu to avoid UI blink during navigation
+        const setMenuNow = (menu) => {
+            if (menu) setActiveMenu(menu);
+        };
 
         // Handle Sub-menu routing for Reservation Dropdown
         if (menuId === 'reservations-dashboard') {
+            setMenuNow('reservations');
             navigate(`${prefix}/reservations`, { state: { viewMode: 'dashboard' } });
         } else if (menuId === 'new-reservation') {
+            setMenuNow('reservations');
             navigate(`${prefix}/reservations`, { state: { viewMode: 'form' } });
         } else if (menuId === 'housekeeping') {
+            setMenuNow('housekeeping');
             navigate(`${prefix}/housekeeping`);
         } else if (menuId === 'room-service') {
+            setMenuNow('room-service');
             navigate(`${prefix}/room-service`);
         } else if (menuId === 'food-order') {
+            setMenuNow('food-order');
             navigate(`${prefix}/food-order`);
         } else if (menuId === 'reservation-card') {
+            setMenuNow('reservation-card');
             navigate(`${prefix}/reservation-card`);
         }
         // Handle main menu items with navigation
-        else if (menuId === 'dashboard') navigate(`${prefix}/dashboard`);
+        else if (menuId === 'dashboard') { setMenuNow('dashboard'); navigate(`${prefix}/dashboard`); }
         else if (menuId === 'rooms') {
             // Reset search and filters when switching menus
             setSearchQuery('');
@@ -495,44 +505,43 @@ const AdminDashboard = () => {
                 bedType: 'All',
                 status: 'All'
             });
+            setMenuNow('rooms');
             navigate(`${prefix}/rooms`);
         }
         else if (menuId === 'reservations') {
             toggleDropdown('reservations');
         }
-        else if (menuId === 'cashier-section') navigate(`${prefix}/cashier-section`);
-        else if (menuId === 'guest-meal-service') navigate(`${prefix}/guest-meal-service`);
-        else if (menuId === 'food-menu') navigate(`${prefix}/food-menu`);
-        else if (menuId === 'customers') navigate(`${prefix}/customers`);
-        else if (menuId === 'crm-model') navigate(`${prefix}/crm-model`);
-        else if (menuId === 'cashier-report') navigate(`${prefix}/cashier-report`);
-        else if (menuId === 'food-payment-report') navigate(`${prefix}/food-payment-report`);
-        else if (menuId === 'view-order') navigate(`${prefix}/view-order`);
-        else if (menuId.startsWith('reports-')) navigate(`${prefix}/${menuId}`);
+        else if (menuId === 'cashier-section') { setMenuNow('cashier-section'); navigate(`${prefix}/cashier-section`); }
+        else if (menuId === 'guest-meal-service') { setMenuNow('guest-meal-service'); navigate(`${prefix}/guest-meal-service`); }
+        else if (menuId === 'food-menu') { setMenuNow('food-menu'); navigate(`${prefix}/food-menu`); }
+        else if (menuId === 'customers') { setMenuNow('customers'); navigate(`${prefix}/customers`); }
+        else if (menuId === 'crm-model') { setMenuNow('crm-model'); navigate(`${prefix}/crm-model`); }
+        else if (menuId === 'cashier-report') { setMenuNow('cashier-report'); navigate(`${prefix}/cashier-report`); }
+        else if (menuId === 'food-payment-report') { setMenuNow('food-payment-report'); navigate(`${prefix}/food-payment-report`); }
+        else if (menuId === 'view-order') { setMenuNow('view-order'); navigate(`${prefix}/view-order`); }
+        else if (menuId.startsWith('reports-')) { const reportMenu = menuId; setMenuNow(reportMenu); navigate(`${prefix}/${menuId}`); }
 
         // Property Setup
-        else if (menuId === 'discount') navigate(`${prefix}/discount`);
-        else if (menuId === 'taxes') navigate(`${prefix}/taxes`);
-        else if (menuId === 'tax-mapping') navigate(`${prefix}/tax-mapping`);
-        else if (menuId === 'generate-room-qr') navigate(`${prefix}/generate-room-qr`);
+        else if (menuId === 'discount') { setMenuNow('discount'); navigate(`${prefix}/discount`); }
+        else if (menuId === 'taxes') { setMenuNow('taxes'); navigate(`${prefix}/taxes`); }
+        else if (menuId === 'tax-mapping') { setMenuNow('tax-mapping'); navigate(`${prefix}/tax-mapping`); }
+        else if (menuId === 'generate-room-qr') { setMenuNow('generate-room-qr'); navigate(`${prefix}/generate-room-qr`); }
 
         // Property Config
 
-        else if (menuId === 'floor-setup') navigate(`${prefix}/floor-setup`);
-        else if (menuId === 'room-facilities') navigate(`${prefix}/room-facilities`);
-        else if (menuId === 'room-facilities-type') navigate(`${prefix}/room-facilities-type`);
-        else if (menuId === 'meal-type') navigate(`${prefix}/meal-type`);
-        else if (menuId === 'reservation-type') navigate(`${prefix}/reservation-type`);
-        else if (menuId === 'extra-charges') navigate(`${prefix}/extra-charges`);
-        else if (menuId === 'complimentary-services') navigate(`${prefix}/complimentary-services`);
-        else if (menuId === 'customer-identity') navigate(`${prefix}/customer-identity`);
-        else if (menuId === 'booking-source') navigate(`${prefix}/booking-source`);
-        else if (menuId === 'business-source') navigate(`${prefix}/business-source`);
-        else if (menuId === 'maintenance-block') navigate(`${prefix}/maintenance-block`);
-        else if (menuId === 'table-management') navigate(`${prefix}/table-management`);
-        else if (menuId === 'company') {
-            navigate(`${prefix}/company-settings`);
-        }
+        else if (menuId === 'floor-setup') { setMenuNow('floor-setup'); navigate(`${prefix}/floor-setup`); }
+        else if (menuId === 'room-facilities') { setMenuNow('room-facilities'); navigate(`${prefix}/room-facilities`); }
+        else if (menuId === 'room-facilities-type') { setMenuNow('room-facilities-type'); navigate(`${prefix}/room-facilities-type`); }
+        else if (menuId === 'meal-type') { setMenuNow('meal-type'); navigate(`${prefix}/meal-type`); }
+        else if (menuId === 'reservation-type') { setMenuNow('reservation-type'); navigate(`${prefix}/reservation-type`); }
+        else if (menuId === 'extra-charges') { setMenuNow('extra-charges'); navigate(`${prefix}/extra-charges`); }
+        else if (menuId === 'complimentary-services') { setMenuNow('complimentary-services'); navigate(`${prefix}/complimentary-services`); }
+        else if (menuId === 'customer-identity') { setMenuNow('customer-identity'); navigate(`${prefix}/customer-identity`); }
+        else if (menuId === 'booking-source') { setMenuNow('booking-source'); navigate(`${prefix}/booking-source`); }
+        else if (menuId === 'business-source') { setMenuNow('business-source'); navigate(`${prefix}/business-source`); }
+        else if (menuId === 'maintenance-block') { setMenuNow('maintenance-block'); navigate(`${prefix}/maintenance-block`); }
+        else if (menuId === 'table-management') { setMenuNow('table-management'); navigate(`${prefix}/table-management`); }
+        else if (menuId === 'company') { setMenuNow('company'); navigate(`${prefix}/company-settings`); }
         else if (menuId === 'hotel-customer') {
             // Future implementation
             alert('Coming Soon');
