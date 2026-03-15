@@ -40,6 +40,12 @@
     gap: 12px;
 }
 
+.top-bar-logo-img {
+    height: 50px;
+    width: auto;
+    object-fit: contain;
+}
+
 /* Navbar Search */
 /* Removed search bar styles */
 
@@ -186,4 +192,4 @@
     .top-bar-logo {
         font-size: 16px !important;
     }
-}
+}

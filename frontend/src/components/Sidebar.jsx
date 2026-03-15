@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { hasModuleAccess, MODULES } from '../config/rbac';
 import './Sidebar.css';
+import logo from '../assets/final logo.png';
 
 // Simple Icon Components
 const Icons = {
@@ -30,7 +31,6 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
     const [openPropertySetupDropdown, setOpenPropertySetupDropdown] = useState(false);
     const [openPropertyConfigDropdown, setOpenPropertyConfigDropdown] = useState(false);
     const [openReportsDropdown, setOpenReportsDropdown] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
 
 
     // Helper function to check if user has access to a module
@@ -53,14 +53,6 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
         }
     };
 
-
-    const handleSearch = (e) => {
-        setSearchQuery(e.target.value);
-    };
-
-    const clearSearch = () => {
-        setSearchQuery('');
-    };
 
     const menuItems = [
         { id: MODULES.DASHBOARD, iconVal: <Icons.Dashboard />, label: 'Dashboard' },
@@ -166,38 +158,11 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
         });
     }, [activeMenu]);
 
-    const filteredItems = searchQuery
-        ? roleFilteredItems.filter(item =>
-            item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (item.hasDropdown && item.dropdownItems.some(sub => sub.label.toLowerCase().includes(searchQuery.toLowerCase())))
-        )
-        : roleFilteredItems;
-
     return (
         <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
-            {/* Search Box per Image 2 */}
-            <div className="sidebar-search-container">
-                <div className="sidebar-search-box">
-                    <svg className="sidebar-search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    <input
-                        type="text"
-                        className="sidebar-search-input"
-                        placeholder="Search"
-                        value={searchQuery}
-                        onChange={handleSearch}
-                    />
-                    {searchQuery && (
-                        <span className="sidebar-search-close" onClick={clearSearch}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </span>
-                    )}
-                </div>
-                {/* Close Button Next to Search */}
+            {/* Logo with Close Button */}
+            <div className="sidebar-logo-container">
+                <img src={logo} alt="Bireena Atithi" className="sidebar-logo" />
                 <button
                     className="sidebar-close-btn"
                     onClick={toggleSidebar}
@@ -212,7 +177,7 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
             </div>
 
             <nav className="sidebar-nav">
-                {filteredItems.map((item) => {
+                {roleFilteredItems.map((item) => {
                     const isOpenDropdown = item.id === MODULES.RESERVATIONS ? openReservationDropdown :
                         item.id === 'property-setup' ? openPropertySetupDropdown :
                             item.id === 'property-configuration' ? openPropertyConfigDropdown :
@@ -220,16 +185,13 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
                                     item.id === 'proper-configuration' ? openConfigDropdown : false;
 
 
-                    // If searching, auto-expand if matched
-                    const isSearchMatch = searchQuery && item.hasDropdown && item.dropdownItems.some(sub => sub.label.toLowerCase().includes(searchQuery.toLowerCase()));
-                    const showDropdown = isOpenDropdown || isSearchMatch;
+                    const showDropdown = isOpenDropdown;
 
                     return item.hasDropdown ? (
                         <div key={item.id} className="nav-dropdown-wrapper">
                             <button
-                                className={`nav-item nav-item-dropdown ${showDropdown ? 'dropdown-open' : ''} ${!searchQuery && activeMenu === item.id ? 'active' : ''}`}
-                                onClick={() => toggleDropdown(item.id)}
-                            >
+                                className={`nav-item nav-item-dropdown ${showDropdown ? 'dropdown-open' : ''} ${activeMenu === item.id ? 'active' : ''}`}
+                                onClick={() => toggleDropdown(item.id)}            >
                                 <span className="nav-icon">{item.iconVal}</span>
                                 <span className="nav-label">{item.label}</span>
                                 <svg
@@ -245,7 +207,6 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
                             </button>
                             <div className={`nav-dropdown-menu ${showDropdown ? 'show' : ''}`}>
                                 {item.dropdownItems.map((subItem) => {
-                                    if (searchQuery && !subItem.label.toLowerCase().includes(searchQuery.toLowerCase())) return null;
 
                                     // Check permission for sub-item - allow if parent module (item.id) is authorized
                                     const hasSubAccess = canAccessModule(subItem.id) || canAccessModule(item.id);
