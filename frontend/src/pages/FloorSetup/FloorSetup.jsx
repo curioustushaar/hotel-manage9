@@ -145,49 +145,66 @@ const FloorSetup = () => {
                 </div>
             </div>
 
-            {/* Modal */}
+            {/* Premium Modal */}
             {isModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h3>{modalMode === 'add' ? 'Add New Floor' : 'Edit Floor'}</h3>
-                            <button className="modal-close" onClick={() => setIsModalOpen(false)}>✕</button>
+                <div className="add-payment-overlay">
+                    <div className="add-payment-modal add-floor-premium">
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap">
+                                <span style={{ fontSize: '20px' }}>🏢</span>
+                            </div>
+                            <div className="header-text">
+                                <h3>{modalMode === 'add' ? 'Add New Floor' : 'Edit Floor'}</h3>
+                                <span>FLOOR MANAGEMENT</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
                         </div>
-                        <form onSubmit={handleSubmit}>
-                            <div className="modal-body">
-                                <div className="form-group">
-                                    <label>Floor Name</label>
-                                    <input
-                                        type="text"
-                                        value={formData.name}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            if (/^[a-zA-Z\s]*$/.test(val)) {
-                                                setFormData({ ...formData, name: val });
-                                            }
-                                        }}
-                                        required
-                                        placeholder="e.g. Ground Floor"
-                                        className="form-input"
-                                        autoFocus
-                                    />
+
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                            <div className="add-payment-body">
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">FLOOR NAME</label>
+                                    <div className="premium-input-wrap">
+                                        <input
+                                            type="text"
+                                            value={formData.name}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                if (/^[a-zA-Z\s]*$/.test(val)) {
+                                                    setFormData({ ...formData, name: val });
+                                                }
+                                            }}
+                                            required
+                                            placeholder="e.g. Ground Floor"
+                                            className="premium-input"
+                                            autoFocus
+                                        />
+                                    </div>
                                 </div>
-                                <div className="form-group">
-                                    <label>Room Count</label>
-                                    <input
-                                        type="number"
-                                        value={formData.roomCount}
-                                        onChange={(e) => setFormData({ ...formData, roomCount: e.target.value })}
-                                        required
-                                        placeholder="e.g. 10"
-                                        className="form-input"
-                                        min="0"
-                                    />
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">ROOM COUNT</label>
+                                    <div className="premium-input-wrap">
+                                        <input
+                                            type="number"
+                                            value={formData.roomCount}
+                                            onChange={(e) => setFormData({ ...formData, roomCount: e.target.value })}
+                                            required
+                                            placeholder="e.g. 10"
+                                            className="premium-input"
+                                            min="0"
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">{modalMode === 'add' ? 'Add' : 'Update'}</button>
+
+                            <div className="payment-modal-footer">
+                                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+                                    CANCEL
+                                </button>
+                                <button type="submit" className="btn-primary">
+                                    {modalMode === 'add' ? 'ADD FLOOR' : 'UPDATE FLOOR'}
+                                </button>
                             </div>
                         </form>
                     </div>

@@ -146,44 +146,62 @@ const ReservationType = () => {
                 </div>
             </div>
 
-            {/* Modal */}
+            {/* Premium Modal */}
             {isModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h3>{modalMode === 'add' ? 'Add Reservation Type' : 'Edit Reservation Type'}</h3>
-                            <button className="modal-close" onClick={() => setIsModalOpen(false)}>✕</button>
+                <div className="add-payment-overlay">
+                    <div className="add-payment-modal add-reservation-premium">
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap">
+                                <span style={{ fontSize: '20px' }}>🔖</span>
+                            </div>
+                            <div className="header-text">
+                                <h3>{modalMode === 'add' ? 'Add Reservation Type' : 'Edit Reservation Type'}</h3>
+                                <span>RESERVATION SETUP</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
                         </div>
-                        <form onSubmit={handleSubmit}>
-                            <div className="modal-body">
-                                <div className="form-group">
-                                    <label>Reservation Type</label>
-                                    <input
-                                        type="text"
-                                        value={formData.name}
-                                        onChange={(e) => {
-                                            const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
-                                            setFormData({ ...formData, name: value });
-                                        }}
-                                        required
-                                        placeholder="e.g. Walk-In, Online Booking"
-                                        className="form-input"
-                                    />
+
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                            <div className="add-payment-body">
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">RESERVATION TYPE</label>
+                                    <div className="premium-input-wrap">
+                                        <input
+                                            type="text"
+                                            value={formData.name}
+                                            onChange={(e) => {
+                                                const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                                setFormData({ ...formData, name: value });
+                                            }}
+                                            required
+                                            placeholder="e.g. Walk-In, Online Booking"
+                                            className="premium-input"
+                                            autoFocus
+                                        />
+                                    </div>
                                 </div>
-                                <div className="form-group">
-                                    <label>Description</label>
-                                    <textarea
-                                        value={formData.description}
-                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        placeholder="Brief description..."
-                                        className="form-input"
-                                        rows="3"
-                                    />
+
+                                <div className="payment-field-group">
+                                    <label className="field-label-premium">DESCRIPTION</label>
+                                    <div className="premium-input-wrap">
+                                        <textarea
+                                            value={formData.description}
+                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                            placeholder="Brief description..."
+                                            className="premium-input premium-textarea"
+                                            rows="3"
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">{modalMode === 'add' ? 'Add' : 'Update'}</button>
+
+                            <div className="payment-modal-footer">
+                                <button type="button" className="btn-secondary" onClick={() => setIsModalOpen(false)}>
+                                    CANCEL
+                                </button>
+                                <button type="submit" className="btn-primary">
+                                    {modalMode === 'add' ? 'ADD TYPE' : 'UPDATE TYPE'}
+                                </button>
                             </div>
                         </form>
                     </div>
