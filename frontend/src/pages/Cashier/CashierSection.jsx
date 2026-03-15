@@ -316,7 +316,8 @@ const CashierSection = () => {
         });
 
     return (
-        <div className="cashier-container fadeIn">
+        <>
+            <div className="cashier-container fadeIn">
             <div className="cashier-dashboard">
 
                 {/* PAGE HEADER */}
@@ -433,33 +434,57 @@ const CashierSection = () => {
 
                 </div>
             </div>
+        </div>
 
-            {/* Modals integrated with POS theme */}
+        {/* Track Order Modal */}
             {showTrackModal && (
-                <div className="modal-overlay-custom">
-                    <div className="modal-content-custom" style={{ width: '500px' }}>
-                        <div className="modal-header-custom">
-                            <h3>Track Order</h3>
-                            <button className="close-btn-custom" onClick={() => { setShowTrackModal(false); setTrackedOrders(null); setTrackQuery(''); }}>×</button>
+                <div className="add-payment-overlay" onClick={() => { setShowTrackModal(false); setTrackedOrders(null); setTrackQuery(''); }}>
+                    <div className="add-payment-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap">
+                                <span role="img" aria-label="track">📡</span>
+                            </div>
+                            <div className="header-text">
+                                <h3>Track Order</h3>
+                                <span>Order Status Tracking</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={() => { setShowTrackModal(false); setTrackedOrders(null); setTrackQuery(''); }}>×</button>
                         </div>
-                        <div className="modal-body-custom">
-                            <div className="form-group-custom" style={{ display: 'flex', gap: '10px' }}>
-                                <input
-                                    type="text"
-                                    placeholder="Enter Phone Number or Order ID..."
-                                    value={trackQuery}
-                                    onChange={(e) => setTrackQuery(e.target.value)}
-                                    style={{ flex: 1 }}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleTrackOrderSearch()}
-                                />
-                                <button className="track-search-btn" onClick={handleTrackOrderSearch} disabled={trackLoading}>
-                                    {trackLoading ? '...' : '🔍 Check'}
-                                </button>
+
+                        <div className="add-payment-body">
+                            <div className="payment-field-group">
+                                <label className="field-label-premium">ORDER DETAILS *</label>
+                                <div className="premium-input-wrapper">
+                                    <div className="input-icon-prefix">🔍</div>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter Phone Number or Order ID..."
+                                        value={trackQuery}
+                                        onChange={(e) => setTrackQuery(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleTrackOrderSearch()}
+                                    />
+                                    <button 
+                                        className="btn-primary" 
+                                        onClick={handleTrackOrderSearch} 
+                                        disabled={trackLoading}
+                                        style={{ 
+                                            width: 'auto', 
+                                            height: '42px', 
+                                            padding: '0 24px', 
+                                            borderRadius: '10px', 
+                                            margin: '4px',
+                                            fontSize: '13px',
+                                            flex: 'none'
+                                        }}
+                                    >
+                                        {trackLoading ? '...' : 'CHECK'}
+                                    </button>
+                                </div>
                             </div>
 
-                            <div className="track-results-area" style={{ marginTop: '20px', minHeight: '150px' }}>
+                            <div className="track-results-area" style={{ marginTop: '10px' }}>
                                 {trackedOrders === null ? (
-                                    <div className="placeholder-text" style={{ textAlign: 'center', color: '#999', marginTop: '40px' }}>
+                                    <div className="placeholder-text" style={{ textAlign: 'center', color: '#94a3b8', marginTop: '40px' }}>
                                         Enter details to track status
                                     </div>
                                 ) : trackedOrders.length === 0 ? (
@@ -513,44 +538,64 @@ const CashierSection = () => {
             )}
 
             {showNewOrderModal && (
-                <div className="modal-overlay-custom">
-                    <div className="modal-content-custom">
-                        <div className="modal-header-custom">
-                            <h3>New Take Away Order</h3>
-                            <button className="close-btn-custom" onClick={() => setShowNewOrderModal(false)}>×</button>
+                <div className="add-payment-overlay" onClick={() => setShowNewOrderModal(false)}>
+                    <div className="add-payment-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap">
+                                <span role="img" aria-label="new-order">🛍️</span>
+                            </div>
+                            <div className="header-text">
+                                <h3>New Take Away Order</h3>
+                                <span>Customer Essentials</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={() => setShowNewOrderModal(false)}>×</button>
                         </div>
-                        <div className="modal-body-custom">
-                            <div className="form-group-custom">
-                                <label>Customer Name</label>
-                                <input
-                                    type="text"
-                                    placeholder="Enter Customer Name"
-                                    value={newOrderDetails.name}
-                                    onChange={(e) => setNewOrderDetails({ ...newOrderDetails, name: e.target.value.replace(/[^A-Za-z\s]/g, '') })}
-                                />
+
+                        <div className="add-payment-body">
+                            <div className="payment-field-group">
+                                <label className="field-label-premium">CUSTOMER NAME *</label>
+                                <div className="premium-input-wrapper">
+                                    <div className="input-icon-prefix">👤</div>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter Customer Name"
+                                        value={newOrderDetails.name}
+                                        onChange={(e) => setNewOrderDetails({ ...newOrderDetails, name: e.target.value.replace(/[^A-Za-z\s]/g, '') })}
+                                    />
+                                </div>
                             </div>
-                            <div className="form-group-custom">
-                                <label>Phone Number</label>
-                                <input
-                                    type="text"
-                                    placeholder="Enter Phone Number"
-                                    value={newOrderDetails.phone}
-                                    onChange={(e) => {
-                                        const value = e.target.value.replace(/\D/g, '');
-                                        if (value.length <= 10) {
-                                            setNewOrderDetails({ ...newOrderDetails, phone: value });
-                                        }
-                                    }}
-                                />
+
+                            <div className="payment-field-group">
+                                <label className="field-label-premium">PHONE NUMBER</label>
+                                <div className="premium-input-wrapper">
+                                    <div className="input-icon-prefix">📞</div>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter Phone Number"
+                                        value={newOrderDetails.phone}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/\D/g, '');
+                                            if (value.length <= 10) {
+                                                setNewOrderDetails({ ...newOrderDetails, phone: value });
+                                            }
+                                        }}
+                                    />
+                                </div>
                             </div>
-                            <button className="food-menu-btn" onClick={handleGoToFoodMenu}>
-                                🍽️ Open Food Menu
+                        </div>
+
+                        <div className="payment-modal-footer">
+                            <button type="button" className="btn-secondary" onClick={() => setShowNewOrderModal(false)}>
+                                CANCEL
+                            </button>
+                            <button type="button" className="btn-primary" onClick={handleGoToFoodMenu}>
+                                OPEN FOOD MENU
                             </button>
                         </div>
                     </div>
                 </div>
             )}
-        </div>
+        </>
     );
 };
 
