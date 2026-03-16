@@ -46,7 +46,6 @@
 
 .layout-main-card {
     background: #f5f6f8;
-    border: 1px solid #E31E24;
     border-radius: 12px;
     padding: 15px 10px;
     min-height: calc(100vh - 110px);
