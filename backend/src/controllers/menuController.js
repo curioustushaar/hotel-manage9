@@ -40,7 +40,7 @@ const getMenuItems = async (req, res) => {
 // @access  Private/Admin
 const addMenuItem = async (req, res) => {
     try {
-        const { itemName, foodCode, category, price, description, status, quantity, unit } = req.body;
+        const { itemName, foodCode, category, price, description, status, quantity, unit, image } = req.body;
 
         // Validation
         if (!itemName || !foodCode || !category || !price) {
@@ -66,6 +66,7 @@ const addMenuItem = async (req, res) => {
             category,
             price,
             description: description || '',
+            image: typeof image === 'string' ? image.trim() : '',
             status: status || 'Active',
             quantity: (quantity !== undefined && quantity !== null) ? Number(quantity) : 0,
             unit: unit || 'PCS'

@@ -1,8 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import API_URL from '../../config/api';
 import { useSettings } from '../../context/SettingsContext';
 import './GuestMealOrderPage.css';
+
+const DEFAULT_MENU_CATEGORIES = ['Starters', 'Main Course', 'Breads', 'Breakfast', 'Rice', 'Desserts', 'Beverages', 'Chinese', 'Continental'];
+const CUSTOM_CATEGORY_STORAGE_KEY = 'foodMenuCustomCategories';
+const DEFAULT_CATEGORY_ICONS = {
+    'Starters': '🍴',
+    'Main Course': '🍛',
+    'Breads': '🍞',
+    'Breakfast': '☕',
+    'Rice': '🍚',
+    'Desserts': '🍨',
+    'Beverages': '🥤',
+    'Chinese': '🥡',
+    'Continental': '🍝'
+};
 
 const GuestMealOrderPage = () => {
     const location = useLocation();
@@ -18,21 +32,49 @@ const GuestMealOrderPage = () => {
     const [paymentMethod, setPaymentMethod] = useState('Cash');
     const [isProcessing, setIsProcessing] = useState(false);
     const [notification, setNotification] = useState(null);
-
-    // Categories configuration matching the database
-    const categories = [
-        { id: 'Starters', name: 'Starters', icon: '🍴' },
-        { id: 'Main Course', name: 'Main Course', icon: '🍛' },
-        { id: 'Breads', name: 'Breads', icon: '🍞' },
-        { id: 'Breakfast', name: 'Breakfast', icon: '☕' },
-        { id: 'Rice', name: 'Rice', icon: '🍚' },
-        { id: 'Desserts', name: 'Desserts', icon: '🍨' },
-        { id: 'Beverages', name: 'Beverages', icon: '🥤' },
-        { id: 'Chinese', name: 'Chinese', icon: '🥡' },
-        { id: 'Continental', name: 'Continental', icon: '🍝' }
-    ];
-
+    const [customCategories, setCustomCategories] = useState([]);
     const [groupedItems, setGroupedItems] = useState({});
+
+    const inferCategoryIcon = (categoryName) => {
+        const value = (categoryName || '').toLowerCase();
+
+        if (value.includes('starter') || value.includes('snack')) return '🍴';
+        if (value.includes('main')) return '🍛';
+        if (value.includes('bread') || value.includes('roti') || value.includes('naan')) return '🍞';
+        if (value.includes('breakfast') || value.includes('tea') || value.includes('coffee')) return '☕';
+        if (value.includes('rice') || value.includes('biryani')) return '🍚';
+        if (value.includes('dessert') || value.includes('sweet') || value.includes('mithai')) return '🍨';
+        if (value.includes('beverage') || value.includes('drink') || value.includes('juice')) return '🥤';
+        if (value.includes('chinese')) return '🥡';
+        if (value.includes('continental') || value.includes('pasta')) return '🍝';
+        if (value.includes('pizza')) return '🍕';
+        if (value.includes('soup')) return '🥣';
+
+        return '🍽️';
+    };
+
+    const getItemIcon = (category) => DEFAULT_CATEGORY_ICONS[category] || inferCategoryIcon(category);
+
+    const categories = useMemo(() => {
+        const merged = Array.from(new Set([
+            ...DEFAULT_MENU_CATEGORIES,
+            ...customCategories,
+            ...Object.keys(groupedItems)
+        ]));
+
+        return merged.map(name => ({ id: name, name, icon: getItemIcon(name) }));
+    }, [customCategories, groupedItems]);
+
+    useEffect(() => {
+        try {
+            const storedCategories = JSON.parse(localStorage.getItem(CUSTOM_CATEGORY_STORAGE_KEY) || '[]');
+            if (Array.isArray(storedCategories)) {
+                setCustomCategories(storedCategories.map(c => (c || '').trim()).filter(Boolean));
+            }
+        } catch (error) {
+            console.error('Error loading custom categories for guest meal:', error);
+        }
+    }, []);
 
     // Fetch menu items from API
     useEffect(() => {
@@ -51,7 +93,8 @@ const GuestMealOrderPage = () => {
                             category: item.category,
                             description: item.description,
                             status: item.status, // 'Active' or 'Inactive'
-                            image: getItemIcon(item.category)
+                            image: item.image || '',
+                            fallbackIcon: getItemIcon(item.category)
                         };
 
                         if (!groups[item.category]) groups[item.category] = [];
@@ -67,9 +110,40 @@ const GuestMealOrderPage = () => {
         fetchMenu();
     }, []);
 
-    const getItemIcon = (category) => {
-        const cat = categories.find(c => c.name === category);
-        return cat ? cat.icon : '🍽️';
+    const resolveMenuImage = (image) => {
+        if (!image || typeof image !== 'string') return '';
+
+        const trimmedImage = image.trim();
+        if (!trimmedImage) return '';
+
+        if (/^www\./i.test(trimmedImage)) {
+            return `https://${trimmedImage}`;
+        }
+
+        if (/^\/\//.test(trimmedImage)) {
+            return `https:${trimmedImage}`;
+        }
+
+        if (/^https?:\/\//i.test(trimmedImage) || /^data:image\//i.test(trimmedImage) || /^blob:/i.test(trimmedImage)) {
+            if (/^https?:\/\//i.test(trimmedImage)) {
+                try {
+                    const parsed = new URL(trimmedImage);
+                    const host = parsed.hostname.toLowerCase();
+                    const mediaUrl = parsed.searchParams.get('mediaurl') || parsed.searchParams.get('imgurl');
+
+                    // Common case: users paste Bing/Google image-result URL instead of direct image URL.
+                    if (mediaUrl && (host.includes('bing.com') || host.includes('google.'))) {
+                        return decodeURIComponent(mediaUrl);
+                    }
+                } catch (error) {
+                    // Keep original URL on parse failure.
+                }
+            }
+            return trimmedImage;
+        }
+
+        const normalizedPath = trimmedImage.startsWith('/') ? trimmedImage : `/${trimmedImage}`;
+        return `${API_URL}${normalizedPath}`;
     };
 
     // Show notification
@@ -314,7 +388,22 @@ const GuestMealOrderPage = () => {
                                     <div className="gmo-items-grid">
                                         {items.map(item => (
                                             <div key={item.id} className={`gmo-item-card ${item.status === 'Inactive' ? 'out-of-stock' : ''}`}>
-                                                <div className="item-image">{item.image}</div>
+                                                <div className="item-image">
+                                                    {item.image ? (
+                                                        <img
+                                                            src={resolveMenuImage(item.image)}
+                                                            alt={item.name}
+                                                            onError={(e) => {
+                                                                e.currentTarget.style.display = 'none';
+                                                                const fallback = e.currentTarget.nextElementSibling;
+                                                                if (fallback) fallback.style.display = 'flex';
+                                                            }}
+                                                        />
+                                                    ) : null}
+                                                    <span className="item-icon-fallback" style={item.image ? { display: 'none' } : {}}>
+                                                        {item.fallbackIcon}
+                                                    </span>
+                                                </div>
                                                 <div className="item-name">{item.name}</div>
                                                 <div className="item-price">{cs}{item.price.toFixed(2)}</div>
                                                 {item.status === 'Inactive' ? (

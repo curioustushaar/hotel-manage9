@@ -26,7 +26,17 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const { user } = useAuth();
-    const { getCurrencySymbol, settings } = useSettings();
+    const {
+        getCurrencySymbol,
+        settings,
+        formatDate,
+        formatTime,
+        getCurrentDateISO,
+        getCurrentTime24,
+        getDateISOWithOffset,
+        toTime24,
+        isPastDateTime
+    } = useSettings();
     const cs = getCurrencySymbol();
 
     // Permission Helper
@@ -63,12 +73,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
     // Filter reservations
     const filteredReservations = useMemo(() => {
-        const today = new Date();
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-        const oneMonthAgo = new Date();
-        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-        const oneMonthAgoStr = `${oneMonthAgo.getFullYear()}-${String(oneMonthAgo.getMonth() + 1).padStart(2, '0')}-${String(oneMonthAgo.getDate()).padStart(2, '0')}`;
+        const todayStr = getCurrentDateISO();
+        const oneMonthAgoStr = getDateISOWithOffset(-30);
 
         return reservations.filter(r => {
             if (activeTab === 'all') return true;
@@ -79,16 +85,12 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             if (activeTab === 'departure') return r.checkOutDate <= todayStr && r.status === 'IN_HOUSE';
             return true;
         });
-    }, [reservations, activeTab]);
+    }, [reservations, activeTab, getCurrentDateISO, getDateISOWithOffset]);
 
     // Calculate real-time counts for tabs
     const counts = useMemo(() => {
-        const today = new Date();
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
-        const oneMonthAgo = new Date();
-        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-        const oneMonthAgoStr = `${oneMonthAgo.getFullYear()}-${String(oneMonthAgo.getMonth() + 1).padStart(2, '0')}-${String(oneMonthAgo.getDate()).padStart(2, '0')}`;
+        const todayStr = getCurrentDateISO();
+        const oneMonthAgoStr = getDateISOWithOffset(-30);
 
         return {
             all: reservations.length,
@@ -98,7 +100,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             arrival: reservations.filter(r => r.checkInDate === todayStr && r.status === 'RESERVED').length,
             departure: reservations.filter(r => r.checkOutDate <= todayStr && r.status === 'IN_HOUSE').length
         };
-    }, [reservations]);
+    }, [reservations, getCurrentDateISO, getDateISOWithOffset]);
 
     // Helper function to convert room type name to category ID
     const getCategoryIdFromRoomType = (roomType) => {
@@ -151,8 +153,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                 }]);
 
                 // Set Dates if available
-                const todayDate = new Date().toISOString().split('T')[0];
-                const tomorrowDate = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0];
+                const todayDate = getCurrentDateISO();
+                const tomorrowDate = getDateISOWithOffset(1);
                 setCheckInDate(data.checkInDate || todayDate);
                 if (data.checkInTime) setCheckInTime(data.checkInTime);
                 setCheckOutDate(data.checkOutDate || tomorrowDate);
@@ -435,20 +437,17 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         let results = filteredReservations;
 
         if (searchQuery.trim().length > 0) {
+            const todayStr = getCurrentDateISO();
+            const oneMonthAgoStr = getDateISOWithOffset(-30);
+
             // Further filter search results by active tab
             results = searchResults.filter(r => {
                 if (activeTab === 'all') return true;
                 if (activeTab === 'reserved') return r.status === 'RESERVED';
                 if (activeTab === 'in-house') return r.status === 'IN_HOUSE';
                 if (activeTab === 'checked-out') {
-                    const oneMonthAgo = new Date();
-                    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-                    const oneMonthAgoStr = `${oneMonthAgo.getFullYear()}-${String(oneMonthAgo.getMonth() + 1).padStart(2, '0')}-${String(oneMonthAgo.getDate()).padStart(2, '0')}`;
                     return r.status === 'CHECKED_OUT' && r.checkOutDate >= oneMonthAgoStr;
                 }
-
-                const today = new Date();
-                const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
                 if (activeTab === 'arrival') return r.checkInDate === todayStr && r.status === 'RESERVED';
                 if (activeTab === 'departure') return r.checkOutDate <= todayStr && r.status === 'IN_HOUSE';
@@ -457,7 +456,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         }
 
         return results;
-    }, [searchQuery, searchResults, filteredReservations, activeTab]);
+    }, [searchQuery, searchResults, filteredReservations, activeTab, getCurrentDateISO, getDateISOWithOffset]);
 
 
 
@@ -591,10 +590,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
 
     // Current Date for Calendar Restriction
-    const today = (() => {
-        const d = new Date();
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    })();
+    const today = getCurrentDateISO();
 
     // Form State - Reservation Meta
     const [reservationType, setReservationType] = useState('');
@@ -732,8 +728,10 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     // Calculate nights
     const calculateNights = useCallback(() => {
         if (!checkInDate || !checkOutDate) return 0;
-        const inDate = new Date(checkInDate);
-        const outDate = new Date(checkOutDate);
+        const [inYear, inMonth, inDay] = checkInDate.split('-').map(Number);
+        const [outYear, outMonth, outDay] = checkOutDate.split('-').map(Number);
+        const inDate = Date.UTC(inYear, (inMonth || 1) - 1, inDay || 1);
+        const outDate = Date.UTC(outYear, (outMonth || 1) - 1, outDay || 1);
         return Math.max(1, Math.ceil((outDate - inDate) / (1000 * 60 * 60 * 24)));
     }, [checkInDate, checkOutDate]);
 
@@ -1024,8 +1022,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             // Track actual checkout time
             const checkoutData = {
                 ...reservation,
-                checkOutDate: reservation.status === 'IN_HOUSE' ? new Date().toISOString().split('T')[0] : reservation.checkOutDate,
-                checkOutTime: reservation.status === 'IN_HOUSE' ? new Date().toTimeString().slice(0, 5) : reservation.checkOutTime
+                checkOutDate: reservation.status === 'IN_HOUSE' ? getCurrentDateISO() : reservation.checkOutDate,
+                checkOutTime: reservation.status === 'IN_HOUSE' ? getCurrentTime24() : reservation.checkOutTime
             };
             const invoice = InvoiceGenerator.generateInvoice(checkoutData, billingDataForInvoice, settings);
             await InvoiceGenerator.saveInvoice(invoice);
@@ -1163,7 +1161,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             return;
         }
 
-        if (new Date(checkOutDate) <= new Date(checkInDate)) {
+        if (checkOutDate <= checkInDate) {
             alert('Check-out date must be after check-in date');
             return;
         }
@@ -1576,7 +1574,18 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                             type="date"
                                             value={checkInDate}
                                             min={today}
-                                            onChange={(e) => setCheckInDate(e.target.value)}
+                                            onChange={(e) => {
+                                                const nextCheckInDate = e.target.value;
+                                                setCheckInDate(nextCheckInDate);
+
+                                                if (nextCheckInDate === getCurrentDateISO() && isPastDateTime(nextCheckInDate, checkInTime)) {
+                                                    setCheckInTime(getCurrentTime24());
+                                                }
+
+                                                if (checkOutDate && checkOutDate < nextCheckInDate) {
+                                                    setCheckOutDate(nextCheckInDate);
+                                                }
+                                            }}
                                             required
                                             readOnly={fromRoomsPage}
                                             className={fromRoomsPage ? 'locked-input' : ''}
@@ -1584,7 +1593,19 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                     </div>
                                     <div className="form-row">
                                         <label>Check-In Time</label>
-                                        <input type="time" value={checkInTime} onChange={(e) => setCheckInTime(e.target.value)} />
+                                        <input
+                                            type="time"
+                                            value={checkInTime}
+                                            onChange={(e) => {
+                                                const nextTime = toTime24(e.target.value);
+                                                if (checkInDate === getCurrentDateISO() && isPastDateTime(checkInDate, nextTime)) {
+                                                    alert('Check-in time cannot be in the past for today.');
+                                                    setCheckInTime(getCurrentTime24());
+                                                    return;
+                                                }
+                                                setCheckInTime(nextTime);
+                                            }}
+                                        />
                                     </div>
                                     <div className="form-row">
                                         <label>Check-Out Date</label>
@@ -1600,7 +1621,11 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                     </div>
                                     <div className="form-row">
                                         <label>Check-Out Time</label>
-                                        <input type="time" value={checkOutTime} onChange={(e) => setCheckOutTime(e.target.value)} />
+                                        <input
+                                            type="time"
+                                            value={checkOutTime}
+                                            onChange={(e) => setCheckOutTime(toTime24(e.target.value))}
+                                        />
                                     </div>
                                 </div>
                                 <label className="checkbox-label">
@@ -2042,15 +2067,23 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                     </tr>
                                     <tr>
                                         <td className="details-label">Arrival Date</td>
-                                        <td className="details-value">{new Date(selectedReservation.checkInDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                                        <td className="details-value">{formatDate(selectedReservation.checkInDate)}</td>
                                     </tr>
                                     <tr>
                                         <td className="details-label">Departure Date</td>
-                                        <td className="details-value">{new Date(selectedReservation.checkOutDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                                        <td className="details-value">{formatDate(selectedReservation.checkOutDate)}</td>
                                     </tr>
                                     <tr>
                                         <td className="details-label">Booking Date</td>
-                                        <td className="details-value">{new Date(selectedReservation.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                                        <td className="details-value">{formatDate(selectedReservation.createdAt)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="details-label">Arrival Time</td>
+                                        <td className="details-value">{formatTime(selectedReservation.checkInTime || selectedReservation.scheduledCheckInTime || '') || '-'}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="details-label">Departure Time</td>
+                                        <td className="details-value">{formatTime(selectedReservation.checkOutTime || selectedReservation.scheduledCheckOutTime || '') || '-'}</td>
                                     </tr>
                                     <tr>
                                         <td className="details-label">Reservation Type</td>

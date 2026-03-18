@@ -45,6 +45,135 @@ export const SettingsProvider = ({ children }) => {
     const [settings, setSettings] = useState(defaultSettings);
     const [loaded, setLoaded] = useState(false);
 
+    const resolveTimeZone = useCallback((timezoneLabel) => {
+        const value = (timezoneLabel || settings.timezone || '').toLowerCase();
+
+        if (value.includes('kolkata') || value.includes('delhi') || value.includes('india')) return 'Asia/Kolkata';
+        if (value.includes('london') || value.includes('uk')) return 'Europe/London';
+        if (value.includes('new york') || value.includes('usa') || value.includes('est')) return 'America/New_York';
+
+        return 'Asia/Kolkata';
+    }, [settings.timezone]);
+
+    const getDateTimeParts = useCallback((date = new Date(), timezoneLabel) => {
+        const timeZone = resolveTimeZone(timezoneLabel);
+        const formatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hourCycle: 'h23'
+        });
+
+        const parts = formatter.formatToParts(date).reduce((acc, part) => {
+            if (part.type !== 'literal') acc[part.type] = part.value;
+            return acc;
+        }, {});
+
+        const year = parts.year || '1970';
+        const month = parts.month || '01';
+        const day = parts.day || '01';
+        const hour = parts.hour || '00';
+        const minute = parts.minute || '00';
+        const second = parts.second || '00';
+
+        return {
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            second,
+            dateISO: `${year}-${month}-${day}`,
+            time24: `${hour}:${minute}`,
+            time24WithSeconds: `${hour}:${minute}:${second}`
+        };
+    }, [resolveTimeZone]);
+
+    const getCurrentDateISO = useCallback(() => {
+        return getDateTimeParts(new Date()).dateISO;
+    }, [getDateTimeParts]);
+
+    const getCurrentTime24 = useCallback(() => {
+        return getDateTimeParts(new Date()).time24;
+    }, [getDateTimeParts]);
+
+    const toTime24 = useCallback((timeValue) => {
+        if (!timeValue) return '';
+
+        const raw = String(timeValue).trim();
+        if (!raw) return '';
+
+        const ampmMatch = raw.match(/^(\d{1,2}):(\d{2})\s*([AaPp][Mm])$/);
+        if (ampmMatch) {
+            let hours = Number(ampmMatch[1]);
+            const minutes = Number(ampmMatch[2]);
+            const suffix = ampmMatch[3].toUpperCase();
+
+            if (Number.isNaN(hours) || Number.isNaN(minutes) || minutes < 0 || minutes > 59) return '';
+            if (hours < 1 || hours > 12) return '';
+
+            if (suffix === 'AM') {
+                if (hours === 12) hours = 0;
+            } else if (hours !== 12) {
+                hours += 12;
+            }
+
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        }
+
+        const hhmmMatch = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+        if (!hhmmMatch) return '';
+
+        const hours = Number(hhmmMatch[1]);
+        const minutes = Number(hhmmMatch[2]);
+        if (Number.isNaN(hours) || Number.isNaN(minutes)) return '';
+        if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return '';
+
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }, []);
+
+    const timeToMinutes = useCallback((timeValue) => {
+        const normalized = toTime24(timeValue);
+        if (!normalized) return null;
+
+        const [hours, minutes] = normalized.split(':').map(Number);
+        if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+
+        return (hours * 60) + minutes;
+    }, [toTime24]);
+
+    const isPastDateTime = useCallback((dateISO, timeValue = '00:00') => {
+        if (!dateISO) return false;
+
+        const normalizedTime = toTime24(timeValue) || '00:00';
+        const currentDateISO = getCurrentDateISO();
+        const currentTime24 = getCurrentTime24();
+
+        if (dateISO < currentDateISO) return true;
+        if (dateISO > currentDateISO) return false;
+        return normalizedTime < currentTime24;
+    }, [getCurrentDateISO, getCurrentTime24, toTime24]);
+
+    const addDaysToDateISO = useCallback((dateISO, days = 0) => {
+        if (!dateISO) return '';
+
+        const [year, month, day] = String(dateISO).split('-').map(Number);
+        if (!year || !month || !day) return dateISO;
+
+        const date = new Date(Date.UTC(year, month - 1, day));
+        date.setUTCDate(date.getUTCDate() + Number(days || 0));
+
+        return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+    }, []);
+
+    const getDateISOWithOffset = useCallback((days = 0) => {
+        return addDaysToDateISO(getCurrentDateISO(), days);
+    }, [addDaysToDateISO, getCurrentDateISO]);
+
     const fetchSettings = useCallback(async () => {
         try {
             const res = await fetch(`${API_URL}/api/hotel/settings`);
@@ -88,27 +217,48 @@ export const SettingsProvider = ({ children }) => {
 
     const formatDate = useCallback((dateStr) => {
         if (!dateStr) return 'N/A';
-        const d = new Date(dateStr);
-        if (isNaN(d)) return 'N/A';
-        const dd = String(d.getDate()).padStart(2, '0');
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const yyyy = d.getFullYear();
+
+        let dd;
+        let mm;
+        let yyyy;
+
+        const raw = String(dateStr).trim();
+        const dateOnlyMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+        if (dateOnlyMatch) {
+            yyyy = dateOnlyMatch[1];
+            mm = dateOnlyMatch[2];
+            dd = dateOnlyMatch[3];
+        } else {
+            const parsedDate = new Date(raw);
+            if (Number.isNaN(parsedDate.getTime())) return 'N/A';
+
+            const parts = getDateTimeParts(parsedDate);
+            yyyy = parts.year;
+            mm = parts.month;
+            dd = parts.day;
+        }
+
         const fmt = settings.dateFormat || 'DD/MM/YYYY';
         if (fmt === 'MM/DD/YYYY') return `${mm}/${dd}/${yyyy}`;
         if (fmt === 'YYYY-MM-DD') return `${yyyy}-${mm}-${dd}`;
         return `${dd}/${mm}/${yyyy}`;
-    }, [settings.dateFormat]);
+    }, [settings.dateFormat, getDateTimeParts]);
 
     const formatTime = useCallback((timeStr) => {
         if (!timeStr) return '';
+        const normalized = toTime24(timeStr);
+        if (!normalized) return String(timeStr);
+
         const fmt = settings.timeFormat || '12 Hour';
-        if (fmt === '24 Hour') return timeStr;
-        const [h, m] = timeStr.split(':').map(Number);
+        if (fmt === '24 Hour') return normalized;
+
+        const [h, m] = normalized.split(':').map(Number);
         if (isNaN(h)) return timeStr;
         const ampm = h >= 12 ? 'PM' : 'AM';
         const h12 = h % 12 || 12;
         return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
-    }, [settings.timeFormat]);
+    }, [settings.timeFormat, toTime24]);
 
     const getFullAddress = useCallback(() => {
         const parts = [settings.address, settings.city, settings.state, settings.pin].filter(Boolean);
@@ -118,7 +268,19 @@ export const SettingsProvider = ({ children }) => {
     return (
         <SettingsContext.Provider value={{
             settings, setSettings, fetchSettings, loaded,
-            getCurrencySymbol, formatDate, formatTime, getFullAddress
+            getCurrencySymbol,
+            formatDate,
+            formatTime,
+            getFullAddress,
+            resolveTimeZone,
+            getDateTimeParts,
+            getCurrentDateISO,
+            getCurrentTime24,
+            getDateISOWithOffset,
+            addDaysToDateISO,
+            toTime24,
+            timeToMinutes,
+            isPastDateTime
         }}>
             {children}
         </SettingsContext.Provider>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API_URL from '../../config/api';
 import { useSettings } from '../../context/SettingsContext';
@@ -77,8 +77,43 @@ const GuestMealService = () => {
     }, []);
     // --- STATE MANAGEMENT ---
     const navigate = useNavigate();
-    const { settings, getCurrencySymbol } = useSettings();
+    const {
+        settings,
+        getCurrencySymbol,
+        formatDate,
+        formatTime,
+        getCurrentDateISO,
+        getCurrentTime24,
+        toTime24,
+        timeToMinutes,
+        isPastDateTime
+    } = useSettings();
     const cs = getCurrencySymbol();
+
+    const getNowContext = useCallback(() => {
+        const dateISO = getCurrentDateISO();
+        const time24 = getCurrentTime24();
+        const minutes = timeToMinutes(time24) ?? 0;
+
+        return { dateISO, time24, minutes };
+    }, [getCurrentDateISO, getCurrentTime24, timeToMinutes]);
+
+    const computeEndTime = useCallback((startTime) => {
+        const normalizedStart = toTime24(startTime);
+        const startMinutes = timeToMinutes(normalizedStart);
+        if (startMinutes === null) return '';
+
+        const startHour = Math.floor(startMinutes / 60);
+        let durationMins = 60;
+        if (startHour >= 17 || startHour < 4) durationMins = 120;
+        else if (startHour >= 11) durationMins = 90;
+
+        const endMinutes = startMinutes + durationMins;
+        const endHour = Math.floor((endMinutes / 60) % 24);
+        const endMinute = endMinutes % 60;
+
+        return `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
+    }, [toTime24, timeToMinutes]);
 
     // Tables State
     const [tables, setTables] = useState([]);
@@ -172,11 +207,11 @@ const GuestMealService = () => {
     });
 
     // Time Availability Filter State
-    const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
-    const [filterTime, setFilterTime] = useState(new Date().toTimeString().slice(0, 5));
+    const [filterDate, setFilterDate] = useState(() => getCurrentDateISO());
+    const [filterTime, setFilterTime] = useState(() => getCurrentTime24());
     // Persisted "Applied" filters
-    const [appliedDate, setAppliedDate] = useState(new Date().toISOString().split('T')[0]);
-    const [appliedTime, setAppliedTime] = useState(new Date().toTimeString().slice(0, 5));
+    const [appliedDate, setAppliedDate] = useState(() => getCurrentDateISO());
+    const [appliedTime, setAppliedTime] = useState(() => getCurrentTime24());
     const [isTimeFilterActive, setIsTimeFilterActive] = useState(false);
 
     // Fetch tables on mount and periodically
@@ -591,28 +626,13 @@ const GuestMealService = () => {
                 advancePayment: reservation.advancePayment || 0
             });
         } else {
-            const now = new Date();
-            const currentHour = now.getHours();
-            const currentMin = now.getMinutes();
-            const startTimeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMin).padStart(2, '0')}`;
-
-            // Calculate automatic duration
-            // Morning: 04:00 - 10:59 (60 mins), Lunch: 11:00 - 16:59 (90 mins), Dinner: 17:00 onwards (120 mins)
-            let durationMins = 60; // Default Morning
-            if (currentHour >= 17 || currentHour < 4) {
-                durationMins = 120; // Dinner
-            } else if (currentHour >= 11) {
-                durationMins = 90; // Lunch
-            } else {
-                durationMins = 60; // Morning
-            }
-
-            const endDate = new Date(now.getTime() + durationMins * 60000);
-            const endTimeStr = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
+            const nowCtx = getNowContext();
+            const startTimeStr = nowCtx.time24;
+            const endTimeStr = computeEndTime(startTimeStr);
 
             setReserveFormData({
                 name: '',
-                date: new Date().toISOString().split('T')[0],
+                date: nowCtx.dateISO,
                 startTime: startTimeStr,
                 endTime: endTimeStr,
                 guests: table.capacity, // Default to capacity
@@ -644,10 +664,15 @@ const GuestMealService = () => {
         }
 
         // 3. Duration Validation (Min 30 mins)
-        const [sh, sm] = reserveFormData.startTime.split(':').map(Number);
-        const [eh, em] = reserveFormData.endTime.split(':').map(Number);
-        const startTotal = sh * 60 + sm;
-        const endTotal = eh * 60 + em;
+        const normalizedStartTime = toTime24(reserveFormData.startTime);
+        const normalizedEndTime = toTime24(reserveFormData.endTime);
+        const startTotal = timeToMinutes(normalizedStartTime);
+        const endTotal = timeToMinutes(normalizedEndTime);
+
+        if (startTotal === null || endTotal === null) {
+            alert("Please enter a valid reservation time.");
+            return;
+        }
 
         if (endTotal <= startTotal) {
             alert("End time must be after start time.");
@@ -660,24 +685,26 @@ const GuestMealService = () => {
         }
 
         // 4. Past Time Validation
-        const now = new Date();
-        const selectedDate = new Date(reserveFormData.date);
-        const todayStr = now.toISOString().split('T')[0];
-
-        if (reserveFormData.date === todayStr) {
-            const currentTotal = now.getHours() * 60 + now.getMinutes();
-            if (startTotal < currentTotal) {
-                alert("Cannot book a reservation for a past time.");
-                return;
-            }
-        } else if (selectedDate < new Date().setHours(0, 0, 0, 0)) {
+        const nowCtx = getNowContext();
+        if (reserveFormData.date < nowCtx.dateISO) {
             alert("Cannot book a reservation for a past date.");
             return;
         }
 
+        if (isPastDateTime(reserveFormData.date, normalizedStartTime)) {
+            alert("Cannot book a reservation for a past time.");
+            return;
+        }
+
+        const normalizedFormData = {
+            ...reserveFormData,
+            startTime: normalizedStartTime,
+            endTime: normalizedEndTime
+        };
+
         // 5. Time Conflict Validation matches user request: "same time pe do log na kare"
         // Also checks explicit overlap range
-        const conflict = checkReservationConflict(reserveTargetTable, reserveFormData);
+        const conflict = checkReservationConflict(reserveTargetTable, normalizedFormData);
         if (conflict) {
             alert(`Conflict! Table is already reserved for this time slot:\n${conflict.startTime} - ${conflict.endTime} by ${conflict.name}`);
             return;
@@ -690,13 +717,13 @@ const GuestMealService = () => {
             if (isEditing) {
                 // If editing, send the whole modified array
                 const updatedReservations = (reserveTargetTable.reservations || []).map(r =>
-                    r.id === reserveFormData.id ? { ...reserveFormData } : r
+                    r.id === reserveFormData.id ? { ...normalizedFormData } : r
                 );
                 payload = { reservations: updatedReservations };
             } else {
                 const newReservation = {
                     id: Date.now().toString(), // Simple ID
-                    ...reserveFormData
+                    ...normalizedFormData
                 };
                 payload = { newReservation };
             }
@@ -886,10 +913,7 @@ const GuestMealService = () => {
 
             // Smart Reservation Handling
             if (closeTableData.reservation && closeTableData.reservation.startTime && closeTableData.reservation.endTime) {
-                const now = new Date();
-                const currentH = now.getHours();
-                const currentM = now.getMinutes();
-                const currentVal = currentH * 60 + currentM;
+                const currentVal = getNowContext().minutes;
 
                 const [startH, startM] = closeTableData.reservation.startTime.split(':').map(Number);
                 const [endH, endM] = closeTableData.reservation.endTime.split(':').map(Number);
@@ -950,11 +974,9 @@ const GuestMealService = () => {
     // Check for reservations (Run every minute)
     useEffect(() => {
         const checkReservations = () => {
-            const now = new Date();
-            const currentH = now.getHours();
-            const currentM = now.getMinutes();
-            const currentVal = currentH * 60 + currentM;
-            const todayStr = now.toISOString().split('T')[0];
+            const nowCtx = getNowContext();
+            const currentVal = nowCtx.minutes;
+            const todayStr = nowCtx.dateISO;
 
             setTables(prevTables => {
                 return prevTables.map(t => {
@@ -999,20 +1021,19 @@ const GuestMealService = () => {
         checkReservations(); // Initial check
 
         return () => clearInterval(interval);
-    }, []);
+    }, [getNowContext]);
 
 
 
     // Filter Logic
     useEffect(() => {
+        const nowCtx = getNowContext();
+        const todayStr = nowCtx.dateISO;
+        const currentVal = nowCtx.minutes;
+        const appliedFilterMinutes = timeToMinutes(toTime24(appliedTime));
+
         // Create working copy with dynamic status calculation and exclude merged templates
         let tableList = tables.filter(t => !t.tableName.startsWith('_MERGED_')).map(table => {
-            const now = new Date();
-            const todayStr = now.toISOString().split('T')[0];
-            const currentH = now.getHours();
-            const currentM = now.getMinutes();
-            const currentVal = currentH * 60 + currentM;
-
             // Check for current active reservation
             const activeRes = (table.reservations || []).find(res => {
                 if (res.date !== todayStr) return false;
@@ -1044,19 +1065,20 @@ const GuestMealService = () => {
 
         // --- Time Availability Filter Logic ---
         if (isTimeFilterActive) {
-            const selectedTimeStamp = new Date(`${appliedDate}T${appliedTime}`).getTime();
-            const now = new Date();
-            const isSelectedTimeNearNow = Math.abs(selectedTimeStamp - now.getTime()) < 30 * 60 * 1000;
+            const isSelectedTimeNearNow =
+                appliedDate === todayStr &&
+                appliedFilterMinutes !== null &&
+                Math.abs(appliedFilterMinutes - currentVal) < 30;
 
             tableList = tableList.filter(table => {
                 const hasConflict = (table.reservations || []).some(res => {
                     if (res.date !== appliedDate) return false;
                     const [startH, startM] = res.startTime.split(':').map(Number);
                     const [endH, endM] = res.endTime.split(':').map(Number);
-                    const [filterH, filterM] = appliedTime.split(':').map(Number);
                     const startTotal = startH * 60 + startM;
                     const endTotal = endH * 60 + endM;
-                    const filterTotal = filterH * 60 + filterM;
+                    const filterTotal = appliedFilterMinutes;
+                    if (filterTotal === null) return false;
                     return filterTotal >= startTotal && filterTotal < endTotal;
                 });
 
@@ -1083,12 +1105,9 @@ const GuestMealService = () => {
         setFilteredTables(tableList);
 
         // Update stats
-        const todayStr = new Date().toISOString().split('T')[0];
         const upcomingCount = tables.reduce((count, table) => {
             const todayRes = (table.reservations || []).filter(r => r.date === todayStr);
             // Count reservations that haven't happened yet (start time > now)
-            const now = new Date();
-            const currentVal = now.getHours() * 60 + now.getMinutes();
             return count + todayRes.filter(r => {
                 const [h, m] = r.startTime.split(':').map(Number);
                 return (h * 60 + m) > currentVal;
@@ -1102,19 +1121,20 @@ const GuestMealService = () => {
         let availableCount = tables.filter(t => t.status === 'Available').length;
 
         if (isTimeFilterActive) {
-            const selectedTimeStamp = new Date(`${appliedDate}T${appliedTime}`).getTime();
-            const now = new Date();
-            const isSelectedTimeNearNow = Math.abs(selectedTimeStamp - now.getTime()) < 30 * 60 * 1000;
+            const isSelectedTimeNearNow =
+                appliedDate === todayStr &&
+                appliedFilterMinutes !== null &&
+                Math.abs(appliedFilterMinutes - currentVal) < 30;
 
             availableCount = tables.filter(table => {
                 const hasConflict = (table.reservations || []).some(res => {
                     if (res.date !== appliedDate) return false;
                     const [startH, startM] = res.startTime.split(':').map(Number);
                     const [endH, endM] = res.endTime.split(':').map(Number);
-                    const [filterH, filterM] = appliedTime.split(':').map(Number);
                     const startTotal = startH * 60 + startM;
                     const endTotal = endH * 60 + endM;
-                    const filterTotal = filterH * 60 + filterM;
+                    const filterTotal = appliedFilterMinutes;
+                    if (filterTotal === null) return false;
                     return filterTotal >= startTotal && filterTotal < endTotal;
                 });
                 if (hasConflict) return false;
@@ -1133,7 +1153,7 @@ const GuestMealService = () => {
             upcomingCount: upcomingCount,
             revenue: prev.revenue
         }));
-    }, [statusFilter, typeFilter, searchQuery, tables, appliedDate, appliedTime, isTimeFilterActive]);
+    }, [statusFilter, typeFilter, searchQuery, tables, appliedDate, appliedTime, isTimeFilterActive, getNowContext, timeToMinutes, toTime24]);
 
     const formatDuration = (minutes) => {
         if (minutes === 0) return '--';
@@ -1152,8 +1172,7 @@ const GuestMealService = () => {
         // If table is Reserved, check time window
         if (table.status === 'Reserved') {
             if (table.reservation && table.reservation.startTime && table.reservation.endTime) {
-                const now = new Date();
-                const currentVal = now.getHours() * 60 + now.getMinutes();
+                const currentVal = getNowContext().minutes;
                 const [startH, startM] = table.reservation.startTime.split(':').map(Number);
                 const [endH, endM] = table.reservation.endTime.split(':').map(Number);
                 const startVal = startH * 60 + startM;
@@ -1304,16 +1323,15 @@ const GuestMealService = () => {
                         <input
                             type="date"
                             value={filterDate}
-                            min={new Date().toISOString().split('T')[0]}
+                            min={getCurrentDateISO()}
                             onChange={(e) => {
                                 const selected = e.target.value;
                                 setFilterDate(selected);
                                 // If today is selected, ensure time isn't in the past
-                                const todayStr = new Date().toISOString().split('T')[0];
-                                if (selected === todayStr) {
-                                    const nowStr = new Date().toTimeString().slice(0, 5);
-                                    if (filterTime < nowStr) {
-                                        setFilterTime(nowStr);
+                                const nowCtx = getNowContext();
+                                if (selected === nowCtx.dateISO) {
+                                    if ((timeToMinutes(filterTime) ?? 0) < nowCtx.minutes) {
+                                        setFilterTime(nowCtx.time24);
                                     }
                                 }
                             }}
@@ -1337,12 +1355,11 @@ const GuestMealService = () => {
                             value={filterTime}
                             onChange={(e) => {
                                 const selectedTime = e.target.value;
-                                const todayStr = new Date().toISOString().split('T')[0];
-                                if (filterDate === todayStr) {
-                                    const nowStr = new Date().toTimeString().slice(0, 5);
-                                    if (selectedTime < nowStr) {
+                                const nowCtx = getNowContext();
+                                if (filterDate === nowCtx.dateISO) {
+                                    if ((timeToMinutes(selectedTime) ?? 0) < nowCtx.minutes) {
                                         alert("You cannot select a past time for today.");
-                                        setFilterTime(nowStr);
+                                        setFilterTime(nowCtx.time24);
                                         return;
                                     }
                                 }
@@ -1383,12 +1400,11 @@ const GuestMealService = () => {
 
                         <button
                             onClick={() => {
-                                const d = new Date().toISOString().split('T')[0];
-                                const t = new Date().toTimeString().slice(0, 5);
-                                setFilterDate(d);
-                                setFilterTime(t);
-                                setAppliedDate(d);
-                                setAppliedTime(t);
+                                const nowCtx = getNowContext();
+                                setFilterDate(nowCtx.dateISO);
+                                setFilterTime(nowCtx.time24);
+                                setAppliedDate(nowCtx.dateISO);
+                                setAppliedTime(nowCtx.time24);
                                 setStatusFilter('All');
                                 setTypeFilter('All');
                                 setSearchQuery('');
@@ -1876,7 +1892,7 @@ const GuestMealService = () => {
                                             <span className="field-icon">📅</span>
                                             <input
                                                 type="date"
-                                                min={new Date().toISOString().split('T')[0]} // Restrict past dates
+                                                min={getCurrentDateISO()} // Restrict past dates
                                                 className="premium-input-field"
                                                 value={reserveFormData.date}
                                                 onChange={e => setReserveFormData({ ...reserveFormData, date: e.target.value })}
@@ -1894,30 +1910,18 @@ const GuestMealService = () => {
                                                 value={reserveFormData.startTime}
                                                 onChange={e => {
                                                     const newStart = e.target.value;
-                                                    const todayStr = new Date().toISOString().split('T')[0];
-                                                    const nowStr = new Date().toTimeString().slice(0, 5);
+                                                    const nowCtx = getNowContext();
+                                                    const normalizedStart = toTime24(newStart);
 
-                                                    if (reserveFormData.date === todayStr && newStart < nowStr) {
+                                                    if (reserveFormData.date === nowCtx.dateISO && (timeToMinutes(normalizedStart) ?? 0) < nowCtx.minutes) {
                                                         alert("You cannot book a reservation for a past time.");
                                                         return;
                                                     }
-
-                                                    const [h, m] = newStart.split(':').map(Number);
-
-                                                    // Morning: 04:00 - 10:59 (60 mins), Lunch: 11:00 - 16:59 (90 mins), Dinner: 17:00 onwards (120 mins)
-                                                    let durationMins = 60;
-                                                    if (h >= 17 || h < 4) durationMins = 120; // Dinner
-                                                    else if (h >= 11) durationMins = 90; // Lunch
-                                                    else durationMins = 60; // Morning
-
-                                                    const date = new Date();
-                                                    date.setHours(h, m, 0, 0);
-                                                    const end = new Date(date.getTime() + durationMins * 60000);
-                                                    const endTimeStr = `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`;
+                                                    const endTimeStr = computeEndTime(normalizedStart);
 
                                                     setReserveFormData({
                                                         ...reserveFormData,
-                                                        startTime: newStart,
+                                                        startTime: normalizedStart,
                                                         endTime: endTimeStr
                                                     });
                                                 }}
@@ -2247,11 +2251,11 @@ const GuestMealService = () => {
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                                                     <div style={{ background: 'rgba(255,255,255,0.5)', padding: '12px', borderRadius: '10px' }}>
                                                         <div style={{ fontSize: '0.7rem', color: '#166534', fontWeight: '800', textTransform: 'uppercase' }}>Date</div>
-                                                        <div style={{ fontWeight: '700', color: '#111827' }}>{match.date}</div>
+                                                        <div style={{ fontWeight: '700', color: '#111827' }}>{formatDate(match.date)}</div>
                                                     </div>
                                                     <div style={{ background: 'rgba(255,255,255,0.5)', padding: '12px', borderRadius: '10px' }}>
                                                         <div style={{ fontSize: '0.7rem', color: '#166534', fontWeight: '800', textTransform: 'uppercase' }}>Session</div>
-                                                        <div style={{ fontWeight: '700', color: '#111827' }}>{match.startTime}</div>
+                                                        <div style={{ fontWeight: '700', color: '#111827' }}>{formatTime(match.startTime)}{match.endTime ? ` - ${formatTime(match.endTime)}` : ''}</div>
                                                     </div>
                                                 </div>
                                                 <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2389,24 +2393,21 @@ const GuestMealService = () => {
 const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToCashier }) => {
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef(null);
-    const { settings, getCurrencySymbol } = useSettings();
+    const { settings, getCurrencySymbol, getCurrentDateISO, getCurrentTime24, timeToMinutes, formatTime } = useSettings();
     const cs = getCurrencySymbol();
 
     // Helper logic to find nearest upcoming reservation
     const getNextReservation = () => {
         if (!table.reservations || table.reservations.length === 0) return null;
 
-        const now = new Date();
-        const currentH = now.getHours();
-        const currentM = now.getMinutes();
-        const currentVal = currentH * 60 + currentM;
-        const todayStr = now.toISOString().split('T')[0];
+        const currentVal = timeToMinutes(getCurrentTime24()) ?? 0;
+        const todayStr = getCurrentDateISO();
 
         // Filter: Today, future start time
         const future = table.reservations.filter(res => {
             if (res.date && res.date !== todayStr) return false;
-            const [h, m] = res.startTime.split(':').map(Number);
-            const val = h * 60 + m;
+            const val = timeToMinutes(res.startTime);
+            if (val === null) return false;
             return val > currentVal;
         });
 
@@ -2414,8 +2415,8 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
 
         // Sort by time
         future.sort((a, b) => {
-            const valA = a.startTime.split(':').reduce((h, m) => h * 60 + parseInt(m));
-            const valB = b.startTime.split(':').reduce((h, m) => h * 60 + parseInt(m));
+            const valA = timeToMinutes(a.startTime) ?? 0;
+            const valB = timeToMinutes(b.startTime) ?? 0;
             return valA - valB;
         });
 
@@ -2616,10 +2617,8 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                         <>
                             <div style={{ color: '#10b981', fontSize: '0.9rem', fontWeight: '600', marginBottom: '4px' }}>Ready for guests</div>
                             {nextRes && (() => {
-                                const now = new Date();
-                                const [h, m] = nextRes.startTime.split(':').map(Number);
-                                const nextVal = h * 60 + m;
-                                const currVal = now.getHours() * 60 + now.getMinutes();
+                                const nextVal = timeToMinutes(nextRes.startTime) ?? 0;
+                                const currVal = timeToMinutes(getCurrentTime24()) ?? 0;
                                 const diff = nextVal - currVal;
                                 const isNear = diff > 0 && diff <= 30;
 
@@ -2636,7 +2635,7 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                                     }}>
                                         {isNear ? '⚠️ Arriving Soon: ' : 'Next: '}
                                         <span style={{ fontWeight: '800', color: isNear ? '#b91c1c' : '#4b5563' }}>
-                                            {nextRes.startTime} ({diff}m)
+                                            {formatTime(nextRes.startTime)} ({diff}m)
                                         </span>
                                         <div style={{ fontSize: '0.75rem', fontWeight: '600', opacity: 0.8 }}>{nextRes.name} ({getSourceLabel(nextRes.source)})</div>
                                     </div>
@@ -2647,7 +2646,7 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                         <div style={{ padding: '10px', background: '#fff7ed', borderRadius: '12px', border: '1px solid #ffedd5' }}>
                             <div style={{ fontSize: '0.75rem', color: '#c2410c', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Reservation Active</div>
                             <div style={{ fontSize: '1.1rem', fontWeight: '900', color: '#111827', marginTop: '4px' }}>
-                                {table.activeReservation?.startTime} - {table.activeReservation?.endTime}
+                                {formatTime(table.activeReservation?.startTime)} - {formatTime(table.activeReservation?.endTime)}
                             </div>
                             <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#9a3412', marginTop: '2px' }}>
                                 {table.activeReservation?.name} ({getSourceLabel(table.activeReservation?.source)})
