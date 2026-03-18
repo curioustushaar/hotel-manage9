@@ -22,7 +22,7 @@ const defaultSettings = {
     serviceCharge: 10,
     roomGst: 12,
     foodGst: 5,
-    roomServiceCharge: 5,
+    roomServiceCharge: 10,
     inclusiveTax: false,
     invoicePrefix: 'INV-2026-',
     billingInvoicePrefix: 'ATITHI',
@@ -50,7 +50,23 @@ export const SettingsProvider = ({ children }) => {
             const res = await fetch(`${API_URL}/api/hotel/settings`);
             const data = await res.json();
             if (data.success && data.data) {
-                setSettings(prev => ({ ...prev, ...data.data }));
+                setSettings(prev => {
+                    const mergedBillingRules = { ...prev.billingRules, ...(data.data.billingRules || {}) };
+                    const masterServiceCharge = data.data.roomServiceCharge ?? data.data.serviceCharge ?? prev.roomServiceCharge;
+                    const roomPostingEnabled = data.data.enableRoomPosting ?? mergedBillingRules.autoPost ?? prev.enableRoomPosting;
+
+                    return {
+                        ...prev,
+                        ...data.data,
+                        serviceCharge: masterServiceCharge,
+                        roomServiceCharge: masterServiceCharge,
+                        enableRoomPosting: roomPostingEnabled,
+                        billingRules: {
+                            ...mergedBillingRules,
+                            autoPost: roomPostingEnabled
+                        }
+                    };
+                });
             }
         } catch (err) {
             console.error('Error fetching settings:', err);

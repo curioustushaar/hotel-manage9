@@ -98,7 +98,7 @@ const bookingSchema = new mongoose.Schema({
     // Status
     status: {
         type: String,
-        enum: ['Pending', 'Confirmed', 'CheckedIn', 'CheckedOut', 'Cancelled', 'NoShow', 'No-Show', 'No Show', 'Void', 'Voided', 'RESERVED', 'IN_HOUSE', 'CHECKED_OUT', 'Upcoming', 'Checked-in', 'Checked-out'], // Added Upcoming, Checked-in, Checked-out
+        enum: ['Pending', 'Confirmed', 'CheckedIn', 'CheckedOut', 'Cancelled', 'NoShow', 'No-Show', 'No Show', 'NO_SHOW', 'Void', 'Voided', 'RESERVED', 'IN_HOUSE', 'CHECKED_OUT', 'Upcoming', 'Checked-in', 'Checked-out'], // Added compatibility for legacy NO_SHOW
         default: 'Pending',
         index: true
     },
@@ -165,6 +165,14 @@ const bookingSchema = new mongoose.Schema({
 
 }, {
     timestamps: true
+});
+
+bookingSchema.pre('validate', function (next) {
+    // Normalize legacy status variants to canonical form to avoid enum failures.
+    if (this.status === 'NO_SHOW' || this.status === 'No-Show' || this.status === 'No Show') {
+        this.status = 'NoShow';
+    }
+    next();
 });
 
 bookingSchema.pre('save', function (next) {

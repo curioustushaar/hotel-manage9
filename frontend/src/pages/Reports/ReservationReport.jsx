@@ -170,11 +170,11 @@ const ReservationReport = () => {
                 </div>
                 <div className="rr-header-actions">
                     <button className="rr-btn rr-btn-outline" onClick={handleExportCSV}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                         Export CSV
                     </button>
                     <button className="rr-btn rr-btn-outline" onClick={() => window.print()}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>
                         Print
                     </button>
                 </div>
@@ -200,11 +200,18 @@ const ReservationReport = () => {
                     <label>Table Type</label>
                     <select value={filters.tableType} onChange={e => setFilters(p => ({ ...p, tableType: e.target.value }))}>
                         <option value="All">All</option>
-                        {(data?.tableTypes || []).map(t => <option key={t} value={t}>{t}</option>)}
+                        {(() => {
+                            const defaults = ['General', 'AC', 'Non-AC', 'Garden'];
+                            const fromDB = (data?.tableTypes || [])
+                                .map(t => (t || '').toString().trim())
+                                .filter(t => t.length > 1 && !t.toLowerCase().includes('burr'));
+                            const merged = [...new Set([...defaults, ...fromDB])];
+                            return merged.map(t => <option key={t} value={t}>{t}</option>);
+                        })()}
                     </select>
                 </div>
                 <button className="rr-btn rr-btn-primary" onClick={fetchReport}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" /><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" /></svg>
                     Generate Report
                 </button>
             </div>
@@ -220,7 +227,7 @@ const ReservationReport = () => {
                     <div className="rr-summary-grid">
                         <div className="rr-card rr-card-1">
                             <div className="rr-card-icon">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
                             </div>
                             <div className="rr-card-content">
                                 <span className="rr-card-value">{summary.totalReservations || 0}</span>
@@ -229,7 +236,7 @@ const ReservationReport = () => {
                         </div>
                         <div className="rr-card rr-card-2">
                             <div className="rr-card-icon">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                             </div>
                             <div className="rr-card-content">
                                 <span className="rr-card-value">{summary.todayCount || 0}</span>
@@ -238,7 +245,7 @@ const ReservationReport = () => {
                         </div>
                         <div className="rr-card rr-card-3">
                             <div className="rr-card-icon">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zm7-13h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/></svg>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zm7-13h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17" /></svg>
                             </div>
                             <div className="rr-card-content">
                                 <span className="rr-card-value">{summary.noShowCount || 0}</span>
@@ -247,7 +254,7 @@ const ReservationReport = () => {
                         </div>
                         <div className="rr-card rr-card-4">
                             <div className="rr-card-icon">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
                             </div>
                             <div className="rr-card-content">
                                 <span className="rr-card-value">{summary.cancelledCount || 0}</span>
@@ -256,7 +263,7 @@ const ReservationReport = () => {
                         </div>
                         <div className="rr-card rr-card-5">
                             <div className="rr-card-icon">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" /></svg>
                             </div>
                             <div className="rr-card-content">
                                 <span className="rr-card-value">{summary.avgGuests || 0}</span>
@@ -349,7 +356,7 @@ const ReservationReport = () => {
                                 <div className="rr-section-header">
                                     <h2>{activeTab === 'upcoming' ? 'Upcoming' : activeTab === 'today' ? "Today's" : 'Completed'} Reservations</h2>
                                     <div className="rr-search-box">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
                                         <input type="text" placeholder="Search guest, phone, table..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                                         {searchTerm && <button className="rr-search-clear" onClick={() => setSearchTerm('')}>×</button>}
                                     </div>
@@ -518,7 +525,7 @@ const ReservationReport = () => {
                 </>
             ) : (
                 <div className="rr-empty-state">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
                     <h3>Click "Generate Report" to load reservation data</h3>
                     <p>Select date range and filters to view reservation analytics</p>
                 </div>

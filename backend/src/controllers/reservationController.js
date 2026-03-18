@@ -1,12 +1,13 @@
 const Reservation = require('../models/Booking');
 const Booking = require('../models/Booking');
 const Room = require('../models/Room');
+const Folio = require('../models/Folio');
 
 // Helper to find reservation or booking
 // Handles dual-model architecture (Reservation vs Booking)
 const findStayRecord = async (id) => {
     let record = await Reservation.findById(id);
-    let type = 'Reservation';
+    let type = 'Booking';
 
     if (!record) {
         record = await Booking.findById(id);
@@ -50,8 +51,7 @@ exports.markNoShow = async (req, res) => {
         }
 
         // 2. Update Status
-        record.status = 'NO_SHOW'; // or 'No-Show' depending on enum usage in Booking vs Reservation
-        if (type === 'Booking') record.status = 'No-Show'; // Booking model uses 'No-Show'
+        record.status = 'NoShow';
 
         record.updatedAt = new Date();
 
@@ -72,6 +72,34 @@ exports.markNoShow = async (req, res) => {
         }
 
         // 4. Charges (if explicit applyCharge is true)
+        const ensurePrimaryFolio = async (reservationId) => {
+            let folio = await Folio.findOne({ reservationId, type: 'PRIMARY' });
+            if (!folio) {
+                folio = await Folio.create({
+                    type: 'PRIMARY',
+                    reservationId,
+                    entries: [],
+                    subtotal: 0,
+                    discountTotal: 0,
+                    tax: 0,
+                    grandTotal: 0,
+                    totalPaid: 0,
+                    balance: 0,
+                    status: 'OPEN'
+                });
+            }
+            return folio;
+        };
+
+        const normalizeFolioPaymentMode = (mode) => {
+            const normalized = String(mode || '').toLowerCase();
+            if (normalized.includes('cash')) return 'CASH';
+            if (normalized.includes('upi')) return 'UPI';
+            if (normalized.includes('card')) return 'CARD';
+            if (normalized.includes('bank') || normalized.includes('transfer')) return 'BANK';
+            return 'NONE';
+        };
+
         if (applyCharge) {
             // Determine rate (pricePerNight or ratePerNight or derived)
             let rate = 0;
@@ -101,6 +129,51 @@ exports.markNoShow = async (req, res) => {
                     if (!record.billing) record.billing = {};
                     record.billing.totalAmount = (record.billing.totalAmount || 0) + rate;
                     record.billing.balanceAmount = (record.billing.balanceAmount || 0) + rate;
+
+                    const folio = await ensurePrimaryFolio(record._id);
+                    folio.entries.push({
+                        type: 'EXTRA_CHARGE',
+                        description: '1 Night No-Show Charge',
+                        amount: rate,
+                        paymentMode: 'NONE',
+                        addedBy: userId || 'System',
+                        createdAt: new Date()
+                    });
+                    folio.subtotal = (folio.subtotal || 0) + rate;
+                    folio.grandTotal = (folio.grandTotal || 0) + rate;
+                    folio.balance = (folio.balance || 0) + rate;
+                    await folio.save();
+
+                    // If advance payment is more than the no-show charge, record refundable difference.
+                    const paidAmount = (record.transactions || [])
+                        .filter(t => String(t.type || '').toLowerCase() === 'payment')
+                        .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+
+                    const refundable = Math.max(0, paidAmount - rate);
+                    if (refundable > 0) {
+                        record.transactions.push({
+                            type: 'Refund',
+                            amount: refundable,
+                            method: 'Cash',
+                            notes: 'Refund after No-Show charge adjustment',
+                            date: new Date()
+                        });
+
+                        record.billing.paidAmount = Math.max(0, (record.billing.paidAmount || paidAmount) - refundable);
+                        record.billing.balanceAmount = (record.billing.balanceAmount || 0) + refundable;
+
+                        folio.entries.push({
+                            type: 'REFUND',
+                            description: 'Refund after No-Show adjustment',
+                            amount: refundable,
+                            paymentMode: normalizeFolioPaymentMode('Cash'),
+                            addedBy: userId || 'System',
+                            createdAt: new Date()
+                        });
+                        folio.totalPaid = Math.max(0, (folio.totalPaid || paidAmount) - refundable);
+                        folio.balance = (folio.balance || 0) + refundable;
+                        await folio.save();
+                    }
                     
                     record.noShowDetails = {
                         noShowAt: new Date(),
@@ -124,6 +197,38 @@ exports.markNoShow = async (req, res) => {
             }
         } else {
             if (type === 'Booking') {
+                const paidAmount = (record.transactions || [])
+                    .filter(t => String(t.type || '').toLowerCase() === 'payment')
+                    .reduce((sum, t) => sum + Math.abs(Number(t.amount) || 0), 0);
+
+                if (paidAmount > 0) {
+                    if (!record.transactions) record.transactions = [];
+                    record.transactions.push({
+                        type: 'Refund',
+                        amount: paidAmount,
+                        method: 'Cash',
+                        notes: 'Full refund for No-Show (no charge applied)',
+                        date: new Date()
+                    });
+
+                    if (!record.billing) record.billing = {};
+                    record.billing.paidAmount = Math.max(0, (record.billing.paidAmount || paidAmount) - paidAmount);
+                    record.billing.balanceAmount = (record.billing.balanceAmount || 0) + paidAmount;
+
+                    const folio = await ensurePrimaryFolio(record._id);
+                    folio.entries.push({
+                        type: 'REFUND',
+                        description: 'Full refund for No-Show (no charge)',
+                        amount: paidAmount,
+                        paymentMode: normalizeFolioPaymentMode('Cash'),
+                        addedBy: userId || 'System',
+                        createdAt: new Date()
+                    });
+                    folio.totalPaid = Math.max(0, (folio.totalPaid || paidAmount) - paidAmount);
+                    folio.balance = (folio.balance || 0) + paidAmount;
+                    await folio.save();
+                }
+
                 record.noShowDetails = {
                     noShowAt: new Date(),
                     noShowReason: 'Marked No-Show (No Charge)',

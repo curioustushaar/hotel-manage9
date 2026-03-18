@@ -27,7 +27,19 @@ router.get('/settings', async (req, res) => {
             });
             hotel = hotel.toObject();
         }
-        res.json({ success: true, data: hotel });
+        const normalizedServiceCharge = hotel.roomServiceCharge ?? hotel.serviceCharge ?? 0;
+        const normalizedRoomPosting = hotel.enableRoomPosting ?? hotel.billingRules?.autoPost ?? true;
+        const normalizedData = {
+            ...hotel,
+            serviceCharge: normalizedServiceCharge,
+            roomServiceCharge: normalizedServiceCharge,
+            enableRoomPosting: normalizedRoomPosting,
+            billingRules: {
+                ...(hotel.billingRules || {}),
+                autoPost: normalizedRoomPosting
+            }
+        };
+        res.json({ success: true, data: normalizedData });
     } catch (error) {
         console.error('Error fetching hotel settings:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch settings' });
@@ -39,7 +51,26 @@ router.get('/settings', async (req, res) => {
 // @access  Private
 router.put('/settings', protect, async (req, res) => {
     try {
-        const updates = req.body;
+        const updates = { ...req.body };
+
+        const hasRoomServiceCharge = updates.roomServiceCharge !== undefined;
+        const hasServiceCharge = updates.serviceCharge !== undefined;
+        if (hasRoomServiceCharge || hasServiceCharge) {
+            const unifiedServiceCharge = hasRoomServiceCharge ? updates.roomServiceCharge : updates.serviceCharge;
+            updates.serviceCharge = unifiedServiceCharge;
+            updates.roomServiceCharge = unifiedServiceCharge;
+        }
+
+        const hasEnableRoomPosting = updates.enableRoomPosting !== undefined;
+        const hasBillingAutoPost = updates.billingRules && updates.billingRules.autoPost !== undefined;
+        if (hasEnableRoomPosting || hasBillingAutoPost) {
+            const unifiedRoomPosting = hasEnableRoomPosting ? updates.enableRoomPosting : updates.billingRules.autoPost;
+            updates.enableRoomPosting = unifiedRoomPosting;
+            updates.billingRules = {
+                ...(updates.billingRules || {}),
+                autoPost: unifiedRoomPosting
+            };
+        }
 
         // Validate tax caps - service charge, cgst, sgst cannot exceed their set max
         if (updates.serviceCharge !== undefined && updates.serviceCharge > 100) {

@@ -71,48 +71,56 @@ const CompanySettings = () => {
                 const data = await res.json();
                 if (data.success && data.data) {
                     const s = data.data;
-                    setHotelData(prev => ({
-                        ...prev,
-                        hotelName: s.name || prev.hotelName,
-                        gstNumber: s.gstNumber || prev.gstNumber,
-                        logoUrl: s.logoUrl || prev.logoUrl,
-                        address: s.address || prev.address,
-                        city: s.city || prev.city,
-                        state: s.state || prev.state,
-                        pin: s.pin || prev.pin,
-                        currency: s.currency || prev.currency,
-                        taxType: s.taxType || prev.taxType,
-                        cgst: String(s.cgst ?? prev.cgst),
-                        sgst: String(s.sgst ?? prev.sgst),
-                        serviceCharge: String(s.serviceCharge ?? prev.serviceCharge),
-                        invoicePrefix: s.invoicePrefix || prev.invoicePrefix,
-                        thankYouMessage: s.thankYouMessage || prev.thankYouMessage,
-                        enableRoomPosting: s.enableRoomPosting ?? prev.enableRoomPosting,
-                        posEnabled: s.posEnabled ?? prev.posEnabled,
-                        displayLogoOnBill: s.displayLogoOnBill ?? prev.displayLogoOnBill,
-                        printKOTHeader: s.printKOTHeader ?? prev.printKOTHeader,
-                        autoIncrementInvoice: s.autoIncrementInvoice ?? prev.autoIncrementInvoice,
-                        timezone: s.timezone || prev.timezone,
-                        dateFormat: s.dateFormat || prev.dateFormat,
-                        timeFormat: s.timeFormat || prev.timeFormat,
-                        billingInvoicePrefix: s.billingInvoicePrefix || prev.billingInvoicePrefix,
-                        startingInvoiceNumber: s.startingInvoiceNumber || prev.startingInvoiceNumber,
-                        panNumber: s.panNumber || prev.panNumber,
-                        autoGenerateInvoice: s.autoGenerateInvoice ?? prev.autoGenerateInvoice,
-                        billPrintFormat: s.billPrintFormat || prev.billPrintFormat,
-                        roomGst: String(s.roomGst ?? prev.roomGst),
-                        foodGst: String(s.foodGst ?? prev.foodGst),
-                        roomServiceCharge: String(s.roomServiceCharge ?? prev.roomServiceCharge),
-                        inclusiveTax: s.inclusiveTax ?? prev.inclusiveTax,
-                        paymentModes: s.paymentModes || prev.paymentModes,
-                        billingRules: s.billingRules || prev.billingRules,
-                        discountRules: s.discountRules ? {
-                            maxDiscount: String(s.discountRules.maxDiscount ?? prev.discountRules.maxDiscount),
-                            maxDiscountType: s.discountRules.maxDiscountType || prev.discountRules.maxDiscountType,
-                            managerApproval: s.discountRules.managerApproval ?? prev.discountRules.managerApproval,
-                            couponEnabled: s.discountRules.couponEnabled ?? prev.discountRules.couponEnabled
-                        } : prev.discountRules
-                    }));
+                    setHotelData(prev => {
+                        const normalizedServiceCharge = String(s.roomServiceCharge ?? s.serviceCharge ?? prev.roomServiceCharge);
+                        const normalizedRoomPosting = s.enableRoomPosting ?? s.billingRules?.autoPost ?? prev.enableRoomPosting;
+                        return {
+                            ...prev,
+                            hotelName: s.name || prev.hotelName,
+                            gstNumber: s.gstNumber || prev.gstNumber,
+                            logoUrl: s.logoUrl || prev.logoUrl,
+                            address: s.address || prev.address,
+                            city: s.city || prev.city,
+                            state: s.state || prev.state,
+                            pin: s.pin || prev.pin,
+                            currency: s.currency || prev.currency,
+                            taxType: s.taxType || prev.taxType,
+                            cgst: String(s.cgst ?? prev.cgst),
+                            sgst: String(s.sgst ?? prev.sgst),
+                            serviceCharge: normalizedServiceCharge,
+                            invoicePrefix: s.invoicePrefix || prev.invoicePrefix,
+                            thankYouMessage: s.thankYouMessage || prev.thankYouMessage,
+                            enableRoomPosting: normalizedRoomPosting,
+                            posEnabled: s.posEnabled ?? prev.posEnabled,
+                            displayLogoOnBill: s.displayLogoOnBill ?? prev.displayLogoOnBill,
+                            printKOTHeader: s.printKOTHeader ?? prev.printKOTHeader,
+                            autoIncrementInvoice: s.autoIncrementInvoice ?? prev.autoIncrementInvoice,
+                            timezone: s.timezone || prev.timezone,
+                            dateFormat: s.dateFormat || prev.dateFormat,
+                            timeFormat: s.timeFormat || prev.timeFormat,
+                            billingInvoicePrefix: s.billingInvoicePrefix || prev.billingInvoicePrefix,
+                            startingInvoiceNumber: s.startingInvoiceNumber || prev.startingInvoiceNumber,
+                            panNumber: s.panNumber || prev.panNumber,
+                            autoGenerateInvoice: s.autoGenerateInvoice ?? prev.autoGenerateInvoice,
+                            billPrintFormat: s.billPrintFormat || prev.billPrintFormat,
+                            roomGst: String(s.roomGst ?? prev.roomGst),
+                            foodGst: String(s.foodGst ?? prev.foodGst),
+                            roomServiceCharge: normalizedServiceCharge,
+                            inclusiveTax: s.inclusiveTax ?? prev.inclusiveTax,
+                            paymentModes: s.paymentModes || prev.paymentModes,
+                            billingRules: {
+                                ...prev.billingRules,
+                                ...(s.billingRules || {}),
+                                autoPost: normalizedRoomPosting
+                            },
+                            discountRules: s.discountRules ? {
+                                maxDiscount: String(s.discountRules.maxDiscount ?? prev.discountRules.maxDiscount),
+                                maxDiscountType: s.discountRules.maxDiscountType || prev.discountRules.maxDiscountType,
+                                managerApproval: s.discountRules.managerApproval ?? prev.discountRules.managerApproval,
+                                couponEnabled: s.discountRules.couponEnabled ?? prev.discountRules.couponEnabled
+                            } : prev.discountRules
+                        };
+                    });
                 }
             } catch (err) {
                 console.error('Error loading settings:', err);
@@ -178,6 +186,27 @@ const CompanySettings = () => {
             value = value.toUpperCase().slice(0, 10).replace(/[^A-Z0-9]/g, '');
         }
 
+        if (type === 'checkbox' && name === 'enableRoomPosting') {
+            setHotelData(prev => ({
+                ...prev,
+                enableRoomPosting: checked,
+                billingRules: {
+                    ...prev.billingRules,
+                    autoPost: checked
+                }
+            }));
+            return;
+        }
+
+        if (name === 'roomServiceCharge' || name === 'serviceCharge') {
+            setHotelData(prev => ({
+                ...prev,
+                roomServiceCharge: value,
+                serviceCharge: value
+            }));
+            return;
+        }
+
         setHotelData(prev => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value
@@ -199,6 +228,8 @@ const CompanySettings = () => {
         setSaving(true);
         try {
             const token = user?.token;
+            const serviceChargeValue = parseFloat(hotelData.roomServiceCharge) || 0;
+            const roomPostingEnabled = !!hotelData.enableRoomPosting;
             const payload = {
                 name: hotelData.hotelName,
                 address: hotelData.address,
@@ -214,10 +245,10 @@ const CompanySettings = () => {
                 taxType: hotelData.taxType,
                 cgst: parseFloat(hotelData.cgst) || 0,
                 sgst: parseFloat(hotelData.sgst) || 0,
-                serviceCharge: parseFloat(hotelData.serviceCharge) || 0,
+                serviceCharge: serviceChargeValue,
                 roomGst: parseFloat(hotelData.roomGst) || 0,
                 foodGst: parseFloat(hotelData.foodGst) || 0,
-                roomServiceCharge: parseFloat(hotelData.roomServiceCharge) || 0,
+                roomServiceCharge: serviceChargeValue,
                 inclusiveTax: hotelData.inclusiveTax,
                 invoicePrefix: hotelData.invoicePrefix,
                 billingInvoicePrefix: hotelData.billingInvoicePrefix,
@@ -227,12 +258,15 @@ const CompanySettings = () => {
                 autoIncrementInvoice: hotelData.autoIncrementInvoice,
                 billPrintFormat: hotelData.billPrintFormat,
                 thankYouMessage: hotelData.thankYouMessage,
-                enableRoomPosting: hotelData.enableRoomPosting,
+                enableRoomPosting: roomPostingEnabled,
                 posEnabled: hotelData.posEnabled,
                 displayLogoOnBill: hotelData.displayLogoOnBill,
                 printKOTHeader: hotelData.printKOTHeader,
                 paymentModes: hotelData.paymentModes,
-                billingRules: hotelData.billingRules,
+                billingRules: {
+                    ...hotelData.billingRules,
+                    autoPost: roomPostingEnabled
+                },
                 discountRules: {
                     maxDiscount: parseFloat(hotelData.discountRules.maxDiscount) || 0,
                     maxDiscountType: hotelData.discountRules.maxDiscountType || 'PERCENTAGE',
@@ -530,7 +564,8 @@ const CompanySettings = () => {
                                                 checked={hotelData.billingRules[rule.key]}
                                                 onChange={() => setHotelData(prev => ({
                                                     ...prev,
-                                                    billingRules: { ...prev.billingRules, [rule.key]: !prev.billingRules[rule.key] }
+                                                    billingRules: { ...prev.billingRules, [rule.key]: !prev.billingRules[rule.key] },
+                                                    ...(rule.key === 'autoPost' ? { enableRoomPosting: !prev.billingRules[rule.key] } : {})
                                                 }))}
                                             />
                                             <label>{rule.label}</label>
@@ -785,20 +820,6 @@ const CompanySettings = () => {
                                                     max="50"
                                                 />
                                             </div>
-                                        </div>
-                                    </div>
-                                    <div className="form-group" style={{ marginTop: '15px' }}>
-                                        <label style={{ display: 'flex', justifyContent: 'space-between' }}>Service Charge % <span>{hotelData.serviceCharge}%</span></label>
-                                        <div className="input-with-symbol">
-                                            <span className="percent">%</span>
-                                            <input
-                                                type="number"
-                                                name="serviceCharge"
-                                                value={hotelData.serviceCharge}
-                                                onChange={handleInputChange}
-                                                min="0"
-                                                max="100"
-                                            />
                                         </div>
                                     </div>
                                 </div>

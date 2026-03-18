@@ -1821,49 +1821,51 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                 </div>
             </div>
 
-            {/* Tabs */}
-            <div className="reservation-tabs">
-                {['all', 'reserved', 'in-house', 'checked-out', 'arrival', 'departure'].map(tab => (
-                    <button
-                        key={tab}
-                        className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
-                        onClick={() => setActiveTab(tab)}
-                    >
-                        {tab === 'all' ? 'All Reservations' : tab.replace('-', ' ').toUpperCase()}
-                        <span style={{ marginLeft: '0.5rem' }}>({counts[tab] || 0})</span>
-                    </button>
-                ))}
-            </div>
+            <div className="tabs-toolbar">
+                {/* Tabs */}
+                <div className="reservation-tabs">
+                    {['all', 'reserved', 'in-house', 'checked-out', 'arrival', 'departure'].map(tab => (
+                        <button
+                            key={tab}
+                            className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
+                            onClick={() => setActiveTab(tab)}
+                        >
+                            {tab === 'all' ? 'All Reservations' : tab.replace('-', ' ').toUpperCase()}
+                            <span style={{ marginLeft: '0.5rem' }}>({counts[tab] || 0})</span>
+                        </button>
+                    ))}
+                </div>
 
-            {/* View Toggle */}
-            <div className="view-toggle-container">
-                <div className="view-toggle">
-                    <button
-                        className={`view-toggle-btn ${cardViewMode === 'grid' ? 'active' : ''}`}
-                        onClick={() => setCardViewMode('grid')}
-                        title="Grid View"
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
-                            <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
-                            <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
-                            <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
-                        </svg>
-                    </button>
-                    <button
-                        className={`view-toggle-btn ${cardViewMode === 'list' ? 'active' : ''}`}
-                        onClick={() => setCardViewMode('list')}
-                        title="List View"
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                            <line x1="8" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                            <line x1="8" y1="18" x2="21" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                            <line x1="3" y1="6" x2="4" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                            <line x1="3" y1="12" x2="4" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                            <line x1="3" y1="18" x2="4" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                        </svg>
-                    </button>
+                {/* View Toggle */}
+                <div className="view-toggle-container">
+                    <div className="view-toggle">
+                        <button
+                            className={`view-toggle-btn ${cardViewMode === 'grid' ? 'active' : ''}`}
+                            onClick={() => setCardViewMode('grid')}
+                            title="Grid View"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+                                <rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+                                <rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+                                <rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="2" />
+                            </svg>
+                        </button>
+                        <button
+                            className={`view-toggle-btn ${cardViewMode === 'list' ? 'active' : ''}`}
+                            onClick={() => setCardViewMode('list')}
+                            title="List View"
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <line x1="8" y1="6" x2="21" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="8" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="8" y1="18" x2="21" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="3" y1="6" x2="4" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="3" y1="12" x2="4" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="3" y1="18" x2="4" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
 

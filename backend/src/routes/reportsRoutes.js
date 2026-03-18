@@ -10,5 +10,6 @@ router.get('/rooms/options', roomReportController.getRoomOptions);
 router.get('/rooms', roomReportController.getRoomReport);
 router.get('/kitchen', kitchenReportController.getKitchenReport);
 router.get('/billing', billingReportController.getBillingReport);
+router.get('/gst', reportsController.getGstReport);
 
 module.exports = router;

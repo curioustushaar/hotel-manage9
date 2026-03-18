@@ -25,7 +25,7 @@ const UniversalReport = ({ type }) => {
             title: 'SALES REPORTS',
             tabs: ['Dine-In Orders', 'Room Service Orders', 'Take-Away Orders', 'Online Orders'],
             filters: ['Category', 'Item'],
-            columns: ['Bill No', 'Item / Category', 'Qty', 'Amount', 'Tax', 'Net']
+            columns: ['Bill No', 'Date', 'Outlet', 'Table/Room', 'Guest', 'Item', 'Category', 'Qty', 'Rate', 'Amount', 'Tax', 'Net', 'Payment', 'Status']
         },
         'reports-payments': {
             title: 'PAYMENT REPORTS',
@@ -47,7 +47,7 @@ const UniversalReport = ({ type }) => {
         },
         'reports-gst': {
             title: 'GST & TAX REPORTS',
-            tabs: ['GST Summary', 'GST Item Wise', 'CGST / SGST / IGST', 'HSN Wise', 'Taxable vs Non-Taxable'],
+            tabs: ['GST Summary', 'GST Item Wise', 'CGST / SGST / IGST', 'Taxable vs Non-Taxable'],
             filters: ['Tax Type'],
             columns: ['HSN', 'Description', 'Taxable Value', 'CGST', 'SGST', 'IGST', 'Total Tax']
         },
@@ -89,6 +89,40 @@ const UniversalReport = ({ type }) => {
             } else if (activeTab === 'Overview') {
                 return { ...base, columns: [] }; // Hide table in overview
             }
+        } else if (type === 'reports-payments' && activeTab === 'Discount') {
+            return {
+                ...base,
+                columns: ['Bill No', 'Section', 'Cashier', 'Mode', 'Room GST', 'Service', 'Food', 'Beverage', 'Discount', 'Net Payable', 'Paid']
+            };
+        } else if (type === 'reports-kitchen') {
+            if (activeTab === 'KOT Pending Time') {
+                return { ...base, columns: ['KOT No', 'Item', 'Category', 'Order Type', 'Start Time', 'Pending Time', 'Status'] };
+            }
+            if (activeTab === 'Kitchen Delay') {
+                return { ...base, columns: ['KOT No', 'Item', 'Category', 'Order Type', 'Delay (Min)', 'Delay (HH:MM)', 'Status'] };
+            }
+            if (activeTab === 'Preparation Time') {
+                return { ...base, columns: ['KOT No', 'Item', 'Category', 'Order Type', 'Start Time', 'Ready/Done', 'Prep Time'] };
+            }
+            if (activeTab === 'Ready vs Delivered') {
+                return { ...base, columns: ['KOT No', 'Item', 'Category', 'Ready Time', 'Delivered Time', 'Gap', 'Stage'] };
+            }
+            if (activeTab === 'Kitchen Load') {
+                return { ...base, columns: ['Station', 'Orders', 'Pending', 'Delayed', 'Avg Prep (Min)', 'Load Ratio %'] };
+            }
+        } else if (type === 'reports-gst') {
+            if (activeTab === 'GST Summary') {
+                return { ...base, columns: ['Tax Name', 'Applies To', 'Transactions', 'Taxable Value', 'Tax Rate', 'Tax Amount', 'Sources'] };
+            }
+            if (activeTab === 'GST Item Wise') {
+                return { ...base, columns: ['Date', 'Source', 'Reference', 'Section', 'Tax Name', 'Rate', 'Taxable Value', 'Tax Amount'] };
+            }
+            if (activeTab === 'CGST / SGST / IGST') {
+                return { ...base, columns: ['Date', 'Source', 'Reference', 'Taxable Value', 'CGST', 'SGST', 'IGST', 'Total Tax'] };
+            }
+            if (activeTab === 'Taxable vs Non-Taxable') {
+                return { ...base, columns: ['Category', 'Transactions', 'Taxable Value', 'Tax Amount', 'Percentage'] };
+            }
         }
         return base;
     };
@@ -98,6 +132,18 @@ const UniversalReport = ({ type }) => {
     // Reset active tab when type changes
     useEffect(() => {
         setActiveTab(config.tabs[0]);
+    }, [type]);
+
+    useEffect(() => {
+        if (type === 'reports-kitchen') {
+            const today = new Date();
+            const from = new Date();
+            from.setDate(today.getDate() - 30);
+            setDateRange({
+                from: from.toISOString().split('T')[0],
+                to: today.toISOString().split('T')[0]
+            });
+        }
     }, [type]);
 
     const [roomOptions, setRoomOptions] = useState({ types: [], floors: [], statuses: [] });
@@ -115,6 +161,63 @@ const UniversalReport = ({ type }) => {
         paymentsCount: 0,
         paymentMethods: { cash: 0, card: 0, upi: 0, bankTransfer: 0 }
     });
+    const [paymentInsights, setPaymentInsights] = useState({
+        sectionSummary: [],
+        totals: {
+            totalDiscount: 0,
+            totalRoomCharge: 0,
+            totalRoomGst: 0,
+            totalServiceCharge: 0,
+            totalFood: 0,
+            totalBeverage: 0,
+            totalNetPayable: 0,
+            totalPaid: 0
+        }
+    });
+    const [kitchenInsights, setKitchenInsights] = useState({
+        summary: {
+            totalOrders: 0,
+            kotPending: 0,
+            preparingCount: 0,
+            ordersReady: 0,
+            deliveredCount: 0,
+            avgPrepTime: 0,
+            delayedCount: 0,
+            kitchenLoadRatio: 0,
+            readyVsDeliveredRatio: 0,
+            kitchenLoadLabel: 'Low',
+            staffLoadLabel: 'Normal',
+            delayRiskLabel: 'Minimal'
+        },
+        tableStatus: { total: 0, occupied: 0, available: 0 },
+        hourlyData: [],
+        graphData: [],
+        loadStations: []
+    });
+    const [gstInsights, setGstInsights] = useState({
+        options: ['All', 'Room GST', 'Food GST', 'Service Charge'],
+        totals: { taxableValue: 0, totalTax: 0, cgst: 0, sgst: 0, igst: 0 },
+        sourceBreakdown: []
+    });
+
+    const getLocalConfiguredTaxes = () => {
+        try {
+            const raw = localStorage.getItem('taxes');
+            const parsed = raw ? JSON.parse(raw) : [];
+            if (!Array.isArray(parsed)) return [];
+            return parsed
+                .filter(t => t && t.name)
+                .map(t => ({
+                    name: String(t.name),
+                    value: Number(t.value) || 0,
+                    type: String(t.type || 'PERCENTAGE'),
+                    appliesTo: String(t.appliesTo || 'BILL'),
+                    status: String(t.status || 'ACTIVE')
+                }));
+        } catch {
+            return [];
+        }
+    };
 
     // Fetch dynamic options based on report type
     useEffect(() => {
@@ -175,6 +278,11 @@ const UniversalReport = ({ type }) => {
             return [];
         }
 
+        if (type === 'reports-gst') {
+            if (filterName === 'Tax Type') return gstInsights.options || ['All', 'Room GST', 'Food GST', 'Service Charge'];
+            return [];
+        }
+
         if (type === 'reports-payments') {
             if (filterName === 'Payment Mode') return ['Cash', 'UPI', 'Card', 'Bank Transfer'];
             if (filterName === 'Shift') return ['Morning', 'Evening', 'Night'];
@@ -229,11 +337,19 @@ const UniversalReport = ({ type }) => {
                 const mappedData = res.data.data.map((tx, idx) => ({
                     id: tx.id || idx,
                     val1: tx.billNo,
-                    val2: `${tx.itemName} / ${tx.category}`,
-                    val3: tx.qty,
-                    val4: `${cs}${parseFloat(tx.price).toFixed(2)}`,
-                    val5: `${cs}${parseFloat(tx.subtotal - (tx.qty * tx.price) || 0).toFixed(2)}`,
-                    val6: `${cs}${parseFloat(tx.subtotal).toFixed(2)}`,
+                    val2: tx.date ? new Date(tx.date).toLocaleString('en-GB') : '-',
+                    val3: tx.outlet || '-',
+                    val4: tx.roomNumber && tx.roomNumber !== '-' ? `Room ${tx.roomNumber}` : `Table ${tx.tableNumber || '-'}`,
+                    val5: tx.guestName || '-',
+                    val6: tx.itemName,
+                    val7: tx.category || '-',
+                    val8: tx.qty,
+                    val9: `${cs}${parseFloat(tx.price || 0).toFixed(2)}`,
+                    val10: `${cs}${parseFloat(tx.subtotal || 0).toFixed(2)}`,
+                    val11: `${cs}${parseFloat(tx.tax || 0).toFixed(2)}`,
+                    val12: `${cs}${parseFloat(tx.net || 0).toFixed(2)}`,
+                    val13: `${tx.paymentMethod || '-'} (${tx.paymentStatus || '-'})`,
+                    val14: tx.status || '-',
                     rawSubtotal: tx.subtotal,
                     paymentMethod: tx.paymentMethod || 'Cash'
                 }));
@@ -263,6 +379,74 @@ const UniversalReport = ({ type }) => {
 
             const res = await axios.get(`${API_URL}/api/payment-report`, { params: queryParams });
             if (res.data.success) {
+                if (activeTab === 'Discount') {
+                    const discountPayload = res.data.discountReport || {};
+                    const discountRows = discountPayload.rows || [];
+
+                    const mappedDiscountData = discountRows.map((d, index) => ({
+                        id: d.id || index,
+                        val1: d.billNo,
+                        val2: d.section,
+                        val3: d.cashier,
+                        val4: d.paymentMode,
+                        val5: `${cs}${parseFloat(d.roomGst || 0).toFixed(2)}`,
+                        val6: `${cs}${parseFloat(d.serviceCharge || 0).toFixed(2)}`,
+                        val7: `${cs}${parseFloat(d.foodAmount || 0).toFixed(2)}`,
+                        val8: `${cs}${parseFloat(d.beverageAmount || 0).toFixed(2)}`,
+                        val9: `${cs}${parseFloat(d.discountAmount || 0).toFixed(2)}`,
+                        val10: `${cs}${parseFloat(d.netPayable || 0).toFixed(2)}`,
+                        val11: `${cs}${parseFloat(d.totalPaid || 0).toFixed(2)}`
+                    }));
+
+                    setReportData(mappedDiscountData);
+                    setPaymentInsights({
+                        sectionSummary: discountPayload.sectionSummary || [],
+                        totals: discountPayload.totals || {
+                            totalDiscount: 0,
+                            totalRoomCharge: 0,
+                            totalRoomGst: 0,
+                            totalServiceCharge: 0,
+                            totalFood: 0,
+                            totalBeverage: 0,
+                            totalNetPayable: 0,
+                            totalPaid: 0
+                        }
+                    });
+
+                    if (isManual && mappedDiscountData.length > 0) {
+                        downloadCSV(mappedDiscountData, `Payment_Discount_Report_${new Date().toISOString().split('T')[0]}.csv`);
+                    }
+
+                    return {
+                        ...res.data,
+                        totalTransactions: mappedDiscountData.length
+                    };
+                }
+
+                if (activeTab === 'Refund') {
+                    const refundRows = res.data.refundReport?.rows || [];
+                    const mappedRefundData = refundRows.map((d, index) => ({
+                        id: d.id || index,
+                        val1: d.billNo,
+                        val2: d.cashier,
+                        val3: d.paymentMode,
+                        val4: `${cs}${parseFloat(d.amount || 0).toFixed(2)}`,
+                        val5: d.status || 'Refunded'
+                    }));
+
+                    setReportData(mappedRefundData);
+                    setPaymentInsights(prev => ({ ...prev, sectionSummary: [] }));
+
+                    if (isManual && mappedRefundData.length > 0) {
+                        downloadCSV(mappedRefundData, `Payment_Refund_Report_${new Date().toISOString().split('T')[0]}.csv`);
+                    }
+
+                    return {
+                        ...res.data,
+                        totalTransactions: mappedRefundData.length
+                    };
+                }
+
                 const rawData = res.data.transactions || [];
                 let filteredData = rawData;
                 if (activeTab === 'Settled Bills') {
@@ -280,6 +464,7 @@ const UniversalReport = ({ type }) => {
                     val5: d.status
                 }));
                 setReportData(mappedData);
+                setPaymentInsights(prev => ({ ...prev, sectionSummary: [] }));
 
                 if (isManual && mappedData.length > 0) {
                     downloadCSV(mappedData, `Payment_Report_${new Date().toISOString().split('T')[0]}.csv`);
@@ -321,6 +506,94 @@ const UniversalReport = ({ type }) => {
             }
         } catch (error) {
             console.error("Error fetching analytics report:", error);
+        } finally {
+            if (isManual) setLoading(false);
+        }
+    };
+
+    const fetchGstReport = async (isManual = false) => {
+        if (isManual) setLoading(true);
+        try {
+            const customTaxes = getLocalConfiguredTaxes();
+            const queryParams = {
+                startDate: dateRange.from,
+                endDate: dateRange.to,
+                taxType: filters['Tax Type'] || 'All',
+                customTaxes: JSON.stringify(customTaxes)
+            };
+
+            const res = await axios.get(`${API_URL}/api/reports/gst`, { params: queryParams });
+            if (res.data.success) {
+                const options = ['All', 'Room GST', 'Food GST', 'Service Charge', ...(res.data.taxTypeOptions || [])];
+                setGstInsights({
+                    options: Array.from(new Set(options)),
+                    totals: res.data.summaryTotals || { taxableValue: 0, totalTax: 0, cgst: 0, sgst: 0, igst: 0 },
+                    sourceBreakdown: res.data.sourceBreakdown || []
+                });
+
+                let sourceRows = [];
+                if (activeTab === 'GST Summary') sourceRows = res.data.gstSummary || [];
+                else if (activeTab === 'GST Item Wise') sourceRows = res.data.gstItemWise || [];
+                else if (activeTab === 'CGST / SGST / IGST') sourceRows = res.data.cgstSgstIgst || [];
+                else if (activeTab === 'Taxable vs Non-Taxable') sourceRows = res.data.taxableVsNonTaxable || [];
+
+                const mappedData = sourceRows.map((row, idx) => {
+                    if (activeTab === 'GST Summary') {
+                        return {
+                            id: idx,
+                            val1: row.taxName,
+                            val2: row.appliesTo,
+                            val3: row.transactions,
+                            val4: `${cs}${(row.taxableValue || 0).toFixed(2)}`,
+                            val5: `${(row.taxRate || 0).toFixed(2)}%`,
+                            val6: `${cs}${(row.taxAmount || 0).toFixed(2)}`,
+                            val7: row.sources || '-'
+                        };
+                    }
+                    if (activeTab === 'GST Item Wise') {
+                        return {
+                            id: idx,
+                            val1: row.date ? new Date(row.date).toLocaleDateString('en-GB') : '-',
+                            val2: row.source,
+                            val3: row.reference,
+                            val4: row.section,
+                            val5: row.taxName,
+                            val6: `${(row.rate || 0).toFixed(2)}%`,
+                            val7: `${cs}${(row.taxableValue || 0).toFixed(2)}`,
+                            val8: `${cs}${(row.taxAmount || 0).toFixed(2)}`
+                        };
+                    }
+                    if (activeTab === 'CGST / SGST / IGST') {
+                        return {
+                            id: idx,
+                            val1: row.date ? new Date(row.date).toLocaleDateString('en-GB') : '-',
+                            val2: row.source,
+                            val3: row.reference,
+                            val4: `${cs}${(row.taxableValue || 0).toFixed(2)}`,
+                            val5: `${cs}${(row.cgst || 0).toFixed(2)}`,
+                            val6: `${cs}${(row.sgst || 0).toFixed(2)}`,
+                            val7: `${cs}${(row.igst || 0).toFixed(2)}`,
+                            val8: `${cs}${(row.totalTax || 0).toFixed(2)}`
+                        };
+                    }
+
+                    return {
+                        id: idx,
+                        val1: row.category,
+                        val2: row.transactions,
+                        val3: `${cs}${(row.taxableValue || 0).toFixed(2)}`,
+                        val4: `${cs}${(row.taxAmount || 0).toFixed(2)}`,
+                        val5: `${(row.percentage || 0).toFixed(1)}%`
+                    };
+                });
+
+                setReportData(mappedData);
+                if (isManual && mappedData.length > 0) {
+                    downloadCSV(mappedData, `GST_Report_${activeTab.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching GST report:', error);
         } finally {
             if (isManual) setLoading(false);
         }
@@ -386,49 +659,145 @@ const UniversalReport = ({ type }) => {
                 endDate: dateRange.to
             };
 
-            const res = await axios.get(`${API_URL}/api/reports/kitchen`, { params: queryParams });
+            const [res, liveRes] = await Promise.all([
+                axios.get(`${API_URL}/api/reports/kitchen`, { params: queryParams }),
+                axios.get(`${API_URL}/api/guest-meal/analytics/outlet-status`).catch(() => ({ data: { success: false } }))
+            ]);
+
             if (res.data.success) {
                 if (res.data.categories && res.data.categories.length > 0) {
                     setKitchenCategories(res.data.categories);
                 }
 
-                const mappedData = res.data.data.map((item, idx) => ({
-                    id: idx,
-                    val1: `KOT-${item.kotNo}`,
-                    val2: item.item,
-                    val3: item.category || '-',
-                    val4: item.startTime,
-                    val5: item.readyTime,
-                    val6: item.delay,
-                    rawAmount: item.rawAmount,
-                    paymentMethod: item.paymentMethod
-                }));
+                const formatDuration = (mins) => {
+                    const total = Math.max(0, Math.floor(Number(mins) || 0));
+                    const h = Math.floor(total / 60);
+                    const m = total % 60;
+                    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                };
+
+                let sourceRows = [];
+                if (activeTab === 'KOT Pending Time') {
+                    sourceRows = res.data.pendingItems || [];
+                } else if (activeTab === 'Kitchen Delay') {
+                    sourceRows = res.data.delayItems || [];
+                } else if (activeTab === 'Preparation Time') {
+                    sourceRows = res.data.prepItems || [];
+                } else if (activeTab === 'Ready vs Delivered') {
+                    sourceRows = res.data.readyVsDelivered?.rows || [];
+                } else if (activeTab === 'Kitchen Load') {
+                    sourceRows = res.data.kitchenLoad?.stations || [];
+                }
+
+                const mappedData = sourceRows.map((item, idx) => {
+                    if (activeTab === 'KOT Pending Time') {
+                        return {
+                            id: idx,
+                            val1: item.kotNo,
+                            val2: item.itemName,
+                            val3: item.category || '-',
+                            val4: item.orderType,
+                            val5: item.startTime,
+                            val6: formatDuration(item.pendingMinutes),
+                            val7: item.status
+                        };
+                    }
+                    if (activeTab === 'Kitchen Delay') {
+                        return {
+                            id: idx,
+                            val1: item.kotNo,
+                            val2: item.itemName,
+                            val3: item.category || '-',
+                            val4: item.orderType,
+                            val5: item.delayMinutes,
+                            val6: formatDuration(item.delayMinutes),
+                            val7: item.status
+                        };
+                    }
+                    if (activeTab === 'Preparation Time') {
+                        return {
+                            id: idx,
+                            val1: item.kotNo,
+                            val2: item.itemName,
+                            val3: item.category || '-',
+                            val4: item.orderType,
+                            val5: item.startTime,
+                            val6: item.deliveredTime || item.readyTime,
+                            val7: formatDuration(item.prepMinutes)
+                        };
+                    }
+                    if (activeTab === 'Ready vs Delivered') {
+                        return {
+                            id: idx,
+                            val1: item.kotNo,
+                            val2: item.itemName,
+                            val3: item.category || '-',
+                            val4: item.readyTime,
+                            val5: item.deliveredTime,
+                            val6: item.deliveryGapLabel,
+                            val7: item.stage
+                        };
+                    }
+                    return {
+                        id: idx,
+                        val1: item.station,
+                        val2: item.total,
+                        val3: item.pending,
+                        val4: item.delayed,
+                        val5: item.avgPrep,
+                        val6: item.loadRatio
+                    };
+                });
+
                 setReportData(mappedData);
+
+                setKitchenInsights({
+                    summary: res.data.summary || {
+                        totalOrders: 0,
+                        kotPending: 0,
+                        preparingCount: 0,
+                        ordersReady: 0,
+                        deliveredCount: 0,
+                        avgPrepTime: 0,
+                        delayedCount: 0,
+                        kitchenLoadRatio: 0,
+                        readyVsDeliveredRatio: 0,
+                        kitchenLoadLabel: 'Low',
+                        staffLoadLabel: 'Normal',
+                        delayRiskLabel: 'Minimal'
+                    },
+                    tableStatus: res.data.tableStatus || { total: 0, occupied: 0, available: 0 },
+                    hourlyData: res.data.hourlyData || [],
+                    graphData: (activeTab === 'Ready vs Delivered' ? (res.data.readyVsDelivered?.graph || []) : (res.data.hourlyData || [])),
+                    loadStations: res.data.kitchenLoad?.stations || []
+                });
+
+                if (liveRes?.data?.success) {
+                    const lk = liveRes.data.data?.kitchen || {};
+                    const lt = liveRes.data.data?.tables || {};
+                    setKitchenInsights(prev => ({
+                        ...prev,
+                        tableStatus: {
+                            total: lt.total ?? prev.tableStatus.total,
+                            occupied: lt.occupied ?? prev.tableStatus.occupied,
+                            available: lt.available ?? prev.tableStatus.available
+                        },
+                        summary: {
+                            ...prev.summary,
+                            kotPending: lk.pending ?? prev.summary.kotPending,
+                            preparingCount: lk.preparing ?? prev.summary.preparingCount,
+                            ordersReady: lk.ready ?? prev.summary.ordersReady,
+                            avgPrepTime: lk.avgPrepTime ?? prev.summary.avgPrepTime,
+                            kitchenLoadLabel: lk.load || prev.summary.kitchenLoadLabel,
+                            staffLoadLabel: lk.staffLoad || prev.summary.staffLoadLabel,
+                            delayRiskLabel: lk.delayRisk || prev.summary.delayRiskLabel
+                        }
+                    }));
+                }
 
                 if (isManual && mappedData.length > 0) {
                     downloadCSV(mappedData, `Kitchen_Report_${activeTab.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
                 }
-
-                let collections = 0;
-                let pm = { cash: 0, card: 0, upi: 0, bankTransfer: 0 };
-                mappedData.forEach(item => {
-                    const amount = item.rawAmount || 0;
-                    collections += amount;
-                    const method = (item.paymentMethod || 'cash').toLowerCase();
-                    if (method.includes('card')) pm.card += amount;
-                    else if (method.includes('upi')) pm.upi += amount;
-                    else if (method.includes('bank') || method.includes('transfer')) pm.bankTransfer += amount;
-                    else pm.cash += amount;
-                });
-
-                setSummaryStats(prev => ({
-                    ...prev,
-                    totalCollections: collections,
-                    netCashFlow: collections,
-                    paymentsReceived: collections,
-                    paymentsCount: mappedData.length,
-                    paymentMethods: pm
-                }));
             }
         } catch (error) {
             console.error("Error fetching kitchen report:", error);
@@ -567,6 +936,7 @@ const UniversalReport = ({ type }) => {
         if (type === 'reports-sales') fetchSalesReport(true);
         else if (type === 'reports-payments') fetchPaymentReport(true);
         else if (type === 'reports-analytics') fetchAnalyticsReport(true);
+        else if (type === 'reports-gst') fetchGstReport(true);
         else if (type === 'reports-rooms') fetchRoomReport(true);
         else if (type === 'reports-kitchen') fetchKitchenReport(true);
         else if (type === 'reports-billing') fetchBillingReport(true);
@@ -590,6 +960,7 @@ const UniversalReport = ({ type }) => {
         const triggers = [type, activeTab, filters, dateRange.from, dateRange.to];
         if (type === 'reports-sales') fetchSalesReport();
         else if (type === 'reports-analytics') fetchAnalyticsReport();
+        else if (type === 'reports-gst') fetchGstReport();
         else if (type === 'reports-rooms') fetchRoomReport();
         else if (type === 'reports-kitchen') fetchKitchenReport();
         else if (type === 'reports-billing') fetchBillingReport();
@@ -609,6 +980,15 @@ const UniversalReport = ({ type }) => {
                             upi: data.totals?.totalUPI || 0,
                             bankTransfer: data.totals?.totalOther || 0
                         }
+                    }));
+                } else if (data && data.success && activeTab === 'Discount') {
+                    const totals = data.discountReport?.totals || paymentInsights.totals;
+                    setSummaryStats(prev => ({
+                        ...prev,
+                        totalCollections: totals?.totalNetPayable || 0,
+                        netCashFlow: totals?.totalNetPayable || 0,
+                        paymentsReceived: totals?.totalPaid || 0,
+                        paymentsCount: data.totalTransactions || 0
                     }));
                 }
             });
@@ -771,32 +1151,32 @@ const UniversalReport = ({ type }) => {
                     <>
                         {/* Summary Cards */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-                            <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', border: 'none' }}>
-                                <div className="stat-icon" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: '22px' }}>🧾</div>
+                            <div className="summary-stat-card billing-summary-card billing-summary-card-1">
+                                <div className="stat-icon billing-summary-icon">🧾</div>
                                 <div className="stat-info">
-                                    <span className="stat-value" style={{ color: 'white' }}>{billingSummary.summary?.totalBills || 0}</span>
-                                    <span className="stat-label" style={{ color: 'rgba(255,255,255,0.85)' }}>Total Bills</span>
+                                    <span className="stat-value">{billingSummary.summary?.totalBills || 0}</span>
+                                    <span className="stat-label">Total Bills</span>
                                 </div>
                             </div>
-                            <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)', color: 'white', border: 'none' }}>
-                                <div className="stat-icon" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: '22px' }}>💰</div>
+                            <div className="summary-stat-card billing-summary-card billing-summary-card-2">
+                                <div className="stat-icon billing-summary-icon">💰</div>
                                 <div className="stat-info">
-                                    <span className="stat-value" style={{ color: 'white' }}>{cs}{(billingSummary.summary?.totalRevenue || 0).toFixed(0)}</span>
-                                    <span className="stat-label" style={{ color: 'rgba(255,255,255,0.85)' }}>Total Revenue</span>
+                                    <span className="stat-value">{cs}{(billingSummary.summary?.totalRevenue || 0).toFixed(0)}</span>
+                                    <span className="stat-label">Total Revenue</span>
                                 </div>
                             </div>
-                            <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white', border: 'none' }}>
-                                <div className="stat-icon" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: '22px' }}>📊</div>
+                            <div className="summary-stat-card billing-summary-card billing-summary-card-3">
+                                <div className="stat-icon billing-summary-icon">📊</div>
                                 <div className="stat-info">
-                                    <span className="stat-value" style={{ color: 'white' }}>{cs}{billingSummary.summary?.totalBills > 0 ? ((billingSummary.summary?.totalRevenue || 0) / billingSummary.summary?.totalBills).toFixed(0) : 0}</span>
-                                    <span className="stat-label" style={{ color: 'rgba(255,255,255,0.85)' }}>Avg Bill Value</span>
+                                    <span className="stat-value">{cs}{billingSummary.summary?.totalBills > 0 ? ((billingSummary.summary?.totalRevenue || 0) / billingSummary.summary?.totalBills).toFixed(0) : 0}</span>
+                                    <span className="stat-label">Avg Bill Value</span>
                                 </div>
                             </div>
-                            <div className="summary-stat-card" style={{ background: 'linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%)', color: 'white', border: 'none' }}>
-                                <div className="stat-icon" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: '22px' }}>❌</div>
+                            <div className="summary-stat-card billing-summary-card billing-summary-card-4">
+                                <div className="stat-icon billing-summary-icon">❌</div>
                                 <div className="stat-info">
-                                    <span className="stat-value" style={{ color: 'white' }}>{(billingSummary.cancelledBills || []).length}</span>
-                                    <span className="stat-label" style={{ color: 'rgba(255,255,255,0.85)' }}>Cancelled Bills</span>
+                                    <span className="stat-value">{(billingSummary.cancelledBills || []).length}</span>
+                                    <span className="stat-label">Cancelled Bills</span>
                                 </div>
                             </div>
                         </div>
@@ -900,7 +1280,7 @@ const UniversalReport = ({ type }) => {
                     </>
                 )}
 
-                {['reports-sales', 'reports-rooms', 'reports-kitchen'].includes(type) && (
+                {['reports-sales', 'reports-rooms'].includes(type) && (
                     <div className="summary-overview-section">
                         <h2 className="section-title">SUMMARY OVERVIEW</h2>
                         <div className="overview-container-card">
@@ -927,6 +1307,185 @@ const UniversalReport = ({ type }) => {
                                         <span className="overview-huge-value">{cs}{summaryStats.netCashFlow.toFixed(2)}</span>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {type === 'reports-kitchen' && (
+                    <div className="summary-overview-section" style={{ marginBottom: '20px' }}>
+                        <h2 className="section-title">KITCHEN LIVE SNAPSHOT</h2>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                            <div className="overview-container-card">
+                                <h3 style={{ margin: 0, marginBottom: '12px', color: '#334155' }}>Floor / Table Status</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                                    <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Total Tables</span><span className="stat-value">{kitchenInsights.tableStatus?.total || 0}</span></div></div>
+                                    <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Occupied</span><span className="stat-value">{kitchenInsights.tableStatus?.occupied || 0}</span></div></div>
+                                    <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Available</span><span className="stat-value">{kitchenInsights.tableStatus?.available || 0}</span></div></div>
+                                </div>
+                            </div>
+
+                            <div className="overview-container-card">
+                                <h3 style={{ margin: 0, marginBottom: '12px', color: '#334155' }}>Kitchen Live Load</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                                    <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">KOT Pending</span><span className="stat-value">{kitchenInsights.summary?.kotPending || 0}</span></div></div>
+                                    <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Preparing</span><span className="stat-value">{kitchenInsights.summary?.preparingCount || 0}</span></div></div>
+                                    <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Ready</span><span className="stat-value">{kitchenInsights.summary?.ordersReady || 0}</span></div></div>
+                                    <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Avg Prep</span><span className="stat-value">{kitchenInsights.summary?.avgPrepTime || 0}m</span></div></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="overview-container-card" style={{ marginBottom: '16px' }}>
+                            <h3 style={{ margin: 0, marginBottom: '12px', color: '#334155' }}>Operational Indicators</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                                <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Kitchen Load Ratio</span><span className="stat-value">{kitchenInsights.summary?.kitchenLoadRatio || 0}% ({kitchenInsights.summary?.kitchenLoadLabel || 'Low'})</span></div></div>
+                                <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Staff Load</span><span className="stat-value">{kitchenInsights.summary?.staffLoadLabel || 'Normal'}</span></div></div>
+                                <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Delay Risk</span><span className="stat-value">{kitchenInsights.summary?.delayRiskLabel || 'Minimal'}</span></div></div>
+                            </div>
+                        </div>
+
+                        <div className="overview-container-card">
+                            <h3 style={{ margin: 0, marginBottom: '12px', color: '#334155' }}>
+                                {activeTab === 'Ready vs Delivered' ? 'Ready vs Delivered Trend' : `${activeTab} Trend`}
+                            </h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {(() => {
+                                    const rows = (kitchenInsights.graphData || []).slice(0, 12);
+                                    const max = rows.reduce((m, p) => Math.max(m, p.ready || 0, p.delivered || 0, p.pending || 0, p.delayed || 0), 1);
+                                    return rows.map((point, index) => {
+                                    const a = activeTab === 'Ready vs Delivered' ? (point.ready || 0) : (point.pending || 0);
+                                    const b = activeTab === 'Ready vs Delivered' ? (point.delivered || 0) : (point.delayed || 0);
+                                    return (
+                                        <div key={index} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: '10px', alignItems: 'center' }}>
+                                            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>{point.hour}</span>
+                                            <div style={{ background: '#eef2ff', borderRadius: '6px', height: '12px', overflow: 'hidden' }}>
+                                                <div style={{ width: `${(a / max) * 100}%`, height: '100%', background: '#3b82f6' }}></div>
+                                            </div>
+                                            <div style={{ background: '#fee2e2', borderRadius: '6px', height: '12px', overflow: 'hidden' }}>
+                                                <div style={{ width: `${(b / max) * 100}%`, height: '100%', background: '#ef4444' }}></div>
+                                            </div>
+                                        </div>
+                                    );
+                                    });
+                                })()}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {type === 'reports-payments' && activeTab === 'Discount' && (
+                    <div className="summary-overview-section" style={{ marginTop: '24px' }}>
+                        <h2 className="section-title">DISCOUNT BREAKDOWN</h2>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '18px' }}>
+                            <div className="summary-stat-card">
+                                <div className="stat-info">
+                                    <span className="stat-label">Total Discount</span>
+                                    <span className="stat-value">{cs}{(paymentInsights.totals?.totalDiscount || 0).toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <div className="summary-stat-card">
+                                <div className="stat-info">
+                                    <span className="stat-label">Room GST + Service</span>
+                                    <span className="stat-value">{cs}{((paymentInsights.totals?.totalRoomGst || 0) + (paymentInsights.totals?.totalServiceCharge || 0)).toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <div className="summary-stat-card">
+                                <div className="stat-info">
+                                    <span className="stat-label">Food + Beverage</span>
+                                    <span className="stat-value">{cs}{((paymentInsights.totals?.totalFood || 0) + (paymentInsights.totals?.totalBeverage || 0)).toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <div className="summary-stat-card">
+                                <div className="stat-info">
+                                    <span className="stat-label">Net Payable</span>
+                                    <span className="stat-value">{cs}{(paymentInsights.totals?.totalNetPayable || 0).toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="overview-container-card">
+                            <h3 style={{ margin: '0 0 14px', color: '#1e293b' }}>Section Wise Discount Summary</h3>
+                            <div className="table-responsive">
+                                <table className="report-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Section</th>
+                                            <th>Total Discount</th>
+                                            <th>Net Payable</th>
+                                            <th>Paid</th>
+                                            <th>Records</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {paymentInsights.sectionSummary.length > 0 ? (
+                                            paymentInsights.sectionSummary.map((row, idx) => (
+                                                <tr key={idx}>
+                                                    <td>{row.section}</td>
+                                                    <td>{cs}{parseFloat(row.totalDiscount || 0).toFixed(2)}</td>
+                                                    <td>{cs}{parseFloat(row.totalNetPayable || 0).toFixed(2)}</td>
+                                                    <td>{cs}{parseFloat(row.totalPaid || 0).toFixed(2)}</td>
+                                                    <td>{row.records || 0}</td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={5} style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+                                                    Discount section summary not available for selected filters.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {type === 'reports-gst' && (
+                    <div className="summary-overview-section" style={{ marginTop: '24px' }}>
+                        <h2 className="section-title">GST OVERVIEW</h2>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '16px' }}>
+                            <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Taxable Value</span><span className="stat-value">{cs}{(gstInsights.totals?.taxableValue || 0).toFixed(2)}</span></div></div>
+                            <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Total Tax</span><span className="stat-value">{cs}{(gstInsights.totals?.totalTax || 0).toFixed(2)}</span></div></div>
+                            <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">CGST</span><span className="stat-value">{cs}{(gstInsights.totals?.cgst || 0).toFixed(2)}</span></div></div>
+                            <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">SGST</span><span className="stat-value">{cs}{(gstInsights.totals?.sgst || 0).toFixed(2)}</span></div></div>
+                            <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">IGST</span><span className="stat-value">{cs}{(gstInsights.totals?.igst || 0).toFixed(2)}</span></div></div>
+                        </div>
+
+                        <div className="overview-container-card">
+                            <h3 style={{ margin: '0 0 14px', color: '#1e293b' }}>Tax Source Mapping (Room/Table/Cashier/Service)</h3>
+                            <div className="table-responsive">
+                                <table className="report-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Section</th>
+                                            <th>Source</th>
+                                            <th>Transactions</th>
+                                            <th>Taxable Value</th>
+                                            <th>Tax Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {(gstInsights.sourceBreakdown || []).length > 0 ? (
+                                            (gstInsights.sourceBreakdown || []).map((row, idx) => (
+                                                <tr key={idx}>
+                                                    <td>{row.section}</td>
+                                                    <td>{row.source}</td>
+                                                    <td>{row.transactions}</td>
+                                                    <td>{cs}{(row.taxableValue || 0).toFixed(2)}</td>
+                                                    <td>{cs}{(row.taxAmount || 0).toFixed(2)}</td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={5} style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>No tax source mapping data found for current filters.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>

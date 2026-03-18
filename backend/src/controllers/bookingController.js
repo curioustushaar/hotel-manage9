@@ -1590,7 +1590,7 @@ exports.markBookingNoShow = async (req, res) => {
 
         const { applyCharge } = req.body;
 
-        booking.status = 'No-Show';
+        booking.status = 'NoShow';
 
         if (applyCharge) {
             const chargeAmount = booking.billing?.roomRate || 0;

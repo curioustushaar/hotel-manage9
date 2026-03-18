@@ -165,8 +165,20 @@ const BookingActionsManager = ({ isOpen, onClose, actionType, booking, onSuccess
                     .print-only-container { display: none; }
                 }
                 @media print {
-                    body > *:not(.print-only-container) { display: none !important; }
-                    .print-only-container { display: block !important; position: static !important; }
+                    body * { visibility: hidden !important; }
+                    .print-only-container,
+                    .print-only-container * {
+                        visibility: visible !important;
+                    }
+                    .print-only-container {
+                        display: block !important;
+                        position: fixed !important;
+                        inset: 0 !important;
+                        width: 100% !important;
+                        height: auto !important;
+                        background: #fff !important;
+                        z-index: 2147483647 !important;
+                    }
                     @page { margin: 10mm; }
                 }
             `}</style>

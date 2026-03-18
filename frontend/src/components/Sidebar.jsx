@@ -127,9 +127,7 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
                 { id: MODULES.REPORTS_RESERVATIONS, label: 'Reservations', iconVal: <Icons.Dot /> },
                 { id: MODULES.REPORTS_ANALYTICS, label: 'Analytics', iconVal: <Icons.Dot /> }
             ]
-        },
-        { id: MODULES.CASHIER_LOGS, iconVal: <Icons.Report />, label: 'Cashier Logs' },
-        { id: MODULES.PAYMENT_LOGS, iconVal: <Icons.Report />, label: 'Payment Logs' }
+        }
     ];
 
     // Filter items based on role access FIRST - Check parent OR any child access

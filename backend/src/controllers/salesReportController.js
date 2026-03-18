@@ -1,5 +1,7 @@
 const GuestMealOrder = require('../models/Order');
 
+const toNum = (value) => Number(value) || 0;
+
 exports.getSalesReport = async (req, res) => {
     try {
         const { outlet, category, item, startDate, endDate } = req.query;
@@ -31,13 +33,17 @@ exports.getSalesReport = async (req, res) => {
         }
 
         // Fetch Orders
-        let orders = await GuestMealOrder.find(query).sort({ createdAt: -1 });
+        let orders = await GuestMealOrder.find(query).sort({ createdAt: -1 }).lean();
 
         // Transform and Filter locally for category and items
         let transactions = [];
 
         orders.forEach(order => {
             const items = order.items || [];
+            const orderSubtotal = toNum(order.subtotal) || items.reduce((sum, i) => sum + (toNum(i.total) || (toNum(i.price) * toNum(i.quantity))), 0);
+            const orderTax = toNum(order.tax);
+            const orderFinal = toNum(order.finalAmount || order.totalAmount);
+
             items.forEach(orderItem => {
                 let matchCategory = true;
                 let matchItem = true;
@@ -53,18 +59,36 @@ exports.getSalesReport = async (req, res) => {
                 }
 
                 if (matchCategory && matchItem) {
+                    const itemSubtotal = toNum(orderItem.total) || (toNum(orderItem.price) * toNum(orderItem.quantity || 1));
+                    const ratio = orderSubtotal > 0 ? (itemSubtotal / orderSubtotal) : 0;
+                    const itemTax = orderTax > 0 ? (orderTax * ratio) : 0;
+                    const itemNet = itemSubtotal + itemTax;
+
                     transactions.push({
-                        id: Math.random().toString(36).substr(2, 9),
+                        id: `${order._id}-${orderItem._id || orderItem.menuItem || orderItem.id || transactions.length}`,
                         billNo: `BILL-${order._id.toString().slice(-6).toUpperCase()}`,
                         date: order.createdAt,
+                        orderId: order._id,
                         itemName: orderItem.name || orderItem.itemName || 'Unknown Item',
                         category: orderItem.category || 'Uncategorized',
-                        price: orderItem.price || 0,
-                        qty: orderItem.quantity || 1,
-                        subtotal: orderItem.total || ((orderItem.price || 0) * (orderItem.quantity || 1)),
+                        price: toNum(orderItem.price),
+                        qty: toNum(orderItem.quantity) || 1,
+                        subtotal: itemSubtotal,
+                        tax: itemTax,
+                        net: itemNet,
+                        orderSubtotal,
+                        orderTax,
+                        orderFinal,
                         status: order.status || 'Active',
                         outlet: order.orderType || 'Dine-In',
-                        paymentMethod: order.paymentMethod || 'Cash'
+                        paymentMethod: order.paymentMethod || 'Cash',
+                        paymentStatus: order.paymentStatus || 'Pending',
+                        tableNumber: order.tableNumber || '-',
+                        roomNumber: order.roomNumber || '-',
+                        guestName: order.guestName || '-',
+                        itemNotes: orderItem.notes || '-',
+                        orderNotes: order.notes || '-',
+                        kotNote: order.kotNote || '-'
                     });
                 }
             });

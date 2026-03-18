@@ -2320,10 +2320,20 @@ const GuestMealService = () => {
                         animation: 'fadeInScale 0.3s ease-out'
                     }}>
                         <span style={{ fontSize: '1.2rem' }}>✅</span>
-                        <div>
+                        <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: '700', fontSize: '0.95rem' }}>{toast.message}</div>
                             {toast.subtext && <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>{toast.subtext}</div>}
                         </div>
+                        <button
+                            onClick={() => setToast({ ...toast, show: false })}
+                            style={{
+                                background: 'none', border: 'none', color: 'white',
+                                cursor: 'pointer', fontSize: '1.5rem', padding: '0 4px',
+                                marginLeft: '8px', opacity: 0.8, display: 'flex', alignItems: 'center'
+                            }}
+                        >
+                            &times;
+                        </button>
                     </div>
                 )
             }
@@ -2333,9 +2343,9 @@ const GuestMealService = () => {
                 showCloseModal && closeTableData && (
                     <div className="modal-overlay">
                         <div className="modal-content" style={{ width: '420px', padding: '0', overflow: 'hidden' }}>
-                            <div className="modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: '800' }}>Settlement Summary</h2>
-                                <button className="close-btn" onClick={() => setShowCloseModal(false)}>×</button>
+                            <div className="modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', margin: 0 }}>Settlement Summary</h2>
+                                <button className="close-btn" onClick={() => setShowCloseModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.8rem', cursor: 'pointer', color: '#9ca3af', padding: '0 4px' }}>&times;</button>
                             </div>
 
                             <div style={{ padding: '24px' }}>

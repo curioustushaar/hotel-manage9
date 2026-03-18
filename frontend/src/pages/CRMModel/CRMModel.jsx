@@ -14,7 +14,7 @@ const CRMModel = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterRole, setFilterRole] = useState('All');
-    
+
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
@@ -55,8 +55,8 @@ const CRMModel = () => {
     });
 
     const OUTLET_OPTIONS = [
-        'Dine-In', 'Room Service', 'Bar', 'Pool', 'Garden', 'Banquet', 
-        'Conference', 'Reception', 'Housekeeping', 'Maintenance', 
+        'Dine-In', 'Room Service', 'Bar', 'Pool', 'Garden', 'Banquet',
+        'Conference', 'Reception', 'Housekeeping', 'Maintenance',
         'Security', 'Kitchen', 'General'
     ];
 
@@ -75,7 +75,7 @@ const CRMModel = () => {
         if (trimmed && !roleOptions.find(r => r.value === trimmed.toLowerCase())) {
             const newRole = { value: trimmed.toLowerCase(), label: trimmed };
             setRoleOptions(prev => [...prev, newRole]);
-            setFormData({...formData, role: newRole.value});
+            setFormData({ ...formData, role: newRole.value });
             setCustomRoleInput('');
             setShowCustomRoleInput(false);
         }
@@ -97,7 +97,7 @@ const CRMModel = () => {
         const trimmed = customPermInput.trim();
         if (trimmed && !permissionOptions.includes(trimmed)) {
             setPermissionOptions(prev => [...prev, trimmed]);
-            setFormData({...formData, permissions: [...formData.permissions, trimmed]});
+            setFormData({ ...formData, permissions: [...formData.permissions, trimmed] });
             setCustomPermInput('');
             setShowCustomPermInput(false);
         }
@@ -277,9 +277,9 @@ const CRMModel = () => {
 
     // Filter
     const filteredStaff = staffData.filter(staff => {
-        const matchesSearch = staff.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                              staff.role?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              (staff.permissions || []).some(p => p.toLowerCase().includes(searchTerm.toLowerCase()));
+        const matchesSearch = staff.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            staff.role?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (staff.permissions || []).some(p => p.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchesRole = filterRole === 'All' || (staff.role && staff.role === filterRole);
         return matchesSearch && matchesRole;
     });
@@ -339,11 +339,9 @@ const CRMModel = () => {
                     <p className="crm-date">Today: {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} | Current Shift: <strong>{currentShift}</strong> ({SHIFT_TIMINGS[currentShift].label})</p>
                 </div>
                 <div className="crm-header-actions">
-                    <button className="crm-btn crm-btn-primary" onClick={openAddModal}>
-                        <Plus size={16} /> Add Staff
-                    </button>
                     <div className="crm-user-badge">
-                        <span>{user?.name || 'Admin'}</span>
+                        <span className="crm-user-role">Admin</span>
+                        <strong className="crm-user-name">{user?.name || user?.username || 'Administrator'}</strong>
                     </div>
                 </div>
             </div>
@@ -351,7 +349,7 @@ const CRMModel = () => {
             {/* Stats */}
             <div className="crm-stats-grid">
                 <div className="crm-stat-card">
-                    <div className="crm-stat-icon-wrapper" style={{background: '#ffe4e6', color: '#e11d48'}}><Users size={24} /></div>
+                    <div className="crm-stat-icon-wrapper" style={{ background: '#ffe4e6', color: '#e11d48' }}><Users size={24} /></div>
                     <div className="crm-stat-content">
                         <h3 className="crm-stat-value">{totalStaff}</h3>
                         <p className="crm-stat-label">Total Staff</p>
@@ -359,7 +357,7 @@ const CRMModel = () => {
                     </div>
                 </div>
                 <div className="crm-stat-card">
-                    <div className="crm-stat-icon-wrapper" style={{background: '#dcfce7', color: '#166534'}}><CheckCircle size={24} /></div>
+                    <div className="crm-stat-icon-wrapper" style={{ background: '#dcfce7', color: '#166534' }}><CheckCircle size={24} /></div>
                     <div className="crm-stat-content">
                         <h3 className="crm-stat-value">{presentToday}</h3>
                         <p className="crm-stat-label">Present Today</p>
@@ -367,7 +365,7 @@ const CRMModel = () => {
                     </div>
                 </div>
                 <div className="crm-stat-card">
-                    <div className="crm-stat-icon-wrapper" style={{background: '#fef3c7', color: '#92400e'}}><Calendar size={24} /></div>
+                    <div className="crm-stat-icon-wrapper" style={{ background: '#fef3c7', color: '#92400e' }}><Calendar size={24} /></div>
                     <div className="crm-stat-content">
                         <h3 className="crm-stat-value">{onLeave}</h3>
                         <p className="crm-stat-label">On Leave</p>
@@ -375,7 +373,7 @@ const CRMModel = () => {
                     </div>
                 </div>
                 <div className="crm-stat-card">
-                    <div className="crm-stat-icon-wrapper" style={{background: '#ffedd5', color: '#c2410c'}}><DollarSign size={24} /></div>
+                    <div className="crm-stat-icon-wrapper" style={{ background: '#ffedd5', color: '#c2410c' }}><DollarSign size={24} /></div>
                     <div className="crm-stat-content">
                         <h3 className="crm-stat-value">{cs}{totalPayroll.toLocaleString('en-IN')}</h3>
                         <p className="crm-stat-label">Total Payroll</p>
@@ -428,128 +426,128 @@ const CRMModel = () => {
                 </div>
 
                 {loading ? (
-                    <div style={{textAlign: 'center', padding: '40px', color: '#94a3b8'}}>Loading staff data...</div>
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Loading staff data...</div>
                 ) : (
-                <table className="crm-staff-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Staff</th>
-                            <th>Role</th>
-                            <th>Permission</th>
-                            <th>Shift</th>
-                            <th>Attendance</th>
-                            <th>Salary</th>
-                            <th>Performance</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {currentStaff.length > 0 ? (
-                            currentStaff.map((staff, index) => (
-                                <tr key={staff._id}>
-                                    <td>{indexOfFirstItem + index + 1}</td>
-                                    <td>
-                                        <div className="staff-profile-cell">
-                                            <img src={staff.image || `https://ui-avatars.com/api/?name=${staff.name}&background=random`} alt={staff.name} className="staff-avatar" />
-                                            <div className="staff-name-block">
-                                                <span className="staff-name-text">{staff.name}</span>
-                                                <span className="staff-email-text">{staff.username}</span>
+                    <table className="crm-staff-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Staff</th>
+                                <th>Role</th>
+                                <th>Permission</th>
+                                <th>Shift</th>
+                                <th>Attendance</th>
+                                <th>Salary</th>
+                                <th>Performance</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {currentStaff.length > 0 ? (
+                                currentStaff.map((staff, index) => (
+                                    <tr key={staff._id}>
+                                        <td>{indexOfFirstItem + index + 1}</td>
+                                        <td>
+                                            <div className="staff-profile-cell">
+                                                <img src={staff.image || `https://ui-avatars.com/api/?name=${staff.name}&background=random`} alt={staff.name} className="staff-avatar" />
+                                                <div className="staff-name-block">
+                                                    <span className="staff-name-text">{staff.name}</span>
+                                                    <span className="staff-email-text">{staff.username}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span className={`role-badge role-${(staff.role || 'staff').toLowerCase()}`}>
-                                            {staff.role || 'staff'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div className="permission-tags">
-                                            {staff.permissions && staff.permissions.length > 0 ? (
-                                                <>
-                                                    {staff.permissions.slice(0, 2).map((perm, i) => (
-                                                        <span key={i} className="permission-tag">{perm}</span>
+                                        </td>
+                                        <td>
+                                            <span className={`role-badge role-${(staff.role || 'staff').toLowerCase()}`}>
+                                                {staff.role || 'staff'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div className="permission-tags">
+                                                {staff.permissions && staff.permissions.length > 0 ? (
+                                                    <>
+                                                        {staff.permissions.slice(0, 2).map((perm, i) => (
+                                                            <span key={i} className="permission-tag">{perm}</span>
+                                                        ))}
+                                                        {staff.permissions.length > 2 && (
+                                                            <span className="permission-tag more-tag" title={staff.permissions.slice(2).join(', ')} onClick={() => setShowPermissionsViewModal(true)}>
+                                                                +{staff.permissions.length - 2}
+                                                            </span>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <span className="no-permission">No permissions</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        {/* Shift - Functional dropdown */}
+                                        <td>
+                                            <select className="inline-shift-select" value={staff.shift || 'Morning'} onChange={(e) => handleShiftChange(staff._id, e.target.value)}>
+                                                <option value="Morning">Morning</option>
+                                                <option value="Evening">Evening</option>
+                                                <option value="Night">Night</option>
+                                            </select>
+                                        </td>
+                                        {/* Attendance - Shift-aware */}
+                                        <td>
+                                            {canMarkAttendance(staff) ? (
+                                                <div className="inline-attendance">
+                                                    {['Present', 'Absent', 'On Leave'].map(status => (
+                                                        <button
+                                                            key={status}
+                                                            className={`att-btn ${staff.attendanceStatus === status ? 'active' : ''} ${status.toLowerCase().replace(' ', '-')}`}
+                                                            onClick={() => handleAttendanceChange(staff._id, status)}
+                                                            title={status}
+                                                        >
+                                                            {status === 'Present' ? '✓' : status === 'Absent' ? '✗' : '⏸'}
+                                                        </button>
                                                     ))}
-                                                    {staff.permissions.length > 2 && (
-                                                        <span className="permission-tag more-tag" title={staff.permissions.slice(2).join(', ')} onClick={() => setShowPermissionsViewModal(true)}>
-                                                            +{staff.permissions.length - 2}
-                                                        </span>
-                                                    )}
-                                                </>
+                                                    <span className={`att-label ${(staff.attendanceStatus || 'absent').toLowerCase().replace(' ', '-')}`}>
+                                                        {staff.attendanceStatus || 'Absent'}
+                                                    </span>
+                                                </div>
                                             ) : (
-                                                <span className="no-permission">No permissions</span>
+                                                <div className="attendance-locked">
+                                                    <span className={`status-badge status-${(staff.attendanceStatus || 'absent').toLowerCase().replace(' ', '-')}`}>
+                                                        {staff.attendanceStatus || 'Absent'}
+                                                    </span>
+                                                    <span className="shift-lock-hint">🔒 {staff.shift || 'Morning'} shift</span>
+                                                </div>
                                             )}
-                                        </div>
-                                    </td>
-                                    {/* Shift - Functional dropdown */}
-                                    <td>
-                                        <select className="inline-shift-select" value={staff.shift || 'Morning'} onChange={(e) => handleShiftChange(staff._id, e.target.value)}>
-                                            <option value="Morning">Morning</option>
-                                            <option value="Evening">Evening</option>
-                                            <option value="Night">Night</option>
-                                        </select>
-                                    </td>
-                                    {/* Attendance - Shift-aware */}
-                                    <td>
-                                        {canMarkAttendance(staff) ? (
-                                            <div className="inline-attendance">
-                                                {['Present', 'Absent', 'On Leave'].map(status => (
-                                                    <button
-                                                        key={status}
-                                                        className={`att-btn ${staff.attendanceStatus === status ? 'active' : ''} ${status.toLowerCase().replace(' ', '-')}`}
-                                                        onClick={() => handleAttendanceChange(staff._id, status)}
-                                                        title={status}
-                                                    >
-                                                        {status === 'Present' ? '✓' : status === 'Absent' ? '✗' : '⏸'}
-                                                    </button>
-                                                ))}
-                                                <span className={`att-label ${(staff.attendanceStatus || 'absent').toLowerCase().replace(' ', '-')}`}>
-                                                    {staff.attendanceStatus || 'Absent'}
-                                                </span>
+                                        </td>
+                                        {/* Salary - Clickable */}
+                                        <td>
+                                            <span className="salary-cell" onClick={() => { setSalaryEditStaff(staff); setSalaryEditValue(staff.salary || 0); setShowSalaryModal(true); }} title="Click to edit salary">
+                                                {cs}{(staff.salary || 0).toLocaleString()}
+                                                <Edit2 size={12} className="salary-edit-icon" />
+                                            </span>
+                                        </td>
+                                        {/* Performance - Interactive Stars */}
+                                        <td>{renderStars(staff)}</td>
+                                        {/* Actions */}
+                                        <td>
+                                            <div className="action-buttons">
+                                                <button
+                                                    className={`action-icon-btn tick-btn ${staff.attendanceStatus === 'Present' ? 'active-present' : ''}`}
+                                                    onClick={() => handleAttendanceChange(staff._id, staff.attendanceStatus === 'Present' ? 'Absent' : 'Present')}
+                                                    title={staff.attendanceStatus === 'Present' ? 'Mark Absent' : 'Mark Present'}
+                                                >
+                                                    <Check size={16} />
+                                                </button>
+                                                <button className="action-icon-btn edit-btn" onClick={() => openEditModal(staff)} title="Edit">
+                                                    <Edit2 size={16} />
+                                                </button>
+                                                <button className="action-icon-btn delete-btn" onClick={() => setShowDeleteConfirm(staff)} title="Delete">
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </div>
-                                        ) : (
-                                            <div className="attendance-locked">
-                                                <span className={`status-badge status-${(staff.attendanceStatus || 'absent').toLowerCase().replace(' ', '-')}`}>
-                                                    {staff.attendanceStatus || 'Absent'}
-                                                </span>
-                                                <span className="shift-lock-hint">🔒 {staff.shift || 'Morning'} shift</span>
-                                            </div>
-                                        )}
-                                    </td>
-                                    {/* Salary - Clickable */}
-                                    <td>
-                                        <span className="salary-cell" onClick={() => { setSalaryEditStaff(staff); setSalaryEditValue(staff.salary || 0); setShowSalaryModal(true); }} title="Click to edit salary">
-                                            {cs}{(staff.salary || 0).toLocaleString()}
-                                            <Edit2 size={12} className="salary-edit-icon" />
-                                        </span>
-                                    </td>
-                                    {/* Performance - Interactive Stars */}
-                                    <td>{renderStars(staff)}</td>
-                                    {/* Actions */}
-                                    <td>
-                                        <div className="action-buttons">
-                                            <button 
-                                                className={`action-icon-btn tick-btn ${staff.attendanceStatus === 'Present' ? 'active-present' : ''}`}
-                                                onClick={() => handleAttendanceChange(staff._id, staff.attendanceStatus === 'Present' ? 'Absent' : 'Present')}
-                                                title={staff.attendanceStatus === 'Present' ? 'Mark Absent' : 'Mark Present'}
-                                            >
-                                                <Check size={16} />
-                                            </button>
-                                            <button className="action-icon-btn edit-btn" onClick={() => openEditModal(staff)} title="Edit">
-                                                <Edit2 size={16} />
-                                            </button>
-                                            <button className="action-icon-btn delete-btn" onClick={() => setShowDeleteConfirm(staff)} title="Delete">
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        ) : (
-                            <tr><td colSpan="9" style={{textAlign: 'center', padding: '30px'}}>No staff members found.</td></tr>
-                        )}
-                    </tbody>
-                </table>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '30px' }}>No staff members found.</td></tr>
+                            )}
+                        </tbody>
+                    </table>
                 )}
 
                 {/* Pagination */}
@@ -573,9 +571,9 @@ const CRMModel = () => {
                     <div className="crm-modal wide-modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>{editingStaff ? '✏️ Edit Staff Member' : '➕ Add New Staff'}</h2>
-                            <button className="close-btn" onClick={() => setShowModal(false)}>&times;</button>
+                            <button className="close-btn" onClick={() => setShowModal(false)}><X size={20} /></button>
                         </div>
-                        
+
                         {error && <div className="modal-error">{error}</div>}
 
                         <form onSubmit={handleSubmit}>
@@ -585,11 +583,11 @@ const CRMModel = () => {
                                 <div className="form-grid">
                                     <div className="form-group">
                                         <label>Full Name *</label>
-                                        <input type="text" name="fullName" className="form-input" value={formData.fullName} 
+                                        <input type="text" name="fullName" className="form-input" value={formData.fullName}
                                             onChange={(e) => {
                                                 const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
                                                 handleInputChange({ target: { name: 'fullName', value } });
-                                            }} 
+                                            }}
                                             placeholder="Enter full name" required />
                                     </div>
                                     <div className="form-group">
@@ -598,13 +596,13 @@ const CRMModel = () => {
                                     </div>
                                     <div className="form-group">
                                         <label>Phone</label>
-                                        <input type="text" name="phone" className="form-input" value={formData.phone} 
+                                        <input type="text" name="phone" className="form-input" value={formData.phone}
                                             onChange={(e) => {
                                                 const value = e.target.value.replace(/\D/g, '');
                                                 if (value.length <= 10) {
                                                     handleInputChange({ target: { name: 'phone', value } });
                                                 }
-                                            }} 
+                                            }}
                                             placeholder="Enter phone number" />
                                     </div>
                                     <div className="form-group">
@@ -662,9 +660,10 @@ const CRMModel = () => {
                                             {permDropdownOpen && (
                                                 <div className="perm-dropdown-list">
                                                     <div className="perm-dropdown-actions">
-                                                        <button type="button" onClick={() => setFormData({...formData, permissions: [...permissionOptions]})}>Select All</button>
-                                                        <button type="button" onClick={() => setFormData({...formData, permissions: []})}>Clear All</button>
-                                                        <button type="button" onClick={() => setFormData({...formData, permissions: ROLE_DEFAULT_PERMISSIONS[formData.role] || []})}>Role Default</button>
+                                                        <button type="button" onClick={() => setFormData({ ...formData, permissions: [...permissionOptions] })}>Select All</button>
+                                                        <button type="button" onClick={() => setFormData({ ...formData, permissions: [] })}>Clear All</button>
+                                                        <button type="button" onClick={() => setFormData({ ...formData, permissions: ROLE_DEFAULT_PERMISSIONS[formData.role] || [] })}>Role Default</button>
+                                                        <button type="button" className="perm-dropdown-close" onClick={(e) => { e.stopPropagation(); setPermDropdownOpen(false); }}>✕</button>
                                                     </div>
                                                     {permissionOptions.map(perm => (
                                                         <label key={perm} className={`perm-dropdown-item ${formData.permissions.includes(perm) ? 'selected' : ''}`}>
@@ -673,9 +672,9 @@ const CRMModel = () => {
                                                                 checked={formData.permissions.includes(perm)}
                                                                 onChange={(e) => {
                                                                     if (e.target.checked) {
-                                                                        setFormData({...formData, permissions: [...formData.permissions, perm]});
+                                                                        setFormData({ ...formData, permissions: [...formData.permissions, perm] });
                                                                     } else {
-                                                                        setFormData({...formData, permissions: formData.permissions.filter(p => p !== perm)});
+                                                                        setFormData({ ...formData, permissions: formData.permissions.filter(p => p !== perm) });
                                                                     }
                                                                 }}
                                                             />
@@ -710,7 +709,7 @@ const CRMModel = () => {
                                                 {formData.permissions.map((p, i) => (
                                                     <span key={i} className="selected-perm-tag">
                                                         {p}
-                                                        <button type="button" onClick={() => setFormData({...formData, permissions: formData.permissions.filter(x => x !== p)})}>×</button>
+                                                        <button type="button" onClick={() => setFormData({ ...formData, permissions: formData.permissions.filter(x => x !== p) })}>×</button>
                                                     </span>
                                                 ))}
                                             </div>
@@ -758,7 +757,7 @@ const CRMModel = () => {
                     <div className="crm-modal wide-modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>📋 Mark Daily Attendance</h2>
-                            <button className="close-btn" onClick={() => setShowAttendanceModal(false)}>&times;</button>
+                            <button className="close-btn" onClick={() => setShowAttendanceModal(false)}><X size={20} /></button>
                         </div>
                         <div className="crm-modal-content">
                             <div className="attendance-info-bar">
@@ -807,7 +806,7 @@ const CRMModel = () => {
                     <div className="crm-modal wide-modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>🕐 Manage Shifts</h2>
-                            <button className="close-btn" onClick={() => setShowShiftModal(false)}>&times;</button>
+                            <button className="close-btn" onClick={() => setShowShiftModal(false)}><X size={20} /></button>
                         </div>
                         <div className="crm-modal-content">
                             <div className="shift-summary">
@@ -846,7 +845,7 @@ const CRMModel = () => {
                     <div className="crm-modal wide-modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>💰 Payroll Overview</h2>
-                            <button className="close-btn" onClick={() => setShowPayrollModal(false)}>&times;</button>
+                            <button className="close-btn" onClick={() => setShowPayrollModal(false)}><X size={20} /></button>
                         </div>
                         <div className="crm-modal-content">
                             <div className="payroll-summary">
@@ -872,7 +871,7 @@ const CRMModel = () => {
                                         {filteredStaff.map(staff => (
                                             <tr key={staff._id}>
                                                 <td>{staff.name}</td>
-                                                <td style={{textTransform: 'capitalize'}}>{staff.role}</td>
+                                                <td style={{ textTransform: 'capitalize' }}>{staff.role}</td>
                                                 <td>{staff.shift || 'Morning'}</td>
                                                 <td><span className={`status-badge status-${(staff.attendanceStatus || 'absent').toLowerCase().replace(' ', '-')}`}>{staff.attendanceStatus}</span></td>
                                                 <td>{cs}{Number(staff.salary || 0).toLocaleString('en-IN')}</td>
@@ -893,7 +892,7 @@ const CRMModel = () => {
                     <div className="crm-modal wide-modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>⭐ Staff Performance Review</h2>
-                            <button className="close-btn" onClick={() => setShowPerformanceModal(false)}>&times;</button>
+                            <button className="close-btn" onClick={() => setShowPerformanceModal(false)}><X size={20} /></button>
                         </div>
                         <div className="crm-modal-content">
                             <div className="payroll-summary">
@@ -942,7 +941,7 @@ const CRMModel = () => {
                     <div className="crm-modal perm-view-modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>🔐 Staff Permissions Overview</h2>
-                            <button className="close-btn" onClick={() => setShowPermissionsViewModal(false)}>&times;</button>
+                            <button className="close-btn" onClick={() => setShowPermissionsViewModal(false)}><X size={20} /></button>
                         </div>
                         <div className="crm-modal-content">
                             {/* Add custom permission row */}
@@ -998,7 +997,7 @@ const CRMModel = () => {
                     <div className="crm-modal salary-modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>💰 Edit Salary - {salaryEditStaff.name}</h2>
-                            <button className="close-btn" onClick={() => setShowSalaryModal(false)}>&times;</button>
+                            <button className="close-btn" onClick={() => setShowSalaryModal(false)}><X size={20} /></button>
                         </div>
                         <div className="salary-edit-content">
                             <div className="salary-current">
@@ -1022,10 +1021,12 @@ const CRMModel = () => {
             {showDeleteConfirm && (
                 <div className="crm-modal-overlay" onClick={() => setShowDeleteConfirm(null)}>
                     <div className="crm-modal delete-modal" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2 style={{ color: '#ef4444' }}>🗑️ Delete Staff</h2>
+                            <button className="close-btn" onClick={() => setShowDeleteConfirm(null)}><X size={20} /></button>
+                        </div>
                         <div className="delete-content">
-                            <div className="delete-icon">🗑️</div>
-                            <h3>Delete Staff Member?</h3>
-                            <p>Are you sure you want to delete <strong>{showDeleteConfirm.name}</strong>? This cannot be undone.</p>
+                            <p style={{ marginTop: '20px', fontSize: '15px' }}>Are you sure you want to delete <strong>{showDeleteConfirm.name}</strong>?<br />This action cannot be undone.</p>
                             <div className="modal-actions">
                                 <button className="btn-cancel" onClick={() => setShowDeleteConfirm(null)}>Cancel</button>
                                 <button className="btn-delete-confirm" onClick={() => handleDeleteStaff(showDeleteConfirm._id)}>Delete</button>
