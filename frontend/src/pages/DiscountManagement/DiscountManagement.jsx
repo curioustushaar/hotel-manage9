@@ -386,7 +386,7 @@ const DiscountManagement = () => {
                         </table>
                     </div>
                 </div>
-                          {/* Centered Premium Modal */}
+                {/* Centered Premium Modal */}
                 {showModal && (
                     <div className="add-payment-overlay">
                         <div className="add-payment-modal add-discount-premium">
