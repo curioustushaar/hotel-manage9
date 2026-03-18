@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -6,6 +6,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import API_URL_CONFIG from '../config/api';
 import { useSettings } from '../context/SettingsContext';
 import './FoodOrderPage.css';
+
+const DEFAULT_MENU_CATEGORIES = ['Starters', 'Main Course', 'Breakfast', 'Rice', 'Desserts', 'Beverages', 'Chinese', 'Continental'];
+const CUSTOM_CATEGORY_STORAGE_KEY = 'foodMenuCustomCategories';
+const DEFAULT_CATEGORY_ICONS = {
+    'Starters': '🍴',
+    'Main Course': '🍛',
+    'Breakfast': '☕',
+    'Rice': '🍚',
+    'Desserts': '🍨',
+    'Beverages': '🥤',
+    'Chinese': '🥡',
+    'Continental': '🍝'
+};
 
 const FoodOrderPage = ({ onClose, room: roomProp }) => {
     const navigate = useNavigate();
@@ -63,24 +76,66 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
         }
     };
 
-    // Categories - matching database categories
-    const categories = [
-        { id: 1, name: 'Starters' },
-        { id: 2, name: 'Main Course' },
-        { id: 3, name: 'Breakfast' },
-        { id: 4, name: 'Rice' },
-        { id: 5, name: 'Desserts' },
-        { id: 6, name: 'Beverages' },
-        { id: 7, name: 'Chinese' },
-        { id: 8, name: 'Continental' }
-    ];
-
-    const [selectedCategory, setSelectedCategory] = useState(1);
+    const [selectedCategory, setSelectedCategory] = useState('');
+    const [customCategories, setCustomCategories] = useState([]);
     const [cart, setCart] = useState([]);
     const [searchName, setSearchName] = useState('');
     const [searchCode, setSearchCode] = useState('');
     const [menuItems, setMenuItems] = useState([]);
     const [loading, setLoading] = useState(true);
+    const skipAutoFetchExistingRef = useRef(false);
+
+    const inferCategoryIcon = (categoryName) => {
+        const value = (categoryName || '').toLowerCase();
+
+        if (value.includes('starter') || value.includes('snack')) return '🍴';
+        if (value.includes('main')) return '🍛';
+        if (value.includes('breakfast') || value.includes('tea') || value.includes('coffee')) return '☕';
+        if (value.includes('rice') || value.includes('biryani')) return '🍚';
+        if (value.includes('dessert') || value.includes('sweet') || value.includes('mithai')) return '🍨';
+        if (value.includes('beverage') || value.includes('drink') || value.includes('juice')) return '🥤';
+        if (value.includes('chinese')) return '🥡';
+        if (value.includes('continental') || value.includes('pasta')) return '🍝';
+        if (value.includes('pizza')) return '🍕';
+        if (value.includes('bread') || value.includes('roti') || value.includes('naan')) return '🍞';
+        if (value.includes('soup')) return '🥣';
+
+        return '🍽️';
+    };
+
+    const getCategoryIcon = (name) => DEFAULT_CATEGORY_ICONS[name] || inferCategoryIcon(name);
+
+    const categories = useMemo(() => {
+        const combinedCategories = Array.from(new Set([
+            ...DEFAULT_MENU_CATEGORIES,
+            ...customCategories,
+            ...menuItems.map(item => (item.category || '').trim()).filter(Boolean)
+        ]));
+
+        return combinedCategories.map(name => ({ id: name, name, icon: getCategoryIcon(name) }));
+    }, [customCategories, menuItems]);
+
+    useEffect(() => {
+        try {
+            const storedCategories = JSON.parse(localStorage.getItem(CUSTOM_CATEGORY_STORAGE_KEY) || '[]');
+            if (Array.isArray(storedCategories)) {
+                setCustomCategories(storedCategories.map(c => (c || '').trim()).filter(Boolean));
+            }
+        } catch (error) {
+            console.error('Error loading custom categories for POS:', error);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!categories.length) {
+            if (selectedCategory) setSelectedCategory('');
+            return;
+        }
+
+        if (!selectedCategory || !categories.some(cat => cat.id === selectedCategory)) {
+            setSelectedCategory(categories[0].id);
+        }
+    }, [categories, selectedCategory]);
 
     // Fetch menu items from API
     useEffect(() => {
@@ -106,8 +161,43 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
 
     // Get current category name
     const getCurrentCategoryName = () => {
-        const category = categories.find(cat => cat.id === selectedCategory);
-        return category ? category.name : '';
+        return selectedCategory || '';
+    };
+
+    const resolveMenuImage = (image) => {
+        if (!image || typeof image !== 'string') return '';
+
+        const trimmedImage = image.trim();
+        if (!trimmedImage) return '';
+
+        if (/^www\./i.test(trimmedImage)) {
+            return `https://${trimmedImage}`;
+        }
+
+        if (/^\/\//.test(trimmedImage)) {
+            return `https:${trimmedImage}`;
+        }
+
+        if (/^https?:\/\//i.test(trimmedImage) || /^data:image\//i.test(trimmedImage) || /^blob:/i.test(trimmedImage)) {
+            if (/^https?:\/\//i.test(trimmedImage)) {
+                try {
+                    const parsed = new URL(trimmedImage);
+                    const host = parsed.hostname.toLowerCase();
+                    const mediaUrl = parsed.searchParams.get('mediaurl') || parsed.searchParams.get('imgurl');
+
+                    // Common case: users paste Bing/Google image-result URL instead of direct image URL.
+                    if (mediaUrl && (host.includes('bing.com') || host.includes('google.'))) {
+                        return decodeURIComponent(mediaUrl);
+                    }
+                } catch (error) {
+                    // Keep original URL on parse failure.
+                }
+            }
+            return trimmedImage;
+        }
+
+        const normalizedPath = trimmedImage.startsWith('/') ? trimmedImage : `/${trimmedImage}`;
+        return `${API_URL_CONFIG}${normalizedPath}`;
     };
 
     // Filter items based on search or category
@@ -141,6 +231,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
 
         // Priority 3: Filter by Category
         const currentCatName = getCurrentCategoryName();
+        if (!currentCatName) return allItems;
         return allItems.filter(item => item.category === currentCatName);
     };
 
@@ -161,6 +252,8 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
         if (room?.id) return 'dinein';
         return 'dinein';
     });
+
+    const hasKotContext = !!room || source === 'table-order' || source === 'room-service' || orderMode === 'takeaway' || orderMode === 'roomservice' || activeOrderType === 'takeaway' || activeOrderType === 'roomservice';
 
     useEffect(() => {
         if (location.state?.orderMode === 'takeaway') {
@@ -185,9 +278,9 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
         }
     }, [printMode]);
 
-    const addToast = (message) => {
+    const addToast = (message, type = 'default') => {
         const id = Date.now();
-        setToasts(prev => [...prev, { id, message }]);
+        setToasts(prev => [...prev, { id, message, type }]);
         setTimeout(() => {
             setToasts(prev => prev.filter(t => t.id !== id));
         }, 1500);
@@ -236,16 +329,46 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
     const [validationErrors, setValidationErrors] = useState({});
     const [isSendingSms, setIsSendingSms] = useState(false);
 
+    const getContextCustomer = () => {
+        if (!room) return null;
+        return {
+            id: room.guestId || room._id,
+            name: room.guestName,
+            phone: room.guestPhone || room.mobileNumber || room.phoneNumber,
+            roomNumber: room.roomNumber,
+            type: (activeOrderType === 'roomservice' || activeOrderType === 'room') ? 'room' : 'direct'
+        };
+    };
+
+    const resetFormAfterKotSave = () => {
+        setCart([]);
+        setBillComment('');
+        setKotNote('');
+        setSearchName('');
+        setSearchCode('');
+        setShowCommentModal(false);
+        setShowCustomerModal(false);
+        setShowTenderModal(false);
+        setReceivedAmount('');
+        setValidationErrors({});
+        setSmsModal({ show: false, name: '', phone: '' });
+        setEmailModal({ show: false, name: '', email: '' });
+        if (categories.length) {
+            setSelectedCategory(categories[0].id);
+        }
+
+        // Keep context customer (table/room flow), otherwise clear
+        setSelectedCustomer(getContextCustomer());
+
+        // Force next save as a fresh order while preventing immediate auto-refetch
+        skipAutoFetchExistingRef.current = true;
+        setOrderId(null);
+    };
+
     // Initialize customer if room-service or if guest details passed in state
     useEffect(() => {
         if (room) {
-            setSelectedCustomer({
-                id: room.guestId || room._id,
-                name: room.guestName,
-                phone: room.guestPhone || room.mobileNumber || room.phoneNumber,
-                roomNumber: room.roomNumber,
-                type: (activeOrderType === 'roomservice' || activeOrderType === 'room') ? 'room' : 'direct'
-            });
+            setSelectedCustomer(getContextCustomer());
         }
     }, [room, activeOrderType]);
 
@@ -254,6 +377,10 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
         if (orderId) {
             fetchOrderById(orderId);
         } else if (room?.id) {
+            if (skipAutoFetchExistingRef.current) {
+                skipAutoFetchExistingRef.current = false;
+                return;
+            }
             fetchExistingOrder();
         }
     }, [room, orderId]);
@@ -344,6 +471,10 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
             alert('POS is currently disabled. Please enable POS from Company Settings to create orders.');
             return false;
         }
+        if (isDirectAccess) {
+            addToast('Open order from Table / Room / Take Away to save in KOT');
+            return false;
+        }
         try {
             // Robust check: allow missing room for takeaway and room service
             const effectiveRoom = room ||
@@ -424,6 +555,10 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
     };
 
     const handleSaveKOT = async () => {
+        if (isDirectAccess) {
+            addToast('Direct open mode: KOT save is disabled');
+            return;
+        }
         // Validation for Dine In - Require Table
         if (activeOrderType !== 'takeaway' && activeOrderType !== 'roomservice' && !room?.id && !orderId) {
             addToast('Error: No table selected');
@@ -432,22 +567,18 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
 
         const success = await saveOrderToBackend();
         if (success) {
-            addToast('Saved to KOT');
-            // Navigate immediately to Current Orders (KOT View) showing All orders
-            // This ensures the new order is visible along with outlet status functionality
-            navigate('/admin/dashboard', {
-                state: {
-                    activeMenu: 'view-order',
-                    activeFilter: 'All', // Show all types (Dine In, Take Away, Room, Online)
-                    activeTab: 'Current Orders' // Force to Current Orders view (previously KOT View)
-                }
-            });
+            addToast('Saved to KOT', 'success');
+            resetFormAfterKotSave();
         } else {
             addToast('Failed to save KOT');
         }
     };
 
     const handleSavePrintKOT = async () => {
+        if (isDirectAccess) {
+            addToast('Direct open mode: KOT save is disabled');
+            return;
+        }
         const success = await saveOrderToBackend();
         if (success) {
             setPrintModal('KOT');
@@ -622,7 +753,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
         setPrintModal(null);
 
         if (wasKOT) {
-            addToast('Saved to KOT');
+            addToast('Saved to KOT', 'success');
             setTimeout(() => {
                 if (onClose) onClose();
             }, 1000);
@@ -641,6 +772,16 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
             transition={{ duration: 0.4, ease: "easeOut" }}
             className="pos-layout-wrapper"
         >
+            {toasts.length > 0 && (
+                <div className="pos-toast-container">
+                    {toasts.map(toast => (
+                        <div key={toast.id} className={`pos-toast ${toast.type || 'default'}`}>
+                            {toast.message}
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {!settings.posEnabled && (
                 <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '8px', padding: '12px 20px', margin: '10px 20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{ fontSize: '20px' }}>⚠️</span>
@@ -677,7 +818,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                                         className={`pos-category-item ${selectedCategory === cat.id ? 'active' : ''}`}
                                         onClick={() => setSelectedCategory(cat.id)}
                                     >
-                                        {cat.name}
+                                        {cat.icon} {cat.name}
                                     </div>
                                 ))}
                             </div>
@@ -726,15 +867,15 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                                         >
                                             {/* Food Image */}
                                             <div className="pos-card-image-wrapper">
-                                                {item.image ? (
+                                                {resolveMenuImage(item.image) ? (
                                                     <img
-                                                        src={`${API_URL_CONFIG}${item.image}`}
+                                                        src={resolveMenuImage(item.image)}
                                                         alt={item.name}
                                                         className="pos-card-image"
                                                         onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                                                     />
                                                 ) : null}
-                                                <div className="pos-card-image-placeholder" style={item.image ? { display: 'none' } : {}}>
+                                                <div className="pos-card-image-placeholder" style={resolveMenuImage(item.image) ? { display: 'none' } : {}}>
                                                     <span>🍽️</span>
                                                 </div>
                                                 {inCartQty > 0 && (
@@ -768,7 +909,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                 </div>
 
                 {/* RIGHT PANEL (40%) */}
-                <div className="pos-right-panel">
+                <div className={`pos-right-panel ${isDirectAccess ? 'disabled' : ''}`}>
                     {/* A. Mode Buttons */}
                     <div className="pos-mode-bar">
                         <button
@@ -958,7 +1099,9 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                             <div className="pos-footer-row" style={{ height: '40px' }}>
                                 <div className="pos-row-label kot" style={{ fontSize: '10px' }}>KOT</div>
                                 <div className="pos-row-btns">
-                                    <button className="pos-footer-btn" onClick={handleSaveKOT}>Save (K)</button>
+                                    <button className="pos-footer-btn" onClick={handleSaveKOT}>
+                                        {hasKotContext ? 'Save to KOT' : 'Save (K)'}
+                                    </button>
                                     <button className="pos-footer-btn" onClick={handleSavePrintKOT}>Save & Print(F4)</button>
                                 </div>
                             </div>
@@ -1058,51 +1201,35 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="pos-modal-content"
-                            style={{ width: '420px', borderRadius: '12px', overflow: 'hidden' }}
+                            className="pos-modal-content pos-note-modal"
                         >
-                            <div className="pos-modal-header" style={{
-                                background: activeNoteType === 'KOT' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #E31E24, #b91c1c)',
-                                color: '#fff',
-                                padding: '14px 20px'
-                            }}>
-                                <div>
-                                    <h3 style={{ margin: 0, fontSize: '1rem' }}>{activeNoteType === 'KOT' ? '🍳 Special Note (Kitchen)' : '📝 Bill Wise Comment'}</h3>
-                                    <p style={{ margin: '2px 0 0', fontSize: '0.75rem', opacity: 0.85 }}>
+                            <div className="pos-modal-header pos-note-modal-header">
+                                <div className="pos-note-header-left">
+                                    <h3 className="pos-note-title">{activeNoteType === 'KOT' ? '🍳 Special Note (Kitchen)' : '📝 Bill Wise Comment'}</h3>
+                                    <p className="pos-note-subtitle">
                                         {activeNoteType === 'KOT' ? 'This note will appear in the KOT print & order card' : 'This comment will appear on the bill & cashier print'}
                                     </p>
                                 </div>
-                                <button className="pos-modal-close" onClick={() => setShowCommentModal(false)} style={{ color: '#fff' }}>×</button>
+                                <button className="pos-modal-close pos-note-close" onClick={() => setShowCommentModal(false)}>×</button>
                             </div>
-                            <div className="pos-modal-body" style={{ background: '#fff', padding: '20px', display: 'block' }}>
+                            <div className="pos-modal-body pos-note-body">
                                 <textarea
-                                    className="pos-search-input"
+                                    className="pos-search-input pos-note-textarea"
                                     placeholder={activeNoteType === 'KOT' ? "e.g. No onion, Extra spicy, Less oil..." : "e.g. Birthday celebration, VIP guest, Complimentary..."}
-                                    style={{
-                                        width: '100%',
-                                        height: '120px',
-                                        resize: 'none',
-                                        background: '#f8fafc',
-                                        fontSize: '14px',
-                                        border: `2px solid ${activeNoteType === 'KOT' ? '#fcd34d' : '#fca5a5'}`,
-                                        borderRadius: '8px',
-                                        padding: '12px',
-                                        lineHeight: '1.5'
-                                    }}
                                     value={activeNoteType === 'KOT' ? kotNote : billComment}
                                     onChange={(e) => activeNoteType === 'KOT' ? setKotNote(e.target.value) : setBillComment(e.target.value)}
                                     autoFocus
                                 />
-                                <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '6px', textAlign: 'right' }}>
+                                <div className="pos-note-char-count">
                                     {(activeNoteType === 'KOT' ? kotNote : billComment).length} characters
                                 </div>
                             </div>
-                            <div className="pos-modal-footer" style={{ padding: '12px 20px', gap: '10px' }}>
-                                <button className="pos-modal-btn cancel" onClick={() => {
+                            <div className="pos-modal-footer pos-note-footer">
+                                <button className="pos-note-btn pos-note-btn-secondary" onClick={() => {
                                     activeNoteType === 'KOT' ? setKotNote('') : setBillComment('');
                                     setShowCommentModal(false);
                                 }}>Clear</button>
-                                <button className="pos-modal-btn print" onClick={() => setShowCommentModal(false)}>Save Note</button>
+                                <button className="pos-note-btn pos-note-btn-primary" onClick={() => setShowCommentModal(false)}>Save Note</button>
                             </div>
                         </motion.div>
                     </motion.div>

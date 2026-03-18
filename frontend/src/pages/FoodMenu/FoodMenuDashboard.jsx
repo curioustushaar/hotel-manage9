@@ -3,6 +3,9 @@ import React, { useState, useEffect } from 'react';
 import API_URL from '../../config/api';
 import { useSettings } from '../../context/SettingsContext';
 
+const DEFAULT_CATEGORIES = ['Starters', 'Main Course', 'Breakfast', 'Rice', 'Desserts', 'Beverages', 'Chinese', 'Continental'];
+const CUSTOM_CATEGORY_STORAGE_KEY = 'foodMenuCustomCategories';
+
 const FoodMenuDashboard = () => {
     const { getCurrencySymbol } = useSettings();
     const cs = getCurrencySymbol();
@@ -12,10 +15,18 @@ const FoodMenuDashboard = () => {
     const [menuItems, setMenuItems] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('All Categories');
-    const [addFormData, setAddFormData] = useState({ itemName: '', price: '', foodCode: '', description: '', category: '' });
-    const [editFormData, setEditFormData] = useState({ itemName: '', price: '', foodCode: '', description: '', category: '' });
+    const [customCategories, setCustomCategories] = useState([]);
+    const [addFormData, setAddFormData] = useState({ itemName: '', price: '', foodCode: '', description: '', category: '', image: '' });
+    const [editFormData, setEditFormData] = useState({ itemName: '', price: '', foodCode: '', description: '', category: '', image: '' });
 
-    const categories = ['All Categories', 'Starters', 'Main Course', 'Breakfast', 'Rice', 'Desserts', 'Beverages', 'Chinese', 'Continental'];
+    const categories = [
+        'All Categories',
+        ...Array.from(new Set([
+            ...DEFAULT_CATEGORIES,
+            ...customCategories,
+            ...menuItems.map(item => (item.category || '').trim()).filter(Boolean)
+        ]))
+    ];
 
     // Category icons mapping
     const categoryIcons = {
@@ -29,15 +40,124 @@ const FoodMenuDashboard = () => {
         'Continental': '🍝'
     };
 
+    const inferCategoryIcon = (categoryName) => {
+        const value = (categoryName || '').toLowerCase();
+
+        if (value.includes('starter') || value.includes('snack')) return '🍴';
+        if (value.includes('main')) return '🍛';
+        if (value.includes('breakfast') || value.includes('tea') || value.includes('coffee')) return '☕';
+        if (value.includes('rice') || value.includes('biryani')) return '🍚';
+        if (value.includes('dessert') || value.includes('sweet') || value.includes('mithai')) return '🍨';
+        if (value.includes('beverage') || value.includes('drink') || value.includes('juice')) return '🥤';
+        if (value.includes('chinese')) return '🥡';
+        if (value.includes('continental') || value.includes('pasta')) return '🍝';
+        if (value.includes('pizza')) return '🍕';
+        if (value.includes('bread') || value.includes('roti') || value.includes('naan')) return '🍞';
+        if (value.includes('soup')) return '🥣';
+
+        return '🍽️';
+    };
+
     const getCategoryWithIcon = (categoryName) => {
-        const icon = categoryIcons[categoryName] || '';
-        return icon ? `${icon} ${categoryName}` : categoryName;
+        if (!categoryName) return '';
+
+        const icon = categoryIcons[categoryName] || inferCategoryIcon(categoryName);
+        return `${icon} ${categoryName}`;
+    };
+
+    const formatCategoryName = (value) => {
+        const normalized = (value || '').replace(/\s+/g, ' ').trim();
+        if (!normalized) return '';
+
+        return normalized
+            .split(' ')
+            .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+            .join(' ');
+    };
+
+    const handleAddCategory = (mode = 'add') => {
+        const rawValue = window.prompt('Enter new category name');
+        if (rawValue === null) return;
+
+        const formattedCategory = formatCategoryName(rawValue);
+
+        if (!formattedCategory) {
+            alert('Please enter category name.');
+            return;
+        }
+
+        const existingCategory = categories.find(cat =>
+            cat !== 'All Categories' && cat.toLowerCase() === formattedCategory.toLowerCase()
+        );
+
+        const finalCategory = existingCategory || formattedCategory;
+
+        if (!existingCategory) {
+            setCustomCategories(prev => {
+                if (prev.some(cat => cat.toLowerCase() === finalCategory.toLowerCase())) return prev;
+                return [...prev, finalCategory];
+            });
+        }
+
+        if (mode === 'add') {
+            setAddFormData(prev => ({ ...prev, category: finalCategory }));
+            return;
+        }
+
+        setEditFormData(prev => ({ ...prev, category: finalCategory }));
+    };
+
+    const normalizeImageUrl = (value) => {
+        if (!value || typeof value !== 'string') return '';
+
+        const trimmed = value.trim();
+        if (!trimmed) return '';
+
+        if (/^www\./i.test(trimmed)) {
+            return `https://${trimmed}`;
+        }
+
+        if (/^\/\//.test(trimmed)) {
+            return `https:${trimmed}`;
+        }
+
+        if (!/^https?:\/\//i.test(trimmed)) {
+            return trimmed;
+        }
+
+        try {
+            const parsed = new URL(trimmed);
+            const host = parsed.hostname.toLowerCase();
+            const mediaUrl = parsed.searchParams.get('mediaurl') || parsed.searchParams.get('imgurl');
+
+            // If a search-result URL is pasted, persist the real image URL instead.
+            if (mediaUrl && (host.includes('bing.com') || host.includes('google.'))) {
+                return decodeURIComponent(mediaUrl);
+            }
+        } catch (error) {
+            // If parsing fails, keep original input and let rendering fallback handle it.
+        }
+
+        return trimmed;
     };
 
     // Fetch menu items
     useEffect(() => {
+        try {
+            const storedCategories = JSON.parse(localStorage.getItem(CUSTOM_CATEGORY_STORAGE_KEY) || '[]');
+            if (Array.isArray(storedCategories)) {
+                setCustomCategories(storedCategories.map(formatCategoryName).filter(Boolean));
+            }
+        } catch (error) {
+            console.error('Error loading custom categories:', error);
+        }
+
         fetchMenuItems();
     }, []);
+
+    useEffect(() => {
+        localStorage.setItem(CUSTOM_CATEGORY_STORAGE_KEY, JSON.stringify(customCategories));
+    }, [customCategories]);
 
     const fetchMenuItems = async () => {
         try {
@@ -64,6 +184,7 @@ const FoodMenuDashboard = () => {
             category: addFormData.category,
             price: parseFloat(addFormData.price),
             description: addFormData.description || '',
+            image: normalizeImageUrl(addFormData.image),
             status: 'Active'
         };
 
@@ -78,7 +199,7 @@ const FoodMenuDashboard = () => {
                 // Add new item to the TOP of the list
                 setMenuItems([data.data, ...menuItems]);
                 setShowAddForm(false);
-                setAddFormData({ itemName: '', price: '', foodCode: '', description: '', category: '' });
+                setAddFormData({ itemName: '', price: '', foodCode: '', description: '', category: '', image: '' });
             } else {
                 alert(data.message || 'Failed to add item. Check if "Food Code" is unique.');
             }
@@ -95,7 +216,8 @@ const FoodMenuDashboard = () => {
             price: item.price.toString(),
             foodCode: item.foodCode,
             description: item.description || '',
-            category: item.category
+            category: item.category,
+            image: item.image || ''
         });
         setShowEditModal(true);
     };
@@ -108,7 +230,8 @@ const FoodMenuDashboard = () => {
             foodCode: editFormData.foodCode || editingItem.foodCode,
             category: editFormData.category,
             price: parseFloat(editFormData.price),
-            description: editFormData.description || ''
+            description: editFormData.description || '',
+            image: normalizeImageUrl(editFormData.image)
         };
 
         try {
@@ -216,17 +339,46 @@ const FoodMenuDashboard = () => {
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600 }}>Category *</label>
-                            <select name="category" value={addFormData.category} onChange={e => setAddFormData({ ...addFormData, category: e.target.value })} required style={{
-                                width: '100%',
-                                padding: '10px',
-                                border: '1px solid #e5e7eb',
-                                borderRadius: '6px'
-                            }}>
-                                <option value="">Select category</option>
-                                {categories.filter(c => c !== 'All Categories').map(cat => (
-                                    <option key={cat} value={cat}>{getCategoryWithIcon(cat)}</option>
-                                ))}
-                            </select>
+                            <div style={{ position: 'relative' }}>
+                                <select name="category" value={addFormData.category} onChange={e => setAddFormData({ ...addFormData, category: e.target.value })} required style={{
+                                    width: '100%',
+                                    padding: '10px 44px 10px 10px',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '6px'
+                                }}>
+                                    <option value="">Select category</option>
+                                    {categories.filter(c => c !== 'All Categories').map(cat => (
+                                        <option key={cat} value={cat}>{getCategoryWithIcon(cat)}</option>
+                                    ))}
+                                </select>
+                                <button
+                                    type="button"
+                                    onClick={() => handleAddCategory('add')}
+                                    title="Add category"
+                                    style={{
+                                        position: 'absolute',
+                                        right: '26px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        width: '20px',
+                                        height: '20px',
+                                        borderRadius: '999px',
+                                        border: '1px solid #f87171',
+                                        background: '#fff1f2',
+                                        color: '#be123c',
+                                        cursor: 'pointer',
+                                        fontWeight: 700,
+                                        lineHeight: '1'
+                                    }}
+                                >
+                                    +
+                                </button>
+                            </div>
+                            {addFormData.category && (
+                                <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b', fontWeight: 600 }}>
+                                    Selected: {getCategoryWithIcon(addFormData.category)}
+                                </div>
+                            )}
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600 }}>Price ({cs}) *</label>
@@ -242,6 +394,22 @@ const FoodMenuDashboard = () => {
                                 borderRadius: '6px'
                             }} />
                         </div>
+                    </div>
+                    <div style={{ marginTop: '15px' }}>
+                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600 }}>Image URL (Optional)</label>
+                        <input
+                            name="image"
+                            type="url"
+                            value={addFormData.image}
+                            onChange={e => setAddFormData({ ...addFormData, image: e.target.value })}
+                            placeholder="https://example.com/food-image.jpg"
+                            style={{
+                                width: '100%',
+                                padding: '10px',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '6px'
+                            }}
+                        />
                     </div>
                     <div style={{ marginTop: '15px' }}>
                         <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600 }}>Description</label>
@@ -403,7 +571,7 @@ const FoodMenuDashboard = () => {
                 </div>
             </div>
 
-            {/* Edit Modal */}
+            {/* Edit Modal - Slide Drawer */}
             {showEditModal && editingItem && (
                 <div onClick={() => setShowEditModal(false)} style={{
                     position: 'fixed',
@@ -411,191 +579,384 @@ const FoodMenuDashboard = () => {
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    background: 'rgba(15, 23, 42, 0.4)',
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000
+                    alignItems: 'stretch',
+                    justifyContent: 'flex-end',
+                    zIndex: 10000,
+                    backdropFilter: 'blur(6px)',
+                    animation: 'fadeIn 0.4s ease-out'
                 }}>
                     <div onClick={(e) => e.stopPropagation()} style={{
-                        backgroundColor: '#fef9e7',
-                        borderRadius: '12px',
-                        padding: '30px',
-                        maxWidth: '600px',
-                        width: '90%',
-                        maxHeight: '90vh',
-                        overflow: 'auto',
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)'
+                        background: '#ffffff',
+                        width: '380px',
+                        maxWidth: '90vw',
+                        boxShadow: '-15px 0 45px rgba(0, 0, 0, 0.15)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        height: 'calc(100% - 32px)',
+                        margin: '16px',
+                        position: 'relative',
+                        borderRadius: '32px',
+                        overflow: 'hidden',
+                        animation: 'slideInRight 0.5s cubic-bezier(0.19, 1, 0.22, 1)'
                     }}>
+                    <style>{`
+                        @keyframes fadeIn {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
+                        }
+                        @keyframes slideInRight {
+                            from {
+                                transform: translateX(100%) scale(0.95);
+                                opacity: 0;
+                            }
+                            to {
+                                transform: translateX(0) scale(1);
+                                opacity: 1;
+                            }
+                        }
+                    `}</style>
                         <div style={{
+                            background: 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
+                            padding: '20px 18px',
+                            color: 'white',
                             display: 'flex',
-                            justifyContent: 'space-between',
                             alignItems: 'center',
-                            marginBottom: '20px',
-                            borderBottom: '2px solid #f59e0b',
-                            paddingBottom: '15px'
+                            gap: '12px'
                         }}>
-                            <h2 style={{ margin: 0, color: '#d97706', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <span>✏️</span> Edit Menu Item
-                            </h2>
+                            <div style={{
+                                width: '36px',
+                                height: '36px',
+                                background: 'rgba(255, 255, 255, 0.2)',
+                                borderRadius: '10px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backdropFilter: 'blur(4px)'
+                            }}>
+                                <span style={{ fontSize: '18px' }}>✏️</span>
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>Edit Menu Item</h3>
+                                <span style={{ fontSize: '10px', opacity: 0.9, textTransform: 'uppercase' }}>Food Menu Management</span>
+                            </div>
                             <button
                                 onClick={() => setShowEditModal(false)}
                                 style={{
-                                    backgroundColor: 'transparent',
+                                    marginLeft: 'auto',
+                                    backgroundColor: 'rgba(0, 0, 0, 0.1)',
                                     border: 'none',
-                                    fontSize: '24px',
+                                    color: 'white',
+                                    width: '28px',
+                                    height: '28px',
+                                    borderRadius: '8px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
                                     cursor: 'pointer',
-                                    color: '#6b7280'
+                                    fontSize: '20px'
                                 }}
                             >
                                 ✕
                             </button>
                         </div>
 
-                        <form onSubmit={handleUpdateItem}>
-                            <div style={{ marginBottom: '15px' }}>
-                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600, color: '#374151' }}>
-                                    ITEM ID (Food Code)
-                                </label>
-                                <input
-                                    name="foodCode"
-                                    value={editFormData.foodCode}
-                                    onChange={e => setEditFormData({ ...editFormData, foodCode: e.target.value })}
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px',
-                                        border: '1px solid #d1d5db',
-                                        borderRadius: '6px',
-                                        fontSize: '14px'
-                                    }}
-                                />
-                            </div>
+                        <form onSubmit={handleUpdateItem} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                            <div style={{
+                                padding: '24px 16px 24px 16px',
+                                overflowY: 'auto',
+                                overflowX: 'hidden',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '24px',
+                                flex: 1,
+                                boxSizing: 'border-box'
+                            }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: '2px' }}>
+                                        ITEM ID (Food Code)
+                                    </label>
+                                    <input
+                                        name="foodCode"
+                                        value={editFormData.foodCode}
+                                        onChange={e => setEditFormData({ ...editFormData, foodCode: e.target.value })}
+                                        style={{
+                                            width: '100%',
+                                            boxSizing: 'border-box',
+                                            padding: '10px 14px',
+                                            border: '2px solid #f1f5f9',
+                                            borderRadius: '10px',
+                                            fontSize: '13px',
+                                            fontWeight: 600,
+                                            transition: 'all 0.3s ease'
+                                        }}
+                                        onFocus={(e) => {
+                                            e.target.style.borderColor = '#f43f5e';
+                                            e.target.style.boxShadow = '0 0 0 4px rgba(244, 63, 94, 0.08)';
+                                        }}
+                                        onBlur={(e) => {
+                                            e.target.style.borderColor = '#f1f5f9';
+                                            e.target.style.boxShadow = 'none';
+                                        }}
+                                    />
+                                </div>
 
-                            <div style={{ marginBottom: '15px' }}>
-                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600, color: '#374151' }}>
-                                    ITEM NAME
-                                </label>
-                                <input
-                                    name="itemName"
-                                    value={editFormData.itemName}
-                                    onChange={e => setEditFormData({ ...editFormData, itemName: e.target.value.replace(/[^A-Za-z\s]/g, '') })}
-                                    required
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px',
-                                        border: '1px solid #d1d5db',
-                                        borderRadius: '6px',
-                                        fontSize: '14px'
-                                    }}
-                                />
-                            </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: '2px' }}>
+                                        ITEM NAME
+                                    </label>
+                                    <input
+                                        name="itemName"
+                                        value={editFormData.itemName}
+                                        onChange={e => setEditFormData({ ...editFormData, itemName: e.target.value.replace(/[^A-Za-z\s]/g, '') })}
+                                        required
+                                        style={{
+                                            width: '100%',
+                                            boxSizing: 'border-box',
+                                            padding: '10px 14px',
+                                            border: '2px solid #f1f5f9',
+                                            borderRadius: '10px',
+                                            fontSize: '13px',
+                                            fontWeight: 600,
+                                            transition: 'all 0.3s ease'
+                                        }}
+                                        onFocus={(e) => {
+                                            e.target.style.borderColor = '#f43f5e';
+                                            e.target.style.boxShadow = '0 0 0 4px rgba(244, 63, 94, 0.08)';
+                                        }}
+                                        onBlur={(e) => {
+                                            e.target.style.borderColor = '#f1f5f9';
+                                            e.target.style.boxShadow = 'none';
+                                        }}
+                                    />
+                                </div>
 
-                            <div style={{ marginBottom: '15px' }}>
-                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600, color: '#374151' }}>
-                                    CATEGORY <span style={{ color: '#ef4444' }}>*</span>
-                                </label>
-                                <select
-                                    name="category"
-                                    value={editFormData.category}
-                                    onChange={e => setEditFormData({ ...editFormData, category: e.target.value })}
-                                    required
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px',
-                                        border: '1px solid #d1d5db',
-                                        borderRadius: '6px',
-                                        fontSize: '14px',
-                                        backgroundColor: 'white'
-                                    }}
-                                >
-                                    {categories.filter(c => c !== 'All Categories').map(cat => (
-                                        <option key={cat} value={cat}>{getCategoryWithIcon(cat)}</option>
-                                    ))}
-                                </select>
-                            </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: '2px' }}>
+                                        CATEGORY <span style={{ color: '#e11d48' }}>*</span>
+                                    </label>
+                                    <div style={{ position: 'relative' }}>
+                                        <select
+                                            name="category"
+                                            value={editFormData.category}
+                                            onChange={e => setEditFormData({ ...editFormData, category: e.target.value })}
+                                            required
+                                            style={{
+                                                width: '100%',
+                                                boxSizing: 'border-box',
+                                                padding: '10px 44px 10px 14px',
+                                                border: '2px solid #f1f5f9',
+                                                borderRadius: '10px',
+                                                fontSize: '13px',
+                                                fontWeight: 600,
+                                                backgroundColor: 'white',
+                                                transition: 'all 0.3s ease'
+                                            }}
+                                            onFocus={(e) => {
+                                                e.target.style.borderColor = '#f43f5e';
+                                                e.target.style.boxShadow = '0 0 0 4px rgba(244, 63, 94, 0.08)';
+                                            }}
+                                            onBlur={(e) => {
+                                                e.target.style.borderColor = '#f1f5f9';
+                                                e.target.style.boxShadow = 'none';
+                                            }}
+                                        >
+                                            {categories.filter(c => c !== 'All Categories').map(cat => (
+                                                <option key={cat} value={cat}>{getCategoryWithIcon(cat)}</option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleAddCategory('edit')}
+                                            title="Add category"
+                                            style={{
+                                                position: 'absolute',
+                                                right: '12px',
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                width: '28px',
+                                                height: '28px',
+                                                borderRadius: '8px',
+                                                border: '1px solid #e11d48',
+                                                background: '#fff1f2',
+                                                color: '#e11d48',
+                                                cursor: 'pointer',
+                                                fontWeight: 800,
+                                                fontSize: '16px',
+                                                lineHeight: '1'
+                                            }}
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                    {editFormData.category && (
+                                        <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b', fontWeight: 600 }}>
+                                            Selected: {getCategoryWithIcon(editFormData.category)}
+                                        </div>
+                                    )}
+                                </div>
 
-                            <div style={{ marginBottom: '15px' }}>
-                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600, color: '#374151' }}>
-                                    PRICE ({cs})
-                                </label>
-                                <input
-                                    name="price"
-                                    type="number"
-                                    value={editFormData.price}
-                                    onChange={e => {
-                                        const val = e.target.value;
-                                        if (val === '' || parseFloat(val) >= 0) {
-                                            setEditFormData({ ...editFormData, price: val });
-                                        }
-                                    }}
-                                    required
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px',
-                                        border: '1px solid #d1d5db',
-                                        borderRadius: '6px',
-                                        fontSize: '14px'
-                                    }}
-                                />
-                            </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: '2px' }}>
+                                        PRICE ({cs})
+                                    </label>
+                                    <input
+                                        name="price"
+                                        type="number"
+                                        value={editFormData.price}
+                                        onChange={e => {
+                                            const val = e.target.value;
+                                            if (val === '' || parseFloat(val) >= 0) {
+                                                setEditFormData({ ...editFormData, price: val });
+                                            }
+                                        }}
+                                        required
+                                        style={{
+                                            width: '100%',
+                                            boxSizing: 'border-box',
+                                            padding: '10px 14px',
+                                            border: '2px solid #f1f5f9',
+                                            borderRadius: '10px',
+                                            fontSize: '13px',
+                                            fontWeight: 600,
+                                            transition: 'all 0.3s ease'
+                                        }}
+                                        onFocus={(e) => {
+                                            e.target.style.borderColor = '#f43f5e';
+                                            e.target.style.boxShadow = '0 0 0 4px rgba(244, 63, 94, 0.08)';
+                                        }}
+                                        onBlur={(e) => {
+                                            e.target.style.borderColor = '#f1f5f9';
+                                            e.target.style.boxShadow = 'none';
+                                        }}
+                                    />
+                                </div>
 
-                            <div style={{ marginBottom: '20px' }}>
-                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 600, color: '#374151' }}>
-                                    DESCRIPTION
-                                </label>
-                                <textarea
-                                    name="description"
-                                    rows="4"
-                                    value={editFormData.description}
-                                    onChange={e => setEditFormData({ ...editFormData, description: e.target.value })}
-                                    placeholder="Brief description of the item"
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px',
-                                        border: '1px solid #d1d5db',
-                                        borderRadius: '6px',
-                                        fontSize: '14px',
-                                        resize: 'vertical'
-                                    }}
-                                />
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: '2px' }}>
+                                        IMAGE URL (Optional)
+                                    </label>
+                                    <input
+                                        name="image"
+                                        type="url"
+                                        value={editFormData.image}
+                                        onChange={e => setEditFormData({ ...editFormData, image: e.target.value })}
+                                        placeholder="https://example.com/food-image.jpg"
+                                        style={{
+                                            width: '100%',
+                                            boxSizing: 'border-box',
+                                            padding: '10px 14px',
+                                            border: '2px solid #f1f5f9',
+                                            borderRadius: '10px',
+                                            fontSize: '13px',
+                                            fontWeight: 600,
+                                            transition: 'all 0.3s ease'
+                                        }}
+                                        onFocus={(e) => {
+                                            e.target.style.borderColor = '#f43f5e';
+                                            e.target.style.boxShadow = '0 0 0 4px rgba(244, 63, 94, 0.08)';
+                                        }}
+                                        onBlur={(e) => {
+                                            e.target.style.borderColor = '#f1f5f9';
+                                            e.target.style.boxShadow = 'none';
+                                        }}
+                                    />
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: '2px' }}>
+                                        DESCRIPTION
+                                    </label>
+                                    <textarea
+                                        name="description"
+                                        rows="3"
+                                        value={editFormData.description}
+                                        onChange={e => setEditFormData({ ...editFormData, description: e.target.value })}
+                                        placeholder="Brief description of the item"
+                                        style={{
+                                            width: '100%',
+                                            boxSizing: 'border-box',
+                                            padding: '10px 14px',
+                                            border: '2px solid #f1f5f9',
+                                            borderRadius: '10px',
+                                            fontSize: '13px',
+                                            fontWeight: 600,
+                                            resize: 'none',
+                                            transition: 'all 0.3s ease'
+                                        }}
+                                        onFocus={(e) => {
+                                            e.target.style.borderColor = '#f43f5e';
+                                            e.target.style.background = '#fff';
+                                            e.target.style.boxShadow = '0 0 0 4px rgba(244, 63, 94, 0.08)';
+                                        }}
+                                        onBlur={(e) => {
+                                            e.target.style.borderColor = '#f1f5f9';
+                                            e.target.style.boxShadow = 'none';
+                                        }}
+                                    />
+                                </div>
                             </div>
 
                             <div style={{
+                                padding: '20px 32px 20px 16px',
+                                borderTop: '1px solid #f1f5f9',
                                 display: 'flex',
-                                gap: '10px',
-                                justifyContent: 'flex-end',
-                                borderTop: '2px solid #f59e0b',
-                                paddingTop: '15px'
+                                flexDirection: 'row',
+                                gap: '12px',
+                                background: '#f8fafc'
                             }}>
                                 <button
                                     type="button"
                                     onClick={() => setShowEditModal(false)}
                                     style={{
-                                        backgroundColor: 'transparent',
-                                        color: '#6b7280',
-                                        border: '1px solid #d1d5db',
-                                        padding: '10px 20px',
-                                        borderRadius: '8px',
+                                        flex: 1,
+                                        height: '48px',
+                                        borderRadius: '12px',
+                                        border: '2px solid #e2e8f0',
+                                        background: '#ffffff',
+                                        color: '#64748b',
+                                        fontWeight: 800,
                                         cursor: 'pointer',
-                                        fontWeight: 600
+                                        fontSize: '13px',
+                                        textTransform: 'uppercase',
+                                        transition: 'all 0.3s ease'
                                     }}
+                                    onMouseDown={(e) => e.target.style.transform = 'scale(0.96)'}
+                                    onMouseUp={(e) => e.target.style.transform = 'scale(1)'}
                                 >
-                                    Cancel
+                                    CANCEL
                                 </button>
                                 <button
                                     type="submit"
                                     style={{
-                                        backgroundColor: '#f59e0b',
+                                        flex: 1.5,
+                                        height: '48px',
+                                        borderRadius: '12px',
+                                        border: 'none',
+                                        background: 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
                                         color: 'white',
-                                        border: '1px solid #d97706',
-                                        padding: '10px 20px',
-                                        borderRadius: '8px',
-                                        cursor: 'pointer',
-                                        fontWeight: 600,
+                                        fontWeight: 800,
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '5px'
+                                        justifyContent: 'center',
+                                        gap: '10px',
+                                        cursor: 'pointer',
+                                        fontSize: '14px',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.02em',
+                                        boxShadow: '0 8px 20px -5px rgba(225, 29, 72, 0.35)',
+                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                                     }}
+                                    onMouseEnter={(e) => {
+                                        e.target.style.transform = 'translateY(-2px)';
+                                        e.target.style.boxShadow = '0 12px 25px -5px rgba(225, 29, 72, 0.5)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.target.style.transform = 'translateY(0)';
+                                        e.target.style.boxShadow = '0 8px 20px -5px rgba(225, 29, 72, 0.35)';
+                                    }}
+                                    onMouseDown={(e) => e.target.style.transform = 'translateY(0)'}
                                 >
                                     <span>✏️</span> Update Item
                                 </button>

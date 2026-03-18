@@ -502,86 +502,385 @@ const EditItemModal = ({ item, onSave, onCancel }) => {
     };
 
     return (
-        <div className="modal-overlay">
-            <div className="modal-content">
-                <div className="modal-header">
-                    <h3>✏️ Edit Item</h3>
-                    <button className="modal-close" onClick={onCancel}>✕</button>
+        <div onClick={onCancel} style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(15, 23, 42, 0.4)',
+            display: 'flex',
+            alignItems: 'stretch',
+            justifyContent: 'flex-end',
+            zIndex: 10000,
+            backdropFilter: 'blur(6px)',
+            animation: 'fadeIn 0.4s ease-out'
+        }}>
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes slideInRight {
+                    from {
+                        transform: translateX(100%) scale(0.95);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0) scale(1);
+                        opacity: 1;
+                    }
+                }
+            `}</style>
+            <div onClick={(e) => e.stopPropagation()} style={{
+                background: '#ffffff',
+                width: '380px',
+                maxWidth: '90vw',
+                boxShadow: '-15px 0 45px rgba(0, 0, 0, 0.15)',
+                display: 'flex',
+                flexDirection: 'column',
+                height: 'calc(100% - 32px)',
+                margin: '16px',
+                position: 'relative',
+                borderRadius: '32px',
+                overflow: 'hidden',
+                animation: 'slideInRight 0.5s cubic-bezier(0.19, 1, 0.22, 1)'
+            }}>
+                <div style={{
+                    background: 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
+                    padding: '20px 18px',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                }}>
+                    <div style={{
+                        width: '36px',
+                        height: '36px',
+                        background: 'rgba(255, 255, 255, 0.2)',
+                        borderRadius: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backdropFilter: 'blur(4px)'
+                    }}>
+                        <span style={{ fontSize: '18px' }}>✏️</span>
+                    </div>
+                    <div>
+                        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800 }}>Edit Menu Item</h3>
+                        <span style={{ fontSize: '10px', opacity: 0.9, textTransform: 'uppercase' }}>Food Menu Management</span>
+                    </div>
+                    <button
+                        onClick={onCancel}
+                        style={{
+                            marginLeft: 'auto',
+                            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                            border: 'none',
+                            color: 'white',
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            fontSize: '20px'
+                        }}
+                    >
+                        ✕
+                    </button>
                 </div>
-                <form onSubmit={handleSubmit}>
-                    <div className="form-group">
-                        <label>ITEM NAME <span className="required">*</span></label>
-                        <input
-                            type="text"
-                            value={formData.itemName}
-                            onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
-                            required
-                        />
+
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                    <div style={{
+                        padding: '24px 16px 24px 16px',
+                        overflowY: 'auto',
+                        overflowX: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '24px',
+                        flex: 1,
+                        boxSizing: 'border-box'
+                    }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                            <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: '2px' }}>
+                                ITEM NAME <span style={{ color: '#e11d48' }}>*</span>
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.itemName}
+                                onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
+                                required
+                                style={{
+                                    width: '100%',
+                                    boxSizing: 'border-box',
+                                    padding: '10px 14px',
+                                    border: '2px solid #f1f5f9',
+                                    borderRadius: '10px',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    transition: 'all 0.3s ease'
+                                }}
+                                onFocus={(e) => {
+                                    e.target.style.borderColor = '#f43f5e';
+                                    e.target.style.boxShadow = '0 0 0 4px rgba(244, 63, 94, 0.08)';
+                                }}
+                                onBlur={(e) => {
+                                    e.target.style.borderColor = '#f1f5f9';
+                                    e.target.style.boxShadow = 'none';
+                                }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                            <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: '2px' }}>
+                                FOOD CODE <span style={{ color: '#e11d48' }}>*</span>
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.foodCode}
+                                onChange={(e) => setFormData({ ...formData, foodCode: e.target.value })}
+                                required
+                                style={{
+                                    width: '100%',
+                                    boxSizing: 'border-box',
+                                    padding: '10px 14px',
+                                    border: '2px solid #f1f5f9',
+                                    borderRadius: '10px',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    transition: 'all 0.3s ease'
+                                }}
+                                onFocus={(e) => {
+                                    e.target.style.borderColor = '#f43f5e';
+                                    e.target.style.boxShadow = '0 0 0 4px rgba(244, 63, 94, 0.08)';
+                                }}
+                                onBlur={(e) => {
+                                    e.target.style.borderColor = '#f1f5f9';
+                                    e.target.style.boxShadow = 'none';
+                                }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                            <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: '2px' }}>
+                                CATEGORY <span style={{ color: '#e11d48' }}>*</span>
+                            </label>
+                            <select
+                                value={formData.category}
+                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                required
+                                style={{
+                                    width: '100%',
+                                    boxSizing: 'border-box',
+                                    padding: '10px 14px',
+                                    border: '2px solid #f1f5f9',
+                                    borderRadius: '10px',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    backgroundColor: 'white',
+                                    transition: 'all 0.3s ease'
+                                }}
+                                onFocus={(e) => {
+                                    e.style.borderColor = '#f43f5e';
+                                    e.style.boxShadow = '0 0 0 4px rgba(244, 63, 94, 0.08)';
+                                }}
+                                onBlur={(e) => {
+                                    e.style.borderColor = '#f1f5f9';
+                                    e.style.boxShadow = 'none';
+                                }}
+                            >
+                                {categories.map(cat => (
+                                    <option key={cat.value} value={cat.value}>{cat.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                            <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: '2px' }}>
+                                PRICE ({cs})
+                            </label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                value={formData.price}
+                                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                required
+                                style={{
+                                    width: '100%',
+                                    boxSizing: 'border-box',
+                                    padding: '10px 14px',
+                                    border: '2px solid #f1f5f9',
+                                    borderRadius: '10px',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    transition: 'all 0.3s ease'
+                                }}
+                                onFocus={(e) => {
+                                    e.target.style.borderColor = '#f43f5e';
+                                    e.target.style.boxShadow = '0 0 0 4px rgba(244, 63, 94, 0.08)';
+                                }}
+                                onBlur={(e) => {
+                                    e.target.style.borderColor = '#f1f5f9';
+                                    e.target.style.boxShadow = 'none';
+                                }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                            <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: '2px' }}>
+                                DAILY STOCK (QTY)
+                            </label>
+                            <input
+                                type="number"
+                                value={formData.quantity}
+                                onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
+                                required
+                                style={{
+                                    width: '100%',
+                                    boxSizing: 'border-box',
+                                    padding: '10px 14px',
+                                    border: '2px solid #f1f5f9',
+                                    borderRadius: '10px',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    transition: 'all 0.3s ease'
+                                }}
+                                onFocus={(e) => {
+                                    e.target.style.borderColor = '#f43f5e';
+                                    e.target.style.boxShadow = '0 0 0 4px rgba(244, 63, 94, 0.08)';
+                                }}
+                                onBlur={(e) => {
+                                    e.target.style.borderColor = '#f1f5f9';
+                                    e.target.style.boxShadow = 'none';
+                                }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                            <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: '2px' }}>
+                                DESCRIPTION
+                            </label>
+                            <textarea
+                                rows="3"
+                                value={formData.description}
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                style={{
+                                    width: '100%',
+                                    boxSizing: 'border-box',
+                                    padding: '10px 14px',
+                                    border: '2px solid #f1f5f9',
+                                    borderRadius: '10px',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    resize: 'none',
+                                    transition: 'all 0.3s ease'
+                                }}
+                                onFocus={(e) => {
+                                    e.target.style.borderColor = '#f43f5e';
+                                    e.target.style.boxShadow = '0 0 0 4px rgba(244, 63, 94, 0.08)';
+                                }}
+                                onBlur={(e) => {
+                                    e.target.style.borderColor = '#f1f5f9';
+                                    e.target.style.boxShadow = 'none';
+                                }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                            <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', paddingLeft: '2px' }}>
+                                STATUS
+                            </label>
+                            <select
+                                value={formData.status}
+                                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                style={{
+                                    width: '100%',
+                                    boxSizing: 'border-box',
+                                    padding: '10px 14px',
+                                    border: '2px solid #f1f5f9',
+                                    borderRadius: '10px',
+                                    fontSize: '13px',
+                                    fontWeight: 600,
+                                    backgroundColor: 'white',
+                                    transition: 'all 0.3s ease'
+                                }}
+                                onFocus={(e) => {
+                                    e.style.borderColor = '#f43f5e';
+                                    e.style.boxShadow = '0 0 0 4px rgba(244, 63, 94, 0.08)';
+                                }}
+                                onBlur={(e) => {
+                                    e.style.borderColor = '#f1f5f9';
+                                    e.style.boxShadow = 'none';
+                                }}
+                            >
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                            </select>
+                        </div>
                     </div>
-                    <div className="form-group">
-                        <label>FOOD CODE <span className="required">*</span></label>
-                        <input
-                            type="text"
-                            value={formData.foodCode}
-                            onChange={(e) => setFormData({ ...formData, foodCode: e.target.value })}
-                            required
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label>CATEGORY <span className="required">*</span></label>
-                        <select
-                            value={formData.category}
-                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                            required
+
+                    <div style={{
+                        padding: '20px 32px 20px 16px',
+                        borderTop: '1px solid #f1f5f9',
+                        display: 'flex',
+                        flexDirection: 'row',
+                        gap: '12px',
+                        background: '#f8fafc'
+                    }}>
+                        <button
+                            type="button"
+                            onClick={onCancel}
+                            style={{
+                                flex: 1,
+                                height: '48px',
+                                borderRadius: '12px',
+                                border: '2px solid #e2e8f0',
+                                background: '#ffffff',
+                                color: '#64748b',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                textTransform: 'uppercase',
+                                transition: 'all 0.3s ease'
+                            }}
+                            onMouseDown={(e) => e.target.style.transform = 'scale(0.96)'}
+                            onMouseUp={(e) => e.target.style.transform = 'scale(1)'}
                         >
-                            {categories.map(cat => (
-                                <option key={cat.value} value={cat.value}>{cat.label}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="form-group">
-                        <label>PRICE ({cs})</label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            value={formData.price}
-                            onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                            required
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label>DAILY STOCK (QTY)</label>
-                        <input
-                            type="number"
-                            value={formData.quantity}
-                            onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
-                            required
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label>DESCRIPTION</label>
-                        <textarea
-                            rows="4"
-                            value={formData.description}
-                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label>STATUS</label>
-                        <select
-                            value={formData.status}
-                            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        >
-                            <option value="Active">Active</option>
-                            <option value="Inactive">Inactive</option>
-                        </select>
-                    </div>
-                    <div className="form-actions">
-                        <button type="button" className="btn-cancel" onClick={onCancel}>
-                            Cancel
+                            CANCEL
                         </button>
-                        <button type="submit" className="btn-submit">
-                            Save Changes
+                        <button
+                            type="submit"
+                            style={{
+                                flex: 1.5,
+                                height: '48px',
+                                borderRadius: '12px',
+                                border: 'none',
+                                background: 'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
+                                color: 'white',
+                                fontWeight: 800,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '10px',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.02em',
+                                boxShadow: '0 8px 20px -5px rgba(225, 29, 72, 0.35)',
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.target.style.transform = 'translateY(-2px)';
+                                e.target.style.boxShadow = '0 12px 25px -5px rgba(225, 29, 72, 0.5)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.target.style.transform = 'translateY(0)';
+                                e.target.style.boxShadow = '0 8px 20px -5px rgba(225, 29, 72, 0.35)';
+                            }}
+                            onMouseDown={(e) => e.target.style.transform = 'translateY(0)'}
+                        >
+                            <span>💾</span> SAVE CHANGES
                         </button>
                     </div>
                 </form>

@@ -4,23 +4,82 @@ import API_URL_CONFIG from '../config/api';
 import { useSettings } from '../context/SettingsContext';
 
 const ReservationModal = ({ table, onClose, onReserve }) => {
-    const { getCurrencySymbol } = useSettings();
+    const {
+        getCurrencySymbol,
+        getCurrentDateISO,
+        getCurrentTime24,
+        toTime24,
+        timeToMinutes,
+        isPastDateTime
+    } = useSettings();
     const cs = getCurrencySymbol();
-    const [formData, setFormData] = useState({
-        guestName: '',
-        guestPhone: '',
-        date: new Date().toISOString().split('T')[0],
-        startTime: '20:00',
-        endTime: '21:00',
-        guests: 4,
-        note: '',
-        source: 'Phone',
-        advancePayment: 0
+
+    const addMinutesToTime = (time, minutesToAdd) => {
+        const normalized = toTime24(time);
+        const baseMinutes = timeToMinutes(normalized);
+        if (baseMinutes === null) return normalized;
+
+        const total = baseMinutes + minutesToAdd;
+        const h = Math.floor((total / 60) % 24);
+        const m = total % 60;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    };
+
+    const [formData, setFormData] = useState(() => {
+        const nowTime = getCurrentTime24();
+        return {
+            guestName: '',
+            guestPhone: '',
+            date: getCurrentDateISO(),
+            startTime: nowTime,
+            endTime: addMinutesToTime(nowTime, 60),
+            guests: 4,
+            note: '',
+            source: 'Phone',
+            advancePayment: 0
+        };
     });
     const [errors, setErrors] = useState({});
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
+        setFormData(prev => {
+            const next = { ...prev, [name]: value };
+
+            if (name === 'startTime') {
+                const normalizedStart = toTime24(value);
+                next.startTime = normalizedStart;
+
+                const startTotal = timeToMinutes(normalizedStart);
+                const endTotal = timeToMinutes(next.endTime);
+                if (startTotal !== null && (endTotal === null || endTotal <= startTotal)) {
+                    next.endTime = addMinutesToTime(normalizedStart, 60);
+                }
+            }
+
+            if (name === 'endTime') {
+                next.endTime = toTime24(value);
+            }
+
+            if (name === 'date') {
+                const todayStr = getCurrentDateISO();
+                if (value === todayStr) {
+                    const nowTime = getCurrentTime24();
+                    const nowTotal = timeToMinutes(nowTime) ?? 0;
+                    const startTotal = timeToMinutes(next.startTime) ?? 0;
+                    if (startTotal < nowTotal) {
+                        next.startTime = nowTime;
+                        const endTotal = timeToMinutes(next.endTime);
+                        if (endTotal === null || endTotal <= nowTotal) {
+                            next.endTime = addMinutesToTime(nowTime, 60);
+                        }
+                    }
+                }
+            }
+
+            return next;
+        });
+
         setErrors({ ...errors, [name]: '' });
     };
 
@@ -35,13 +94,25 @@ const ReservationModal = ({ table, onClose, onReserve }) => {
         if (formData.guests > table.seats) newErrors.guests = `Max ${table.seats} guests`;
 
         // Time Logic
-        const start = new Date(`${formData.date}T${formData.startTime}`);
-        const end = new Date(`${formData.date}T${formData.endTime}`);
-        const now = new Date();
+        const normalizedStart = toTime24(formData.startTime);
+        const normalizedEnd = toTime24(formData.endTime);
+        const startTotal = timeToMinutes(normalizedStart);
+        const endTotal = timeToMinutes(normalizedEnd);
 
-        if (end <= start) newErrors.endTime = 'End time must be after start';
-        if (end - start < 15 * 60000) newErrors.endTime = 'Min duration 15 mins';
-        if (start < now) newErrors.startTime = 'Cannot reserve in past';
+        if (startTotal === null) newErrors.startTime = 'Invalid start time';
+        if (endTotal === null) newErrors.endTime = 'Invalid end time';
+        if (startTotal !== null && endTotal !== null) {
+            if (endTotal <= startTotal) newErrors.endTime = 'End time must be after start';
+            if (endTotal - startTotal < 15) newErrors.endTime = 'Min duration 15 mins';
+        }
+
+        if (formData.date < getCurrentDateISO()) {
+            newErrors.date = 'Cannot reserve in past date';
+        }
+
+        if (!newErrors.startTime && isPastDateTime(formData.date, normalizedStart)) {
+            newErrors.startTime = 'Cannot reserve in past';
+        }
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -119,7 +190,7 @@ const ReservationModal = ({ table, onClose, onReserve }) => {
                                     name="date"
                                     value={formData.date}
                                     onChange={handleInputChange}
-                                    min={new Date().toISOString().split('T')[0]}
+                                    min={getCurrentDateISO()}
                                     className="premium-input-field"
                                     style={errors.date ? { borderColor: '#e11d48' } : {}}
                                 />
