@@ -1892,7 +1892,6 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                         reservation={reservation}
                                         onUpdateStatus={handleUpdateReservationStatus}
                                         onEdit={handleEditReservation}
-                                        onDelete={handleDeleteReservation}
                                         onGenerateInvoice={handleGenerateInvoice}
                                         onSelect={(res) => {
                                             setSelectedReservation(res);

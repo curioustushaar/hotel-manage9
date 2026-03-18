@@ -1,5 +1,40 @@
 const Order = require('../models/Order');
 
+const ORDER_TYPE_ALIASES = {
+    'Dine-In': ['Dine-In', 'Table Order', 'Table', 'Direct Payment', 'Dine In'],
+    'Take Away': ['Take Away', 'TakeAway', 'Take-Away'],
+    'Room Service': ['Room Service', 'Room Order', 'Post to Room'],
+    'Delivery': ['Delivery'],
+    'Online': ['Online', 'Online Order']
+};
+
+const normalizeValue = (value) => String(value || '').trim().toLowerCase();
+
+const getNormalizedOrderType = (orderType) => {
+    const normalized = normalizeValue(orderType);
+    if (!normalized) return null;
+
+    for (const [canonical, aliases] of Object.entries(ORDER_TYPE_ALIASES)) {
+        if (aliases.some(alias => normalizeValue(alias) === normalized)) {
+            return canonical;
+        }
+    }
+
+    if (normalized.includes('room')) return 'Room Service';
+    if (normalized.includes('take')) return 'Take Away';
+    if (normalized.includes('online')) return 'Online';
+    if (normalized.includes('deliver')) return 'Delivery';
+    if (normalized.includes('dine') || normalized.includes('table') || normalized.includes('direct')) return 'Dine-In';
+
+    return null;
+};
+
+const getOrderTypeFilterValues = (orderTypeFilter) => {
+    const normalizedFilter = getNormalizedOrderType(orderTypeFilter);
+    if (!normalizedFilter) return null;
+    return ORDER_TYPE_ALIASES[normalizedFilter] || [orderTypeFilter];
+};
+
 exports.getBillingReport = async (req, res) => {
     try {
         const { startDate, endDate, orderType, paymentMethod, cashier, status } = req.query;
@@ -24,7 +59,10 @@ exports.getBillingReport = async (req, res) => {
 
         // Filters
         if (orderType && orderType !== 'All') {
-            query.orderType = orderType;
+            const typeFilters = getOrderTypeFilterValues(orderType);
+            query.orderType = (typeFilters && typeFilters.length > 0)
+                ? { $in: typeFilters }
+                : orderType;
         }
         if (paymentMethod && paymentMethod !== 'All') {
             query.paymentMethod = paymentMethod;
@@ -90,9 +128,11 @@ exports.getBillingReport = async (req, res) => {
                 }
 
                 // Type Breakdown
-                const type = order.orderType || 'Dine-In';
-                if (typeBreakdown[type] !== undefined) {
-                    typeBreakdown[type] += billTotal;
+                const normalizedType = getNormalizedOrderType(order.orderType);
+                if (normalizedType && typeBreakdown[normalizedType] !== undefined) {
+                    typeBreakdown[normalizedType] += billTotal;
+                } else if (!order.orderType) {
+                    typeBreakdown['Dine-In'] += billTotal;
                 }
             }
 

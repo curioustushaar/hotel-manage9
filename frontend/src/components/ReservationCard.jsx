@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import StatusBadge from './StatusBadge';
 import { useSettings } from '../context/SettingsContext';
 
-const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGenerateInvoice = () => { }, onSelect, isSelected, onActionSelect }) => {
+const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onGenerateInvoice = () => { }, onSelect, isSelected, onActionSelect }) => {
     const { getCurrencySymbol } = useSettings();
     const cs = getCurrencySymbol();
     const [isExpanded, setIsExpanded] = useState(false);
@@ -104,30 +104,6 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
                     <h3 className="guest-name">{reservation.guestName}</h3>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <button
-                        className="delete-card-btn"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (onDelete) onDelete(reservation.id || reservation._id);
-                        }}
-                        title="Delete Reservation"
-                        style={{
-                            background: '#fee2e2',
-                            border: 'none',
-                            color: '#ef4444',
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '6px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        🗑️
-                    </button>
                     <span className={`status-text ${reservation.status.toLowerCase()}`}>
                         {reservation.status === 'IN_HOUSE' ? 'IN_HOUSE' :
                             reservation.status === 'CHECKED_OUT' ? 'CHECKED_OUT' : 'RESERVED'}
@@ -225,30 +201,6 @@ const ReservationCard = ({ reservation, onUpdateStatus, onEdit, onDelete, onGene
             <div className="res-card-header">
                 <h3 className="guest-name">{reservation.guestName}</h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <button
-                        className="delete-card-btn"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (onDelete) onDelete(reservation.id || reservation._id);
-                        }}
-                        title="Delete Reservation"
-                        style={{
-                            background: '#fee2e2',
-                            border: 'none',
-                            color: '#ef4444',
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '6px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        🗑️
-                    </button>
                     <span className={`status-text ${reservation.status.toLowerCase()}`}>
                         {reservation.status === 'IN_HOUSE' ? 'IN_HOUSE' :
                             reservation.status === 'CHECKED_OUT' ? 'CHECKED_OUT' : 'RESERVED'}
