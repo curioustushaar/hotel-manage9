@@ -3,6 +3,7 @@ import './MoreOptionsMenu.css';
 
 const MoreOptionsMenu = ({ onAction, buttonLabel = "More Options", buttonClassName = "", reservationStatus = '' }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [pendingDangerAction, setPendingDangerAction] = useState(null);
     const dropdownRef = useRef(null);
 
     useEffect(() => {
@@ -13,8 +14,33 @@ const MoreOptionsMenu = ({ onAction, buttonLabel = "More Options", buttonClassNa
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    useEffect(() => {
+        if (!pendingDangerAction) return;
+
+        const timer = setTimeout(() => setPendingDangerAction(null), 5000);
+        return () => clearTimeout(timer);
+    }, [pendingDangerAction]);
+
+    useEffect(() => {
+        if (!isOpen) {
+            setPendingDangerAction(null);
+        }
+    }, [isOpen]);
+
     const handleOptionClick = (action) => {
+        const needsConfirm = action === 'void' || action === 'cancel';
+        if (needsConfirm) {
+            setPendingDangerAction(action);
+            return;
+        }
+
         onAction?.(action);
+        setIsOpen(false);
+    };
+
+    const handleDangerConfirm = (action) => {
+        onAction?.(action);
+        setPendingDangerAction(null);
         setIsOpen(false);
     };
 
@@ -52,13 +78,44 @@ const MoreOptionsMenu = ({ onAction, buttonLabel = "More Options", buttonClassNa
 
             <div className={`more-options-dropdown ${isOpen ? 'show' : ''}`}>
                 {visibleOptions.length > 0 ? visibleOptions.map((option) => (
-                    <div
-                        key={option.value}
-                        className={`more-options-item ${option.type}`}
-                        onClick={() => handleOptionClick(option.value)}
-                    >
-                        <span className="option-icon">{option.icon}</span>
-                        <span className="option-label">{option.label}</span>
+                    <div key={option.value} className="more-options-item-wrap">
+                        {pendingDangerAction === option.value && (
+                            <div className="more-options-inline-warning">
+                                <span>Are you sure?</span>
+                                <div className="more-options-inline-actions">
+                                    <button
+                                        type="button"
+                                        className="more-options-inline-yes"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDangerConfirm(option.value);
+                                        }}
+                                        title="Yes"
+                                    >
+                                        Yes
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="more-options-inline-no"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setPendingDangerAction(null);
+                                        }}
+                                        title="No"
+                                    >
+                                        No
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div
+                            className={`more-options-item ${option.type}`}
+                            onClick={() => handleOptionClick(option.value)}
+                        >
+                            <span className="option-icon">{option.icon}</span>
+                            <span className="option-label">{option.label}</span>
+                        </div>
                     </div>
                 )) : (
                     <div className="more-options-item normal" style={{ cursor: 'default', opacity: 0.5 }}>

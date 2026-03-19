@@ -69,6 +69,18 @@
     gap: 0.5rem;
 }
 
+.delete-warning-note-reservation {
+    margin-bottom: 1rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 0.75rem;
+    border: 1px solid #fecaca;
+    background: #fff1f2;
+    color: #991b1b;
+    font-size: 0.82rem;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+}
+
 /* Search Bar Styles */
 .search-container {
     margin: 1.5rem 0 2rem 0;

@@ -296,6 +296,106 @@
     font-weight: 500;
 }
 
+/* Inline Customer Details Card */
+.inline-customer-card {
+    margin-bottom: 16px;
+    background: linear-gradient(120deg, #ffffff 0%, #fff6f6 100%);
+    border: 1px solid #fecaca;
+    border-left: 6px solid #E31E24;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(227, 30, 36, 0.12);
+    padding: 18px 20px;
+}
+
+.selected-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.selected-card-kicker {
+    margin: 0 0 4px;
+    color: #E31E24;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+}
+
+.selected-card-head h3 {
+    margin: 0;
+    font-size: 24px;
+    color: #7f1d1d;
+    font-weight: 800;
+}
+
+.selected-card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.selected-card-item {
+    background: #ffffff;
+    border: 1px solid #fee2e2;
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.selected-card-item span {
+    color: #b91c1c;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.selected-card-item strong {
+    color: #1f2937;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.customers-table tbody tr.inline-details-row {
+    border-bottom: 1px solid #f3d8d8;
+}
+
+.customers-table tbody tr.inline-details-row:hover {
+    background: transparent;
+    transform: none;
+}
+
+.inline-details-row td {
+    padding: 0 18px 16px;
+    background: #fff7f7;
+}
+
+.inline-card-head {
+    padding-top: 2px;
+}
+
+.customer-serial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: #fff1f2;
+    color: #b91c1c;
+    font-size: 12px;
+    font-weight: 800;
+    border: 1px solid #fecdd3;
+}
+
 /* Table */
 .customers-table-container {
     background: white;
@@ -332,6 +432,10 @@
 .customers-table tbody tr:hover {
     background: linear-gradient(90deg, #fef2f2 0%, #fafafa 100%);
     transform: scale(1.001);
+}
+
+.customers-table tbody tr.customer-row-active {
+    background: linear-gradient(90deg, #fee2e2 0%, #fff7f7 100%);
 }
 
 .customers-table tbody tr:last-child {
@@ -371,7 +475,7 @@
 .room-number {
     font-weight: 700;
     color: #ef4444;
-    background: #dbeafe;
+    background: #ffe4e6;
     padding: 8px 16px;
     border-radius: 8px;
     font-size: 14px;
@@ -409,13 +513,13 @@
 }
 
 .status-badge.checked-in {
-    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-    color: #065f46;
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    color: #b91c1c;
 }
 
 .status-badge.checked-out {
-    background: linear-gradient(135deg, #fee2e2, #fecaca);
-    color: #991b1b;
+    background: linear-gradient(135deg, #fca5a5, #f87171);
+    color: #7f1d1d;
 }
 
 /* Actions */
@@ -423,6 +527,59 @@
     display: flex;
     gap: 8px;
     align-items: center;
+    position: relative;
+}
+
+.delete-inline-warning {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    right: 0;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid #fecaca;
+    background: #fff1f2;
+    color: #991b1b;
+    font-size: 12px;
+    font-weight: 700;
+    box-shadow: 0 8px 16px rgba(239, 68, 68, 0.18);
+    z-index: 9999;
+}
+
+.delete-inline-actions {
+    display: inline-flex;
+    gap: 6px;
+}
+
+.delete-inline-yes,
+.delete-inline-no {
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.delete-inline-yes {
+    background: #dc2626;
+    color: #fff;
+}
+
+.delete-inline-yes:hover {
+    background: #b91c1c;
+}
+
+.delete-inline-no {
+    background: #fee2e2;
+    color: #7f1d1d;
+}
+
+.delete-inline-no:hover {
+    background: #fecaca;
 }
 
 .action-btn {
@@ -443,52 +600,43 @@
 
 .action-btn:hover {
     transform: translateY(-3px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 16px rgba(239, 68, 68, 0.25);
 }
 
 .view-btn {
-    border-color: #3b82f6;
+    border-color: #fca5a5;
+    color: #b91c1c;
+    background: #fff5f5;
 }
 
 .view-btn:hover {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-    color: white;
-    border-color: #2563eb;
-}
-
-.checkout-btn {
-    border-color: #10b981;
-}
-
-.checkout-btn:hover {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: white;
-    border-color: #059669;
-}
-
-.delete-btn {
-    border-color: #ef4444;
-}
-
-.delete-btn:hover {
     background: linear-gradient(135deg, #ef4444, #E31E24);
     color: white;
     border-color: #E31E24;
 }
 
+.checkout-btn {
+    border-color: #f87171;
+    color: #b91c1c;
+    background: #fff1f2;
+}
+
 .checkout-btn:hover {
-    background: linear-gradient(135deg, #a7f3d0, #6ee7b7);
-    transform: scale(1.05);
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    color: white;
+    border-color: #b91c1c;
 }
 
 .delete-btn {
-    background: linear-gradient(135deg, #fee2e2, #fecaca);
-    color: #991b1b;
+    border-color: #b91c1c;
+    color: #7f1d1d;
+    background: #fee2e2;
 }
 
 .delete-btn:hover {
-    background: linear-gradient(135deg, #fecaca, #fca5a5);
-    transform: scale(1.05);
+    background: linear-gradient(135deg, #b91c1c, #7f1d1d);
+    color: white;
+    border-color: #7f1d1d;
 }
 
 /* Responsive */
@@ -505,6 +653,10 @@
     .customers-filters {
         flex-wrap: wrap;
     }
+
+    .selected-card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 768px) {
@@ -514,6 +666,23 @@
 
     .customers-header h1 {
         font-size: 24px;
+    }
+
+    .inline-customer-card {
+        padding: 16px;
+    }
+
+    .selected-card-head {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .selected-card-head h3 {
+        font-size: 20px;
+    }
+
+    .selected-card-grid {
+        grid-template-columns: 1fr;
     }
 
     .customers-navbar {
@@ -599,6 +768,10 @@
 @media (max-width: 480px) {
     .customers-table-container {
         overflow-x: auto;
+    }
+
+    .inline-details-row td {
+        padding: 0 10px 12px;
     }
 
     .action-btn {

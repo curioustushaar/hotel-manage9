@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import API_URL from '../config/api';
 
 const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest = null }) => {
@@ -505,11 +506,21 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
             )}
 
             {/* Success Message */}
-            {successMessage && (
-                <div className="success-alert" style={{ marginBottom: '1rem' }}>
-                    {successMessage}
-                </div>
-            )}
+            <AnimatePresence>
+                {successMessage && (
+                    <div className="success-note-overlay">
+                        <motion.div 
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="success-note"
+                        >
+                            <span className="success-icon">✓</span>
+                            {successMessage}
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Back Button */}
             <div className="back-button-container">

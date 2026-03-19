@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import API_URL from '../config/api';
 import soundManager from '../utils/soundManager';
 import { useSettings } from '../context/SettingsContext';
 import './AddBooking.css';
 
 const AddBooking = () => {
+    const navigate = useNavigate();
     const { getCurrencySymbol } = useSettings();
     const cs = getCurrencySymbol();
+    const [successMessage, setSuccessMessage] = useState('');
     // Guest Details State
     const [guestName, setGuestName] = useState('');
     const [mobileNumber, setMobileNumber] = useState('');
@@ -280,7 +284,7 @@ const AddBooking = () => {
     const handleSaveBooking = useCallback(async () => {
         // Validation
         if (!validateForm()) {
-            alert('Please fix all errors before saving');
+            setErrors({ submit: 'Please fix all errors before saving' });
             return;
         }
 
@@ -316,9 +320,14 @@ const AddBooking = () => {
             const data = await response.json();
 
             if (data.success) {
-                alert('Booking saved successfully!');
+                setSuccessMessage('Booking saved successfully!');
                 soundManager.play('notification');
                 console.log('Booking saved:', data.data);
+
+                setTimeout(() => {
+                    setSuccessMessage('');
+                    navigate('/admin/dashboard');
+                }, 1500);
 
                 // Reset form first
                 setGuestName('');
@@ -337,18 +346,18 @@ const AddBooking = () => {
                 // Refresh available rooms list
                 await fetchAvailableRooms();
             } else {
-                alert(`Error: ${data.message}`);
+                setErrors({ submit: `Error: ${data.message}` });
             }
         } catch (error) {
             console.error('Error saving booking:', error);
-            alert('Failed to save booking. Please check if the server is running.');
+            setErrors({ submit: 'Failed to save booking. Please check if the server is running.' });
         }
     }, [guestName, mobileNumber, email, idProofType, idProofNumber, roomType, roomNumber, numberOfGuests, checkInDate, checkOutDate, numberOfNights, pricePerNight, totalAmount, advancePaid, fetchAvailableRooms, availableRooms]);
 
     const handleSaveAndCheckIn = useCallback(async () => {
         // Validation
         if (!validateForm()) {
-            alert('Please fix all errors before check-in');
+            setErrors({ submit: 'Please fix all errors before check-in' });
             return;
         }
 
@@ -384,9 +393,14 @@ const AddBooking = () => {
             const data = await response.json();
 
             if (data.success) {
-                alert('Booking saved and guest checked in successfully!');
+                setSuccessMessage('Booking saved and guest checked in successfully!');
                 soundManager.play('success');
                 console.log('Booking saved with check-in:', data.data);
+
+                setTimeout(() => {
+                    setSuccessMessage('');
+                    navigate('/admin/dashboard');
+                }, 1500);
 
                 // Reset form first
                 setGuestName('');
@@ -405,33 +419,44 @@ const AddBooking = () => {
                 // Refresh available rooms list
                 await fetchAvailableRooms();
             } else {
-                alert(`Error: ${data.message}`);
+                setErrors({ submit: `Error: ${data.message}` });
             }
         } catch (error) {
             console.error('Error saving booking:', error);
-            alert('Failed to save booking. Please check if the server is running.');
+            setErrors({ submit: 'Failed to save booking. Please check if the server is running.' });
         }
     }, [guestName, mobileNumber, email, idProofType, idProofNumber, roomType, roomNumber, numberOfGuests, checkInDate, checkOutDate, numberOfNights, pricePerNight, totalAmount, advancePaid, fetchAvailableRooms, availableRooms]);
 
     const handleCancel = useCallback(() => {
-        if (window.confirm('Are you sure you want to cancel? All data will be lost.')) {
-            // Reset form
-            setGuestName('');
-            setMobileNumber('');
-            setEmail('');
-            setIdProofType('Aadhaar');
-            setIdProofNumber('');
-            setRoomType(Object.keys(availableRooms)[0] || '');
-            setRoomNumber('');
-            setNumberOfGuests('1');
-            setCheckInDate('');
-            setCheckOutDate('');
-            setAdvancePaid('0');
-        }
+        // Removed window.confirm for "pop section" removal
+        // Reset form
+        setGuestName('');
+        setMobileNumber('');
+        setEmail('');
+        setIdProofType('Aadhaar');
+        setIdProofNumber('');
+        setRoomType(Object.keys(availableRooms)[0] || '');
+        setRoomNumber('');
+        setNumberOfGuests('1');
+        setCheckInDate('');
+        setCheckOutDate('');
+        setAdvancePaid('0');
     }, [availableRooms]);
 
     return (
         <div className="add-booking-container">
+            {successMessage && (
+                <div className="success-note-overlay">
+                    <motion.div 
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="success-note"
+                    >
+                        <span className="success-icon">✓</span>
+                        {successMessage}
+                    </motion.div>
+                </div>
+            )}
             {/* Page Header */}
             <div className="add-booking-header">
                 <h1>Add Booking</h1>

@@ -12,10 +12,20 @@ const FloorSetup = () => {
     const [modalMode, setModalMode] = useState('add');
     const [currentFloor, setCurrentFloor] = useState(null);
     const [formData, setFormData] = useState({ name: '', roomCount: '' });
+    const [inlineNote, setInlineNote] = useState({ show: false, title: '', message: '', tone: 'success' });
+    const [deleteTargetId, setDeleteTargetId] = useState(null);
 
     useEffect(() => {
         fetchFloors();
     }, []);
+
+    useEffect(() => {
+        if (!inlineNote.show) return;
+        const timer = setTimeout(() => {
+            setInlineNote(prev => ({ ...prev, show: false }));
+        }, 2600);
+        return () => clearTimeout(timer);
+    }, [inlineNote.show]);
 
     const fetchFloors = async () => {
         try {
@@ -32,6 +42,10 @@ const FloorSetup = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const showInlineNote = (title, message, tone = 'success') => {
+        setInlineNote({ show: true, title, message, tone });
     };
 
     const handleOpenModal = (mode, floor = null) => {
@@ -76,30 +90,36 @@ const FloorSetup = () => {
             const data = await response.json();
             if (data.success) {
                 setIsModalOpen(false);
+                showInlineNote(modalMode === 'add' ? 'Floor Added' : 'Floor Updated', `${payload.name} saved successfully.`);
                 fetchFloors();
             } else {
-                alert(data.message || 'Operation failed');
+                showInlineNote('Save Failed', data.message || 'Operation failed', 'danger');
             }
         } catch (error) {
-            alert('Error submitting form');
+            showInlineNote('Save Failed', 'Error submitting form', 'danger');
         }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('Are you sure verify to delete this floor?')) {
-            try {
-                const response = await fetch(`${API_URL}/api/floors/delete/${id}`, {
-                    method: 'DELETE'
-                });
-                const data = await response.json();
-                if (data.success) {
-                    fetchFloors();
-                } else {
-                    alert('Failed to delete');
-                }
-            } catch (error) {
-                alert('Error deleting');
+    const handleDelete = (id) => {
+        setDeleteTargetId(id);
+    };
+
+    const confirmDelete = async (id) => {
+        try {
+            const response = await fetch(`${API_URL}/api/floors/delete/${id}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            if (data.success) {
+                showInlineNote('Floor Deleted', 'Floor removed successfully.');
+                fetchFloors();
+            } else {
+                showInlineNote('Delete Failed', 'Failed to delete', 'danger');
             }
+        } catch (error) {
+            showInlineNote('Delete Failed', 'Error deleting', 'danger');
+        } finally {
+            setDeleteTargetId(null);
         }
     };
 
@@ -109,6 +129,35 @@ const FloorSetup = () => {
                 <h2>Floor Setup</h2>
                 <button className="add-floor-btn" onClick={() => handleOpenModal('add')}>+ Add Floor</button>
             </header>
+
+            {inlineNote.show && (
+                <div
+                    style={{
+                        marginBottom: '14px',
+                        borderRadius: '12px',
+                        padding: '12px 14px',
+                        border: `1px solid ${inlineNote.tone === 'danger' ? '#fecaca' : '#dcfce7'}`,
+                        background: inlineNote.tone === 'danger' ? '#fef2f2' : '#f0fdf4',
+                        color: inlineNote.tone === 'danger' ? '#991b1b' : '#14532d',
+                        fontWeight: 600,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        gap: '10px'
+                    }}
+                >
+                    <div>
+                        <div style={{ fontWeight: 800 }}>{inlineNote.title}</div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>{inlineNote.message}</div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setInlineNote(prev => ({ ...prev, show: false }))}
+                        style={{ border: 'none', background: 'transparent', color: 'inherit', fontSize: '1.1rem', cursor: 'pointer' }}
+                    >
+                        x
+                    </button>
+                </div>
+            )}
 
             <div className="floor-table-container">
                 {loading ? (
@@ -130,9 +179,47 @@ const FloorSetup = () => {
                                     <td>{floor.name}</td>
                                     <td>{floor.roomCount || 0}</td>
                                     <td style={{ textAlign: 'right' }}>
-                                        <div className="action-btns" style={{ justifyContent: 'flex-end' }}>
+                                        <div className="action-btns" style={{ justifyContent: 'flex-end', position: 'relative' }}>
                                             <button className="icon-button" onClick={() => handleOpenModal('edit', floor)}>✏️</button>
                                             <button className="icon-button" onClick={() => handleDelete(floor._id)}>🗑️</button>
+
+                                            {deleteTargetId === floor._id && (
+                                                <div
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: '110%',
+                                                        right: 0,
+                                                        zIndex: 20,
+                                                        width: '220px',
+                                                        padding: '10px',
+                                                        borderRadius: '10px',
+                                                        border: '1px solid #fecaca',
+                                                        background: '#fff5f5',
+                                                        boxShadow: '0 10px 20px rgba(153, 27, 27, 0.15)',
+                                                        textAlign: 'left'
+                                                    }}
+                                                >
+                                                    <div style={{ color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', marginBottom: '8px' }}>
+                                                        Are you sure want to delete?
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => confirmDelete(floor._id)}
+                                                            style={{ flex: 1, border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
+                                                        >
+                                                            Yes
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setDeleteTargetId(null)}
+                                                            style={{ flex: 1, border: '1px solid #fca5a5', borderRadius: '6px', background: '#fff', color: '#991b1b', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
+                                                        >
+                                                            No
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

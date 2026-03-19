@@ -11,13 +11,13 @@ const MenuItem = ({ icon, label, onClick, color = '#111827', weight = '500' }) =
         onMouseDown={onClick}
         className="menu-item-hover"
         style={{
-            padding: '10px 12px',
+            padding: '8px 10px',
             display: 'flex',
-            gap: '12px',
+            gap: '10px',
             alignItems: 'center',
-            fontSize: '0.9rem',
+            fontSize: '0.84rem',
             cursor: 'pointer',
-            borderRadius: '10px',
+            borderRadius: '8px',
             color: color,
             fontWeight: weight,
             transition: 'background 0.2s ease'
@@ -70,6 +70,16 @@ const GuestMealService = () => {
             @keyframes slideInRight {
                 from { transform: translateX(100%); opacity: 0; }
                 to { transform: translateX(0); opacity: 1; }
+            }
+            .context-menu::-webkit-scrollbar {
+                width: 6px;
+            }
+            .context-menu::-webkit-scrollbar-thumb {
+                background: #fecaca;
+                border-radius: 999px;
+            }
+            .context-menu::-webkit-scrollbar-track {
+                background: transparent;
             }
         `;
         document.head.appendChild(style);
@@ -127,19 +137,62 @@ const GuestMealService = () => {
 
     // Modals
     const [showAddTableModal, setShowAddTableModal] = useState(false);
-
+    const [isEditTableMode, setIsEditTableMode] = useState(false);
+    const [editingTableId, setEditingTableId] = useState(null);
+    const [showWalkInModal, setShowWalkInModal] = useState(false);
+    const [walkInTargetTable, setWalkInTargetTable] = useState(null);
+    const [walkInGuestCount, setWalkInGuestCount] = useState('');
     // Table Types State
     const [tableTypes, setTableTypes] = useState(['General', 'AC', 'Non-AC', 'Garden']);
     const [isAddingTableType, setIsAddingTableType] = useState(false);
     const [newTableType, setNewTableType] = useState('');
     const [showTypeDropdown, setShowTypeDropdown] = useState(false);
     const typeDropdownRef = useRef(null);
+    const [tableTypeDeleteWarning, setTableTypeDeleteWarning] = useState(null);
 
     const [newTableData, setNewTableData] = useState({
         tableName: '',
         type: '',
         capacity: ''
     });
+
+    const closeTableFormModal = useCallback(() => {
+        setShowAddTableModal(false);
+        setTableTypeDeleteWarning(null);
+        setIsAddingTableType(false);
+        setNewTableType('');
+        setShowTypeDropdown(false);
+        setIsEditTableMode(false);
+        setEditingTableId(null);
+        setNewTableData({ tableName: '', type: '', capacity: '' });
+    }, []);
+
+    const openCreateTableModal = () => {
+        setIsEditTableMode(false);
+        setEditingTableId(null);
+        setNewTableData({ tableName: '', type: '', capacity: '' });
+        setTableTypeDeleteWarning(null);
+        setShowAddTableModal(true);
+    };
+
+    const openEditTableModal = (table) => {
+        if (!table) return;
+
+        const tableType = table.type || 'General';
+        if (tableType && !tableTypes.includes(tableType)) {
+            setTableTypes(prev => [...new Set([...prev, tableType])]);
+        }
+
+        setIsEditTableMode(true);
+        setEditingTableId(table.tableId || table._id);
+        setNewTableData({
+            tableName: table.tableName || '',
+            type: tableType,
+            capacity: table.capacity ? String(table.capacity) : ''
+        });
+        setTableTypeDeleteWarning(null);
+        setShowAddTableModal(true);
+    };
 
     // Close type dropdown on outside click
     useEffect(() => {
@@ -151,6 +204,13 @@ const GuestMealService = () => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        if (!tableTypeDeleteWarning) return;
+
+        const timer = setTimeout(() => setTableTypeDeleteWarning(null), 5000);
+        return () => clearTimeout(timer);
+    }, [tableTypeDeleteWarning]);
 
     // Move Guest State
     const [showMoveModal, setShowMoveModal] = useState(false);
@@ -290,7 +350,7 @@ const GuestMealService = () => {
             }
         } catch (error) {
             console.error('Error sending to cashier:', error);
-            alert('Error sending to cashier');
+            showToast('Send Failed', 'Error sending to cashier');
         }
     };
 
@@ -350,10 +410,84 @@ const GuestMealService = () => {
     // Waiters List
     const waiters = ['Rahul', 'Aman', 'Suresh', 'Priya', 'Kavita'];
 
+    const handleDeleteTable = async (table) => {
+        if (table.currentOrderId || ['Running', 'Occupied', 'Billed'].includes(table.status)) {
+            showToast('Delete Blocked', 'Please close active order before deleting table.');
+            return;
+        }
+
+        try {
+            const targetId = table.tableId || table._id;
+            const response = await fetch(`${API_URL}/api/guest-meal/tables/${targetId}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                showToast('Table Deleted', `${table.tableName} removed successfully.`);
+                fetchTables();
+            } else {
+                showToast('Delete Failed', data.message || 'Unable to delete table.');
+            }
+        } catch (error) {
+            console.error('Delete table error:', error);
+            showToast('Delete Failed', 'Server error while deleting table.');
+        }
+    };
+
+    const openWalkInModal = (table) => {
+        setWalkInTargetTable(table);
+        setWalkInGuestCount(String(table?.capacity || 1));
+        setShowWalkInModal(true);
+    };
+
+    const closeWalkInModal = () => {
+        setShowWalkInModal(false);
+        setWalkInTargetTable(null);
+        setWalkInGuestCount('');
+    };
+
+    const handleWalkInSubmit = async () => {
+        if (!walkInTargetTable) return;
+
+        const guests = Math.max(1, Number(walkInGuestCount) || Number(walkInTargetTable.capacity) || 1);
+
+        try {
+            const targetId = walkInTargetTable.tableId || walkInTargetTable._id;
+            const response = await fetch(`${API_URL}/api/guest-meal/tables/${targetId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    status: 'Occupied',
+                    currentOrderGuestCount: guests,
+                    currentOrderGuestName: 'Walk-in'
+                })
+            });
+            const data = await response.json();
+            if (data.success) {
+                setTables(prev => prev.map(t => (t.tableId || t._id) === targetId ? {
+                    ...data.data,
+                    tableId: data.data._id || data.data.tableId
+                } : t));
+                showToast('Walk-in Started', `${walkInTargetTable.tableName} opened for ${guests} guests.`);
+                closeWalkInModal();
+            } else {
+                showToast('Walk-in Failed', data.message || 'Unable to start walk-in.');
+            }
+        } catch (err) {
+            console.error('Walk-in error:', err);
+            showToast('Walk-in Failed', 'Network error while opening walk-in.');
+        }
+    };
+
     // Handle Menu Action
     const handleMenuAction = (action, table) => {
         if (action === 'Split Table') {
             openSplitModal(table);
+        } else if (action === 'Edit Table') {
+            openEditTableModal(table);
+        } else if (action === 'Delete Table') {
+            handleDeleteTable(table);
         } else if (action === 'Reserve Table') {
             openReserveModal(table);
         } else if (action === 'Move Guests') {
@@ -367,31 +501,7 @@ const GuestMealService = () => {
         } else if (action === 'Reservation List') {
             openReservationListModal(table);
         } else if (action === 'Walk-in') {
-            const handleWalkIn = async () => {
-                const guestCount = prompt("Number of guests?", table.capacity) || table.capacity;
-                try {
-                    const targetId = table.tableId || table._id;
-                    const response = await fetch(`${API_URL}/api/guest-meal/tables/${targetId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            status: 'Occupied',
-                            currentOrderGuestCount: guestCount,
-                            currentOrderGuestName: 'Walk-in'
-                        })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        setTables(prev => prev.map(t => (t.tableId || t._id) === targetId ? {
-                            ...data.data,
-                            tableId: data.data._id || data.data.tableId
-                        } : t));
-                    }
-                } catch (err) {
-                    console.error("Walk-in error:", err);
-                }
-            };
-            handleWalkIn();
+            openWalkInModal(table);
         } else if (action === 'Release Table') {
             handleReleaseTable(table);
         } else if (action === 'Create Order' || action === 'Continue' || action === 'View Bill') {
@@ -431,7 +541,7 @@ const GuestMealService = () => {
         }
 
         if (!tableToVerify || !matchedReservation) {
-            alert("No matching reservation found for this phone number.");
+            showToast('Verification Failed', 'No matching reservation found for this phone number.');
             return;
         }
 
@@ -485,7 +595,7 @@ const GuestMealService = () => {
                 }
             } catch (error) {
                 console.error("Error verifying user:", error);
-                alert("Network error during verification.");
+                showToast('Verification Failed', 'Network error during verification.');
             }
         }
     };
@@ -646,20 +756,20 @@ const GuestMealService = () => {
 
     const handleReserveSubmit = async () => {
         if (!reserveTargetTable || !reserveFormData.name || !reserveFormData.startTime || !reserveFormData.endTime || !reserveFormData.source) {
-            alert("Please fill all required fields.");
+            showToast('Validation Error', 'Please fill all required fields.');
             return;
         }
 
         // --- VALIDATIONS ---
         // 1. Phone Validation (10 digits)
         if (reserveFormData.phone && !/^\d{10}$/.test(reserveFormData.phone)) {
-            alert("Phone number must be exactly 10 digits.");
+            showToast('Validation Error', 'Phone number must be exactly 10 digits.');
             return;
         }
 
         // 2. Name Validation (Alphabets only)
         if (!/^[a-zA-Z\s]+$/.test(reserveFormData.name)) {
-            alert("Guest name should only contain alphabets.");
+            showToast('Validation Error', 'Guest name should only contain alphabets.');
             return;
         }
 
@@ -670,29 +780,29 @@ const GuestMealService = () => {
         const endTotal = timeToMinutes(normalizedEndTime);
 
         if (startTotal === null || endTotal === null) {
-            alert("Please enter a valid reservation time.");
+            showToast('Validation Error', 'Please enter a valid reservation time.');
             return;
         }
 
         if (endTotal <= startTotal) {
-            alert("End time must be after start time.");
+            showToast('Validation Error', 'End time must be after start time.');
             return;
         }
 
         if (endTotal - startTotal < 30) {
-            alert("Reservation duration must be at least 30 minutes.");
+            showToast('Validation Error', 'Reservation duration must be at least 30 minutes.');
             return;
         }
 
         // 4. Past Time Validation
         const nowCtx = getNowContext();
         if (reserveFormData.date < nowCtx.dateISO) {
-            alert("Cannot book a reservation for a past date.");
+            showToast('Validation Error', 'Cannot book a reservation for a past date.');
             return;
         }
 
         if (isPastDateTime(reserveFormData.date, normalizedStartTime)) {
-            alert("Cannot book a reservation for a past time.");
+            showToast('Validation Error', 'Cannot book a reservation for a past time.');
             return;
         }
 
@@ -706,7 +816,7 @@ const GuestMealService = () => {
         // Also checks explicit overlap range
         const conflict = checkReservationConflict(reserveTargetTable, normalizedFormData);
         if (conflict) {
-            alert(`Conflict! Table is already reserved for this time slot:\n${conflict.startTime} - ${conflict.endTime} by ${conflict.name}`);
+            showToast('Reservation Conflict', `${conflict.startTime} - ${conflict.endTime} already booked by ${conflict.name}`);
             return;
         }
 
@@ -749,11 +859,11 @@ const GuestMealService = () => {
                 }
                 setShowReserveModal(false);
             } else {
-                alert("Failed to reserve: " + data.message);
+                showToast('Reservation Failed', data.message || 'Failed to reserve table.');
             }
         } catch (error) {
             console.error("Error reserving table:", error);
-            alert("Network error.");
+            showToast('Reservation Failed', 'Network error.');
         }
     };
 
@@ -840,7 +950,7 @@ const GuestMealService = () => {
 
         } catch (error) {
             console.error("Merge error:", error);
-            alert("Failed to merge tables: " + error.message);
+            showToast('Merge Failed', error.message || 'Failed to merge tables.');
         }
     };
 
@@ -943,11 +1053,11 @@ const GuestMealService = () => {
                 setShowCloseModal(false);
                 showToast('Success', 'Table closed successfully');
             } else {
-                alert('Failed to close table: ' + data.message);
+                showToast('Close Failed', data.message || 'Failed to close table.');
             }
         } catch (error) {
             console.error(error);
-            alert('Error closing table: ' + error.message);
+            showToast('Close Failed', error.message || 'Error closing table.');
         }
     };
 
@@ -960,11 +1070,11 @@ const GuestMealService = () => {
             if (data.success) {
                 fetchTables();
             } else {
-                alert("Failed to release table: " + data.message);
+                showToast('Release Failed', data.message || 'Failed to release table.');
             }
         } catch (error) {
             console.error("Error releasing table:", error);
-            alert("Network error.");
+            showToast('Release Failed', 'Network error.');
         }
     };
 
@@ -1165,7 +1275,7 @@ const GuestMealService = () => {
 
     const handleTableClick = async (table) => {
         if (!settings.posEnabled) {
-            alert('POS is disabled. Cannot create orders. Enable POS from Company Settings.');
+            showToast('POS Disabled', 'Enable POS from Company Settings to create orders.');
             return;
         }
         // If table is Available, make it Running (Check-in / Walk-in)
@@ -1237,6 +1347,7 @@ const GuestMealService = () => {
             setTableTypes([...tableTypes, type]);
             setNewTableData({ ...newTableData, type: type });
         }
+        setTableTypeDeleteWarning(null);
         setIsAddingTableType(false);
         setNewTableType('');
     };
@@ -1251,8 +1362,12 @@ const GuestMealService = () => {
                 type: newTableData.type || 'General'
             };
 
-            const response = await fetch(`${API_URL}/api/guest-meal/tables`, {
-                method: 'POST',
+            const response = await fetch(
+                isEditTableMode && editingTableId
+                    ? `${API_URL}/api/guest-meal/tables/${editingTableId}`
+                    : `${API_URL}/api/guest-meal/tables`,
+                {
+                method: isEditTableMode ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(tablePayload)
             });
@@ -1268,14 +1383,24 @@ const GuestMealService = () => {
                 // Refresh tables from backend to ensure consistent state
                 fetchTables();
 
-                setShowAddTableModal(false);
-                setNewTableData({ tableName: '', type: '', capacity: '' });
+                showToast(
+                    isEditTableMode ? 'Table Updated' : 'Table Created',
+                    isEditTableMode ? `${newTableData.tableName} updated successfully.` : `${newTableData.tableName} added successfully.`
+                );
+
+                closeTableFormModal();
             } else {
-                alert('Failed to create table: ' + (data.message || 'Unknown error'));
+                showToast(
+                    isEditTableMode ? 'Update Failed' : 'Create Failed',
+                    data.message || 'Unknown error'
+                );
             }
         } catch (error) {
-            console.error('Error creating table:', error);
-            alert('Error creating table: Network error or server is down');
+            console.error(`Error ${isEditTableMode ? 'updating' : 'creating'} table:`, error);
+            showToast(
+                isEditTableMode ? 'Update Failed' : 'Create Failed',
+                'Network error or server is down'
+            );
         }
     };
 
@@ -1290,7 +1415,7 @@ const GuestMealService = () => {
                     </div>
                     <button
                         className="btn btn-primary add-table-btn-gms"
-                        onClick={() => setShowAddTableModal(true)}
+                        onClick={openCreateTableModal}
                     >
                         + ADD TABLE
                     </button>
@@ -1358,7 +1483,7 @@ const GuestMealService = () => {
                                 const nowCtx = getNowContext();
                                 if (filterDate === nowCtx.dateISO) {
                                     if ((timeToMinutes(selectedTime) ?? 0) < nowCtx.minutes) {
-                                        alert("You cannot select a past time for today.");
+                                        showToast('Invalid Time', 'You cannot select a past time for today.');
                                         setFilterTime(nowCtx.time24);
                                         return;
                                     }
@@ -1495,6 +1620,7 @@ const GuestMealService = () => {
                                 table={table}
                                 formatDuration={formatDuration}
                                 onMenuAction={handleMenuAction}
+                                onDeleteTable={handleDeleteTable}
                                 onCardClick={() => handleTableClick(table)}
                                 onSendToCashier={handleSendToCashier}
                             />
@@ -1505,7 +1631,7 @@ const GuestMealService = () => {
 
             {/* Add Table Modal (Premium Drawer Style) */}
             {showAddTableModal && (
-                <div className="add-payment-overlay" onClick={() => setShowAddTableModal(false)}>
+                <div className="add-payment-overlay" onClick={closeTableFormModal}>
                     <div className="add-payment-modal add-table-premium" onClick={e => e.stopPropagation()}>
                         <div className="premium-payment-header">
                             <div className="header-icon-wrap">
@@ -1516,10 +1642,10 @@ const GuestMealService = () => {
                                 </svg>
                             </div>
                             <div className="header-text">
-                                <h3>Add New Table</h3>
+                                <h3>{isEditTableMode ? 'Edit Table' : 'Add New Table'}</h3>
                                 <span>Restaurant Setup</span>
                             </div>
-                            <button className="premium-close-btn" onClick={() => setShowAddTableModal(false)}>
+                            <button className="premium-close-btn" onClick={closeTableFormModal}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                             </button>
                         </div>
@@ -1585,17 +1711,49 @@ const GuestMealService = () => {
                                                             }}
                                                         >
                                                             <span>{type}</span>
-                                                            <div
-                                                                className="type-delete-small"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setTableTypes(tableTypes.filter(t => t !== type));
-                                                                    if (newTableData.type === type) {
-                                                                        setNewTableData({ ...newTableData, type: '' });
-                                                                    }
-                                                                }}
-                                                            >
-                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                                            <div className="type-delete-wrap" onClick={(e) => e.stopPropagation()}>
+                                                                {tableTypeDeleteWarning === type && (
+                                                                    <div className="type-delete-warning-inline">
+                                                                        <span>Are you sure want to delete?</span>
+                                                                        <div className="type-delete-warning-actions">
+                                                                            <button
+                                                                                type="button"
+                                                                                className="type-delete-warning-yes"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    setTableTypes(tableTypes.filter(t => t !== type));
+                                                                                    if (newTableData.type === type) {
+                                                                                        setNewTableData({ ...newTableData, type: '' });
+                                                                                    }
+                                                                                    setTableTypeDeleteWarning(null);
+                                                                                }}
+                                                                                title="Yes"
+                                                                            >
+                                                                                Yes
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                className="type-delete-warning-no"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    setTableTypeDeleteWarning(null);
+                                                                                }}
+                                                                                title="No"
+                                                                            >
+                                                                                No
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                <div
+                                                                    className="type-delete-small"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setTableTypeDeleteWarning(type);
+                                                                    }}
+                                                                >
+                                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -1640,18 +1798,82 @@ const GuestMealService = () => {
                         </div>
 
                         <div className="payment-modal-footer">
-                            <button className="btn-secondary" onClick={() => setShowAddTableModal(false)}>
+                            <button className="btn-secondary" onClick={closeTableFormModal}>
                                 CANCEL
                             </button>
                             <button className="btn-primary" onClick={handleCreateTable}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                CREATE TABLE
+                                {isEditTableMode ? (
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
+                                ) : (
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                )}
+                                {isEditTableMode ? 'SAVE TABLE' : 'CREATE TABLE'}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
+            {/* Walk-in Modal */}
+            {showWalkInModal && walkInTargetTable && (
+                <div className="add-payment-overlay" onClick={closeWalkInModal}>
+                    <div className="add-payment-modal" onClick={(e) => e.stopPropagation()} style={{ width: '420px' }}>
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                            </div>
+                            <div className="header-text">
+                                <h3>Open Walk-in Table</h3>
+                                <span>{walkInTargetTable.tableName}</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={closeWalkInModal}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+
+                        <div className="add-payment-body">
+                            <div style={{ padding: '14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', marginBottom: '18px', color: '#991b1b', fontWeight: '600' }}>
+                                Start a walk-in order for this table by entering guest count.
+                            </div>
+
+                            <div className="payment-field-group" style={{ marginBottom: 0 }}>
+                                <label className="field-label-premium">GUEST COUNT</label>
+                                <div className="input-with-icon-premium">
+                                    <span className="field-icon">👥</span>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        className="premium-input-field"
+                                        value={walkInGuestCount}
+                                        onChange={(e) => setWalkInGuestCount(e.target.value.replace(/[^0-9]/g, ''))}
+                                        onKeyDown={(e) => {
+                                            if (['-', '+', 'e', 'E', '.'].includes(e.key)) {
+                                                e.preventDefault();
+                                            }
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                handleWalkInSubmit();
+                                            }
+                                        }}
+                                        autoFocus
+                                    />
+                                </div>
+                                <p className="hint-text-premium">Default is table capacity: {walkInTargetTable.capacity || 1}</p>
+                            </div>
+                        </div>
+
+                        <div className="payment-modal-footer">
+                            <button className="btn-secondary" onClick={closeWalkInModal}>CANCEL</button>
+                            <button className="btn-primary" onClick={handleWalkInSubmit}>START WALK-IN</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Split Table Modal */}
             {
@@ -1914,7 +2136,7 @@ const GuestMealService = () => {
                                                     const normalizedStart = toTime24(newStart);
 
                                                     if (reserveFormData.date === nowCtx.dateISO && (timeToMinutes(normalizedStart) ?? 0) < nowCtx.minutes) {
-                                                        alert("You cannot book a reservation for a past time.");
+                                                        showToast('Invalid Time', 'You cannot book a reservation for a past time.');
                                                         return;
                                                     }
                                                     const endTimeStr = computeEndTime(normalizedStart);
@@ -2390,8 +2612,9 @@ const GuestMealService = () => {
     );
 };
 
-const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToCashier }) => {
+const TableCard = ({ table, formatDuration, onMenuAction, onDeleteTable, onCardClick, onSendToCashier }) => {
     const [showMenu, setShowMenu] = useState(false);
+    const [showDeleteWarning, setShowDeleteWarning] = useState(false);
     const menuRef = useRef(null);
     const { settings, getCurrencySymbol, getCurrentDateISO, getCurrentTime24, timeToMinutes, formatTime } = useSettings();
     const cs = getCurrencySymbol();
@@ -2430,6 +2653,7 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
         const handleClickOutside = (event) => {
             if (menuRef.current && !menuRef.current.contains(event.target)) {
                 setShowMenu(false);
+                setShowDeleteWarning(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -2440,12 +2664,29 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
 
     const handleMenuClick = (e) => {
         e.stopPropagation();
-        setShowMenu(!showMenu);
+        setShowMenu((prev) => {
+            const next = !prev;
+            if (!next) setShowDeleteWarning(false);
+            return next;
+        });
     };
 
     const handleAction = (action, e) => {
         e.stopPropagation();
         onMenuAction(action, table);
+        setShowDeleteWarning(false);
+        setShowMenu(false);
+    };
+
+    const handleDeleteMenuClick = (e) => {
+        e.stopPropagation();
+        setShowDeleteWarning(true);
+    };
+
+    const handleDeleteConfirm = async (e) => {
+        e.stopPropagation();
+        await onDeleteTable?.(table);
+        setShowDeleteWarning(false);
         setShowMenu(false);
     };
 
@@ -2508,7 +2749,6 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
     return (
         <div
             className={`table-item ${statusToUse.toLowerCase()}`}
-            onClick={onCardClick}
             style={{
                 background: styles.bg,
                 border: `1px solid ${styles.border}`,
@@ -2516,9 +2756,9 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                 boxShadow: showMenu ? '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' : '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
                 padding: '16px',
                 position: 'relative',
-                zIndex: showMenu ? 50 : 1,
+                zIndex: showMenu ? 2200 : 1,
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                cursor: 'pointer',
+                cursor: 'default',
                 transform: showMenu ? 'translateY(-2px)' : 'none'
             }}
         >
@@ -2550,10 +2790,11 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                     </div>
                     {showMenu && (
                         <div className="context-menu" onMouseDown={(e) => e.stopPropagation()} style={{
-                            position: 'absolute', top: 'calc(100% + 5px)', right: '0', zIndex: 100,
+                            position: 'absolute', top: 'calc(100% + 5px)', right: '0', zIndex: 5000,
                             background: '#fff', borderRadius: '14px',
                             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                            border: '1px solid #f3f4f6', minWidth: '180px', overflow: 'hidden',
+                            border: '1px solid #f3f4f6', minWidth: '168px', maxWidth: '178px',
+                            maxHeight: '224px', overflowY: 'auto', overflowX: 'hidden',
                             animation: 'fadeInScale 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
                         }}>
                             <div className="menu-group" style={{ padding: '6px' }}>
@@ -2601,6 +2842,73 @@ const TableCard = ({ table, formatDuration, onMenuAction, onCardClick, onSendToC
                                 {((table.mergedTableIds && table.mergedTableIds.length > 0) || (table.tableName && table.tableName.includes(','))) && (
                                     <MenuItem icon="🔓" label="Release Table" color="#E31E24" weight="700" onClick={(e) => handleAction('Release Table', e)} />
                                 )}
+                            </div>
+
+                            <div style={{ height: '1px', background: '#f3f4f6', margin: '0 6px' }}></div>
+
+                            <div className="menu-group" style={{ padding: '6px' }}>
+                                <MenuItem icon="✏️" label="Edit Table" onClick={(e) => handleAction('Edit Table', e)} />
+                                <div>
+                                    <MenuItem icon="🗑️" label="Delete Table" color="#E31E24" weight="700" onClick={handleDeleteMenuClick} />
+                                    {showDeleteWarning && (
+                                        <div style={{
+                                            marginTop: '6px',
+                                            padding: '8px 10px',
+                                            borderRadius: '10px',
+                                            border: '1px solid #fecaca',
+                                            background: '#fff1f2',
+                                            color: '#991b1b',
+                                            fontSize: '12px',
+                                            fontWeight: 700,
+                                            display: 'inline-flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'flex-start',
+                                            gap: '8px',
+                                            width: '100%',
+                                            boxShadow: '0 12px 24px rgba(239, 68, 68, 0.2)',
+                                            zIndex: 1
+                                        }}>
+                                            <span>Are you sure want to delete?</span>
+                                            <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleDeleteConfirm}
+                                                    style={{
+                                                        border: 'none',
+                                                        borderRadius: '6px',
+                                                        padding: '4px 10px',
+                                                        background: '#dc2626',
+                                                        color: '#fff',
+                                                        cursor: 'pointer',
+                                                        fontWeight: 700,
+                                                        fontSize: '12px'
+                                                    }}
+                                                >
+                                                    Yes
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setShowDeleteWarning(false);
+                                                    }}
+                                                    style={{
+                                                        border: 'none',
+                                                        borderRadius: '6px',
+                                                        padding: '4px 10px',
+                                                        background: '#fee2e2',
+                                                        color: '#7f1d1d',
+                                                        cursor: 'pointer',
+                                                        fontWeight: 700,
+                                                        fontSize: '12px'
+                                                    }}
+                                                >
+                                                    No
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}

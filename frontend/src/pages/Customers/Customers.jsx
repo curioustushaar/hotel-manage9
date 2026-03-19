@@ -10,6 +10,8 @@ const Customers = () => {
     const [sortBy, setSortBy] = useState('name');
     const [customersData, setCustomersData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [selectedCustomerId, setSelectedCustomerId] = useState(null);
+    const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
     // Fetch bookings from API
     const fetchBookingsData = async () => {
@@ -122,7 +124,22 @@ const Customers = () => {
     // Format date for display
     const formatDate = (dateString) => {
         const date = new Date(dateString);
+        if (Number.isNaN(date.getTime())) return 'N/A';
         return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+    };
+
+    const formatDateTime = (dateString) => {
+        const date = new Date(dateString);
+        if (Number.isNaN(date.getTime())) return 'N/A';
+
+        return date.toLocaleString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+        });
     };
 
     // Filter customers based on active tab
@@ -178,8 +195,27 @@ const Customers = () => {
         return 0;
     });
 
-    const handleViewDetails = (customer) => {
-        alert(`Customer Details:\n\nName: ${customer.name}\nEmail: ${customer.email}\nPhone: ${customer.phone}\nRoom: ${customer.room}\nCheck-in: ${customer.checkIn}\nCheck-out: ${customer.checkOut}\nStatus: ${customer.status}`);
+    useEffect(() => {
+        if (selectedCustomerId === null) return;
+
+        const hasSelectedCustomer = sortedCustomers.some((customer) => customer.id === selectedCustomerId);
+        if (!hasSelectedCustomer) {
+            setSelectedCustomerId(null);
+        }
+    }, [sortedCustomers, selectedCustomerId]);
+
+    useEffect(() => {
+        if (!pendingDeleteId) return;
+
+        const timer = setTimeout(() => {
+            setPendingDeleteId(null);
+        }, 5000);
+
+        return () => clearTimeout(timer);
+    }, [pendingDeleteId]);
+
+    const handleViewDetails = (customerId) => {
+        setSelectedCustomerId((currentId) => (currentId === customerId ? null : customerId));
     };
 
     const handleCheckOut = async (id) => {
@@ -201,18 +237,18 @@ const Customers = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this customer?')) {
-            try {
-                const response = await fetch(`${API_URL}/api/bookings/delete/${id}`, {
-                    method: 'DELETE',
-                });
-                const data = await response.json();
-                if (data.success) {
-                    fetchBookingsData(); // Refresh data
-                }
-            } catch (error) {
-                console.error('Error deleting customer:', error);
+        try {
+            const response = await fetch(`${API_URL}/api/bookings/delete/${id}`, {
+                method: 'DELETE',
+            });
+            const data = await response.json();
+            if (data.success) {
+                setPendingDeleteId(null);
+                fetchBookingsData(); // Refresh data
             }
+        } catch (error) {
+            console.error('Error deleting customer:', error);
+            setPendingDeleteId(null);
         }
     };
 
@@ -319,6 +355,7 @@ const Customers = () => {
                     <table className="customers-table">
                         <thead>
                             <tr>
+                                <th>#</th>
                                 <th>GUEST DETAILS</th>
                                 <th>ROOM</th>
                                 <th>STAY DURATION</th>
@@ -327,61 +364,132 @@ const Customers = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {sortedCustomers.map((customer) => (
-                                <tr key={customer.id}>
-                                    <td>
-                                        <div className="guest-details">
-                                            <span className="guest-name">{customer.name}</span>
-                                            <span className="guest-email">{customer.email}</span>
-                                            <span className="guest-phone">{customer.phone}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span className="room-number">Room {customer.room}</span>
-                                    </td>
-                                    <td>
-                                        <div className="stay-duration">
-                                            <span className="duration-text">
-                                                {calculateStayDuration(customer.checkIn, customer.checkOut)}
+                            {sortedCustomers.map((customer, index) => (
+                                <React.Fragment key={customer.id}>
+                                    <tr className={selectedCustomerId === customer.id ? 'customer-row-active' : ''}>
+                                        <td>
+                                            <span className="customer-serial">{index + 1}</span>
+                                        </td>
+                                        <td>
+                                            <div className="guest-details">
+                                                <span className="guest-name">{customer.name}</span>
+                                                <span className="guest-email">{customer.email}</span>
+                                                <span className="guest-phone">{customer.phone}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span className="room-number">Room {customer.room}</span>
+                                        </td>
+                                        <td>
+                                            <div className="stay-duration">
+                                                <span className="duration-text">
+                                                    {calculateStayDuration(customer.checkIn, customer.checkOut)}
+                                                </span>
+                                                <span className="duration-dates">
+                                                    {formatDate(customer.checkIn)} - {formatDate(customer.checkOut)}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span className={`status-badge ${customer.status === 'IN_HOUSE' ? 'checked-in' : 'checked-out'}`}>
+                                                {customer.status === 'IN_HOUSE' ? 'CHECKED IN' : 'CHECKED OUT'}
                                             </span>
-                                            <span className="duration-dates">
-                                                {formatDate(customer.checkIn)} - {formatDate(customer.checkOut)}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span className={`status-badge ${customer.status === 'IN_HOUSE' ? 'checked-in' : 'checked-out'}`}>
-                                            {customer.status === 'IN_HOUSE' ? 'CHECKED IN' : 'CHECKED OUT'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div className="customer-actions">
-                                            <button
-                                                className="action-btn view-btn"
-                                                onClick={() => handleViewDetails(customer)}
-                                                title="View Details"
-                                            >
-                                                👁️
-                                            </button>
-                                            {customer.isCurrent && (
+                                        </td>
+                                        <td>
+                                            <div className="customer-actions">
                                                 <button
-                                                    className="action-btn checkout-btn"
-                                                    onClick={() => handleCheckOut(customer.id)}
-                                                    title="Check Out"
+                                                    className="action-btn view-btn"
+                                                    onClick={() => handleViewDetails(customer.id)}
+                                                    title="Show Details"
                                                 >
-                                                    ✓
+                                                    👁️
                                                 </button>
-                                            )}
-                                            <button
-                                                className="action-btn delete-btn"
-                                                onClick={() => handleDelete(customer.id)}
-                                                title="Delete"
-                                            >
-                                                🗑️
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
+                                                {customer.isCurrent && (
+                                                    <button
+                                                        className="action-btn checkout-btn"
+                                                        onClick={() => handleCheckOut(customer.id)}
+                                                        title="Check Out"
+                                                    >
+                                                        ✓
+                                                    </button>
+                                                )}
+                                                <button
+                                                    className="action-btn delete-btn"
+                                                    onClick={() => setPendingDeleteId(customer.id)}
+                                                    title="Delete"
+                                                >
+                                                    🗑️
+                                                </button>
+                                                {pendingDeleteId === customer.id && (
+                                                    <div className="delete-inline-warning">
+                                                        <span>Are you sure want to delete?</span>
+                                                        <div className="delete-inline-actions">
+                                                            <button
+                                                                className="delete-inline-yes"
+                                                                onClick={() => handleDelete(customer.id)}
+                                                                title="Yes"
+                                                            >
+                                                                Yes
+                                                            </button>
+                                                            <button
+                                                                className="delete-inline-no"
+                                                                onClick={() => setPendingDeleteId(null)}
+                                                                title="No"
+                                                            >
+                                                                No
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    {selectedCustomerId === customer.id && (
+                                        <tr className="inline-details-row">
+                                            <td colSpan={6}>
+                                                <div className="inline-customer-card">
+                                                    <div className="selected-card-head inline-card-head">
+                                                        <div>
+                                                            <p className="selected-card-kicker">Customer Details</p>
+                                                            <h3>{customer.name}</h3>
+                                                        </div>
+                                                        <span className={`status-badge ${customer.status === 'IN_HOUSE' ? 'checked-in' : 'checked-out'}`}>
+                                                            {customer.status === 'IN_HOUSE' ? 'CHECKED IN' : 'CHECKED OUT'}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="selected-card-grid">
+                                                        <div className="selected-card-item">
+                                                            <span>Email</span>
+                                                            <strong>{customer.email}</strong>
+                                                        </div>
+                                                        <div className="selected-card-item">
+                                                            <span>Phone</span>
+                                                            <strong>{customer.phone}</strong>
+                                                        </div>
+                                                        <div className="selected-card-item">
+                                                            <span>Room</span>
+                                                            <strong>Room {customer.room}</strong>
+                                                        </div>
+                                                        <div className="selected-card-item">
+                                                            <span>Stay Duration</span>
+                                                            <strong>{calculateStayDuration(customer.checkIn, customer.checkOut)}</strong>
+                                                        </div>
+                                                        <div className="selected-card-item">
+                                                            <span>Check-in</span>
+                                                            <strong>{formatDateTime(customer.checkIn)}</strong>
+                                                        </div>
+                                                        <div className="selected-card-item">
+                                                            <span>Check-out</span>
+                                                            <strong>{formatDateTime(customer.checkOut)}</strong>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </React.Fragment>
                             ))}
                         </tbody>
                     </table>

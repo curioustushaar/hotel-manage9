@@ -17,6 +17,8 @@ const TableManagement = () => {
     const [statusFilter, setStatusFilter] = useState('All');
     const [typeFilter, setTypeFilter] = useState('All Types');
     const [searchQuery, setSearchQuery] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
 
     // Add Table Modal State
     const [showAddTableModal, setShowAddTableModal] = useState(false);
@@ -243,7 +245,8 @@ const TableManagement = () => {
 
     // Submit Split
     const handleSplitSubmit = () => {
-        alert('Split functionality to be integrated with backend');
+        setSuccessMessage('Split functionality to be integrated with backend');
+        setTimeout(() => setSuccessMessage(''), 3000);
         setShowSplitModal(false);
     };
 
@@ -259,15 +262,18 @@ const TableManagement = () => {
             const data = await response.json();
 
             if (data.success) {
-                alert('Table reserved successfully!');
+                setSuccessMessage('Table reserved successfully!');
+                setTimeout(() => setSuccessMessage(''), 2000);
                 setShowReservationModal(false);
                 fetchTables();
             } else {
-                alert(`Failed to reserve: ${data.message}`);
+                setErrorMessage(`Failed to reserve: ${data.message}`);
+                setTimeout(() => setErrorMessage(''), 3000);
             }
         } catch (error) {
             console.error('Error reserving table:', error);
-            alert('Failed to reserve table. Please check connection.');
+            setErrorMessage('Failed to reserve table. Please check connection.');
+            setTimeout(() => setErrorMessage(''), 3000);
         }
     };
 
@@ -283,7 +289,8 @@ const TableManagement = () => {
 
             const data = await response.json();
             if (data.success) {
-                alert('Reservation cancelled successfully');
+                setSuccessMessage('Reservation cancelled successfully');
+                setTimeout(() => setSuccessMessage(''), 2000);
                 fetchTables();
                 // Update local list to reflect change immediately in modal
                 setSelectedTableForList(prev => ({
@@ -293,11 +300,13 @@ const TableManagement = () => {
                     )
                 }));
             } else {
-                alert(`Failed to cancel: ${data.message}`);
+                setErrorMessage(`Failed to cancel: ${data.message}`);
+                setTimeout(() => setErrorMessage(''), 3000);
             }
         } catch (error) {
             console.error('Error cancelling reservation:', error);
-            alert('Error cancelling reservation.');
+            setErrorMessage('Error cancelling reservation.');
+            setTimeout(() => setErrorMessage(''), 3000);
         }
     };
 
@@ -320,7 +329,8 @@ const TableManagement = () => {
     const handleDeleteTableType = (typeToDelete) => {
         const tablesWithType = tables.filter(t => (t.type || 'General') === typeToDelete);
         if (tablesWithType.length > 0) {
-            alert(`Cannot delete "${typeToDelete}" type because ${tablesWithType.length} table(s) are using it. Remove or reassign those tables first.`);
+            setErrorMessage(`Cannot delete "${typeToDelete}" type because ${tablesWithType.length} table(s) are using it.`);
+            setTimeout(() => setErrorMessage(''), 4000);
             return;
         }
         setAvailableTypes(prev => prev.filter(t => t !== typeToDelete));
@@ -334,12 +344,14 @@ const TableManagement = () => {
         try {
             // Validate input
             if (!newTableData.tableName.trim()) {
-                alert('Please enter a table name/number');
+                setErrorMessage('Please enter a table name/number');
+                setTimeout(() => setErrorMessage(''), 3000);
                 return;
             }
 
             if (!newTableData.capacity || newTableData.capacity < 1) {
-                alert('Please enter a valid capacity (minimum 1)');
+                setErrorMessage('Please enter a valid capacity (minimum 1)');
+                setTimeout(() => setErrorMessage(''), 3000);
                 return;
             }
 
@@ -351,7 +363,8 @@ const TableManagement = () => {
             );
 
             if (duplicateInSameType) {
-                alert(`Table "${newTableData.tableName}" already exists in "${tableType}" type.\n\nYou can:\n1. Use a different table name\n2. Choose a different type\n\n(Same table names are allowed in different types)`);
+                setErrorMessage(`Table "${newTableData.tableName}" already exists in "${tableType}" type.`);
+                setTimeout(() => setErrorMessage(''), 4000);
                 return;
             }
 
@@ -376,33 +389,30 @@ const TableManagement = () => {
             const data = await response.json();
 
             if (data.success) {
-                console.log('✅ Table created successfully:', data);
-                console.log('🏷️ Table type:', tableType);
-                console.log('📋 Full table data:', data.data);
+                setSuccessMessage(`Table "${newTableData.tableName}" created successfully!`);
+                setTimeout(() => setSuccessMessage(''), 2500);
 
                 // Close modal first
                 closeAddTableModal();
 
                 // Force a fresh fetch from server with promise completion
-                console.log('🔄 Fetching updated tables list...');
                 await fetchTables();
 
                 // Wait for React to finish state updates and re-render
                 await new Promise(resolve => setTimeout(resolve, 200));
 
                 // Now update filters
-                console.log('🎯 Setting type filter to:', tableType);
                 setTypeFilter(tableType);
                 setStatusFilter('All');
-
-                alert(`✅ Table "${newTableData.tableName}" created successfully!\n\n🏷️ Type: "${tableType}"\n\n📍 The filter has been set to "${tableType}" type.\n\nIf you don't see it, please check:\n1. Browser console for logs\n2. Filter dropdown should now include "${tableType}"\n3. Try refreshing the page if needed`);
             } else {
                 console.error('❌ Failed to create table:', data.message);
-                alert(`Failed to create table: ${data.message}`);
+                setErrorMessage(`Failed to create table: ${data.message}`);
+                setTimeout(() => setErrorMessage(''), 3000);
             }
         } catch (error) {
             console.error('Error creating table:', error);
-            alert('Failed to create table. Please check your connection and try again.');
+            setErrorMessage('Failed to create table. Please check connection.');
+            setTimeout(() => setErrorMessage(''), 3000);
         }
     };
 
@@ -422,6 +432,22 @@ const TableManagement = () => {
 
     return (
         <div className="table-management-container">
+            {successMessage && (
+                <div className="success-note-overlay">
+                    <div className="success-note" style={{ background: '#10b981' }}>
+                        <span className="success-icon">✓</span>
+                        {successMessage}
+                    </div>
+                </div>
+            )}
+            {errorMessage && (
+                <div className="success-note-overlay">
+                    <div className="success-note" style={{ background: '#ef4444' }}>
+                        <span className="success-icon">✕</span>
+                        {errorMessage}
+                    </div>
+                </div>
+            )}
             {/* Header */}
             <div className="dining-header">
                 <div className="header-content">
@@ -435,7 +461,7 @@ const TableManagement = () => {
                             console.log('🔄 Manual Refresh - Current tables:', tables.length);
                             console.log('📋 Current types:', availableTypes);
                             console.log('📦 All table data:', tables);
-                            alert(`Tables: ${tables.length}\nTypes: ${availableTypes.join(', ')}\n\nCheck console for full data`);
+                            console.log(`Tables: ${tables.length}\nTypes: ${availableTypes.join(', ')}`);
                             fetchTables();
                         }}
                         style={{ background: '#3b82f6' }}

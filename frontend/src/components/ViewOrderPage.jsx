@@ -26,10 +26,18 @@ const ViewOrderPage = () => {
         const saved = localStorage.getItem('hiddenOrderIds');
         return saved ? JSON.parse(saved) : [];
     });
+    const [pendingDeleteOrderId, setPendingDeleteOrderId] = useState(null);
 
     useEffect(() => {
         localStorage.setItem('hiddenOrderIds', JSON.stringify(hiddenOrderIds));
     }, [hiddenOrderIds]);
+
+    useEffect(() => {
+        if (!pendingDeleteOrderId) return;
+
+        const timer = setTimeout(() => setPendingDeleteOrderId(null), 5000);
+        return () => clearTimeout(timer);
+    }, [pendingDeleteOrderId]);
 
     // Show toast notification
     const showToast = (message, type = 'success') => {
@@ -183,7 +191,6 @@ const ViewOrderPage = () => {
     };
 
     const handleDeleteOrder = async (orderId) => {
-        if (!window.confirm('Are you sure you want to permanently delete this order?')) return;
         try {
             const response = await fetch(`${API_URL_CONFIG}/api/guest-meal/orders/${orderId}`, {
                 method: 'DELETE'
@@ -191,13 +198,14 @@ const ViewOrderPage = () => {
             const data = await response.json();
             if (data.success) {
                 showToast('🗑️ Order deleted successfully', 'success');
+                setPendingDeleteOrderId(null);
                 fetchOrders();
             } else {
-                alert(data.message || data.error || 'Failed to delete order');
+                showToast(data.message || data.error || 'Failed to delete order', 'error');
             }
         } catch (error) {
             console.error('Error deleting order:', error);
-            alert('Error connecting to server');
+            showToast('Error connecting to server', 'error');
         }
     };
 
@@ -332,13 +340,73 @@ const ViewOrderPage = () => {
                                             </span>
                                             <div className="header-right">
                                                 <span className="header-time">{order.time}</span>
-                                                <button
-                                                    className="card-close-btn"
-                                                    onClick={() => handleDeleteOrder(order.id)}
-                                                    title="Delete Order"
-                                                >
-                                                    ×
-                                                </button>
+                                                <div style={{ position: 'relative' }}>
+                                                    <button
+                                                        className="card-close-btn"
+                                                        onClick={() => setPendingDeleteOrderId(order.id)}
+                                                        title="Delete Order"
+                                                    >
+                                                        ×
+                                                    </button>
+
+                                                    {pendingDeleteOrderId === order.id && (
+                                                        <div style={{
+                                                            position: 'absolute',
+                                                            right: 0,
+                                                            top: 'calc(100% + 8px)',
+                                                            padding: '8px 10px',
+                                                            borderRadius: '10px',
+                                                            border: '1px solid #fecaca',
+                                                            background: '#fff1f2',
+                                                            color: '#991b1b',
+                                                            fontSize: '12px',
+                                                            fontWeight: 700,
+                                                            display: 'inline-flex',
+                                                            flexDirection: 'column',
+                                                            alignItems: 'flex-start',
+                                                            gap: '8px',
+                                                            minWidth: '190px',
+                                                            boxShadow: '0 12px 24px rgba(239, 68, 68, 0.2)',
+                                                            zIndex: 9999
+                                                        }}>
+                                                            <span>Are you sure want to delete?</span>
+                                                            <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDeleteOrder(order.id)}
+                                                                    style={{
+                                                                        border: 'none',
+                                                                        borderRadius: '6px',
+                                                                        padding: '4px 10px',
+                                                                        background: '#dc2626',
+                                                                        color: '#fff',
+                                                                        cursor: 'pointer',
+                                                                        fontWeight: 700,
+                                                                        fontSize: '12px'
+                                                                    }}
+                                                                >
+                                                                    Yes
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setPendingDeleteOrderId(null)}
+                                                                    style={{
+                                                                        border: 'none',
+                                                                        borderRadius: '6px',
+                                                                        padding: '4px 10px',
+                                                                        background: '#fee2e2',
+                                                                        color: '#7f1d1d',
+                                                                        cursor: 'pointer',
+                                                                        fontWeight: 700,
+                                                                        fontSize: '12px'
+                                                                    }}
+                                                                >
+                                                                    No
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
 

@@ -58,6 +58,33 @@ body:not(.public-page) #root {
   }
 }
 
+/* Success Note Styles */
+.success-note-overlay {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.success-note {
+  background: #10b981;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 9999px;
+  box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  pointer-events: auto;
+}
+
+.success-icon {
+  font-size: 1.25rem;
+}
+
 /* =============================================
    GLOBAL SCROLLBAR HIDE — scroll still works
    via mouse wheel / touch / cursor

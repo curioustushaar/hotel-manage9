@@ -13,6 +13,7 @@ const ItemStockStatus = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('All Categories');
     const [currentPage, setCurrentPage] = useState(1);
+    const [pendingDeleteItemId, setPendingDeleteItemId] = useState(null);
     const itemsPerPage = 7;
 
     const categories = [
@@ -37,6 +38,13 @@ const ItemStockStatus = () => {
     useEffect(() => {
         fetchMenuItems();
     }, []);
+
+    useEffect(() => {
+        if (!pendingDeleteItemId) return;
+
+        const timer = setTimeout(() => setPendingDeleteItemId(null), 5000);
+        return () => clearTimeout(timer);
+    }, [pendingDeleteItemId]);
 
     const fetchMenuItems = async () => {
         try {
@@ -76,22 +84,19 @@ const ItemStockStatus = () => {
     };
 
     const handleDeleteItem = async (id) => {
-        if (window.confirm('Are you sure you want to delete this item?')) {
-            try {
-                const response = await fetch(`${API_URL}/api/menu/delete/${id}`, {
-                    method: 'DELETE',
-                });
-                const data = await response.json();
-                if (data.success) {
-                    setMenuItems(menuItems.filter(item => item._id !== id));
-                    alert('Item deleted successfully!');
-                } else {
-                    alert(data.message || 'Failed to delete item');
-                }
-            } catch (error) {
-                console.error('Error deleting item:', error);
-                alert('Error deleting item. Please try again.');
+        try {
+            const response = await fetch(`${API_URL}/api/menu/delete/${id}`, {
+                method: 'DELETE',
+            });
+            const data = await response.json();
+            if (data.success) {
+                setMenuItems(menuItems.filter(item => item._id !== id));
+                setPendingDeleteItemId(null);
+            } else {
+                console.error(data.message || 'Failed to delete item');
             }
+        } catch (error) {
+            console.error('Error deleting item:', error);
         }
     };
 
@@ -213,7 +218,7 @@ const ItemStockStatus = () => {
                                             </span>
                                         </td>
                                         <td>
-                                            <div className="action-buttons">
+                                            <div className="action-buttons" style={{ position: 'relative' }}>
                                                 <button
                                                     className="action-btn edit-btn"
                                                     onClick={() => setEditingItem(item)}
@@ -230,11 +235,69 @@ const ItemStockStatus = () => {
                                                 </button>
                                                 <button
                                                     className="action-btn delete-btn"
-                                                    onClick={() => handleDeleteItem(item._id)}
+                                                    onClick={() => setPendingDeleteItemId(item._id)}
                                                     title="Delete"
                                                 >
                                                     🗑️
                                                 </button>
+
+                                                {pendingDeleteItemId === item._id && (
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        right: 0,
+                                                        bottom: 'calc(100% + 8px)',
+                                                        padding: '8px 10px',
+                                                        borderRadius: '10px',
+                                                        border: '1px solid #fecaca',
+                                                        background: '#fff1f2',
+                                                        color: '#991b1b',
+                                                        fontSize: '12px',
+                                                        fontWeight: 700,
+                                                        display: 'inline-flex',
+                                                        flexDirection: 'column',
+                                                        alignItems: 'flex-start',
+                                                        gap: '8px',
+                                                        minWidth: '190px',
+                                                        boxShadow: '0 12px 24px rgba(239, 68, 68, 0.2)',
+                                                        zIndex: 9999
+                                                    }}>
+                                                        <span>Are you sure want to delete?</span>
+                                                        <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDeleteItem(item._id)}
+                                                                style={{
+                                                                    border: 'none',
+                                                                    borderRadius: '6px',
+                                                                    padding: '4px 10px',
+                                                                    background: '#dc2626',
+                                                                    color: '#fff',
+                                                                    cursor: 'pointer',
+                                                                    fontWeight: 700,
+                                                                    fontSize: '12px'
+                                                                }}
+                                                            >
+                                                                Yes
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setPendingDeleteItemId(null)}
+                                                                style={{
+                                                                    border: 'none',
+                                                                    borderRadius: '6px',
+                                                                    padding: '4px 10px',
+                                                                    background: '#fee2e2',
+                                                                    color: '#7f1d1d',
+                                                                    cursor: 'pointer',
+                                                                    fontWeight: 700,
+                                                                    fontSize: '12px'
+                                                                }}
+                                                            >
+                                                                No
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

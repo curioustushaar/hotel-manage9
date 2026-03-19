@@ -20,10 +20,24 @@ const MaintenanceBlock = () => {
         reason: '',
         status: 'Blocked'
     });
+    const [inlineNote, setInlineNote] = useState({ show: false, title: '', message: '', tone: 'success' });
+    const [deleteTargetId, setDeleteTargetId] = useState(null);
 
     useEffect(() => {
         fetchBlocks();
     }, []);
+
+    useEffect(() => {
+        if (!inlineNote.show) return;
+        const timer = setTimeout(() => {
+            setInlineNote(prev => ({ ...prev, show: false }));
+        }, 2600);
+        return () => clearTimeout(timer);
+    }, [inlineNote.show]);
+
+    const showInlineNote = (title, message, tone = 'success') => {
+        setInlineNote({ show: true, title, message, tone });
+    };
 
     const fetchBlocks = async () => {
         try {
@@ -38,8 +52,12 @@ const MaintenanceBlock = () => {
                     endDate: new Date(b.endDate).toISOString().split('T')[0]
                 }));
                 setBlocks(parsed);
+            } else {
+                showInlineNote('Load Failed', data.message || 'Unable to fetch maintenance blocks.', 'danger');
             }
-        } catch (err) { alert('Error fetching data'); }
+        } catch (err) {
+            showInlineNote('Load Failed', 'Error fetching data', 'danger');
+        }
         finally { setLoading(false); }
     };
 
@@ -79,11 +97,14 @@ const MaintenanceBlock = () => {
 
             if (data.success) {
                 setIsModalOpen(false);
+                showInlineNote(modalMode === 'add' ? 'Block Added' : 'Block Updated', 'Maintenance block saved successfully.');
                 fetchBlocks();
             } else {
-                alert(data.message);
+                showInlineNote('Save Failed', data.message || 'Unable to save maintenance block.', 'danger');
             }
-        } catch (error) { alert('Error submitting'); }
+        } catch (error) {
+            showInlineNote('Save Failed', 'Error submitting', 'danger');
+        }
     };
 
     const handleStatusUpdate = async (id, newStatus) => {
@@ -93,16 +114,35 @@ const MaintenanceBlock = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus })
             });
-            if (res.ok) fetchBlocks();
-        } catch (error) { alert('Error updating status'); }
+            if (res.ok) {
+                showInlineNote('Status Updated', `Maintenance marked as ${newStatus}.`);
+                fetchBlocks();
+            } else {
+                showInlineNote('Update Failed', 'Unable to update maintenance status.', 'danger');
+            }
+        } catch (error) {
+            showInlineNote('Update Failed', 'Error updating status', 'danger');
+        }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('Delete this maintenance block?')) {
-            try {
-                await fetch(`${API_URL}/api/maintenance-blocks/delete/${id}`, { method: 'DELETE' });
+    const handleDelete = (id) => {
+        setDeleteTargetId(id);
+    };
+
+    const confirmDelete = async (id) => {
+        try {
+            const res = await fetch(`${API_URL}/api/maintenance-blocks/delete/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                showInlineNote('Block Deleted', 'Maintenance block removed successfully.');
                 fetchBlocks();
-            } catch (error) { alert('Error deleting'); }
+            } else {
+                showInlineNote('Delete Failed', data.message || 'Unable to delete maintenance block.', 'danger');
+            }
+        } catch (error) {
+            showInlineNote('Delete Failed', 'Error deleting', 'danger');
+        } finally {
+            setDeleteTargetId(null);
         }
     };
 
@@ -127,6 +167,35 @@ const MaintenanceBlock = () => {
                 <h2>Maintenance Block</h2>
                 <button className="add-btn" onClick={() => handleOpenModal('add')}>+ Add Maintenance Block</button>
             </header>
+
+            {inlineNote.show && (
+                <div
+                    style={{
+                        marginBottom: '14px',
+                        borderRadius: '12px',
+                        padding: '12px 14px',
+                        border: `1px solid ${inlineNote.tone === 'danger' ? '#fecaca' : '#dcfce7'}`,
+                        background: inlineNote.tone === 'danger' ? '#fef2f2' : '#f0fdf4',
+                        color: inlineNote.tone === 'danger' ? '#991b1b' : '#14532d',
+                        fontWeight: 600,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        gap: '10px'
+                    }}
+                >
+                    <div>
+                        <div style={{ fontWeight: 800 }}>{inlineNote.title}</div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>{inlineNote.message}</div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setInlineNote(prev => ({ ...prev, show: false }))}
+                        style={{ border: 'none', background: 'transparent', color: 'inherit', fontSize: '1.1rem', cursor: 'pointer' }}
+                    >
+                        x
+                    </button>
+                </div>
+            )}
 
             <div className="filter-bar">
                 <select
@@ -184,7 +253,7 @@ const MaintenanceBlock = () => {
                                     </td>
                                     <td className="reason-cell">{block.reason}</td>
                                     <td className="text-right">
-                                        <div className="action-btns">
+                                        <div className="action-btns" style={{ position: 'relative' }}>
                                             {/* Status Actions */}
                                             {block.status === 'Blocked' && (
                                                 <button className="icon-btn action-start" title="Start Progress" onClick={() => handleStatusUpdate(block._id, 'In Progress')}>🔧</button>
@@ -195,6 +264,44 @@ const MaintenanceBlock = () => {
 
                                             <button className="icon-btn edit-btn" onClick={() => handleOpenModal('edit', block)}>✏️</button>
                                             <button className="icon-btn delete-btn" onClick={() => handleDelete(block._id)}>🗑️</button>
+
+                                            {deleteTargetId === block._id && (
+                                                <div
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: '110%',
+                                                        right: 0,
+                                                        zIndex: 20,
+                                                        width: '220px',
+                                                        padding: '10px',
+                                                        borderRadius: '10px',
+                                                        border: '1px solid #fecaca',
+                                                        background: '#fff5f5',
+                                                        boxShadow: '0 10px 20px rgba(153, 27, 27, 0.15)',
+                                                        textAlign: 'left'
+                                                    }}
+                                                >
+                                                    <div style={{ color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', marginBottom: '8px' }}>
+                                                        Are you sure want to delete?
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => confirmDelete(block._id)}
+                                                            style={{ flex: 1, border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
+                                                        >
+                                                            Yes
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setDeleteTargetId(null)}
+                                                            style={{ flex: 1, border: '1px solid #fca5a5', borderRadius: '6px', background: '#fff', color: '#991b1b', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
+                                                        >
+                                                            No
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

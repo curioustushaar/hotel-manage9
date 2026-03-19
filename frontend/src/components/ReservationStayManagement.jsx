@@ -67,6 +67,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [selectedReservation, setSelectedReservation] = useState(null);
     const [showBookingHistory, setShowBookingHistory] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [successMessage, setSuccessMessage] = useState('');
     const [fromRoomsPage, setFromRoomsPage] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [cardViewMode, setCardViewMode] = useState('grid'); // 'grid' or 'list'
@@ -1241,9 +1242,13 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                 const data = await response.json();
                 if (data.success) {
                     await fetchReservationsFromAPI();
-                    alert('Reservation updated successfully!');
+                    setSuccessMessage('Reservation updated successfully!');
+                    setTimeout(() => {
+                        setSuccessMessage('');
+                        navigate('/admin/dashboard');
+                    }, 1500);
                 } else {
-                    alert(`Error: ${data.message}`);
+                    setErrors({ submit: `Error: ${data.message}` });
                     return;
                 }
             } else {
@@ -1257,10 +1262,14 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                 const data = await response.json();
                 if (data.success) {
                     await fetchReservationsFromAPI(); // Refresh list
-                    alert('Reservation created successfully!');
+                    setSuccessMessage('Reservation created successfully!');
+                    setTimeout(() => {
+                        setSuccessMessage('');
+                        navigate('/admin/dashboard');
+                    }, 1500);
                 } else {
                     console.error('Server returned error:', data);
-                    alert(`Error creating reservation: ${data.message || 'Unknown error'}`);
+                    setErrors({ submit: `Error creating reservation: ${data.message || 'Unknown error'}` });
                     return;
                 }
             }
@@ -1268,7 +1277,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             resetForm();
         } catch (error) {
             console.error('Error saving reservation:', error);
-            alert(`Failed to save reservation: ${error.message}`);
+            setErrors({ submit: `Failed to save reservation: ${error.message}` });
         }
     };
 
@@ -1302,9 +1311,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
     // Handle Delete
     const handleDeleteReservation = async (reservationId) => {
-        if (!confirm('Are you sure you want to delete this reservation?')) {
-            return;
-        }
+        // Removed confirm pop section
 
         try {
             const response = await fetch(`${API_URL}/delete/${reservationId}`, {
@@ -1314,13 +1321,13 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             const data = await response.json();
             if (data.success) {
                 await fetchReservationsFromAPI();
-                alert('Reservation deleted successfully');
+                // Removed success alert
             } else {
-                alert(`Error: ${data.message}`);
+                setErrors({ submit: `Error: ${data.message}` });
             }
         } catch (error) {
             console.error('Error deleting reservation:', error);
-            alert('Failed to delete reservation');
+            setErrors({ submit: 'Failed to delete reservation' });
         }
     };
 
@@ -1417,6 +1424,18 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         }
         return (
             <div className="reservation-management-container">
+                {successMessage && (
+                    <div className="success-note-overlay">
+                        <motion.div 
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="success-note"
+                        >
+                            <span className="success-icon">✓</span>
+                            {successMessage}
+                        </motion.div>
+                    </div>
+                )}
                 <div className="reservation-header">
                     <div className="form-top-nav">
                         <button className="back-btn" onClick={() => { resetForm(); setView('dashboard'); }}>

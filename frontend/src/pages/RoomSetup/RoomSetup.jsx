@@ -7,7 +7,6 @@ import { hasPermission, MODULES, PERMISSIONS } from '../../config/rbac';
 import './RoomSetup.css';
 import API_URL from '../../config/api';
 import RoomDetailsPanel from '../../components/rooms/RoomDetailsPanel';
-import ConfirmationModal from '../../components/ConfirmationModal';
 
 const RoomSetup = () => {
     const navigate = useNavigate();
@@ -116,13 +115,9 @@ const RoomSetup = () => {
         status: 'All'
     });
 
-    // Delete Confirmation State
-    const [deleteModal, setDeleteModal] = useState({
-        show: false,
-        id: null,
-        roomNumber: '',
-        isProcessing: false
-    });
+    // Delete Warning State
+    const [pendingDeleteRoomId, setPendingDeleteRoomId] = useState(null);
+    const [deletingRoomId, setDeletingRoomId] = useState(null);
 
     const datePickerRef = useRef(null);
 
@@ -296,6 +291,13 @@ const RoomSetup = () => {
         fetchMaintenanceBlocks();
     }, []);
 
+    useEffect(() => {
+        if (!pendingDeleteRoomId) return;
+
+        const timer = setTimeout(() => setPendingDeleteRoomId(null), 5000);
+        return () => clearTimeout(timer);
+    }, [pendingDeleteRoomId]);
+
     // Availability Helper
     const getRoomStatusForRange = (roomNumber) => {
         // 1. Check Maintenance Blocks first (Priority)
@@ -460,19 +462,8 @@ const RoomSetup = () => {
     };
 
     // Handle Delete Click
-    const handleDeleteClick = (id, roomNumber) => {
-        setDeleteModal({
-            show: true,
-            id,
-            roomNumber,
-            isProcessing: false
-        });
-    };
-
-    // Confirm Delete Action
-    const confirmDelete = async () => {
-        const { id } = deleteModal;
-        setDeleteModal(prev => ({ ...prev, isProcessing: true }));
+    const handleDeleteClick = async (id) => {
+        setDeletingRoomId(id);
         try {
             const response = await fetch(`${API_URL}/api/rooms/delete/${id}`, {
                 method: 'DELETE'
@@ -480,14 +471,12 @@ const RoomSetup = () => {
             const data = await response.json();
             if (data.success) {
                 fetchRooms();
-                setDeleteModal({ show: false, id: null, roomNumber: '', isProcessing: false });
-            } else {
-                alert('Failed to delete room');
-                setDeleteModal(prev => ({ ...prev, isProcessing: false }));
             }
         } catch (error) {
-            alert('Error deleting room');
-            setDeleteModal(prev => ({ ...prev, isProcessing: false }));
+            console.error('Error deleting room:', error);
+        } finally {
+            setDeletingRoomId(null);
+            setPendingDeleteRoomId(null);
         }
     };
 
@@ -714,7 +703,7 @@ const RoomSetup = () => {
 
                                 return (
                                     <div
-                                        className={`room-card ${statusClass}`}
+                                        className={`room-card ${statusClass} ${pendingDeleteRoomId === room.id ? 'room-card-delete-open' : ''}`}
                                         key={room.id}
                                         onClick={() => handleRoomClick(room)}
                                         style={{ cursor: 'pointer' }}
@@ -735,13 +724,45 @@ const RoomSetup = () => {
                                                                 >
                                                                     ✏️
                                                                 </button>
-                                                                <button
-                                                                    className="icon-btn"
-                                                                    onClick={(e) => { e.stopPropagation(); handleDeleteClick(room.id, room.roomNumber); }}
-                                                                    title="Delete"
-                                                                >
-                                                                    🗑️
-                                                                </button>
+                                                                <div className="room-delete-wrap" onClick={(e) => e.stopPropagation()}>
+                                                                    {pendingDeleteRoomId === room.id && (
+                                                                        <div className="room-delete-warning">
+                                                                            <span>Are you sure want to delete?</span>
+                                                                            <div className="room-delete-warning-actions">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className="room-delete-warning-yes"
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        handleDeleteClick(room.id);
+                                                                                    }}
+                                                                                    title="Yes"
+                                                                                >
+                                                                                    Yes
+                                                                                </button>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className="room-delete-warning-no"
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        setPendingDeleteRoomId(null);
+                                                                                    }}
+                                                                                    title="No"
+                                                                                >
+                                                                                    No
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                    <button
+                                                                        className="icon-btn"
+                                                                        onClick={(e) => { e.stopPropagation(); setPendingDeleteRoomId(room.id); }}
+                                                                        title="Delete"
+                                                                        disabled={deletingRoomId === room.id}
+                                                                    >
+                                                                        🗑️
+                                                                    </button>
+                                                                </div>
                                                             </>
                                                         )}
                                                     </div>
@@ -807,13 +828,45 @@ const RoomSetup = () => {
                                                             >
                                                                 ✏️
                                                             </button>
-                                                            <button
-                                                                className="icon-btn"
-                                                                onClick={(e) => { e.stopPropagation(); handleDeleteClick(room.id, room.roomNumber); }}
-                                                                title="Delete"
-                                                            >
-                                                                🗑️
-                                                            </button>
+                                                            <div className="room-delete-wrap" onClick={(e) => e.stopPropagation()}>
+                                                                {pendingDeleteRoomId === room.id && (
+                                                                    <div className="room-delete-warning">
+                                                                        <span>Are you sure want to delete?</span>
+                                                                        <div className="room-delete-warning-actions">
+                                                                            <button
+                                                                                type="button"
+                                                                                className="room-delete-warning-yes"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    handleDeleteClick(room.id);
+                                                                                }}
+                                                                                title="Yes"
+                                                                            >
+                                                                                Yes
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                className="room-delete-warning-no"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    setPendingDeleteRoomId(null);
+                                                                                }}
+                                                                                title="No"
+                                                                            >
+                                                                                No
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                <button
+                                                                    className="icon-btn"
+                                                                    onClick={(e) => { e.stopPropagation(); setPendingDeleteRoomId(room.id); }}
+                                                                    title="Delete"
+                                                                    disabled={deletingRoomId === room.id}
+                                                                >
+                                                                    🗑️
+                                                                </button>
+                                                            </div>
                                                         </>
                                                     )}
                                                 </div>
@@ -995,18 +1048,6 @@ const RoomSetup = () => {
                 </div>
             )
             }
-
-            {/* Custom Delete Confirmation Modal */}
-            <ConfirmationModal
-                isOpen={deleteModal.show}
-                onClose={() => setDeleteModal({ ...deleteModal, show: false })}
-                onConfirm={confirmDelete}
-                title="Delete Room"
-                message={`Are you sure you want to delete room ${deleteModal.roomNumber}? This action cannot be undone.`}
-                confirmText="Delete"
-                cancelText="Cancel"
-                isProcessing={deleteModal.isProcessing}
-            />
         </div>
     );
 };

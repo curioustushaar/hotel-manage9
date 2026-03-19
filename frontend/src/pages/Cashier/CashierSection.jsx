@@ -628,6 +628,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
     const [showPrintDropdown, setShowPrintDropdown] = useState(false);
     const [showEditBill, setShowEditBill] = useState(false);
     const [editItems, setEditItems] = useState([]);
+    const [pendingRemoveItemIndex, setPendingRemoveItemIndex] = useState(null);
 
     const printDropdownRef = useRef(null);
 
@@ -722,6 +723,13 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        if (pendingRemoveItemIndex === null) return;
+
+        const timer = setTimeout(() => setPendingRemoveItemIndex(null), 5000);
+        return () => clearTimeout(timer);
+    }, [pendingRemoveItemIndex]);
 
     // Calculate Return Amount
     useEffect(() => {
@@ -1319,18 +1327,28 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                             </div>
                         )}
                     </div>
-                    <button className="q-btn" onClick={() => { setEditItems(order ? order.items.map(i => ({ ...i })) : []); setShowEditBill(true); }} disabled={isPlaceholder}>✏️ Edit Bill</button>
+                    <button className="q-btn" onClick={() => {
+                        setEditItems(order ? order.items.map(i => ({ ...i })) : []);
+                        setPendingRemoveItemIndex(null);
+                        setShowEditBill(true);
+                    }} disabled={isPlaceholder}>✏️ Edit Bill</button>
                     <button className="q-btn" onClick={handleSendSMS} disabled={isPlaceholder}>💬 SMS</button>
                     <button className="q-btn" onClick={handleEmailBill} disabled={isPlaceholder}>📧 Email</button>
                 </div>
 
                 {/* Edit Bill Modal */}
                 {showEditBill && order && (
-                    <div className="edit-bill-overlay" onClick={() => setShowEditBill(false)}>
+                    <div className="edit-bill-overlay" onClick={() => {
+                        setShowEditBill(false);
+                        setPendingRemoveItemIndex(null);
+                    }}>
                         <div className="edit-bill-modal" onClick={e => e.stopPropagation()}>
                             <div className="edit-bill-header">
                                 <h3>✏️ Edit Bill - {order.billNo}</h3>
-                                <button className="edit-bill-close" onClick={() => setShowEditBill(false)}>✕</button>
+                                <button className="edit-bill-close" onClick={() => {
+                                    setShowEditBill(false);
+                                    setPendingRemoveItemIndex(null);
+                                }}>✕</button>
                             </div>
                             <div className="edit-bill-body">
                                 <table className="edit-bill-table">
@@ -1371,9 +1389,37 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                                                 <td>{cs}{(item.amount / item.qty).toFixed(2)}</td>
                                                 <td>{cs}{item.amount.toFixed(2)}</td>
                                                 <td>
-                                                    <button className="edit-remove-btn" onClick={() => {
-                                                        setEditItems(editItems.filter((_, i) => i !== idx));
-                                                    }}>🗑️</button>
+                                                    <div className="edit-remove-wrap">
+                                                        {pendingRemoveItemIndex === idx && (
+                                                            <div className="edit-remove-warning-inline">
+                                                                <span>Are you sure want to delete?</span>
+                                                                <div className="edit-remove-warning-actions">
+                                                                    <button
+                                                                        type="button"
+                                                                        className="edit-remove-warning-yes"
+                                                                        onClick={() => {
+                                                                            setEditItems(editItems.filter((_, i) => i !== idx));
+                                                                            setPendingRemoveItemIndex(null);
+                                                                        }}
+                                                                        title="Yes"
+                                                                    >
+                                                                        Yes
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="edit-remove-warning-no"
+                                                                        onClick={() => setPendingRemoveItemIndex(null)}
+                                                                        title="No"
+                                                                    >
+                                                                        No
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        <button className="edit-remove-btn" onClick={() => {
+                                                            setPendingRemoveItemIndex(idx);
+                                                        }}>🗑️</button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -1385,7 +1431,10 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                                 </div>
                             </div>
                             <div className="edit-bill-footer">
-                                <button className="edit-bill-cancel" onClick={() => setShowEditBill(false)}>Cancel</button>
+                                <button className="edit-bill-cancel" onClick={() => {
+                                    setShowEditBill(false);
+                                    setPendingRemoveItemIndex(null);
+                                }}>Cancel</button>
                                 <button className="edit-bill-save" onClick={() => {
                                     if (order) {
                                         order.items = editItems;
@@ -1397,6 +1446,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                                         setReceivedAmount(newGrandTotal.toString());
                                         setIsTendered(false);
                                     }
+                                    setPendingRemoveItemIndex(null);
                                     setShowEditBill(false);
                                 }}>Save Changes</button>
                             </div>

@@ -111,11 +111,11 @@ const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGues
             } else {
                 const error = await response.json();
                 console.error('❌ Failed to delete guest:', error);
-                alert('Failed to delete guest. Please try again.');
+                // Removed browser alert for "pop section" removal
             }
         } catch (error) {
             console.error('❌ Error deleting guest:', error);
-            alert('Error deleting guest. Please try again.');
+            // Removed browser alert for "pop section" removal
         }
     };
 
@@ -207,9 +207,7 @@ const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGues
                                                         className="action-btn delete-btn"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            if (window.confirm(`Are you sure you want to delete ${guest.fullName || guest.name}?`)) {
-                                                                handleDeleteGuest(guest);
-                                                            }
+                                                            handleDeleteGuest(guest);
                                                         }}
                                                         title="Delete Guest"
                                                     >
