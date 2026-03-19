@@ -60,9 +60,9 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     // Login function
-    const login = async (email, password) => {
+    const login = async (email, password, role) => {
         try {
-            const response = await axios.post('/api/auth/login', { username: email, password });
+            const response = await axios.post('/api/auth/login', { username: email, password, role });
 
             if (response.data) {
                 const userWithToken = response.data;
