@@ -22,7 +22,7 @@ const Login = () => {
         setLoading(true);
         setError('');
 
-        const result = await login(email, password);
+        const result = await login(email, password, role);
 
         if (result.success) {
             // Smart redirect based on user's first accessible page

@@ -30,7 +30,7 @@ const SuperAdminLogin = () => {
         setLoading(true);
         setError('');
 
-        const result = await login(formData.email, formData.password);
+        const result = await login(formData.email, formData.password, 'admin');
 
         if (result.success) {
             if (result.user.role === 'super_admin') {

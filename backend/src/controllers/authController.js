@@ -33,13 +33,13 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { username, password, role: intendedRole } = req.body;
 
         if (!username || !password) {
             return res.status(400).json({ message: 'Email and password are required' });
         }
 
-        console.log(`[Auth] Login attempt: ${username}`);
+        console.log(`[Auth] Login attempt: ${username} as ${intendedRole}`);
 
         // Find user in database and include hotel information
         const user = await User.findOne({ username }).populate('hotelId');
@@ -52,6 +52,22 @@ const loginUser = async (req, res) => {
         if (!user.isActive) {
             return res.status(403).json({ message: 'Account is disabled. Please contact support.' });
         }
+
+        // --- ROLE RESTRICTION LOGIC ---
+        const isAdminRole = ['admin', 'super_admin', 'superadmin'].includes(user.role);
+        
+        if (intendedRole === 'admin') {
+            if (!isAdminRole) {
+                console.log(`[Auth] Role restriction: Staff ${username} tried to login via Admin form`);
+                return res.status(403).json({ message: 'Staff login NOT allowed here. Please use the Staff login tab.' });
+            }
+        } else if (intendedRole === 'staff') {
+            if (isAdminRole) {
+                console.log(`[Auth] Role restriction: Admin ${username} tried to login via Staff form`);
+                return res.status(403).json({ message: 'Admin login NOT allowed here. Please use the Admin login tab.' });
+            }
+        }
+        // ------------------------------
 
         // Compare password using bcrypt
         const isMatch = await bcrypt.compare(password, user.password);
