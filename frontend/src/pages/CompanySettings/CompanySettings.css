@@ -1105,6 +1105,43 @@
     border-bottom: 1px solid #f8fafc;
 }
 
+.tax-help-text {
+    margin: 0 0 14px 0;
+    color: #1f2937;
+    font-size: 16px;
+    line-height: 1.4;
+}
+
+.tax-slab-row {
+    gap: 18px;
+}
+
+.tax-slab-range-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.tax-slab-separator {
+    font-size: 24px;
+    color: #475569;
+    line-height: 1;
+}
+
+.tax-slab-input {
+    width: 112px;
+    padding: 8px 12px;
+    border: 1.5px solid #f1f5f9;
+    border-radius: 8px;
+    background: #f8fafc;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.tax-slab-rate-input-wrap {
+    min-width: 148px;
+}
+
 .billing-field-row.special {
     background: #fdf2f222;
     margin: 0 -30px;

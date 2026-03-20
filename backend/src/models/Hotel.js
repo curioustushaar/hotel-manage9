@@ -35,6 +35,18 @@ const hotelSchema = new mongoose.Schema({
     sgst: { type: Number, default: 2.5 },
     serviceCharge: { type: Number, default: 10 },
     roomGst: { type: Number, default: 12 },
+    roomGstSlabs: {
+        type: [{
+            min: { type: Number, default: 0 },
+            max: { type: Number, default: 0 },
+            rate: { type: Number, default: 0 }
+        }],
+        default: [
+            { min: 0, max: 1000, rate: 0 },
+            { min: 1001, max: 7500, rate: 12 },
+            { min: 7501, max: 99999, rate: 18 }
+        ]
+    },
     foodGst: { type: Number, default: 5 },
     roomServiceCharge: { type: Number, default: 5 },
     inclusiveTax: { type: Boolean, default: false },

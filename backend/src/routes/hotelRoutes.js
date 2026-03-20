@@ -3,6 +3,28 @@ const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
 const Hotel = require('../models/Hotel');
 
+const DEFAULT_ROOM_GST_SLABS = [
+    { min: 0, max: 1000, rate: 0 },
+    { min: 1001, max: 7500, rate: 12 },
+    { min: 7501, max: 99999, rate: 18 }
+];
+
+const normalizeRoomGstSlabs = (slabs) => {
+    if (!Array.isArray(slabs) || slabs.length === 0) return DEFAULT_ROOM_GST_SLABS;
+
+    return slabs
+        .map((slab) => ({
+            min: Math.max(0, Number(slab?.min) || 0),
+            max: Math.max(0, Number(slab?.max) || 0),
+            rate: Math.max(0, Math.min(100, Number(slab?.rate) || 0))
+        }))
+        .sort((a, b) => a.min - b.min)
+        .map((slab) => ({
+            ...slab,
+            max: slab.max >= slab.min ? slab.max : slab.min
+        }));
+};
+
 // @desc    Get hotel settings (no auth needed for frontend context)
 // @route   GET /api/hotel/settings
 // @access  Public
@@ -33,6 +55,7 @@ router.get('/settings', async (req, res) => {
             ...hotel,
             serviceCharge: normalizedServiceCharge,
             roomServiceCharge: normalizedServiceCharge,
+            roomGstSlabs: normalizeRoomGstSlabs(hotel.roomGstSlabs),
             enableRoomPosting: normalizedRoomPosting,
             billingRules: {
                 ...(hotel.billingRules || {}),
@@ -82,6 +105,9 @@ router.put('/settings', protect, async (req, res) => {
         if (updates.sgst !== undefined && updates.sgst > 50) {
             return res.status(400).json({ success: false, message: 'SGST cannot exceed 50%' });
         }
+        if (updates.roomGstSlabs !== undefined) {
+            updates.roomGstSlabs = normalizeRoomGstSlabs(updates.roomGstSlabs);
+        }
 
         let hotel = await Hotel.findOne().sort({ createdAt: 1 });
         if (!hotel) {
@@ -101,7 +127,7 @@ router.put('/settings', protect, async (req, res) => {
         const allowedFields = [
             'name', 'address', 'city', 'state', 'pin', 'gstNumber', 'phone', 'logoUrl',
             'currency', 'timezone', 'dateFormat', 'timeFormat',
-            'taxType', 'cgst', 'sgst', 'serviceCharge', 'roomGst', 'foodGst', 'roomServiceCharge', 'inclusiveTax',
+            'taxType', 'cgst', 'sgst', 'serviceCharge', 'roomGst', 'roomGstSlabs', 'foodGst', 'roomServiceCharge', 'inclusiveTax',
             'invoicePrefix', 'billingInvoicePrefix', 'startingInvoiceNumber', 'panNumber',
             'autoGenerateInvoice', 'autoIncrementInvoice', 'billPrintFormat', 'thankYouMessage',
             'enableRoomPosting', 'posEnabled', 'displayLogoOnBill', 'printKOTHeader',

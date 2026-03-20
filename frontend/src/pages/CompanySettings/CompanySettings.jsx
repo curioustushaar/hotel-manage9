@@ -3,6 +3,7 @@ import './CompanySettings.css';
 import API_URL from '../../config/api';
 import { useSettings } from '../../context/SettingsContext';
 import { useAuth } from '../../context/AuthContext';
+import { DEFAULT_ROOM_GST_SLABS, normalizeRoomGstSlabs } from '../../utils/roomTax';
 
 const CompanySettings = () => {
     const { settings: globalSettings, fetchSettings: refreshGlobal, getCurrencySymbol } = useSettings();
@@ -38,6 +39,7 @@ const CompanySettings = () => {
         autoGenerateInvoice: true,
         billPrintFormat: 'Hotel Invoice',
         roomGst: '12',
+        roomGstSlabs: DEFAULT_ROOM_GST_SLABS,
         foodGst: '5',
         roomServiceCharge: '5',
         inclusiveTax: true,
@@ -104,6 +106,7 @@ const CompanySettings = () => {
                             autoGenerateInvoice: s.autoGenerateInvoice ?? prev.autoGenerateInvoice,
                             billPrintFormat: s.billPrintFormat || prev.billPrintFormat,
                             roomGst: String(s.roomGst ?? prev.roomGst),
+                            roomGstSlabs: normalizeRoomGstSlabs(s.roomGstSlabs ?? prev.roomGstSlabs),
                             foodGst: String(s.foodGst ?? prev.foodGst),
                             roomServiceCharge: normalizedServiceCharge,
                             inclusiveTax: s.inclusiveTax ?? prev.inclusiveTax,
@@ -176,6 +179,14 @@ const CompanySettings = () => {
 
     const handleInputChange = (e) => {
         let { name, value, type, checked } = e.target;
+        const toNum = (val) => {
+            const parsed = Number(val);
+            return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+        };
+        const toPctString = (val) => {
+            const safe = Math.round(toNum(val) * 100) / 100;
+            return String(safe);
+        };
 
         // Apply validations based on field name
         if (name === 'gstNumber') {
@@ -207,6 +218,36 @@ const CompanySettings = () => {
             return;
         }
 
+        if (name === 'cgst' || name === 'sgst') {
+            setHotelData(prev => {
+                const nextCgst = name === 'cgst' ? toNum(value) : toNum(prev.cgst);
+                const nextSgst = name === 'sgst' ? toNum(value) : toNum(prev.sgst);
+                const totalFoodGst = nextCgst + nextSgst;
+
+                return {
+                    ...prev,
+                    cgst: toPctString(nextCgst),
+                    sgst: toPctString(nextSgst),
+                    foodGst: toPctString(totalFoodGst)
+                };
+            });
+            return;
+        }
+
+        if (name === 'foodGst') {
+            const totalFoodGst = toNum(value);
+            const half = Math.round((totalFoodGst / 2) * 100) / 100;
+            const secondHalf = Math.round((totalFoodGst - half) * 100) / 100;
+
+            setHotelData(prev => ({
+                ...prev,
+                foodGst: toPctString(totalFoodGst),
+                cgst: toPctString(half),
+                sgst: toPctString(secondHalf)
+            }));
+            return;
+        }
+
         setHotelData(prev => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value
@@ -224,12 +265,26 @@ const CompanySettings = () => {
         }
     };
 
+    const handleRoomGstSlabChange = (index, field, rawValue) => {
+        const value = Math.max(0, Number(rawValue) || 0);
+        setHotelData(prev => ({
+            ...prev,
+            roomGstSlabs: (prev.roomGstSlabs || DEFAULT_ROOM_GST_SLABS).map((slab, slabIndex) => {
+                if (slabIndex !== index) return slab;
+                return { ...slab, [field]: value };
+            })
+        }));
+    };
+
     const handleSave = async () => {
         setSaving(true);
         try {
             const token = user?.token;
             const serviceChargeValue = parseFloat(hotelData.roomServiceCharge) || 0;
             const roomPostingEnabled = !!hotelData.enableRoomPosting;
+            const normalizedRoomGstSlabs = normalizeRoomGstSlabs(hotelData.roomGstSlabs);
+            const slabForStandardRoom = normalizedRoomGstSlabs.find(slab => 1001 >= slab.min && 1001 <= slab.max);
+            const fallbackRoomGst = slabForStandardRoom?.rate ?? normalizedRoomGstSlabs[0]?.rate ?? (parseFloat(hotelData.roomGst) || 0);
             const payload = {
                 name: hotelData.hotelName,
                 address: hotelData.address,
@@ -246,7 +301,8 @@ const CompanySettings = () => {
                 cgst: parseFloat(hotelData.cgst) || 0,
                 sgst: parseFloat(hotelData.sgst) || 0,
                 serviceCharge: serviceChargeValue,
-                roomGst: parseFloat(hotelData.roomGst) || 0,
+                roomGst: fallbackRoomGst,
+                roomGstSlabs: normalizedRoomGstSlabs,
                 foodGst: parseFloat(hotelData.foodGst) || 0,
                 roomServiceCharge: serviceChargeValue,
                 inclusiveTax: hotelData.inclusiveTax,
@@ -471,20 +527,38 @@ const CompanySettings = () => {
 
                             <div className="settings-card">
                                 <h3 className="card-header-icon"><span className="red-icon">💰</span> Tax Configuration</h3>
-                                <div className="billing-field-row">
-                                    <label>Room GST %</label>
-                                    <div className="input-with-symbol-right">
-                                        <input
-                                            type="number"
-                                            name="roomGst"
-                                            value={hotelData.roomGst}
-                                            onChange={handleInputChange}
-                                            min="0"
-                                            max="50"
-                                        />
-                                        <span className="symbol-box">%</span>
+                                <p className="tax-help-text">Room Rent GST is calculated based on the price of the room per night.</p>
+                                {(hotelData.roomGstSlabs || DEFAULT_ROOM_GST_SLABS).map((slab, index) => (
+                                    <div className="billing-field-row tax-slab-row" key={`room-gst-slab-${index}`}>
+                                        <div className="tax-slab-range-wrap">
+                                            <input
+                                                type="number"
+                                                value={slab.min}
+                                                onChange={(e) => handleRoomGstSlabChange(index, 'min', e.target.value)}
+                                                min="0"
+                                                className="tax-slab-input"
+                                            />
+                                            <span className="tax-slab-separator">-</span>
+                                            <input
+                                                type="number"
+                                                value={slab.max}
+                                                onChange={(e) => handleRoomGstSlabChange(index, 'max', e.target.value)}
+                                                min="0"
+                                                className="tax-slab-input"
+                                            />
+                                        </div>
+                                        <div className="input-with-symbol-right tax-slab-rate-input-wrap">
+                                            <input
+                                                type="number"
+                                                value={slab.rate}
+                                                onChange={(e) => handleRoomGstSlabChange(index, 'rate', e.target.value)}
+                                                min="0"
+                                                max="100"
+                                            />
+                                            <span className="symbol-box">%</span>
+                                        </div>
                                     </div>
-                                </div>
+                                ))}
                                 <div className="billing-field-row">
                                     <label>Food GST %</label>
                                     <div className="input-with-symbol-right">

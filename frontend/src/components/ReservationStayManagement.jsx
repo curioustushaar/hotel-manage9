@@ -21,6 +21,7 @@ import BookingActionsManager from './BookingActionsManager';
 import HousekeepingView from './HousekeepingView';
 import RoomService from './RoomService';
 import { useSettings } from '../context/SettingsContext';
+import { calculateRoomTaxBySlab } from '../utils/roomTax';
 
 const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const location = useLocation();
@@ -331,6 +332,16 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         const balanceDue = booking.remainingAmount || billing.balanceAmount || (totalAmount - paidAmount);
         const nights = booking.numberOfNights || duration.nights || 1;
         const pricePerNight = booking.pricePerNight || billing.roomRate || 0;
+        const serviceChargeAmount = Number(booking.serviceChargeAmount ?? billing.serviceCharge ?? 0) || 0;
+        const taxAmount = Number(booking.taxAmount ?? billing.tax ?? 0) || 0;
+
+        const roomChargesFromRows = Array.isArray(booking.rooms) && booking.rooms.length > 0
+            ? booking.rooms.reduce((sum, r) => sum + ((Number(r.ratePerNight) || 0) * nights), 0)
+            : (pricePerNight * nights);
+
+        const discountFromRows = Array.isArray(booking.rooms) && booking.rooms.length > 0
+            ? booking.rooms.reduce((sum, r) => sum + (Number(r.discount) || 0), 0)
+            : 0;
 
         return {
             id: booking._id || `booking-${Math.random()}`,
@@ -382,9 +393,10 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             status: booking.status === 'Upcoming' ? 'RESERVED' :
                 booking.status === 'Checked-in' || booking.status === 'IN_HOUSE' || booking.status === 'CheckedIn' ? 'IN_HOUSE' :
                     booking.status === 'Checked-out' || booking.status === 'CHECKED_OUT' || booking.status === 'CheckedOut' ? 'CHECKED_OUT' : 'RESERVED',
-            roomCharges: pricePerNight * nights,
-            discount: 0,
-            tax: totalAmount - (pricePerNight * nights),
+            roomCharges: roomChargesFromRows,
+            discount: discountFromRows,
+            tax: taxAmount,
+            serviceCharge: serviceChargeAmount,
             totalAmount: totalAmount,
             paidAmount: paidAmount,
             balanceDue: balanceDue,
@@ -779,34 +791,41 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
     // Calculate billing
     const billingData = useMemo(() => {
-        const roomCharges = rooms.reduce((sum, room) => sum + (room.ratePerNight * nights), 0);
-        const totalDiscount = rooms.reduce((sum, room) => sum + (Number(room.discount) || 0), 0);
-        const subtotal = roomCharges - totalDiscount;
-        const roomGstPct = parseFloat(settings.roomGst) || 12;
+        const taxResult = calculateRoomTaxBySlab({
+            rooms,
+            nights,
+            taxExempt,
+            inclusiveTax: settings.inclusiveTax,
+            roomGstSlabs: settings.roomGstSlabs,
+            fallbackRoomGst: settings.roomGst
+        });
+        const roomCharges = taxResult.roomCharges;
+        const totalDiscount = taxResult.totalDiscount;
+        const subtotal = taxResult.subtotal;
         const isInclusive = settings.inclusiveTax;
-        let taxAmount = 0;
-        if (!taxExempt) {
-            if (isInclusive) {
-                // tax is already included in the price
-                taxAmount = Math.round(subtotal - subtotal * 100 / (100 + roomGstPct));
-            } else {
-                taxAmount = Math.round(subtotal * roomGstPct / 100);
-            }
-        }
-        const totalAmount = isInclusive || taxExempt ? subtotal : subtotal + taxAmount;
+        const taxAmount = taxResult.taxAmount;
+        const serviceChargePct = parseFloat(settings.roomServiceCharge) || 0;
+        const serviceChargeAmount = subtotal > 0 ? Math.round((subtotal * serviceChargePct) / 100) : 0;
+        const totalAmount = (isInclusive || taxExempt ? subtotal : subtotal + taxAmount) + serviceChargeAmount;
         const balanceDue = Math.max(0, totalAmount - (paidAmount || 0));
+        const taxLabel = taxExempt
+            ? 'Tax (exempt)'
+            : `Tax (${taxResult.effectiveRate.toFixed(2)}% slab avg.)${isInclusive ? ' (incl.)' : ''}`;
 
         return {
             roomCharges,
             totalDiscount,
             subtotal,
             taxAmount,
+            taxLabel,
+            serviceChargeAmount,
+            serviceChargePct,
             totalAmount,
             paidAmount: paidAmount || 0,
             balanceDue,
             paymentMode
         };
-    }, [rooms, nights, paidAmount, paymentMode, taxExempt, settings.roomGst, settings.inclusiveTax]);
+    }, [rooms, nights, paidAmount, paymentMode, taxExempt, settings.roomGst, settings.roomGstSlabs, settings.roomServiceCharge, settings.inclusiveTax]);
 
     // Handle View Invoice
     const handleViewInvoice = useCallback((invoiceId) => {
@@ -1215,6 +1234,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             checkOutDate,
             numberOfNights: Number(nights) || 1,
             pricePerNight: mappedRooms[0].ratePerNight,
+            discountAmount: Number(billingData.totalDiscount) || 0,
+            taxAmount: Number(billingData.taxAmount) || 0,
+            serviceChargeAmount: Number(billingData.serviceChargeAmount) || 0,
             totalAmount: Number(billingData.totalAmount) || 0,
             advancePaid: Number(billingData.paidAmount) || 0,
             status: status === 'IN_HOUSE' ? 'Checked-in' : 'Upcoming',
@@ -1699,6 +1721,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                 roomCharges={billingData.roomCharges}
                                 discount={billingData.totalDiscount}
                                 tax={billingData.taxAmount}
+                                taxLabel={billingData.taxLabel}
+                                serviceCharge={billingData.serviceChargeAmount}
+                                serviceChargeLabel={`Service Charge (${billingData.serviceChargePct}%)`}
                                 totalAmount={billingData.totalAmount}
                                 paidAmount={paidAmount}
                                 balanceDue={billingData.balanceDue}
