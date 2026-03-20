@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import API_URL from '../config/api';
+import { DEFAULT_ROOM_GST_SLABS, normalizeRoomGstSlabs } from '../utils/roomTax';
 
 const SettingsContext = createContext(null);
 
@@ -21,6 +22,7 @@ const defaultSettings = {
     sgst: 2.5,
     serviceCharge: 10,
     roomGst: 12,
+    roomGstSlabs: DEFAULT_ROOM_GST_SLABS,
     foodGst: 5,
     roomServiceCharge: 10,
     inclusiveTax: false,
@@ -183,10 +185,12 @@ export const SettingsProvider = ({ children }) => {
                     const mergedBillingRules = { ...prev.billingRules, ...(data.data.billingRules || {}) };
                     const masterServiceCharge = data.data.roomServiceCharge ?? data.data.serviceCharge ?? prev.roomServiceCharge;
                     const roomPostingEnabled = data.data.enableRoomPosting ?? mergedBillingRules.autoPost ?? prev.enableRoomPosting;
+                    const roomGstSlabs = normalizeRoomGstSlabs(data.data.roomGstSlabs ?? prev.roomGstSlabs);
 
                     return {
                         ...prev,
                         ...data.data,
+                        roomGstSlabs,
                         serviceCharge: masterServiceCharge,
                         roomServiceCharge: masterServiceCharge,
                         enableRoomPosting: roomPostingEnabled,

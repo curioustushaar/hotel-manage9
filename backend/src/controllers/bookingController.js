@@ -214,6 +214,9 @@ exports.addBooking = async (req, res) => {
             },
             billing: {
                 roomRate: Number(bookingData.pricePerNight) || 0,
+                discount: Number(bookingData.discountAmount) || 0,
+                tax: Number(bookingData.taxAmount) || 0,
+                serviceCharge: Number(bookingData.serviceChargeAmount) || 0,
                 totalAmount: Number(bookingData.totalAmount) || 0,
                 paidAmount: Number(bookingData.advancePaid) || 0,
                 balanceAmount: (Number(bookingData.totalAmount) || 0) - (Number(bookingData.advancePaid) || 0)
@@ -284,6 +287,20 @@ exports.updateBooking = async (req, res) => {
 
         const oldStatus = booking.status;
         const oldRoomNumber = booking.roomNumber;
+
+        if (!booking.billing) {
+            booking.billing = { roomRate: 0, totalAmount: 0, paidAmount: 0, balanceAmount: 0 };
+        }
+
+        if (req.body.pricePerNight !== undefined) booking.billing.roomRate = Number(req.body.pricePerNight) || 0;
+        if (req.body.discountAmount !== undefined) booking.billing.discount = Number(req.body.discountAmount) || 0;
+        if (req.body.taxAmount !== undefined) booking.billing.tax = Number(req.body.taxAmount) || 0;
+        if (req.body.serviceChargeAmount !== undefined) booking.billing.serviceCharge = Number(req.body.serviceChargeAmount) || 0;
+        if (req.body.totalAmount !== undefined) booking.billing.totalAmount = Number(req.body.totalAmount) || 0;
+        if (req.body.advancePaid !== undefined) booking.billing.paidAmount = Number(req.body.advancePaid) || 0;
+        if (req.body.totalAmount !== undefined || req.body.advancePaid !== undefined) {
+            booking.billing.balanceAmount = (Number(booking.billing.totalAmount) || 0) - (Number(booking.billing.paidAmount) || 0);
+        }
 
         // Update only provided fields
         Object.assign(booking, req.body);

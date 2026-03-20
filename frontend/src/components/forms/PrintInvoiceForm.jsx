@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import '../AddPayment.css';
 import { useSettings } from '../../context/SettingsContext';
+import { calculateRoomTaxBySlab } from '../../utils/roomTax';
 
 const PrintInvoiceForm = ({ booking, onSubmit, onCancel }) => {
     const [printType, setPrintType] = useState('A4');
@@ -20,12 +21,34 @@ const PrintInvoiceForm = ({ booking, onSubmit, onCancel }) => {
         return settingsFormatDate(date);
     };
 
+    const toNum = (value, fallback = 0) => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
+    };
+
     const b = booking || {};
-    const taxRate = (parseFloat(settings.roomGst) || 12) / 100;
+    const nights = Math.max(1, toNum(b.nights, 1));
+    const roomRows = Array.isArray(b.rooms) && b.rooms.length > 0
+        ? b.rooms
+        : [{
+            ratePerNight: toNum(b.ratePerNight, 0) || (toNum(b.roomCharges, 0) / nights),
+            discount: toNum(b.discount, 0)
+        }];
+
+    const slabTax = calculateRoomTaxBySlab({
+        rooms: roomRows,
+        nights,
+        taxExempt: false,
+        inclusiveTax: settings.inclusiveTax,
+        roomGstSlabs: settings.roomGstSlabs,
+        fallbackRoomGst: settings.roomGst
+    });
+
     const cs = getCurrencySymbol();
-    const subtotal = b.totalAmount || 0;
-    const tax = Math.round(subtotal * taxRate);
-    const grandTotal = subtotal + tax;
+    const subtotal = toNum(b.roomCharges, slabTax.roomCharges) - toNum(b.discount, slabTax.totalDiscount);
+    const tax = toNum(b.tax, slabTax.taxAmount);
+    const grandTotal = toNum(b.totalAmount, settings.inclusiveTax ? subtotal : subtotal + tax);
+    const taxRateLabel = subtotal > 0 ? ((tax * 100) / subtotal).toFixed(2) : '0.00';
 
     const handlePrint = () => {
         if (onSubmit) {
@@ -64,7 +87,7 @@ const PrintInvoiceForm = ({ booking, onSubmit, onCancel }) => {
                                 <span>{cs}{subtotal.toLocaleString('en-IN')}</span>
                             </div>
                             <div className="summary-item">
-                                <label>{settings.taxType || 'GST'} ({(taxRate * 100).toFixed(0)}%)</label>
+                                <label>{settings.taxType || 'GST'} ({taxRateLabel}% slab avg.)</label>
                                 <span>{cs}{tax.toLocaleString('en-IN')}</span>
                             </div>
                             <div className="summary-item">

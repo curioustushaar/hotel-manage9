@@ -200,12 +200,16 @@ const CashierSection = () => {
                     [mode.toLowerCase()]: (prev[mode.toLowerCase()] || 0) + amount,
                     pending: Math.max(0, prev.pending - 1)
                 }));
+
+                return true;
             } else {
                 alert('Failed to settle order: ' + data.message);
+                return false;
             }
         } catch (error) {
             console.error('Error settling order:', error);
             alert('Error settling order. Please check connection.');
+            return false;
         }
     };
 
@@ -428,6 +432,7 @@ const CashierSection = () => {
                     <CashierPayment
                         order={selectedOrder}
                         onPaymentComplete={handlePaymentComplete}
+                        onClearSelection={() => setSelectedOrder(null)}
                         onRoomPostingAction={handleRoomPostingAction}
                         checkedInRooms={checkedInRooms}
                     />
@@ -600,13 +605,15 @@ const CashierSection = () => {
     );
 };
 
-const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checkedInRooms = [] }) => {
+const CashierPayment = ({ order, onPaymentComplete, onClearSelection, onRoomPostingAction, checkedInRooms = [] }) => {
     const { settings, getCurrencySymbol, formatDate } = useSettings();
     const cs = getCurrencySymbol();
 
     // Food items are always priced BEFORE tax (exclusive), so always add GST on top
     const computedSubtotal = order ? order.items.reduce((s, i) => s + i.amount, 0) : 0;
-    const foodGstPct = parseFloat(settings.foodGst) || 0;
+    const cgstPct = parseFloat(settings.cgst) || 0;
+    const sgstPct = parseFloat(settings.sgst) || 0;
+    const foodGstPct = (cgstPct + sgstPct) > 0 ? (cgstPct + sgstPct) : (parseFloat(settings.foodGst) || 0);
     const svcChargePct = parseFloat(settings.roomServiceCharge) || 0;
     let taxAmtComputed = 0, svcAmtComputed = 0;
     let grandTotalComputed = computedSubtotal;
@@ -629,8 +636,10 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
     const [showEditBill, setShowEditBill] = useState(false);
     const [editItems, setEditItems] = useState([]);
     const [pendingRemoveItemIndex, setPendingRemoveItemIndex] = useState(null);
+    const [paymentSuccessNote, setPaymentSuccessNote] = useState('');
 
     const printDropdownRef = useRef(null);
+    const tenderResetTimerRef = useRef(null);
 
     // Derived: list of folios for current booking
     const availableFolios = useMemo(() => {
@@ -653,6 +662,11 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
 
     // Initial state reset when order changes
     useEffect(() => {
+        if (tenderResetTimerRef.current) {
+            clearTimeout(tenderResetTimerRef.current);
+            tenderResetTimerRef.current = null;
+        }
+
         if (order) {
             const firstMode = settings.paymentModes?.upi ? 'UPI' : settings.paymentModes?.card ? 'Card' : 'Cash';
             const defaultPayMode = settings.paymentModes?.cash !== false ? 'Cash' : firstMode;
@@ -661,6 +675,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
             setIsTendered(false);
             setShowPrintDropdown(false);
             setShowEditBill(false);
+            setPaymentSuccessNote('');
 
             // Auto-fill discount from rules for food/all-bill orders
             let autoDiscType = 'PERCENTAGE', autoDiscVal = '', autoDiscSrc = '';
@@ -707,11 +722,21 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
             setIsTendered(false);
             setShowPrintDropdown(false);
             setShowEditBill(false);
+            setPaymentSuccessNote('');
             setDiscountValue('');
             setDiscountSource('');
             setDiscountType('PERCENTAGE');
         }
     }, [order, checkedInRooms]);
+
+    useEffect(() => {
+        return () => {
+            if (tenderResetTimerRef.current) {
+                clearTimeout(tenderResetTimerRef.current);
+                tenderResetTimerRef.current = null;
+            }
+        };
+    }, []);
 
     // Close print dropdown on outside click
     useEffect(() => {
@@ -889,9 +914,9 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                         <span>Subtotal</span>
                         <span>${cs} ${order.items.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</span>
                     </div>
-                    ${parseFloat(settings.foodGst) > 0 ? `<div class="total-row">
-                        <span>Food GST (${settings.foodGst}%)</span>
-                        <span>${cs} ${Math.round(order.items.reduce((s,i)=>s+i.amount,0)*parseFloat(settings.foodGst)/100).toFixed(2)}</span>
+                    ${((parseFloat(settings.cgst) || 0) + (parseFloat(settings.sgst) || 0) > 0) ? `<div class="total-row">
+                        <span>GST (CGST + SGST) (${((parseFloat(settings.cgst) || 0) + (parseFloat(settings.sgst) || 0)).toFixed(2)}%)</span>
+                        <span>${cs} ${Math.round(order.items.reduce((s,i)=>s+i.amount,0)*(((parseFloat(settings.cgst) || 0) + (parseFloat(settings.sgst) || 0))/100)).toFixed(2)}</span>
                     </div>` : ''}
                     ${parseFloat(settings.roomServiceCharge) > 0 ? `<div class="total-row">
                         <span>Service Charge (${settings.roomServiceCharge}%)</span>
@@ -901,7 +926,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                         <span>NET PAYABLE</span>
                         <span>${cs} ${(() => {
                             const sub = order.items.reduce((s,i)=>s+i.amount,0);
-                            const fGst = parseFloat(settings.foodGst)||0;
+                            const fGst = ((parseFloat(settings.cgst)||0) + (parseFloat(settings.sgst)||0)) || (parseFloat(settings.foodGst)||0);
                             const sSvc = parseFloat(settings.roomServiceCharge)||0;
                             return (sub + Math.round(sub*fGst/100) + Math.round(sub*sSvc/100)).toFixed(2);
                         })()}</span>
@@ -949,7 +974,7 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
         alert(`💬 SMS successfully sent to ${order.guest} `);
     };
 
-    const handleTender = () => {
+    const handleTender = async () => {
         if (!order) return;
 
         // Validation for "Add to Room"
@@ -977,8 +1002,25 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
         }
 
         // Trigger completion callback
-        onPaymentComplete(order.id, netAfterDiscount, paymentMode, paymentType, targetRoom, targetFolioId);
+        const settled = await onPaymentComplete(order.id, netAfterDiscount, paymentMode, paymentType, targetRoom, targetFolioId);
+        if (!settled) return;
+
         setIsTendered(true);
+        setPaymentSuccessNote('Payment successful');
+
+        tenderResetTimerRef.current = setTimeout(() => {
+            setShowPrintDropdown(false);
+            setReceivedAmount('');
+            setReturnAmount(0);
+            setDiscountType('PERCENTAGE');
+            setDiscountValue('');
+            setDiscountSource('');
+            setTargetRoom('');
+            setSelectedBooking(null);
+            setTargetFolioId(0);
+            onClearSelection?.();
+            tenderResetTimerRef.current = null;
+        }, 900);
     };
 
     // If no order is selected, show empty state with same structure
@@ -1304,10 +1346,10 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                 <div className="quick-actions-modern">
                     <div className="print-dropdown-wrapper" ref={printDropdownRef}>
                         <button
-                            className={`q-btn print-btn-main ${isTendered ? 'print-ready' : ''}`}
-                            onClick={() => isTendered && setShowPrintDropdown(!showPrintDropdown)}
-                            disabled={isPlaceholder || !isTendered}
-                            title={!isTendered ? 'Click Tender first to enable printing' : 'Select print format'}
+                            className={`q-btn print-btn-main ${!isPlaceholder ? 'print-ready' : ''}`}
+                            onClick={() => !isPlaceholder && setShowPrintDropdown(!showPrintDropdown)}
+                            disabled={isPlaceholder}
+                            title={isPlaceholder ? 'Select an order first' : 'Select print format'}
                         >
                             🖨️ Print Bill {showPrintDropdown ? '▲' : '▼'}
                         </button>
@@ -1439,12 +1481,13 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                                     if (order) {
                                         order.items = editItems;
                                         const newSubtotal = editItems.reduce((s, i) => s + i.amount, 0);
-                                        const fGst = parseFloat(settings.foodGst) || 0;
+                                        const fGst = ((parseFloat(settings.cgst) || 0) + (parseFloat(settings.sgst) || 0)) || (parseFloat(settings.foodGst) || 0);
                                         const sSvc = parseFloat(settings.roomServiceCharge) || 0;
                                         const newGrandTotal = newSubtotal + Math.round(newSubtotal * fGst / 100) + Math.round(newSubtotal * sSvc / 100);
                                         order.amount = newGrandTotal;
                                         setReceivedAmount(newGrandTotal.toString());
                                         setIsTendered(false);
+                                        setPaymentSuccessNote('');
                                     }
                                     setPendingRemoveItemIndex(null);
                                     setShowEditBill(false);
@@ -1460,10 +1503,16 @@ const CashierPayment = ({ order, onPaymentComplete, onRoomPostingAction, checked
                     onClick={handleTender}
                 >
                     {isTendered
-                        ? '✅ Payment Settled — Select Print Format'
+                        ? 'Tendered'
                         : paymentType === 'Add to Room' ? 'Post to Room Folio' : `Tender ${cs} ${netAfterDiscount.toFixed(0)}`
                     }
                 </button>
+
+                {paymentSuccessNote && (
+                    <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#16a34a', fontWeight: 700 }}>
+                        {paymentSuccessNote}
+                    </div>
+                )}
 
                 <div className="room-posting-section">
                     <h4>Room Posting Today</h4>

@@ -6,6 +6,9 @@ const BillingSummary = ({
     roomCharges = 0,
     discount = 0,
     tax = 0,
+    taxLabel = '',
+    serviceCharge = 0,
+    serviceChargeLabel = 'Service Charge',
     totalAmount = 0,
     paidAmount = 0,
     balanceDue = 0,
@@ -23,6 +26,7 @@ const BillingSummary = ({
     const roomGstPct = parseFloat(settings.roomGst) || 12;
     const isInclusive = settings.inclusiveTax;
     const pm = settings.paymentModes || {};
+    const resolvedTaxLabel = taxLabel || `Tax (${roomGstPct}%)${isInclusive ? ' (incl.)' : ''}`;
 
     // Build enabled payment options
     const paymentOptions = [
@@ -51,9 +55,15 @@ const BillingSummary = ({
                             <span className="value">{cs}{roomCharges.toLocaleString('en-IN')}</span>
                         </div>
                         <div className="summary-item-v2" style={{ marginTop: '20px' }}>
-                            <span className="label">Tax ({roomGstPct}%){isInclusive ? ' (incl.)' : ''}</span>
+                            <span className="label">{resolvedTaxLabel}</span>
                             <span className="value">{cs}{tax.toLocaleString('en-IN')}</span>
                         </div>
+                        {serviceCharge > 0 && (
+                            <div className="summary-item-v2" style={{ marginTop: '10px' }}>
+                                <span className="label">{serviceChargeLabel}</span>
+                                <span className="value">{cs}{serviceCharge.toLocaleString('en-IN')}</span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="card-body-right">
