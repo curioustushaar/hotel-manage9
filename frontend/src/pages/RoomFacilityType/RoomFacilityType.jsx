@@ -12,6 +12,8 @@ const RoomFacilityType = () => {
     const [modalMode, setModalMode] = useState('add');
     const [currentFacility, setCurrentFacility] = useState(null);
     const [formData, setFormData] = useState({ name: '', description: '' });
+    const [pendingDeleteId, setPendingDeleteId] = useState(null);
+    const [deletingId, setDeletingId] = useState(null);
 
     useEffect(() => {
         fetchFacilityTypes();
@@ -77,21 +79,27 @@ const RoomFacilityType = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this facility type?')) {
-            try {
-                const response = await fetch(`${API_URL}/api/facility-types/delete/${id}`, {
-                    method: 'DELETE'
-                });
-                const data = await response.json();
-                if (data.success) {
-                    fetchFacilityTypes();
-                } else {
-                    alert('Failed to delete');
-                }
-            } catch (error) {
-                alert('Error deleting');
+    const handleDeleteClick = (id) => {
+        setPendingDeleteId(prev => prev === id ? null : id);
+    };
+
+    const confirmDelete = async (id) => {
+        setDeletingId(id);
+        try {
+            const response = await fetch(`${API_URL}/api/facility-types/delete/${id}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            if (data.success) {
+                fetchFacilityTypes();
+            } else {
+                setError('Failed to delete facility type');
             }
+        } catch (error) {
+            setError('Error deleting facility type');
+        } finally {
+            setDeletingId(null);
+            setPendingDeleteId(null);
         }
     };
 
@@ -134,7 +142,18 @@ const RoomFacilityType = () => {
                                     <td style={{ textAlign: 'right' }}>
                                         <div className="action-btns" style={{ justifyContent: 'flex-end' }}>
                                             <button className="icon-button" onClick={() => handleOpenModal('edit', facility)}>✏️</button>
-                                            <button className="icon-button" onClick={() => handleDelete(facility._id)}>🗑️</button>
+                                            <div className="inline-delete-wrap">
+                                                <button className="icon-button" onClick={() => handleDeleteClick(facility._id)} disabled={deletingId === facility._id}>🗑️</button>
+                                                {pendingDeleteId === facility._id && (
+                                                    <div className="inline-delete-confirm">
+                                                        <span>Are you sure want to delete?</span>
+                                                        <div className="inline-delete-actions">
+                                                            <button className="inline-delete-yes" onClick={() => confirmDelete(facility._id)}>Yes</button>
+                                                            <button className="inline-delete-no" onClick={() => setPendingDeleteId(null)}>No</button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>

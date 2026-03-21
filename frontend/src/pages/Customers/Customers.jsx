@@ -404,15 +404,6 @@ const Customers = () => {
                                                 >
                                                     👁️
                                                 </button>
-                                                {customer.isCurrent && (
-                                                    <button
-                                                        className="action-btn checkout-btn"
-                                                        onClick={() => handleCheckOut(customer.id)}
-                                                        title="Check Out"
-                                                    >
-                                                        ✓
-                                                    </button>
-                                                )}
                                                 <button
                                                     className="action-btn delete-btn"
                                                     onClick={() => setPendingDeleteId(customer.id)}

@@ -249,6 +249,7 @@ const GuestMealService = () => {
     const [showVerifyModal, setShowVerifyModal] = useState(false);
     const [verifyPhoneInput, setVerifyPhoneInput] = useState('');
     const [verifyTableId, setVerifyTableId] = useState(null);
+    const [selectedVerifyMatchKey, setSelectedVerifyMatchKey] = useState('');
 
     const [splitSubTables, setSplitSubTables] = useState([]);
     // Reservation List State
@@ -516,29 +517,26 @@ const GuestMealService = () => {
 
     // Verify User Logic
     const openVerifyModal = (table = null) => {
-        setVerifyTableId(table ? table.tableId : null);
+        setVerifyTableId(table ? (table.tableId || table._id) : null);
         setVerifyPhoneInput('');
+        setSelectedVerifyMatchKey('');
         setShowVerifyModal(true);
     };
 
     const handleVerifyUser = async () => {
-        let tableToVerify = null;
-        let matchedReservation = null;
+        const inputDigits = normalizePhoneDigits(verifyPhoneInput);
+        const verifyMatches = getVerifyMatches(verifyPhoneInput);
+        const exactReservationMatches = verifyMatches.filter(
+            (m) => m.type === 'reservation' && normalizePhoneDigits(m.phone) === inputDigits
+        );
 
-        if (verifyTableId) {
-            tableToVerify = tables.find(t => t.tableId === verifyTableId);
-            matchedReservation = tableToVerify?.reservation;
-        } else {
-            // Global Search across all tables
-            for (const t of tables) {
-                const match = (t.reservations || []).find(r => r.phone === verifyPhoneInput);
-                if (match) {
-                    tableToVerify = t;
-                    matchedReservation = match;
-                    break;
-                }
-            }
-        }
+        const selectedReservationMatch = exactReservationMatches.find(
+            (m) => getVerifyMatchKey(m) === selectedVerifyMatchKey
+        );
+        const matchedReservation = selectedReservationMatch || exactReservationMatches[0] || null;
+        const tableToVerify = matchedReservation
+            ? tables.find((t) => (t.tableId || t._id) === matchedReservation.tableId)
+            : null;
 
         if (!tableToVerify || !matchedReservation) {
             showToast('Verification Failed', 'No matching reservation found for this phone number.');
@@ -600,44 +598,151 @@ const GuestMealService = () => {
         }
     };
 
+    const normalizePhoneDigits = (value = '') => String(value).replace(/\D/g, '');
+
+    const parseTimeToMinutes = (timeValue = '') => {
+        if (!timeValue || typeof timeValue !== 'string') return 0;
+        const match = timeValue.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+        if (!match) return 0;
+        let hour = parseInt(match[1], 10);
+        const minute = parseInt(match[2], 10);
+        const meridian = match[3].toUpperCase();
+        if (meridian === 'PM' && hour !== 12) hour += 12;
+        if (meridian === 'AM' && hour === 12) hour = 0;
+        return hour * 60 + minute;
+    };
+
+    const getReservationLatestScore = (reservation = {}, fallbackIndex = 0) => {
+        const createdAtTs = reservation.updatedAt
+            ? new Date(reservation.updatedAt).getTime()
+            : reservation.createdAt
+                ? new Date(reservation.createdAt).getTime()
+                : 0;
+        const dateTs = reservation.date ? new Date(reservation.date).getTime() : 0;
+        const timeScore = parseTimeToMinutes(reservation.startTime);
+        const baseTs = Math.max(createdAtTs, dateTs);
+
+        if (baseTs > 0) {
+            return (baseTs * 10000) + timeScore;
+        }
+
+        // Fallback keeps later entries above older ones when timestamps are missing.
+        return fallbackIndex + 1;
+    };
+
+    const getVerifyMatchKey = (match) => {
+        if (!match) return '';
+        return `${match.type}-${match.tableId}-${normalizePhoneDigits(match.phone)}-${match.isLatestScore}`;
+    };
+
+    const getVerifyMatches = (phoneInput) => {
+        const inputDigits = normalizePhoneDigits(phoneInput);
+        if (inputDigits.length < 3) return [];
+
+        const sourceTables = verifyTableId
+            ? tables.filter(t => (t.tableId || t._id) === verifyTableId)
+            : tables;
+
+        const reservationMatches = [];
+        const runningMatches = [];
+
+        sourceTables.forEach((t) => {
+            const tName = t.tableName;
+            const reservations = t.reservations || [];
+
+            reservations.forEach((r, index) => {
+                const resDigits = normalizePhoneDigits(r.phone);
+                if (!resDigits) return;
+                const isMatch = resDigits.includes(inputDigits) || inputDigits.includes(resDigits);
+                if (!isMatch) return;
+
+                reservationMatches.push({
+                    type: 'reservation',
+                    tableId: t.tableId || t._id,
+                    tableName: tName,
+                    name: r.name,
+                    phone: r.phone,
+                    guests: r.guests,
+                    date: r.date,
+                    startTime: r.startTime,
+                    endTime: r.endTime,
+                    advancePayment: r.advancePayment,
+                    statusLabel: 'Reserved',
+                    isLatestScore: getReservationLatestScore(r, index),
+                });
+            });
+
+            const tableStatus = (t.status || '').toLowerCase();
+            const isRunningState = ['running', 'occupied', 'billed'].includes(tableStatus) || !!t.currentOrderId;
+            const runningDigits = normalizePhoneDigits(t.currentOrderGuestPhone || '');
+
+            if (isRunningState && runningDigits && (runningDigits.includes(inputDigits) || inputDigits.includes(runningDigits))) {
+                const runningTs = t.updatedAt ? new Date(t.updatedAt).getTime() : Date.now();
+                runningMatches.push({
+                    type: 'running',
+                    tableId: t.tableId || t._id,
+                    tableName: tName,
+                    name: t.currentOrderGuestName || 'Guest',
+                    phone: t.currentOrderGuestPhone,
+                    guests: t.currentOrderGuestCount || 0,
+                    date: null,
+                    startTime: null,
+                    endTime: null,
+                    advancePayment: 0,
+                    statusLabel: 'Currently Running',
+                    isLatestScore: runningTs,
+                });
+            }
+        });
+
+        return [...reservationMatches, ...runningMatches]
+            .sort((a, b) => b.isLatestScore - a.isLatestScore);
+    };
+
+    useEffect(() => {
+        setSelectedVerifyMatchKey('');
+    }, [verifyPhoneInput, verifyTableId]);
+
     // Open Split Modal
     const openSplitModal = (table) => {
-        setSplitTableId(table.tableId);
+        setSplitTableId(table.tableId || table._id);
         setSplitParts(2);
-        // Initialize sub-tables for 2 parts
-        const guests = table.guests || table.capacity; // Fallback to capacity if guests is 0
+
+        const guests = table.guests || table.capacity;
         const initialSubTables = [
             { name: `${table.tableName}-A`, guests: Math.ceil(guests / 2), waiter: waiters[0] },
             { name: `${table.tableName}-B`, guests: Math.floor(guests / 2), waiter: waiters[1] }
         ];
+
         setSplitSubTables(initialSubTables);
         setShowSplitModal(true);
     };
 
     // Handle Split Parts Change
     const handleSplitPartsChange = (e) => {
-        const parts = parseInt(e.target.value);
+        const parts = parseInt(e.target.value, 10);
         setSplitParts(parts);
 
-        const currentTable = tables.find(t => t.tableId === splitTableId);
+        const currentTable = tables.find(t => (t.tableId || t._id) === splitTableId);
         if (!currentTable) return;
 
-        const newSubTables = [];
-        const totalGuests = currentTable.guests || currentTable.capacity;
-        const guestsPerTable = Math.floor(totalGuests / parts);
-        let remainingGuests = totalGuests;
+        const baseGuests = currentTable.guests || currentTable.capacity || parts;
+        const guestsPerTable = Math.floor(baseGuests / parts);
+        let remainingGuests = baseGuests;
 
+        const newSubTables = [];
         for (let i = 0; i < parts; i++) {
-            const suffix = String.fromCharCode(65 + i); // A, B, C...
+            const suffix = String.fromCharCode(65 + i);
             const guests = i === parts - 1 ? remainingGuests : guestsPerTable;
             remainingGuests -= guests;
 
             newSubTables.push({
                 name: `${currentTable.tableName}-${suffix}`,
-                guests: guests > 0 ? guests : 1, // Default at least 1 guest capacity/seat
+                guests: guests > 0 ? guests : 1,
                 waiter: waiters[i % waiters.length]
             });
         }
+
         setSplitSubTables(newSubTables);
     };
 
@@ -650,31 +755,11 @@ const GuestMealService = () => {
 
     // Submit Split
     const handleSplitSubmit = () => {
-        const originalTable = tables.find(t => t.tableId === splitTableId);
-        if (!originalTable) return;
-
-        // Create new table objects
-        const newTables = splitSubTables.map((sub, index) => ({
-            tableId: `SPLIT-${Date.now()}-${index}`,
-            parentTableId: originalTable._id || originalTable.tableId, // Store parent reference
-            tableName: sub.name,
-            status: 'Running',
-            amount: Math.floor(Math.random() * 1000) + 100, // Random amount demo
-            duration: 0,
-            capacity: sub.guests,
-            guests: sub.guests
-        }));
-
-        // Replace original table with new tables in the list
-        const originalIndex = tables.findIndex(t => t.tableId === splitTableId);
-        const updatedTables = [...tables];
-        updatedTables.splice(originalIndex, 1, ...newTables);
-
-        setTables(updatedTables);
+        showToast('Split Ready', 'Split configuration saved.');
         setShowSplitModal(false);
     };
 
-    // --- MOVE GUEST LOGIC (Dropdown Style) ---
+    // Move Guests
     const openMoveModal = (table) => {
         setMoveSourceTable(table);
         setMoveTargetTableId('');
@@ -684,17 +769,12 @@ const GuestMealService = () => {
     const handleMoveSubmit = () => {
         if (!moveSourceTable || !moveTargetTableId) return;
 
-        const targetTable = tables.find(t => t.tableId === moveTargetTableId);
-        if (!targetTable) return;
-
-        // Move logic: Source becomes Available, Target becomes Running with Source's data
         const updatedTables = tables.map(t => {
-            if (t.tableId === moveSourceTable.tableId) {
-                // Reset source table
+            if ((t.tableId || t._id) === (moveSourceTable.tableId || moveSourceTable._id)) {
                 return { ...t, status: 'Available', guests: 0, amount: 0, duration: 0 };
             }
-            if (t.tableId === moveTargetTableId) {
-                // Update target table
+
+            if ((t.tableId || t._id) === moveTargetTableId) {
                 return {
                     ...t,
                     status: 'Running',
@@ -703,11 +783,13 @@ const GuestMealService = () => {
                     duration: moveSourceTable.duration
                 };
             }
+
             return t;
         });
 
         setTables(updatedTables);
         setShowMoveModal(false);
+        showToast('Guests Moved', 'Guests moved to selected table.');
     };
 
     const getValidMoveTargets = () => {
@@ -2430,69 +2512,102 @@ const GuestMealService = () => {
                                 </div>
 
                                 {(() => {
-                                    if (!verifyPhoneInput || verifyPhoneInput.length < 3) return (
-                                        <div style={{ textAlign: 'center', marginTop: '32px', color: '#9ca3af' }}>
-                                            <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📱</div>
-                                            <div style={{ fontSize: '0.95rem', fontWeight: '600' }}>Waiting for guest phone number...</div>
-                                        </div>
+                                    const verifyMatches = getVerifyMatches(verifyPhoneInput);
+                                    const selectedMatch = verifyMatches.find(
+                                        (m) => getVerifyMatchKey(m) === selectedVerifyMatchKey
                                     );
+                                    const primaryMatch = selectedMatch || verifyMatches[0];
 
-                                    let match = null;
-                                    let matchedTableName = '';
-
-                                    if (verifyTableId) {
-                                        const table = tables.find(t => t.tableId === verifyTableId);
-                                        match = (table?.reservations || []).find(r => r.phone?.includes(verifyPhoneInput) || verifyPhoneInput.includes(r.phone));
-                                        matchedTableName = table?.tableName;
-                                    } else {
-                                        for (const t of tables) {
-                                            const m = (t.reservations || []).find(r => r.phone?.includes(verifyPhoneInput) || verifyPhoneInput.includes(r.phone));
-                                            if (m) {
-                                                match = m;
-                                                matchedTableName = t.tableName;
-                                                break;
-                                            }
-                                        }
+                                    if (!verifyPhoneInput || normalizePhoneDigits(verifyPhoneInput).length < 3) {
+                                        return (
+                                            <div style={{ textAlign: 'center', marginTop: '32px', color: '#9ca3af' }}>
+                                                <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📱</div>
+                                                <div style={{ fontSize: '0.95rem', fontWeight: '600' }}>Waiting for guest phone number...</div>
+                                            </div>
+                                        );
                                     }
 
-                                    if (match) {
+                                    if (primaryMatch) {
                                         return (
                                             <div style={{
                                                 marginTop: '16px',
-                                                padding: '20px',
+                                                padding: '16px',
                                                 background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
                                                 borderRadius: '16px',
                                                 border: '1px solid #bbf7d0',
                                                 boxShadow: '0 4px 12px rgba(22, 101, 52, 0.05)'
                                             }}>
-                                                <div style={{ color: '#166534', fontWeight: '900', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>✅ Reservation Found</div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                                    <div style={{ fontSize: '1.3rem', fontWeight: '900', color: '#111827' }}>{match.name}</div>
-                                                    <div style={{ padding: '6px 12px', background: '#166534', color: '#fff', borderRadius: '8px', fontSize: '0.8rem', fontWeight: '800' }}>Table {matchedTableName}</div>
+                                                <div style={{ color: '#166534', fontWeight: '900', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>
+                                                    ✅ {primaryMatch.type === 'running' ? 'Running Guest Found' : 'Latest Reservation Found'}
                                                 </div>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                                                    <div style={{ background: 'rgba(255,255,255,0.5)', padding: '12px', borderRadius: '10px' }}>
-                                                        <div style={{ fontSize: '0.7rem', color: '#166534', fontWeight: '800', textTransform: 'uppercase' }}>Date</div>
-                                                        <div style={{ fontWeight: '700', color: '#111827' }}>{formatDate(match.date)}</div>
-                                                    </div>
-                                                    <div style={{ background: 'rgba(255,255,255,0.5)', padding: '12px', borderRadius: '10px' }}>
-                                                        <div style={{ fontSize: '0.7rem', color: '#166534', fontWeight: '800', textTransform: 'uppercase' }}>Session</div>
-                                                        <div style={{ fontWeight: '700', color: '#111827' }}>{formatTime(match.startTime)}{match.endTime ? ` - ${formatTime(match.endTime)}` : ''}</div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                    <div style={{ fontSize: '1.05rem', fontWeight: '900', color: '#111827' }}>{primaryMatch.name}</div>
+                                                    <div style={{ padding: '5px 10px', background: '#166534', color: '#fff', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800' }}>
+                                                        Table {primaryMatch.tableName}
                                                     </div>
                                                 </div>
-                                                <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <div style={{ fontSize: '0.9rem', color: '#4b5563', fontWeight: '600' }}>
-                                                        Guests: <span style={{ color: '#111827', fontWeight: '800' }}>{match.guests} Persons</span>
-                                                    </div>
-                                                    {match.advancePayment > 0 && (
-                                                        <div style={{ color: '#166534', fontWeight: '900', fontSize: '1rem' }}>
-                                                            {cs}{match.advancePayment} <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>Paid</span>
+
+                                                {primaryMatch.type === 'reservation' && (
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                                        <div style={{ background: 'rgba(255,255,255,0.5)', padding: '10px', borderRadius: '10px' }}>
+                                                            <div style={{ fontSize: '0.68rem', color: '#166534', fontWeight: '800', textTransform: 'uppercase' }}>Date</div>
+                                                            <div style={{ fontWeight: '700', color: '#111827' }}>{formatDate(primaryMatch.date)}</div>
                                                         </div>
-                                                    )}
+                                                        <div style={{ background: 'rgba(255,255,255,0.5)', padding: '10px', borderRadius: '10px' }}>
+                                                            <div style={{ fontSize: '0.68rem', color: '#166534', fontWeight: '800', textTransform: 'uppercase' }}>Session</div>
+                                                            <div style={{ fontWeight: '700', color: '#111827' }}>{formatTime(primaryMatch.startTime)}{primaryMatch.endTime ? ` - ${formatTime(primaryMatch.endTime)}` : ''}</div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div style={{ fontSize: '0.86rem', color: '#4b5563', fontWeight: '600' }}>
+                                                        Guests: <span style={{ color: '#111827', fontWeight: '800' }}>{primaryMatch.guests} Persons</span>
+                                                    </div>
+                                                    <div style={{ color: '#166534', fontWeight: '900', fontSize: '0.88rem', background: '#ecfdf5', border: '1px solid #86efac', borderRadius: '999px', padding: '4px 10px' }}>
+                                                        {primaryMatch.statusLabel}
+                                                    </div>
                                                 </div>
+
+                                                {primaryMatch.type === 'reservation' && primaryMatch.advancePayment > 0 && (
+                                                    <div style={{ marginTop: '8px', color: '#166534', fontWeight: '900', fontSize: '0.95rem', textAlign: 'right' }}>
+                                                        {cs}{primaryMatch.advancePayment} <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>Paid</span>
+                                                    </div>
+                                                )}
+
+                                                {verifyMatches.length > 1 && (
+                                                    <div style={{ marginTop: '10px', borderTop: '1px dashed #86efac', paddingTop: '8px' }}>
+                                                        {verifyMatches.slice(1, 5).map((m, idx) => (
+                                                            <div
+                                                                key={getVerifyMatchKey(m)}
+                                                                onClick={() => setSelectedVerifyMatchKey(getVerifyMatchKey(m))}
+                                                                style={{
+                                                                    display: 'flex',
+                                                                    justifyContent: 'space-between',
+                                                                    alignItems: 'center',
+                                                                    background: selectedVerifyMatchKey === getVerifyMatchKey(m) ? 'rgba(134, 239, 172, 0.35)' : 'rgba(255,255,255,0.55)',
+                                                                    borderRadius: '9px',
+                                                                    padding: '8px 10px',
+                                                                    marginTop: idx === 0 ? 0 : '6px',
+                                                                    cursor: 'pointer',
+                                                                    border: selectedVerifyMatchKey === getVerifyMatchKey(m) ? '1px solid #4ade80' : '1px solid transparent',
+                                                                    transition: 'all 0.15s ease'
+                                                                }}
+                                                            >
+                                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                    <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#0f172a' }}>{m.name}</span>
+                                                                    <span style={{ fontSize: '0.74rem', color: '#475569' }}>Table {m.tableName} • {m.statusLabel}</span>
+                                                                </div>
+                                                                <span style={{ fontSize: '0.74rem', fontWeight: '700', color: '#166534' }}>#{idx + 2}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                         );
-                                    } else if (verifyPhoneInput.length >= 10) {
+                                    }
+
+                                    if (normalizePhoneDigits(verifyPhoneInput).length >= 10) {
                                         return (
                                             <div style={{ marginTop: '16px', padding: '20px', background: '#fff', borderRadius: '16px', border: '2px dashed #fee2e2', color: '#991b1b', fontSize: '0.95rem', textAlign: 'center' }}>
                                                 <div style={{ fontSize: '2rem', marginBottom: '8px' }}>❌</div>
@@ -2501,6 +2616,7 @@ const GuestMealService = () => {
                                             </div>
                                         );
                                     }
+
                                     return null;
                                 })()}
 
@@ -2510,20 +2626,20 @@ const GuestMealService = () => {
                                         className="btn-primary"
                                         style={{
                                             opacity: (() => {
-                                                if (verifyTableId) {
-                                                    return tables.find(t => t.tableId === verifyTableId)?.reservations?.some(r => r.phone === verifyPhoneInput) ? 1 : 0.5;
-                                                } else {
-                                                    return tables.some(t => (t.reservations || []).some(r => r.phone === verifyPhoneInput)) ? 1 : 0.5;
-                                                }
+                                                const inputDigits = normalizePhoneDigits(verifyPhoneInput);
+                                                if (inputDigits.length !== 10) return 0.5;
+                                                return getVerifyMatches(verifyPhoneInput).some(
+                                                    m => m.type === 'reservation' && normalizePhoneDigits(m.phone) === inputDigits
+                                                ) ? 1 : 0.5;
                                             })()
                                         }}
                                         onClick={handleVerifyUser}
                                         disabled={(() => {
-                                            if (verifyTableId) {
-                                                return !tables.find(t => t.tableId === verifyTableId)?.reservations?.some(r => r.phone === verifyPhoneInput);
-                                            } else {
-                                                return !tables.some(t => (t.reservations || []).some(r => r.phone === verifyPhoneInput));
-                                            }
+                                            const inputDigits = normalizePhoneDigits(verifyPhoneInput);
+                                            if (inputDigits.length !== 10) return true;
+                                            return !getVerifyMatches(verifyPhoneInput).some(
+                                                m => m.type === 'reservation' && normalizePhoneDigits(m.phone) === inputDigits
+                                            );
                                         })()}
                                     >
                                         <span>VERIFY &amp; OPEN TABLE</span>

@@ -7,6 +7,7 @@ const {
     getAllHotels,
     getHotelById,
     createHotel,
+    updateHotelAdminPermissions,
     suspendHotel,
     activateHotel,
     renewSubscription,
@@ -52,6 +53,9 @@ router.patch('/change-password', auditLog('password_changed', 'profile'), change
 router.post('/create-hotel', auditLog('hotel_created', 'hotel'), createHotel);
 router.get('/hotels', getAllHotels);
 router.get('/hotel/:id', getHotelById);
+router.patch('/hotel/:id/admin-permissions', auditLog('admin_updated', 'admin'), updateHotelAdminPermissions);
+router.patch('/hotel/:id/permissions', auditLog('admin_updated', 'admin'), updateHotelAdminPermissions);
+router.patch('/hotels/:id/admin-permissions', auditLog('admin_updated', 'admin'), updateHotelAdminPermissions);
 
 // Hotel Actions (with audit logging)
 router.patch('/suspend/:id', auditLog('hotel_suspended', 'hotel'), suspendHotel);

@@ -14,6 +14,8 @@ const MealType = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState('add');
     const [currentMealType, setCurrentMealType] = useState(null);
+    const [pendingDeleteId, setPendingDeleteId] = useState(null);
+    const [deletingId, setDeletingId] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
         shortCode: '',
@@ -116,21 +118,27 @@ const MealType = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this meal type?')) {
-            try {
-                const response = await fetch(`${API_URL}/api/meal-types/delete/${id}`, {
-                    method: 'DELETE'
-                });
-                const data = await response.json();
-                if (data.success) {
-                    fetchMealTypes();
-                } else {
-                    alert('Failed to delete');
-                }
-            } catch (error) {
-                alert('Error deleting');
+    const handleDeleteClick = (id) => {
+        setPendingDeleteId(prev => prev === id ? null : id);
+    };
+
+    const confirmDelete = async (id) => {
+        setDeletingId(id);
+        try {
+            const response = await fetch(`${API_URL}/api/meal-types/delete/${id}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            if (data.success) {
+                fetchMealTypes();
+            } else {
+                setError('Failed to delete meal type');
             }
+        } catch (error) {
+            setError('Error deleting meal type');
+        } finally {
+            setDeletingId(null);
+            setPendingDeleteId(null);
         }
     };
 
@@ -177,7 +185,18 @@ const MealType = () => {
                                     <td style={{ textAlign: 'right' }}>
                                         <div className="action-btns" style={{ justifyContent: 'flex-end' }}>
                                             <button className="icon-button" onClick={() => handleOpenModal('edit', meal)}>✏️</button>
-                                            <button className="icon-button" onClick={() => handleDelete(meal._id)}>🗑️</button>
+                                            <div className="inline-delete-wrap">
+                                                <button className="icon-button" onClick={() => handleDeleteClick(meal._id)} disabled={deletingId === meal._id}>🗑️</button>
+                                                {pendingDeleteId === meal._id && (
+                                                    <div className="inline-delete-confirm">
+                                                        <span>Are you sure want to delete?</span>
+                                                        <div className="inline-delete-actions">
+                                                            <button className="inline-delete-yes" onClick={() => confirmDelete(meal._id)}>Yes</button>
+                                                            <button className="inline-delete-no" onClick={() => setPendingDeleteId(null)}>No</button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>

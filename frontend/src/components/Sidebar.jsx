@@ -39,6 +39,8 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
         return hasModuleAccess(user, moduleId);
     };
 
+    const isRestrictedAdmin = user?.role === 'admin' && Array.isArray(user?.permissions) && user.permissions.length > 0;
+
     const toggleDropdown = (id) => {
         if (id === 'proper-configuration') {
             setOpenConfigDropdown(!openConfigDropdown);
@@ -206,8 +208,11 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
                             <div className={`nav-dropdown-menu ${showDropdown ? 'show' : ''}`}>
                                 {item.dropdownItems.map((subItem) => {
 
-                                    // Check permission for sub-item - allow if parent module (item.id) is authorized
-                                    const hasSubAccess = canAccessModule(subItem.id) || canAccessModule(item.id);
+                                    // For restricted admins, only explicitly assigned sub-screens should be visible.
+                                    // For other roles, keep legacy parent-or-child behavior.
+                                    const hasSubAccess = isRestrictedAdmin
+                                        ? canAccessModule(subItem.id)
+                                        : (canAccessModule(subItem.id) || canAccessModule(item.id));
                                     if (!hasSubAccess) return null;
 
                                     const isActive = activeMenu === subItem.id;

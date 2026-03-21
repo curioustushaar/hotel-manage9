@@ -573,17 +573,25 @@
 
 /* Payroll Summary */
 .payroll-summary {
-    display: flex;
-    gap: 24px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
     margin-bottom: 24px;
 }
 
 .summary-box {
-    background: #f8fafc;
-    padding: 16px;
-    border-radius: 8px;
-    flex: 1;
+    background: linear-gradient(145deg, #f8fafc 0%, #eef2ff 100%);
+    padding: 18px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
     min-height: 90px;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.summary-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.1);
 }
 
 .summary-box h3 {
@@ -596,6 +604,12 @@
     font-size: 24px;
     font-weight: 700;
     color: #1e293b;
+}
+
+.mini-table th:last-child,
+.mini-table td:last-child {
+    min-width: 132px;
+    white-space: nowrap;
 }
 
 .mini-table table {
@@ -620,17 +634,22 @@
 }
 
 .action-btn.small {
-    padding: 4px 12px;
+    padding: 8px 14px;
     font-size: 12px;
-    background: #e2e8f0;
-    border: none;
-    border-radius: 4px;
+    background: linear-gradient(135deg, #ef4444 0%, #E31E24 100%);
+    border: 1px solid rgba(227, 30, 36, 0.35);
+    border-radius: 8px;
     cursor: pointer;
-    color: #475569;
+    color: #ffffff;
+    font-weight: 700;
+    white-space: nowrap;
+    min-width: 98px;
+    box-shadow: 0 4px 10px rgba(227, 30, 36, 0.22);
 }
 
 .action-btn.small:hover {
-    background: #cbd5e1;
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    transform: translateY(-1px);
 }
 
 /* Performance Rating */
@@ -1317,6 +1336,60 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    position: relative;
+}
+
+.crm-delete-inline-warning {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 200px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid #fda4af;
+    background: #ffffff;
+    color: #991b1b;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    box-shadow: 0 8px 16px rgba(239, 68, 68, 0.18);
+    z-index: 20;
+}
+
+.crm-delete-inline-actions {
+    display: inline-flex;
+    gap: 6px;
+}
+
+.crm-delete-inline-yes,
+.crm-delete-inline-no {
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.crm-delete-inline-yes {
+    background: #dc2626;
+    color: #fff;
+}
+
+.crm-delete-inline-yes:hover {
+    background: #b91c1c;
+}
+
+.crm-delete-inline-no {
+    background: #fee2e2;
+    color: #7f1d1d;
+}
+
+.crm-delete-inline-no:hover {
+    background: #fecaca;
 }
 
 .btn-delete-action {
