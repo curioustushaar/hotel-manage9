@@ -1045,11 +1045,11 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                         >
                             <span style={{ fontSize: '16px' }}>📝</span>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bill Comment</div>
+                                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#047857', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bill Comment</div>
                                 {billComment ? (
                                     <div style={{ fontSize: '0.85rem', color: '#047857', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{billComment}</div>
                                 ) : (
-                                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>Tap to add comment...</div>
+                                    <div style={{ fontSize: '0.8rem', color: '#10b981', fontStyle: 'italic' }}>Tap to add comment...</div>
                                 )}
                             </div>
                             {billComment && <span style={{ color: '#047857', fontWeight: '700', fontSize: '14px' }}>✓</span>}
@@ -1074,11 +1074,11 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                         >
                             <span style={{ fontSize: '16px' }}>🍳</span>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Special Note (Kitchen)</div>
+                                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#047857', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Special Note (Kitchen)</div>
                                 {kotNote ? (
                                     <div style={{ fontSize: '0.85rem', color: '#047857', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{kotNote}</div>
                                 ) : (
-                                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>Tap to add kitchen note...</div>
+                                    <div style={{ fontSize: '0.8rem', color: '#10b981', fontStyle: 'italic' }}>Tap to add kitchen note...</div>
                                 )}
                             </div>
                             {kotNote && <span style={{ color: '#047857', fontWeight: '700', fontSize: '14px' }}>✓</span>}
