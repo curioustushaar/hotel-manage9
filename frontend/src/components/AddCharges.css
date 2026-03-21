@@ -4,6 +4,7 @@
 .modern-select-wrapper {
     position: relative;
     width: 100%;
+    display: flex;
 }
 
 .premium-dropdown-select {
@@ -20,9 +21,11 @@
     cursor: pointer;
     transition: all 0.3s ease;
     outline: none;
+    text-align: left;
 }
 
-.premium-dropdown-select:focus {
+.premium-dropdown-select:focus,
+.premium-dropdown-select:hover {
     border-color: #f43f5e;
     background: white;
     box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.08);
@@ -35,11 +38,6 @@
     transform: translateY(-50%);
     pointer-events: none;
     color: #94a3b8;
-}
-
-.premium-dropdown-select option {
-    font-weight: 600;
-    padding: 10px;
 }
 
 /* Theme Colors for Charges - Primary Red */

@@ -657,7 +657,10 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     // Billing State
     const [paidAmount, setPaidAmount] = useState('');
     const [paymentMode, setPaymentMode] = useState('Cash');
+    const [transactionId, setTransactionId] = useState('');
     const [taxExempt, setTaxExempt] = useState(false);
+    const [manualDiscountType, setManualDiscountType] = useState('FLAT');
+    const [manualDiscountValue, setManualDiscountValue] = useState('');
 
     // Invoice State
     const [invoices, setInvoices] = useState([]);
@@ -791,6 +794,13 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
     // Calculate billing
     const billingData = useMemo(() => {
+        let configuredDiscounts = [];
+        try {
+            configuredDiscounts = JSON.parse(localStorage.getItem('discounts') || '[]');
+        } catch {
+            configuredDiscounts = [];
+        }
+
         const taxResult = calculateRoomTaxBySlab({
             rooms,
             nights,
@@ -806,7 +816,45 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         const taxAmount = taxResult.taxAmount;
         const serviceChargePct = parseFloat(settings.roomServiceCharge) || 0;
         const serviceChargeAmount = subtotal > 0 ? Math.round((subtotal * serviceChargePct) / 100) : 0;
-        const totalAmount = (isInclusive || taxExempt ? subtotal : subtotal + taxAmount) + serviceChargeAmount;
+        const preDiscountGrossTotal = (isInclusive || taxExempt ? subtotal : subtotal + taxAmount) + serviceChargeAmount;
+
+        const activeDiscountRules = configuredDiscounts.filter(rule => {
+            if (rule?.status !== 'ACTIVE') return false;
+            const applies = Array.isArray(rule?.appliesTo) ? rule.appliesTo : [];
+            return applies.some(category => ['ROOM', 'BILL', 'ROOM_CHARGES'].includes(category));
+        });
+
+        let autoDiscountAmount = 0;
+        const autoDiscountNames = [];
+
+        activeDiscountRules.forEach(rule => {
+            const applies = Array.isArray(rule?.appliesTo) ? rule.appliesTo : [];
+            const appliesToBill = applies.includes('BILL');
+            const baseAmount = appliesToBill ? preDiscountGrossTotal : roomCharges;
+
+            let currentDiscount = 0;
+            if (rule.type === 'PERCENTAGE') {
+                currentDiscount = (baseAmount * (Number(rule.value) || 0)) / 100;
+            } else {
+                currentDiscount = Number(rule.value) || 0;
+            }
+
+            if (currentDiscount > 0) {
+                autoDiscountAmount += currentDiscount;
+                autoDiscountNames.push(rule.name);
+            }
+        });
+
+        autoDiscountAmount = Math.min(autoDiscountAmount, preDiscountGrossTotal);
+        const grossAfterAutoDiscount = Math.max(0, preDiscountGrossTotal - autoDiscountAmount);
+
+        const discountInput = Math.max(0, Number(manualDiscountValue) || 0);
+        const rawManualDiscount = manualDiscountType === 'PERCENTAGE'
+            ? (grossAfterAutoDiscount * Math.min(discountInput, 100)) / 100
+            : discountInput;
+        const appliedManualDiscount = Math.min(rawManualDiscount, grossAfterAutoDiscount);
+        const manualDiscountPercent = grossAfterAutoDiscount > 0 ? (appliedManualDiscount / grossAfterAutoDiscount) * 100 : 0;
+        const totalAmount = Math.max(0, grossAfterAutoDiscount - appliedManualDiscount);
         const balanceDue = Math.max(0, totalAmount - (paidAmount || 0));
         const taxLabel = taxExempt
             ? 'Tax (exempt)'
@@ -814,18 +862,29 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
         return {
             roomCharges,
-            totalDiscount,
+            totalDiscount: totalDiscount + autoDiscountAmount + appliedManualDiscount,
+            roomLevelDiscount: totalDiscount,
+            autoDiscountAmount,
+            autoDiscountNames,
+            manualDiscount: appliedManualDiscount,
+            manualDiscountType,
+            manualDiscountValue: manualDiscountValue === ''
+                ? ''
+                : (manualDiscountType === 'PERCENTAGE' ? Math.min(discountInput, 100) : Math.min(discountInput, grossAfterAutoDiscount)),
+            manualDiscountPercent,
             subtotal,
             taxAmount,
             taxLabel,
             serviceChargeAmount,
             serviceChargePct,
+            grossTotal: grossAfterAutoDiscount,
+            preDiscountGrossTotal,
             totalAmount,
             paidAmount: paidAmount || 0,
             balanceDue,
             paymentMode
         };
-    }, [rooms, nights, paidAmount, paymentMode, taxExempt, settings.roomGst, settings.roomGstSlabs, settings.roomServiceCharge, settings.inclusiveTax]);
+    }, [rooms, nights, paidAmount, paymentMode, taxExempt, manualDiscountType, manualDiscountValue, settings.roomGst, settings.roomGstSlabs, settings.roomServiceCharge, settings.inclusiveTax]);
 
     // Handle View Invoice
     const handleViewInvoice = useCallback((invoiceId) => {
@@ -1159,7 +1218,10 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         setSelectedGuests([]);
         setPaidAmount(0);
         setPaymentMode('Cash');
+        setTransactionId('');
         setTaxExempt(false);
+        setManualDiscountType('FLAT');
+        setManualDiscountValue('');
         setShowGuestModal(false);
         setShowInvoiceModal(false);
         setCurrentInvoice(null);
@@ -1235,10 +1297,17 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             numberOfNights: Number(nights) || 1,
             pricePerNight: mappedRooms[0].ratePerNight,
             discountAmount: Number(billingData.totalDiscount) || 0,
+            autoDiscountAmount: Number(billingData.autoDiscountAmount) || 0,
+            autoDiscountNames: billingData.autoDiscountNames || [],
+            manualDiscountAmount: Number(billingData.manualDiscount) || 0,
+            manualDiscountType: billingData.manualDiscountType,
+            manualDiscountValue: Number(billingData.manualDiscountValue) || 0,
             taxAmount: Number(billingData.taxAmount) || 0,
             serviceChargeAmount: Number(billingData.serviceChargeAmount) || 0,
             totalAmount: Number(billingData.totalAmount) || 0,
             advancePaid: Number(billingData.paidAmount) || 0,
+            paymentMode: paymentMode,
+            transactionId: transactionId || '',
             status: status === 'IN_HOUSE' ? 'Checked-in' : 'Upcoming',
             reservationType: reservationType || 'Confirm',
             bookingSource: bookingSource || 'Direct',
@@ -1327,7 +1396,14 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         }]);
         setPaidAmount(reservation.paidAmount);
         setPaymentMode(reservation.paymentMode);
+        setTransactionId(reservation.transactionId || '');
         setTaxExempt(reservation.taxExempt);
+        setManualDiscountType(reservation.manualDiscountType || 'FLAT');
+        setManualDiscountValue(
+            reservation.manualDiscountValue !== undefined
+                ? reservation.manualDiscountValue
+                : (reservation.manualDiscountAmount || 0)
+        );
         setView('form');
     };
 
@@ -1719,19 +1795,30 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                             {/* Billing Summary Panel moved above actions */}
                             <BillingSummary
                                 roomCharges={billingData.roomCharges}
-                                discount={billingData.totalDiscount}
+                                discount={billingData.roomLevelDiscount}
+                                autoDiscount={billingData.autoDiscountAmount}
+                                autoDiscountNames={billingData.autoDiscountNames}
+                                manualDiscount={billingData.manualDiscount}
+                                manualDiscountType={billingData.manualDiscountType}
+                                manualDiscountValue={billingData.manualDiscountValue}
+                                manualDiscountPercent={billingData.manualDiscountPercent}
                                 tax={billingData.taxAmount}
                                 taxLabel={billingData.taxLabel}
                                 serviceCharge={billingData.serviceChargeAmount}
                                 serviceChargeLabel={`Service Charge (${billingData.serviceChargePct}%)`}
                                 totalAmount={billingData.totalAmount}
+                                grossTotal={billingData.grossTotal}
                                 paidAmount={paidAmount}
                                 balanceDue={billingData.balanceDue}
                                 paymentMode={paymentMode}
                                 onPaymentModeChange={setPaymentMode}
                                 onPaidAmountChange={setPaidAmount}
+                                onManualDiscountChange={setManualDiscountValue}
+                                onManualDiscountTypeChange={setManualDiscountType}
                                 onTaxExemptChange={setTaxExempt}
                                 taxExempt={taxExempt}
+                                transactionId={transactionId}
+                                onTransactionIdChange={setTransactionId}
                             />
 
                             {/* Form Actions */}

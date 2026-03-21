@@ -1097,10 +1097,11 @@ exports.addBookingPayment = async (req, res) => {
         const booking = await Booking.findById(req.params.id);
         if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
 
-        const { amount, mode, reference, notes, paymentMethod, referenceId, comment } = req.body;
+        const { amount, mode, reference, notes, paymentMethod, referenceId, comment, folioId } = req.body;
 
         const payMode = paymentMethod || mode || 'Cash';
         const now = new Date();
+        const resolvedFolioId = Number.isFinite(Number(folioId)) ? Number(folioId) : 0;
 
         // Add payment transaction with folio-compatible fields
         booking.transactions.push({
@@ -1114,7 +1115,7 @@ exports.addBookingPayment = async (req, res) => {
             particulars: `Payment (${payMode})`,
             description: comment || notes || `Payment via ${payMode}`,
             user: 'Staff',
-            folioId: 0
+            folioId: resolvedFolioId
         });
 
         await booking.save();

@@ -109,12 +109,42 @@
     gap: 0.5rem;
 }
 
+.discount-toggle-v2 {
+    display: inline-flex;
+    width: fit-content;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.discount-toggle-btn-v2 {
+    min-width: 38px;
+    height: 32px;
+    border: none;
+    background: #fff;
+    color: #64748b;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.discount-toggle-btn-v2.active {
+    background: #e11d48;
+    color: #fff;
+}
+
 .input-label-v2 {
     font-size: 0.8rem;
     font-weight: 700;
     color: #94a3b8;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+}
+
+.req-star {
+    color: #e11d48;
+    font-weight: 900;
+    margin-left: 0.25rem;
 }
 
 .premium-select-v2,
@@ -141,6 +171,28 @@
     position: relative;
     display: flex;
     align-items: center;
+}
+
+.discount-input-wrap-v2 .premium-input-v2 {
+    padding-left: 2rem;
+}
+
+.currency-prefix-v2 {
+    position: absolute;
+    left: 0.75rem;
+    z-index: 2;
+    color: #64748b;
+    font-weight: 800;
+    font-size: 0.95rem;
+}
+
+.percent-prefix-v2 {
+    position: absolute;
+    left: 0.75rem;
+    z-index: 2;
+    color: #64748b;
+    font-weight: 800;
+    font-size: 0.95rem;
 }
 
 .currency-symbol-v2 {
@@ -242,6 +294,18 @@
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+}
+
+.discount-applied-note-v2 {
+    margin: 0 1.5rem 1.25rem;
+    background: #ecfdf5;
+    border: 1px solid #d1fae5;
+    color: #047857;
+    border-radius: 8px;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-align: center;
 }
 
 /* Responsive */

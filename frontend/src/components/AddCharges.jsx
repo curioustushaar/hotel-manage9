@@ -56,6 +56,17 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
     });
     const [showAddCustom, setShowAddCustom] = useState(false);
     const [newCustomLabel, setNewCustomLabel] = useState('');
+    const [showChargeDropdown, setShowChargeDropdown] = useState(false);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (showChargeDropdown && !e.target.closest('.modern-select-wrapper')) {
+                setShowChargeDropdown(false);
+            }
+        };
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, [showChargeDropdown]);
 
     useEffect(() => {
         const category = CHARGE_CATEGORY_MAP[formData.chargeType];
@@ -112,6 +123,20 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
         setNewCustomLabel('');
         setShowAddCustom(false);
         handleChange('chargeType', value);
+    };
+
+    const handleRemoveChargeOption = (optionValue) => {
+        const updated = chargeOptions.filter(o => o.value !== optionValue);
+        setChargeOptions(updated);
+        
+        // Update localStorage for custom types
+        const custom = updated.filter(o => o.isCustom);
+        localStorage.setItem('customChargeTypes', JSON.stringify(custom));
+        
+        // Clear form if this option was selected
+        if (formData.chargeType === optionValue) {
+            handleChange('chargeType', '');
+        }
     };
 
     const validateForm = () => {
@@ -202,28 +227,101 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
 
                     <div className="payment-field-group">
                         <label className="field-label-premium">Select Charge Type</label>
-                        <div className="modern-select-wrapper">
-                            <select
+                        <div className="modern-select-wrapper" style={{ position: 'relative' }}>
+                            <button
+                                type="button"
                                 className="premium-dropdown-select"
-                                value={formData.chargeType}
-                                onChange={(e) => {
-                                    if (e.target.value === 'add') setShowAddCustom(true);
-                                    else handleChange('chargeType', e.target.value);
-                                }}
+                                onClick={() => setShowChargeDropdown(!showChargeDropdown)}
+                                style={{ textAlign: 'left', background: 'white', border: '1px solid #d1d5db', cursor: 'pointer' }}
                             >
-                                <option value="">Choose a service...</option>
-                                {chargeOptions.map(opt => (
-                                    <option key={opt.value} value={opt.value}>
-                                        {opt.icon} {opt.label}
-                                    </option>
-                                ))}
-                                <option value="add" className="add-option" style={{ color: '#e11d48', fontWeight: 'bold' }}>
-                                    ＋ Add Custom Type...
-                                </option>
-                            </select>
+                                {formData.chargeType ? chargeOptions.find(o => o.value === formData.chargeType)?.label || 'Choose a service...' : 'Choose a service...'}
+                            </button>
                             <div className="select-arrow">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
                             </div>
+                            
+                            {showChargeDropdown && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '100%',
+                                    left: 0,
+                                    right: 0,
+                                    background: 'white',
+                                    border: '1px solid #d1d5db',
+                                    borderTop: 'none',
+                                    borderRadius: '0 0 6px 6px',
+                                    zIndex: 10,
+                                    maxHeight: '300px',
+                                    overflowY: 'auto',
+                                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                                }}>
+                                    {chargeOptions.map((opt, idx) => (
+                                        <div
+                                            key={opt.value}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                padding: '12px 16px',
+                                                borderBottom: idx < chargeOptions.length - 1 ? '1px solid #f0f0f0' : 'none',
+                                                cursor: 'pointer',
+                                                background: formData.chargeType === opt.value ? '#f0f9ff' : 'white'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.background = formData.chargeType === opt.value ? '#e0f2fe' : '#f5f5f5'}
+                                            onMouseLeave={(e) => e.currentTarget.style.background = formData.chargeType === opt.value ? '#f0f9ff' : 'white'}
+                                        >
+                                            <span
+                                                onClick={() => {
+                                                    handleChange('chargeType', opt.value);
+                                                    setShowChargeDropdown(false);
+                                                }}
+                                                style={{ flex: 1, fontSize: '14px' }}
+                                            >
+                                                {opt.icon} {opt.label}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleRemoveChargeOption(opt.value);
+                                                }}
+                                                style={{
+                                                    background: '#fee2e2',
+                                                    border: '1px solid #fca5a5',
+                                                    color: '#dc2626',
+                                                    width: '26px',
+                                                    height: '26px',
+                                                    borderRadius: '4px',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontSize: '14px',
+                                                    fontWeight: '600',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                title="Remove this option"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ))}
+                                    
+                                    <div
+                                        onClick={() => { setShowAddCustom(true); setShowChargeDropdown(false); }}
+                                        style={{
+                                            padding: '12px 16px',
+                                            background: '#fef2f2',
+                                            color: '#e11d48',
+                                            fontWeight: 'bold',
+                                            cursor: 'pointer',
+                                            borderTop: '1px solid #f0f0f0'
+                                        }}
+                                    >
+                                        ＋ Add Custom Type...
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
