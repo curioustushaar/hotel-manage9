@@ -523,13 +523,6 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
             return null;
         };
 
-        const taxCfg = {
-            roomGstPercent: toNum(settings?.roomGst) || 12,
-            foodGstPercent: (toNum(settings?.cgst) + toNum(settings?.sgst)) || toNum(settings?.foodGst) || 5,
-            addGstPercent: (toNum(settings?.cgst) + toNum(settings?.sgst)) || toNum(settings?.foodGst) || 18,
-            foodServicePercent: toNum(settings?.serviceCharge),
-        };
-
         const tx = currentFolioTransactions.map((t) => {
             const text = `${t.particulars || ''} ${t.description || ''} ${t.notes || ''}`;
             return {
@@ -553,83 +546,44 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
         const discountTx = tx.filter(isDiscount);
         const paymentTx = tx.filter(isPayment);
 
-        const roomBase = roomTx.reduce((s, t) => s + t.amountAbs, 0);
-        const roomService = toNum(reservation?.billing?.serviceCharge);
-        const roomGst = toNum(reservation?.billing?.tax) || ((roomBase + roomService) * taxCfg.roomGstPercent / 100);
+        const sumAmount = (rows) => rows.reduce((s, r) => s + r.amountAbs, 0);
+        const chargesTotal = sumAmount(tx.filter(t => t.typeLc === 'charge'));
+        const discountTotal = sumAmount(discountTx);
+        const grandTotal = Math.max(0, chargesTotal - discountTotal);
 
-        const foodItems = foodTx.map((t, idx) => {
-            const gross = parseTaggedAmount(t.textRaw, ['Gross', 'Amount']) ?? t.amountAbs;
-            const gst = parseTaggedAmount(t.textRaw, ['GST', 'Tax']) ?? 0;
-            const service = parseTaggedAmount(t.textRaw, ['Service', 'Service Charge']) ?? 0;
-            const discount = parseTaggedAmount(t.textRaw, ['Discount']) ?? 0;
-            const net = parseTaggedAmount(t.textRaw, ['Net']) ?? Math.max(0, gross + gst + service - discount);
+        const buildSectionBreakdown = (rows) => {
+            const sectionTotal = sumAmount(rows);
+            const tagged = rows.reduce((acc, row) => {
+                const gross = parseTaggedAmount(row.textRaw, ['Gross', 'Amount']);
+                const gst = parseTaggedAmount(row.textRaw, ['GST', 'Tax']);
+                const service = parseTaggedAmount(row.textRaw, ['Service', 'Service Charge']);
+                const discount = parseTaggedAmount(row.textRaw, ['Discount']);
+                acc.gross += gross || 0;
+                acc.gst += gst || 0;
+                acc.service += service || 0;
+                acc.discount += discount || 0;
+                return acc;
+            }, { gross: 0, gst: 0, service: 0, discount: 0 });
+
+            const baseFromEquation = Math.max(0, sectionTotal - tagged.gst - tagged.service + tagged.discount);
+            const base = Math.max(tagged.gross, baseFromEquation);
+
             return {
-                name: t.particulars || `Food Item ${idx + 1}`,
-                base: gross,
-                gst,
-                service,
-                discount,
-                net,
+                base,
+                gst: tagged.gst,
+                service: tagged.service,
+                discount: tagged.discount,
+                total: sectionTotal,
             };
-        });
+        };
 
-        const addItems = addTx.map((t, idx) => {
-            const amount = parseTaggedAmount(t.textRaw, ['Gross', 'Amount']) ?? t.amountAbs;
-            const gst = parseTaggedAmount(t.textRaw, ['GST', 'Tax']) ?? 0;
-            const discount = parseTaggedAmount(t.textRaw, ['Discount']) ?? 0;
-            const net = parseTaggedAmount(t.textRaw, ['Net']) ?? Math.max(0, amount + gst - discount);
-            return {
-                name: t.particulars || `Add Charge ${idx + 1}`,
-                amount,
-                gst,
-                discount,
-                net,
-            };
-        });
+        const roomCalc = buildSectionBreakdown(roomTx);
+        const foodCalc = buildSectionBreakdown(foodTx);
+        const addCalc = buildSectionBreakdown(addTx);
 
-        let foodBase = foodItems.reduce((s, i) => s + i.base, 0);
-        let foodGst = foodItems.reduce((s, i) => s + i.gst, 0);
-        let foodService = foodItems.reduce((s, i) => s + i.service, 0);
-        let foodDiscount = foodItems.reduce((s, i) => s + i.discount, 0);
-
-        if (foodItems.length > 0 && foodGst === 0 && foodService === 0 && foodDiscount === 0) {
-            const foodNet = foodItems.reduce((s, i) => s + i.net, 0);
-            foodService = foodBase * (taxCfg.foodServicePercent / 100);
-            foodGst = foodBase * (taxCfg.foodGstPercent / 100);
-            const derived = Math.max(0, (foodBase + foodGst + foodService) - foodNet);
-            foodDiscount = derived;
-        }
-
-        const addBase = addItems.reduce((s, i) => s + i.amount, 0);
-        let addGst = addItems.reduce((s, i) => s + i.gst, 0);
-        const addDiscount = addItems.reduce((s, i) => s + i.discount, 0);
-        if (addItems.length > 0 && addGst === 0) {
-            addGst = addBase * (taxCfg.addGstPercent / 100);
-        }
-
-        const explicitDiscount = discountTx.reduce((s, t) => s + t.amountAbs, 0);
-        const roomDiscountFromBilling = toNum(reservation?.billing?.discount);
-        const totalDiscount = Math.max(explicitDiscount, roomDiscountFromBilling, roomDiscountFromBilling + foodDiscount + addDiscount);
-
-        let roomDiscount = roomDiscountFromBilling;
-        if (totalDiscount > roomDiscount + foodDiscount + addDiscount) {
-            const remaining = totalDiscount - (roomDiscount + foodDiscount + addDiscount);
-            const basis = (roomBase + roomService + roomGst) + (foodBase + foodGst + foodService) + (addBase + addGst);
-            if (basis > 0) {
-                roomDiscount += (roomBase + roomService + roomGst) / basis * remaining;
-                foodDiscount += (foodBase + foodGst + foodService) / basis * remaining;
-            }
-        }
-
-        const roomTotal = Math.max(0, roomBase + roomService + roomGst - roomDiscount);
-        const foodTotal = Math.max(0, foodBase + foodGst + foodService - foodDiscount);
-        const addTotal = Math.max(0, addBase + addGst - addDiscount);
-
-        const subtotal = roomBase + foodBase + addBase;
-        const gstTotal = roomGst + foodGst + addGst;
-        const serviceTotal = roomService + foodService;
-        const discountTotal = roomDiscount + foodDiscount + addDiscount;
-        const grandTotal = Math.max(0, subtotal + gstTotal + serviceTotal - discountTotal);
+        const subtotal = roomCalc.base + foodCalc.base + addCalc.base;
+        const gstTotal = roomCalc.gst + foodCalc.gst + addCalc.gst;
+        const serviceTotal = roomCalc.service + foodCalc.service + addCalc.service;
 
         const paymentSplit = { cash: 0, upi: 0, card: 0, other: 0, total: 0 };
         paymentTx.forEach((p) => {
@@ -647,12 +601,12 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
         const lineRow = (label, value, strong = false) =>
             `<div class="row ${strong ? 'strong' : ''}"><span>${label}</span><span>${value}</span></div>`;
 
-        const foodNameLines = foodItems.length
-            ? foodItems.map((i) => lineRow(i.name, money(i.base))).join('')
+        const foodNameLines = foodTx.length
+            ? foodTx.map((i) => lineRow(i.particulars || 'Food', money(i.amountAbs))).join('')
             : lineRow('No food items', '0.00');
 
-        const addNameLines = addItems.length
-            ? addItems.map((i) => lineRow(i.name, money(i.amount))).join('')
+        const addNameLines = addTx.length
+            ? addTx.map((i) => lineRow(i.particulars || 'Add Charge', money(i.amountAbs))).join('')
             : lineRow('No add charges', '0.00');
 
         const content = `<!DOCTYPE html><html><head><title>Tax Invoice - ${roomNo}</title>
@@ -680,32 +634,32 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
             <div class="sep"></div>
 
             <div class="section strong">ROOM</div>
-            ${lineRow('Room charge', money(roomBase))}
-            ${lineRow('Service charge', money(roomService))}
-            ${lineRow('GST', money(roomGst))}
-            ${lineRow('Discount', `-${money(roomDiscount)}`)}
+            ${roomTx.length ? roomTx.map((i) => lineRow(i.particulars || 'Room charge', money(i.amountAbs))).join('') : lineRow('Room charge', '0.00')}
+            ${lineRow('Service charge', money(roomCalc.service))}
+            ${lineRow('GST', money(roomCalc.gst))}
+            ${lineRow('Discount', `-${money(roomCalc.discount)}`)}
             <div class="sep"></div>
-            ${lineRow('ROOM TOTAL', money(roomTotal), true)}
-            <div class="formula">ROOM = ${money(roomBase)} + ${money(roomService)} + ${money(roomGst)} - ${money(roomDiscount)} = ${money(roomTotal)}</div>
+            ${lineRow('ROOM TOTAL', money(roomCalc.total), true)}
+            <div class="formula">ROOM = ${money(roomCalc.base)} + ${money(roomCalc.service)} + ${money(roomCalc.gst)} - ${money(roomCalc.discount)} = ${money(roomCalc.total)}</div>
             <div class="sep"></div>
 
             <div class="section strong">FOOD</div>
             ${foodNameLines}
-            ${lineRow('Food amount', money(foodBase))}
-            ${lineRow('Food GST', money(foodGst))}
-            ${lineRow('Food service', money(foodService))}
-            ${lineRow('Food discount', `-${money(foodDiscount)}`)}
-            ${lineRow('FOOD TOTAL', money(foodTotal), true)}
-            <div class="formula">FOOD = ${money(foodBase)} + ${money(foodGst)} + ${money(foodService)} - ${money(foodDiscount)} = ${money(foodTotal)}</div>
+            ${lineRow('Food amount', money(foodCalc.base))}
+            ${lineRow('Food GST', money(foodCalc.gst))}
+            ${lineRow('Food service', money(foodCalc.service))}
+            ${lineRow('Food discount', `-${money(foodCalc.discount)}`)}
+            ${lineRow('FOOD TOTAL', money(foodCalc.total), true)}
+            <div class="formula">FOOD = ${money(foodCalc.base)} + ${money(foodCalc.gst)} + ${money(foodCalc.service)} - ${money(foodCalc.discount)} = ${money(foodCalc.total)}</div>
             <div class="sep"></div>
 
             <div class="section strong">ADD</div>
             ${addNameLines}
-            ${lineRow('Add amount', money(addBase))}
-            ${lineRow('Add GST', money(addGst))}
-            ${lineRow('Add discount', `-${money(addDiscount)}`)}
-            ${lineRow('ADD TOTAL', money(addTotal), true)}
-            <div class="formula">ADD = ${money(addBase)} + ${money(addGst)} - ${money(addDiscount)} = ${money(addTotal)}</div>
+            ${lineRow('Add amount', money(addCalc.base))}
+            ${lineRow('Add GST', money(addCalc.gst))}
+            ${lineRow('Add discount', `-${money(addCalc.discount)}`)}
+            ${lineRow('ADD TOTAL', money(addCalc.total), true)}
+            <div class="formula">ADD = ${money(addCalc.base)} + ${money(addCalc.gst)} - ${money(addCalc.discount)} = ${money(addCalc.total)}</div>
             <div class="sep"></div>
 
             ${lineRow('Subtotal', money(subtotal))}
