@@ -1204,50 +1204,51 @@
 .generate-qr-section {
     background: #ffffff;
     min-height: calc(100vh - 60px);
-    padding: 24px;
+    padding: 12px 20px 20px;
     display: flex;
     flex-direction: column;
-    gap: 30px;
+    gap: 16px;
     box-sizing: border-box;
 }
 
 .qr-header {
     background: linear-gradient(135deg, #ef4444 0%, #E31E24 100%);
-    padding: 30px 35px;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(239, 68, 68, 0.2);
+    padding: 14px 22px;
+    border-radius: 12px;
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.2);
     margin-bottom: 0px;
+    margin-top: -4px;
 }
 
 .qr-header-title {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 12px;
 }
 
 .qr-header-title .qr-icon {
-    font-size: 36px;
+    font-size: 24px;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .qr-header-title h1 {
     color: white;
-    font-size: 28px;
+    font-size: 20px;
     margin: 0;
-    font-weight: 800;
-    letter-spacing: -0.5px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
 }
 
 /* Filters Card */
 .qr-filters-card {
-    background: #ffffff;
-    padding: 30px;
-    border-radius: 16px;
-    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.04);
+    background: #fffdfd;
+    padding: 20px;
+    border-radius: 14px;
+    box-shadow: 0 3px 16px rgba(227, 30, 36, 0.06);
     display: flex;
     flex-direction: column;
-    gap: 25px;
-    border: 1px solid #f3f4f6;
+    gap: 16px;
+    border: 1px solid #ffe0e0;
 }
 
 .qr-filters-row {
@@ -1334,10 +1335,10 @@
 /* Table Card */
 .qr-table-card {
     background: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.04);
+    border-radius: 14px;
+    box-shadow: 0 3px 16px rgba(227, 30, 36, 0.06);
     overflow: hidden;
-    border: 1px solid #f3f4f6;
+    border: 1px solid #ffe0e0;
 }
 
 .qr-table-container {
@@ -1408,9 +1409,9 @@
 }
 
 .qr-view-btn {
-    background: #fef2f2;
+    background: #fff1f2;
     color: #ef4444;
-    border: none;
+    border: 1px solid #fecdd3;
     width: 42px;
     height: 42px;
     border-radius: 12px;
@@ -1422,15 +1423,20 @@
 }
 
 .qr-view-btn:hover:not(:disabled) {
-    background: #ef4444;
+    background: #e11d48;
     color: white;
     transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(239, 68, 68, 0.25);
+    box-shadow: 0 6px 15px rgba(225, 29, 72, 0.25);
 }
 
 .qr-view-btn:disabled {
-    opacity: 0.5;
+    opacity: 0.65;
     cursor: not-allowed;
+}
+
+.qr-table-action-btn svg {
+    stroke: currentColor;
+    opacity: 1;
 }
 
 .qr-table-empty {
@@ -1453,11 +1459,11 @@
     }
 
     .qr-header {
-        padding: 20px;
+        padding: 12px 14px;
     }
 
     .qr-header-title h1 {
-        font-size: 22px;
+        font-size: 16px;
     }
 
     .qr-table thead th,

@@ -145,7 +145,7 @@ const ViewOrderPage = () => {
             if (!response.ok) {
                 const errorData = await response.json();
                 setOrders(previousOrders);
-                alert(`Failed to update status: ${errorData.message || 'Unknown Error'}`);
+                alert(`Failed to update status: ${errorData.message || errorData.error || 'Unknown Error'}`);
                 return false;
             } else {
                 fetchOrders();
@@ -299,7 +299,7 @@ const ViewOrderPage = () => {
                                 placeholder="Search Table or Item..."
                                 className="filter-search-input"
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
                             />
                         </div>
                         {['All', 'Dine In', 'Room Order', 'Take Away', 'Online Order'].map(filter => (
@@ -577,3 +577,4 @@ const ViewOrderPage = () => {
 };
 
 export default ViewOrderPage;
+

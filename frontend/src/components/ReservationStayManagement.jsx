@@ -1945,7 +1945,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                 placeholder="Search by Guest Name, Mobile Number, or Room Number"
                                 className="search-ref-input"
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
                             />
                             {isSearching && (
                                 <div className="search-spinner" style={{ position: 'absolute', right: '15px' }}>
@@ -2657,4 +2657,5 @@ function getDummyGuests() {
 }
 
 export default ReservationStayManagement;
+
 

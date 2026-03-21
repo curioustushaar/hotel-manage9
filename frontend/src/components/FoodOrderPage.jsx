@@ -797,13 +797,13 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                             className="pos-search-input"
                             placeholder="Search item by name"
                             value={searchName}
-                            onChange={(e) => setSearchName(e.target.value)}
+                            onChange={(e) => setSearchName(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
                         />
                         <input
                             className="pos-search-input"
                             placeholder="Short Code (F2) / Category"
                             value={searchCode}
-                            onChange={(e) => setSearchCode(e.target.value)}
+                            onChange={(e) => setSearchCode(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
                         />
                     </div>
 
@@ -1496,3 +1496,4 @@ ${settings.thankYouMessage || 'Thank you visit again'}`}
 };
 
 export default FoodOrderPage;
+

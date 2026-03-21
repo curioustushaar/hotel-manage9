@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Table = require('../models/Table');
 const GuestMealOrder = require('../models/Order');
 const MenuItem = require('../models/Menu');
@@ -967,7 +968,12 @@ exports.getAllOrders = async (req, res) => {
 exports.updateOrderStatus = async (req, res) => {
     try {
         const { orderId } = req.params;
-        const { status } = req.body;
+        let { status } = req.body;
+
+        // Accept UI alias used in some screens and map it to persisted status.
+        if (status === 'In Service') {
+            status = 'Started';
+        }
 
         const validStatuses = ['Pending', 'Active', 'Preparing', 'Ready', 'Started', 'Served', 'Pending Payment', 'Billed', 'Closed', 'Cancelled'];
 
@@ -978,34 +984,70 @@ exports.updateOrderStatus = async (req, res) => {
             });
         }
 
-        const order = await GuestMealOrder.findById(orderId);
+        const order = await GuestMealOrder.findById(orderId).lean();
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        order.status = status;
-        if (status === 'Closed') order.closedAt = new Date();
-        if (status === 'Billed') order.billedAt = new Date();
-        await order.save();
+        const statusUpdate = { status };
+        if (status === 'Closed') statusUpdate.closedAt = new Date();
+        if (status === 'Billed') statusUpdate.billedAt = new Date();
 
-        // Sync table status if linked
-        if (order.tableId) {
-            const table = await Table.findById(order.tableId);
-            if (table) {
-                if (status === 'Billed') table.status = 'Billed';
-                else if (status === 'Closed') { table.status = 'Available'; table.currentOrderId = null; }
-                await table.save();
+        // Atomic update avoids failing on unrelated legacy-field validations.
+        const updatedOrder = await GuestMealOrder.findByIdAndUpdate(
+            orderId,
+            { $set: statusUpdate },
+            { new: true, runValidators: false }
+        );
+
+        // Sync table status if linked. Never fail status update on legacy table-link issues.
+        if (updatedOrder?.tableId) {
+            try {
+                const tableIdValue = String(updatedOrder.tableId);
+
+                if (mongoose.Types.ObjectId.isValid(tableIdValue)) {
+                    const table = await Table.findById(tableIdValue);
+                    if (table) {
+                        let shouldSaveTable = false;
+
+                        if (status === 'Billed' && table.status !== 'Billed') {
+                            table.status = 'Billed';
+                            shouldSaveTable = true;
+                        } else if (status === 'Closed') {
+                            if (table.status !== 'Available') {
+                                table.status = 'Available';
+                                shouldSaveTable = true;
+                            }
+                            if (table.currentOrderId) {
+                                table.currentOrderId = null;
+                                shouldSaveTable = true;
+                            }
+                        }
+
+                        if (shouldSaveTable) {
+                            await table.save();
+                        }
+                    }
+                } else {
+                    console.warn(`Skipping table sync for order ${orderId}: invalid tableId ${tableIdValue}`);
+                }
+            } catch (tableSyncError) {
+                console.error(`Table sync failed for order ${orderId}:`, tableSyncError.message);
             }
         }
 
         return res.status(200).json({
             success: true,
             message: `Order status updated to ${status}`,
-            data: order
+            data: updatedOrder
         });
     } catch (error) {
         console.error('Error updating order status:', error);
-        res.status(500).json({ success: false, message: 'Error updating order status', error: error.message });
+        res.status(500).json({
+            success: false,
+            message: `Error updating order status: ${error.message}`,
+            error: error.message
+        });
     }
 };
 
@@ -1270,6 +1312,17 @@ exports.settleOrder = async (req, res) => {
             order.finalAmount = settledNetPayable;
             order.taxRate = settledSubtotal > 0 ? ((combinedTax / settledSubtotal) * 100) : 0;
 
+            if (billingMeta.discountMeta && typeof billingMeta.discountMeta === 'object') {
+                order.discountMeta = billingMeta.discountMeta;
+            }
+
+            if (Array.isArray(billingMeta.discountHistory)) {
+                order.discountHistory = billingMeta.discountHistory.slice(-20);
+            } else if (billingMeta.currentDiscountEntry && typeof billingMeta.currentDiscountEntry === 'object') {
+                const previousHistory = Array.isArray(order.discountHistory) ? order.discountHistory : [];
+                order.discountHistory = [...previousHistory, billingMeta.currentDiscountEntry].slice(-20);
+            }
+
             order.billing = {
                 subtotal: settledSubtotal,
                 tax: combinedTax,
@@ -1456,6 +1509,9 @@ exports.settleOrder = async (req, res) => {
         order.status = 'Closed';
         order.closedAt = new Date();
         order.revenue = order.finalAmount;
+        // Keep cashier-settled values exact; avoid pre-save recalculation overriding billingMeta.
+        order.$locals = order.$locals || {};
+        order.$locals.skipFinancialRecalc = true;
         await order.save();
 
         // 4. Release Table

@@ -290,7 +290,7 @@ const Customers = () => {
                             type="text"
                             placeholder="Search by name, phone or email..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => setSearchTerm(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
                             className="customers-search-input"
                         />
                     </div>
@@ -491,3 +491,4 @@ const Customers = () => {
 };
 
 export default Customers;
+

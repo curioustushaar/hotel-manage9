@@ -323,7 +323,7 @@ const ActivityLogs = () => {
                                 type="text"
                                 placeholder="Search logs..."
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => setSearchTerm(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
                                 className="search-input"
                             />
                         </div>
@@ -521,3 +521,4 @@ const ActivityLogs = () => {
 };
 
 export default ActivityLogs;
+

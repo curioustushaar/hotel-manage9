@@ -1,5 +1,9 @@
 // API Configuration
-const API_URL = import.meta.env.VITE_API_URL || '';
+const configuredApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+
+// In development, always use Vite proxy (/api -> localhost:5000)
+// to avoid stale/incorrect host mappings from shell env vars.
+const API_URL = import.meta.env.DEV ? '' : configuredApiUrl;
 
 export default API_URL;
 

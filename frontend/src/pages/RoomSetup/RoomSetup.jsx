@@ -713,7 +713,11 @@ const RoomSetup = () => {
                                             <>
                                                 <div className="room-card-header">
                                                     <h4>Room {room.roomNumber}</h4>
-                                                    {room.housekeepingStatus === 'dirty' && <div className="dirty-badge">DIRTY</div>}
+                                                    {(room.housekeepingStatus === 'dirty' || room.housekeepingStatus === 'pending') && (
+                                                        <div className={`dirty-badge ${room.housekeepingStatus === 'pending' ? 'pending' : ''}`}>
+                                                            {room.housekeepingStatus === 'pending' ? 'PENDING' : 'DIRTY'}
+                                                        </div>
+                                                    )}
                                                     <div className="card-actions">
                                                         {canManageRooms && (
                                                             <>
@@ -791,7 +795,11 @@ const RoomSetup = () => {
                                             <div className="room-list-layout">
                                                 <div className="room-list-number">
                                                     <h4>Room {room.roomNumber}</h4>
-                                                    {room.housekeepingStatus === 'dirty' && <div className="dirty-badge-small">DIRTY</div>}
+                                                    {(room.housekeepingStatus === 'dirty' || room.housekeepingStatus === 'pending') && (
+                                                        <div className={`dirty-badge-small ${room.housekeepingStatus === 'pending' ? 'pending' : ''}`}>
+                                                            {room.housekeepingStatus === 'pending' ? 'PENDING' : 'DIRTY'}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="room-list-type">
                                                     <span className="label">Type</span>

@@ -118,7 +118,7 @@ const ReservationListModal = ({ table, onClose, onCancel, onAdd }) => {
                                 type="text"
                                 placeholder="Search by name or phone..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
                                 className="premium-input-field"
                             />
                         </div>
@@ -243,4 +243,5 @@ const ReservationListModal = ({ table, onClose, onCancel, onAdd }) => {
 };
 
 export default ReservationListModal;
+
 

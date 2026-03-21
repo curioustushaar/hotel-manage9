@@ -357,7 +357,7 @@ const ReservationReport = () => {
                                     <h2>{activeTab === 'upcoming' ? 'Upcoming' : activeTab === 'today' ? "Today's" : 'Completed'} Reservations</h2>
                                     <div className="rr-search-box">
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-                                        <input type="text" placeholder="Search guest, phone, table..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                                        <input type="text" placeholder="Search guest, phone, table..." value={searchTerm} onChange={e => setSearchTerm(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))} />
                                         {searchTerm && <button className="rr-search-clear" onClick={() => setSearchTerm('')}>×</button>}
                                     </div>
                                 </div>
@@ -535,3 +535,4 @@ const ReservationReport = () => {
 };
 
 export default ReservationReport;
+

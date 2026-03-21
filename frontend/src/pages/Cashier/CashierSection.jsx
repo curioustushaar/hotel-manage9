@@ -421,7 +421,7 @@ const CashierSection = () => {
                                     type="text"
                                     placeholder="Search orders..."
                                     value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
                                 />
                             </div>
 
@@ -1799,6 +1799,7 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
 };
 
 export default CashierSection;
+
 
 
 

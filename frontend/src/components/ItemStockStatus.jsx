@@ -149,7 +149,7 @@ const ItemStockStatus = () => {
                             type="text"
                             placeholder="Search..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => setSearchTerm(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
                             style={{ fontSize: '0.9rem' }}
                         />
                     </div>
@@ -772,3 +772,4 @@ const EditItemModal = ({ item, onSave, onCancel }) => {
 };
 
 export default ItemStockStatus;
+

@@ -1012,7 +1012,7 @@ const AdminDashboard = () => {
                                             className="qr-search-input"
                                             placeholder="Search Table"
                                             value={qrSearchTable}
-                                            onChange={(e) => setQRSearchTable(e.target.value)}
+                                            onChange={(e) => setQRSearchTable(e.target.value.replace(/[^a-zA-Z0-9\s]/g, ''))}
                                         />
                                         <span className="qr-search-icon">🔍</span>
                                     </div>
@@ -1043,7 +1043,7 @@ const AdminDashboard = () => {
                                                     <td>
                                                         <div className="qr-action-buttons">
                                                             <button
-                                                                className="qr-action-btn qr-view-btn"
+                                                                className="qr-table-action-btn qr-view-btn"
                                                                 title="Generate/View QR"
                                                                 onClick={() => handleViewQR(room)}
                                                                 disabled={qrLoading}

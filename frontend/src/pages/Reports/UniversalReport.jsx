@@ -1062,7 +1062,7 @@ const UniversalReport = ({ type }) => {
                         val3: item.tableNo,
                         val4: item.items,
                         val5: `${cs}${item.amount.toFixed(2)}`,
-                        val6: `${cs}${item.tax.toFixed(2)}`,
+                        val6: `${cs}${(item.tax || 0).toFixed(2)}`,
                         val7: `${cs}${item.discount.toFixed(2)}`,
                         val8: `${cs}${item.total.toFixed(2)}`,
                         val9: item.payment,
