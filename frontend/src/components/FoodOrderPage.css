@@ -1039,6 +1039,7 @@
     resize: none;
     background: #f8fafc;
     font-size: 15px;
+    color: #047857;
     border: 2px solid #f1f5f9;
     border-radius: 14px;
     padding: 14px;
@@ -1047,9 +1048,13 @@
 }
 
 .pos-note-textarea:focus {
-    border-color: #f43f5e;
-    box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.12);
+    border-color: #10b981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
     background: #fff;
+}
+
+.pos-note-textarea::placeholder {
+    color: #6b7280;
 }
 
 .pos-note-char-count {

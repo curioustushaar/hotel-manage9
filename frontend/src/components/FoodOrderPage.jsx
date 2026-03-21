@@ -1047,12 +1047,12 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                             <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bill Comment</div>
                                 {billComment ? (
-                                    <div style={{ fontSize: '0.85rem', color: '#E31E24', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{billComment}</div>
+                                    <div style={{ fontSize: '0.85rem', color: '#047857', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{billComment}</div>
                                 ) : (
                                     <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>Tap to add comment...</div>
                                 )}
                             </div>
-                            {billComment && <span style={{ color: '#E31E24', fontWeight: '700', fontSize: '14px' }}>✓</span>}
+                            {billComment && <span style={{ color: '#047857', fontWeight: '700', fontSize: '14px' }}>✓</span>}
                         </div>
 
                         {/* Special Note (KOT) - Inline */}
@@ -1076,12 +1076,12 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                             <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Special Note (Kitchen)</div>
                                 {kotNote ? (
-                                    <div style={{ fontSize: '0.85rem', color: '#b45309', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{kotNote}</div>
+                                    <div style={{ fontSize: '0.85rem', color: '#047857', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{kotNote}</div>
                                 ) : (
                                     <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>Tap to add kitchen note...</div>
                                 )}
                             </div>
-                            {kotNote && <span style={{ color: '#f59e0b', fontWeight: '700', fontSize: '14px' }}>✓</span>}
+                            {kotNote && <span style={{ color: '#047857', fontWeight: '700', fontSize: '14px' }}>✓</span>}
                         </div>
 
                         <div className="pos-total-row">
@@ -1464,7 +1464,7 @@ ${settings.thankYouMessage || 'Thank you visit again'}`}
                                         </table>
                                         <div style={{ borderTop: '2px solid #333', marginTop: '15px', paddingTop: '10px', textAlign: 'right' }}>
                                             <h3 style={{ margin: '0' }}>Total: {getCurrencySymbol()}{total.toFixed(2)}</h3>
-                                            {billComment && <p style={{ marginTop: '15px', fontStyle: 'italic', background: '#f8f9fa', padding: '10px', textAlign: 'left', border: '1px solid #eee', fontSize: '12px' }}><strong>Note:</strong> {billComment}</p>}
+                                            {billComment && <p style={{ marginTop: '15px', fontStyle: 'italic', background: '#ecfdf5', color: '#047857', padding: '10px', textAlign: 'left', border: '1px solid #a7f3d0', fontSize: '12px' }}><strong>Note:</strong> {billComment}</p>}
                                         </div>
                                     </div>
                                 ) : (
@@ -1478,7 +1478,7 @@ ${settings.thankYouMessage || 'Thank you visit again'}`}
                                             <thead><tr style={{ borderBottom: '1px solid #eee' }}><th align="left">Item</th><th>Qty</th></tr></thead>
                                             <tbody>{cart.map(item => <tr key={item.id}><td>{item.name}</td><td align="center">{item.quantity}</td></tr>)}</tbody>
                                         </table>
-                                        {kotNote && <div style={{ marginTop: '15px', border: '1px dashed #333', padding: '8px', fontSize: '13px' }}><strong>KOT NOTE:</strong> {kotNote}</div>}
+                                        {kotNote && <div style={{ marginTop: '15px', border: '1px dashed #047857', color: '#047857', padding: '8px', fontSize: '13px' }}><strong>KOT NOTE:</strong> {kotNote}</div>}
                                     </div>
                                 )}
                             </div>
