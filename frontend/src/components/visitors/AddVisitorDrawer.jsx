@@ -3,12 +3,13 @@ import Drawer from '../Drawer';
 import Toast from '../Toast';
 import { User, X, Calendar, Clock } from 'lucide-react';
 import { addVisitor } from '../../services/visitorService';
+import { sanitizeIdProofInput, validateIdProofNumber } from '../../utils/idProofValidation';
 
 const AddVisitorDrawer = ({ isOpen, onClose, reservationId, booking, onVisitorAdded }) => {
     const [formData, setFormData] = useState({
         name: '',
         mobile: '',
-        idType: 'Aadhaar (ID)',
+        idType: 'Aadhaar',
         idNumber: '',
         inTime: new Date().toISOString().slice(0, 16), // Default to now
         outTime: ''
@@ -18,9 +19,13 @@ const AddVisitorDrawer = ({ isOpen, onClose, reservationId, booking, onVisitorAd
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+
         setFormData(prev => ({
             ...prev,
-            [name]: value
+            [name]: name === 'idNumber'
+                ? sanitizeIdProofInput(prev.idType, value)
+                : value,
+            ...(name === 'idType' ? { idNumber: sanitizeIdProofInput(value, prev.idNumber) } : {})
         }));
     };
 
@@ -29,6 +34,17 @@ const AddVisitorDrawer = ({ isOpen, onClose, reservationId, booking, onVisitorAd
 
         if (!formData.name.trim() || !formData.mobile.trim()) {
             setToast({ message: 'Name and Mobile are required', type: 'error' });
+            return;
+        }
+
+        if (!formData.idNumber.trim()) {
+            setToast({ message: 'ID number is required', type: 'error' });
+            return;
+        }
+
+        const idValidation = validateIdProofNumber(formData.idType, formData.idNumber);
+        if (!idValidation.isValid) {
+            setToast({ message: idValidation.message, type: 'error' });
             return;
         }
 
@@ -59,7 +75,7 @@ const AddVisitorDrawer = ({ isOpen, onClose, reservationId, booking, onVisitorAd
             setFormData({
                 name: '',
                 mobile: '',
-                idType: 'Aadhaar (ID)',
+                idType: 'Aadhaar',
                 idNumber: '',
                 inTime: new Date().toISOString().slice(0, 16),
                 outTime: ''
@@ -168,9 +184,10 @@ const AddVisitorDrawer = ({ isOpen, onClose, reservationId, booking, onVisitorAd
                                     onChange={handleChange}
                                     style={{ ...inputStyle, appearance: 'none', cursor: 'pointer' }}
                                 >
-                                    <option value="Aadhaar (ID)">Aadhaar (ID)</option>
+                                    <option value="Aadhaar">Aadhaar Card</option>
                                     <option value="Passport">Passport</option>
                                     <option value="Driving License">Driving License</option>
+                                    <option value="Voter ID">Voter ID</option>
                                     <option value="PAN Card">PAN Card</option>
                                 </select>
                                 <span style={{

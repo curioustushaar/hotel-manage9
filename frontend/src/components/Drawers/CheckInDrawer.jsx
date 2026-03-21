@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import BaseDrawer from './BaseDrawer';
 import { useSettings } from '../../context/SettingsContext';
+import { sanitizeIdProofInput, validateIdProofNumber } from '../../utils/idProofValidation';
 
 const CheckInDrawer = ({ isOpen, onClose, reservation }) => {
     const { getCurrencySymbol } = useSettings();
@@ -20,15 +21,41 @@ const CheckInDrawer = ({ isOpen, onClose, reservation }) => {
     const [errors, setErrors] = useState({});
 
     const handleChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        setFormData(prev => {
+            if (field === 'idProofType') {
+                return {
+                    ...prev,
+                    idProofType: value,
+                    idNumber: sanitizeIdProofInput(value, prev.idNumber)
+                };
+            }
+
+            if (field === 'idNumber') {
+                return {
+                    ...prev,
+                    idNumber: sanitizeIdProofInput(prev.idProofType, value)
+                };
+            }
+
+            return { ...prev, [field]: value };
+        });
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: '' }));
+        }
+        if (field === 'idProofType' && errors.idNumber) {
+            setErrors(prev => ({ ...prev, idNumber: '' }));
         }
     };
 
     const validate = () => {
         const newErrors = {};
         if (!formData.idNumber) newErrors.idNumber = 'ID Number is required';
+        if (formData.idNumber) {
+            const validation = validateIdProofNumber(formData.idProofType, formData.idNumber);
+            if (!validation.isValid) {
+                newErrors.idNumber = validation.message;
+            }
+        }
         if (formData.adults < 1) newErrors.adults = 'At least 1 adult required';
         return newErrors;
     };
@@ -96,6 +123,7 @@ const CheckInDrawer = ({ isOpen, onClose, reservation }) => {
                             <option value="Aadhaar">Aadhaar Card</option>
                             <option value="Passport">Passport</option>
                             <option value="Driving License">Driving License</option>
+                            <option value="Voter ID">Voter ID</option>
                             <option value="PAN Card">PAN Card</option>
                         </select>
                     </div>
@@ -206,9 +234,6 @@ const CheckInDrawer = ({ isOpen, onClose, reservation }) => {
             </form>
         </BaseDrawer>
     );
-};
-
-export default CheckInDrawer;
 };
 
 export default CheckInDrawer;

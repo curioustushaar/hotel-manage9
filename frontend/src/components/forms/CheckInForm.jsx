@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSettings } from '../../context/SettingsContext';
+import { sanitizeIdProofInput, validateIdProofNumber } from '../../utils/idProofValidation';
 import '../AddPayment.css'; // Reuse premium styles
 
 const CheckInForm = ({ booking, onSubmit, onCancel }) => {
@@ -45,8 +46,31 @@ const CheckInForm = ({ booking, onSubmit, onCancel }) => {
             finalValue = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
         }
 
-        setFormData(prev => ({ ...prev, [name]: finalValue }));
-        if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+        if (name === 'idProofType') {
+            finalValue = value;
+        }
+
+        if (name === 'idProofNumber') {
+            finalValue = sanitizeIdProofInput(formData.idProofType, value);
+        }
+
+        setFormData(prev => {
+            if (name === 'idProofType') {
+                return {
+                    ...prev,
+                    idProofType: finalValue,
+                    idProofNumber: sanitizeIdProofInput(finalValue, prev.idProofNumber)
+                };
+            }
+            return { ...prev, [name]: finalValue };
+        });
+        if (errors[name] || name === 'idProofType') {
+            setErrors(prev => ({
+                ...prev,
+                [name]: '',
+                ...(name === 'idProofType' ? { idProofNumber: '' } : {})
+            }));
+        }
     };
 
     const validate = () => {
@@ -54,6 +78,12 @@ const CheckInForm = ({ booking, onSubmit, onCancel }) => {
         if (!formData.actualCheckInDate) newErrors.actualCheckInDate = 'Date is required';
         if (!formData.actualCheckInTime) newErrors.actualCheckInTime = 'Time is required';
         if (!formData.idProofNumber.trim()) newErrors.idProofNumber = 'ID number is required';
+        if (formData.idProofNumber.trim()) {
+            const validation = validateIdProofNumber(formData.idProofType, formData.idProofNumber);
+            if (!validation.isValid) {
+                newErrors.idProofNumber = validation.message;
+            }
+        }
         if (parseInt(formData.numberOfAdults) < 1) newErrors.numberOfAdults = 'At least 1 adult required';
         if (parseFloat(formData.securityDeposit) < 0) newErrors.securityDeposit = 'Cannot be negative';
         setErrors(newErrors);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import API_URL from '../config/api';
+import { sanitizeIdProofInput, validateIdProofNumber } from '../utils/idProofValidation';
 
 const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest = null }) => {
     const [activeSection, setActiveSection] = useState('basic'); // basic, address, kyc, optional
@@ -10,45 +11,8 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
     // ID Validation Helper Function
     const validateIDNumber = (idType, idNumber) => {
         if (!idType || !idNumber.trim()) return null;
-
-        const trimmedId = idNumber.trim();
-
-        switch (idType) {
-            case 'Aadhaar':
-                // Aadhaar: Exactly 12 digits
-                if (!/^[0-9]{12}$/.test(trimmedId)) {
-                    return 'Aadhaar number must be exactly 12 digits';
-                }
-                break;
-
-            case 'Passport':
-                // Passport: Alphanumeric, typically 8-10 characters
-                if (!/^[A-Z0-9]{8,10}$/i.test(trimmedId)) {
-                    return 'Passport number must be 8-10 alphanumeric characters';
-                }
-                break;
-
-            case 'Driving License':
-                // Driving License: Format varies by state, typically alphanumeric with minimum 10 characters
-                if (!/^[A-Z0-9]{10,20}$/i.test(trimmedId)) {
-                    return 'Driving License must be 10-20 alphanumeric characters';
-                }
-                break;
-
-            case 'Voter ID':
-                // Voter ID: Alphanumeric, typically 10 characters
-                if (!/^[A-Z]{3}[0-9]{7}$/i.test(trimmedId)) {
-                    return 'Voter ID must be 10 characters (3 letters + 7 digits)';
-                }
-                break;
-
-            default:
-                if (trimmedId.length < 3) {
-                    return 'Please enter a valid ID number';
-                }
-        }
-
-        return null; // No error
+        const validation = validateIdProofNumber(idType, idNumber);
+        return validation.isValid ? null : validation.message;
     };
 
     const [formData, setFormData] = useState({
@@ -262,10 +226,17 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                 [name]: files[0]
             }));
         } else {
-            const error = validateField(name, value);
+            let normalizedValue = value;
+
+            if (name === 'idNumber') {
+                normalizedValue = sanitizeIdProofInput(formData.idType, value);
+            }
+
+            const error = validateField(name, normalizedValue);
             setFormData(prev => ({
                 ...prev,
-                [name]: value
+                [name]: normalizedValue,
+                ...(name === 'idType' ? { idNumber: '' } : {})
             }));
 
             if (error) {
@@ -276,7 +247,8 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
             } else {
                 setErrors(prev => ({
                     ...prev,
-                    [name]: ''
+                    [name]: '',
+                    ...(name === 'idType' ? { idNumber: '' } : {})
                 }));
             }
         }
@@ -728,6 +700,7 @@ const CreateGuestForm = ({ onSave, onCancel, existingGuests = [], editingGuest =
                                     <option value="Passport">Passport</option>
                                     <option value="Driving License">Driving License</option>
                                     <option value="Voter ID">Voter ID</option>
+                                    <option value="PAN Card">PAN Card</option>
                                 </select>
                             </div>
 
