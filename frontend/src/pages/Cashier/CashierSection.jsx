@@ -97,13 +97,16 @@ const CashierSection = () => {
     useEffect(() => {
         if (location.state && location.state.room && location.state.room.orderId && orders.length > 0) {
             const orderToSelect = orders.find(o => o.id === location.state.room.orderId);
-            if (orderToSelect) {
+            if (orderToSelect && selectedOrder?.id !== orderToSelect.id) {
                 console.log(`[CashierSection] Auto-selecting order:`, orderToSelect.id);
                 setSelectedOrder(orderToSelect);
                 setActiveTab('All'); // Ensure we are on a tab where the order is visible
+
+                // Consume one-time navigation state so periodic refresh doesn't keep re-selecting.
+                navigate(location.pathname, { replace: true, state: null });
             }
         }
-    }, [orders, location.state]);
+    }, [orders, location.state, selectedOrder, navigate, location.pathname]);
 
     const fetchDashboardStats = async () => {
         try {
@@ -170,7 +173,7 @@ const CashierSection = () => {
         setSelectedOrder(order);
     };
 
-    const handlePaymentComplete = async (orderId, amount, mode, type, roomNumber = null, folioId = 0, billingMeta = null) => {
+    const handlePaymentComplete = async (orderId, amount, mode, type, roomNumber = null, folioId = 0, billingMeta = null, paymentSplits = null) => {
         try {
             const response = await fetch(`${API_URL}/api/guest-meal/orders/${orderId}/settle`, {
                 method: 'POST',
@@ -181,7 +184,8 @@ const CashierSection = () => {
                     amount: amount,
                     roomNumber: roomNumber,
                     folioId: folioId,
-                    billingMeta
+                    billingMeta,
+                    paymentSplits
                 })
             });
 
@@ -198,12 +202,30 @@ const CashierSection = () => {
                 }
 
                 // Update Stats
-                setStats(prev => ({
-                    ...prev,
-                    totalCollection: prev.totalCollection + amount,
-                    [mode.toLowerCase()]: (prev[mode.toLowerCase()] || 0) + amount,
-                    pending: Math.max(0, prev.pending - 1)
-                }));
+                setStats(prev => {
+                    const next = {
+                        ...prev,
+                        totalCollection: prev.totalCollection + amount,
+                        pending: Math.max(0, prev.pending - 1)
+                    };
+
+                    if (Array.isArray(paymentSplits) && paymentSplits.length > 0) {
+                        paymentSplits.forEach(split => {
+                            const key = String(split.mode || '').toLowerCase().trim();
+                            const amt = Number(split.amount || 0);
+                            if (key === 'cash' || key === 'upi' || key === 'card') {
+                                next[key] = (next[key] || 0) + amt;
+                            }
+                        });
+                    } else {
+                        const singleKey = String(mode || '').toLowerCase().trim();
+                        if (singleKey === 'cash' || singleKey === 'upi' || singleKey === 'card') {
+                            next[singleKey] = (next[singleKey] || 0) + amount;
+                        }
+                    }
+
+                    return next;
+                });
 
                 return true;
             } else {
@@ -701,6 +723,8 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
     // State for payment interactions
     const [paymentMode, setPaymentMode] = useState('Cash');
     const [paymentType, setPaymentType] = useState('Direct Payment');
+    const [isSplitPayment, setIsSplitPayment] = useState(false);
+    const [splitAmounts, setSplitAmounts] = useState({ Cash: '', UPI: '', Card: '', 'Bank Transfer': '' });
     const [receivedAmount, setReceivedAmount] = useState('');
     const [returnAmount, setReturnAmount] = useState(0);
     const [targetRoom, setTargetRoom] = useState('');
@@ -739,7 +763,8 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
 
 
 
-    // Initial state reset when order changes
+    // Initial state reset only when selected order changes.
+    // Do not reset on checkedInRooms periodic refresh, otherwise split mode jumps back.
     useEffect(() => {
         if (tenderResetTimerRef.current) {
             clearTimeout(tenderResetTimerRef.current);
@@ -751,6 +776,8 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
             const defaultPayMode = settings.paymentModes?.cash !== false ? 'Cash' : firstMode;
             setPaymentMode(defaultPayMode);
             setPaymentType('Direct Payment');
+            setIsSplitPayment(false);
+            setSplitAmounts({ Cash: '', UPI: '', Card: '', 'Bank Transfer': '' });
             setIsTendered(false);
             setShowPrintDropdown(false);
             setShowEditBill(false);
@@ -805,8 +832,10 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
             setDiscountValue('');
             setDiscountSource('');
             setDiscountType('PERCENTAGE');
+            setIsSplitPayment(false);
+            setSplitAmounts({ Cash: '', UPI: '', Card: '', 'Bank Transfer': '' });
         }
-    }, [order, checkedInRooms]);
+    }, [order]);
 
     useEffect(() => {
         return () => {
@@ -855,24 +884,25 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
         return () => clearTimeout(timer);
     }, [pendingRemoveItemIndex]);
 
+    const splitTotalReceived = useMemo(() => {
+        return Object.values(splitAmounts).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+    }, [splitAmounts]);
+
+    const effectiveReceivedAmount = isSplitPayment ? splitTotalReceived : (parseFloat(receivedAmount) || 0);
+
     // Calculate Return Amount
     useEffect(() => {
-        if (order && receivedAmount) {
-            const received = parseFloat(receivedAmount);
-            if (!isNaN(received)) {
-                const discAmt = discountValue
-                    ? discountType === 'PERCENTAGE'
-                        ? Math.round(grandTotalComputed * (parseFloat(discountValue) || 0) / 100)
-                        : parseFloat(discountValue) || 0
-                    : 0;
-                setReturnAmount(received - Math.max(0, grandTotalComputed - discAmt));
-            } else {
-                setReturnAmount(0);
-            }
+        if (order) {
+            const discAmt = discountValue
+                ? discountType === 'PERCENTAGE'
+                    ? Math.round(grandTotalComputed * (parseFloat(discountValue) || 0) / 100)
+                    : parseFloat(discountValue) || 0
+                : 0;
+            setReturnAmount(effectiveReceivedAmount - Math.max(0, grandTotalComputed - discAmt));
         } else {
             setReturnAmount(0);
         }
-    }, [receivedAmount, order, discountType, discountValue, grandTotalComputed]);
+    }, [effectiveReceivedAmount, order, discountType, discountValue, grandTotalComputed]);
 
     // Discount + final payable computation
     const discountAmt = discountValue
@@ -881,6 +911,15 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
             : parseFloat(discountValue) || 0
         : 0;
     const netAfterDiscount = Math.max(0, grandTotalComputed - discountAmt);
+
+    const directPaymentModes = useMemo(() => {
+        const modes = [];
+        if (settings.paymentModes?.cash !== false) modes.push('Cash');
+        if (settings.paymentModes?.upi !== false) modes.push('UPI');
+        if (settings.paymentModes?.card !== false) modes.push('Card');
+        if (settings.paymentModes?.bankTransfer) modes.push('Bank Transfer');
+        return modes;
+    }, [settings.paymentModes]);
 
     const printFormats = [
         { key: 'a4', label: 'A4', icon: '📄', pageSize: '210mm 297mm', bodyWidth: '190mm' },
@@ -1105,10 +1144,18 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
 
         // Validation for "Direct Payment"
         if (paymentType === 'Direct Payment') {
-            const received = parseFloat(receivedAmount) || 0;
+            const received = effectiveReceivedAmount;
             if (received < netAfterDiscount) {
                 alert('⚠️ Received amount cannot be less than bill amount!');
                 return;
+            }
+
+            if (isSplitPayment) {
+                const usedModes = directPaymentModes.filter(mode => (parseFloat(splitAmounts[mode]) || 0) > 0);
+                if (usedModes.length < 2) {
+                    alert('⚠️ Multiple payment me kam se kam 2 payment modes enter karein.');
+                    return;
+                }
             }
         }
 
@@ -1119,11 +1166,17 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
             }
         }
 
+        const activeSplits = paymentType === 'Direct Payment' && isSplitPayment
+            ? directPaymentModes
+                .map(modeName => ({ mode: modeName, amount: parseFloat(splitAmounts[modeName]) || 0 }))
+                .filter(s => s.amount > 0)
+            : [];
+
         // Trigger completion callback
         const settled = await onPaymentComplete(
             order.id,
             netAfterDiscount,
-            paymentMode,
+            activeSplits.length > 0 ? 'Mixed' : paymentMode,
             paymentType,
             targetRoom,
             targetFolioId,
@@ -1144,7 +1197,8 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
                     quantity: item.qty || item.quantity || 1,
                     amount: item.amount
                 }))
-            }
+            },
+            activeSplits.length > 0 ? activeSplits : null
         );
         if (!settled) return;
 
@@ -1170,6 +1224,8 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
         tenderResetTimerRef.current = setTimeout(() => {
             setShowPrintDropdown(false);
             setReceivedAmount('');
+            setIsSplitPayment(false);
+            setSplitAmounts({ Cash: '', UPI: '', Card: '', 'Bank Transfer': '' });
             setReturnAmount(0);
             setDiscountType('PERCENTAGE');
             setDiscountValue('');
@@ -1351,40 +1407,56 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
                 <div className="payment-modes-modern">
                     {settings.paymentModes?.cash !== false && (
                         <button
-                            className={`mode-btn-modern ${(paymentType === 'Direct Payment' && paymentMode === 'Cash') ? 'active' : ''}`}
-                            onClick={() => { setPaymentType('Direct Payment'); setPaymentMode('Cash'); }}
+                            className={`mode-btn-modern ${(paymentType === 'Direct Payment' && !isSplitPayment && paymentMode === 'Cash') ? 'active' : ''}`}
+                            onClick={() => { setPaymentType('Direct Payment'); setPaymentMode('Cash'); setIsSplitPayment(false); }}
                         >
                             💵 Cash
                         </button>
                     )}
                     {settings.paymentModes?.upi !== false && (
                         <button
-                            className={`mode-btn-modern ${(paymentType === 'Direct Payment' && paymentMode === 'UPI') ? 'active' : ''}`}
-                            onClick={() => { setPaymentType('Direct Payment'); setPaymentMode('UPI'); }}
+                            className={`mode-btn-modern ${(paymentType === 'Direct Payment' && !isSplitPayment && paymentMode === 'UPI') ? 'active' : ''}`}
+                            onClick={() => { setPaymentType('Direct Payment'); setPaymentMode('UPI'); setIsSplitPayment(false); }}
                         >
                             📱 UPI
                         </button>
                     )}
                     {settings.paymentModes?.card !== false && (
                         <button
-                            className={`mode-btn-modern ${(paymentType === 'Direct Payment' && paymentMode === 'Card') ? 'active' : ''}`}
-                            onClick={() => { setPaymentType('Direct Payment'); setPaymentMode('Card'); }}
+                            className={`mode-btn-modern ${(paymentType === 'Direct Payment' && !isSplitPayment && paymentMode === 'Card') ? 'active' : ''}`}
+                            onClick={() => { setPaymentType('Direct Payment'); setPaymentMode('Card'); setIsSplitPayment(false); }}
                         >
                             💳 Card
                         </button>
                     )}
                     {settings.paymentModes?.bankTransfer && (
                         <button
-                            className={`mode-btn-modern ${(paymentType === 'Direct Payment' && paymentMode === 'Bank Transfer') ? 'active' : ''}`}
-                            onClick={() => { setPaymentType('Direct Payment'); setPaymentMode('Bank Transfer'); }}
+                            className={`mode-btn-modern ${(paymentType === 'Direct Payment' && !isSplitPayment && paymentMode === 'Bank Transfer') ? 'active' : ''}`}
+                            onClick={() => { setPaymentType('Direct Payment'); setPaymentMode('Bank Transfer'); setIsSplitPayment(false); }}
                         >
                             🏦 Bank
+                        </button>
+                    )}
+                    {paymentType === 'Direct Payment' && directPaymentModes.length > 1 && (
+                        <button
+                            className={`mode-btn-modern ${isSplitPayment ? 'active' : ''}`}
+                            onClick={() => {
+                                setIsSplitPayment(prev => {
+                                    const next = !prev;
+                                    if (!next) {
+                                        setSplitAmounts({ Cash: '', UPI: '', Card: '', 'Bank Transfer': '' });
+                                    }
+                                    return next;
+                                });
+                            }}
+                        >
+                            🧩 Multiple Payment
                         </button>
                     )}
                     {settings.billingRules?.addToRoom && (
                         <button
                             className={`mode-btn-modern ${paymentType === 'Add to Room' ? 'active' : ''}`}
-                            onClick={() => { setPaymentType('Add to Room'); setPaymentMode('Room'); }}
+                            onClick={() => { setPaymentType('Add to Room'); setPaymentMode('Room'); setIsSplitPayment(false); }}
                         >
                             💼 Room Folio
                         </button>
@@ -1397,25 +1469,64 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
                 </div>
 
                 {paymentType === 'Direct Payment' ? (
-                    <div className="payment-input-modern">
-                        <label>Received Amount</label>
-                        <div className="input-box-wrap">
-                            <span>{cs}</span>
-                            <input
-                                type="number"
-                                placeholder="0.00"
-                                min="0"
-                                value={receivedAmount}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    if (val === '' || parseFloat(val) >= 0) {
-                                        setReceivedAmount(val);
-                                    }
-                                }}
-                                disabled={isPlaceholder}
-                            />
-                        </div>
-                    </div>
+                    <>
+                        {isSplitPayment ? (
+                            <div className="payment-input-modern">
+                                <label>Split Payment Amounts</label>
+                                <div style={{ display: 'grid', gap: '8px' }}>
+                                    {directPaymentModes.map(modeName => (
+                                        <div className="input-box-wrap" key={modeName}>
+                                            <span>{modeName === 'Cash' ? '💵' : modeName === 'UPI' ? '📱' : modeName === 'Card' ? '💳' : '🏦'}</span>
+                                            <input
+                                                type="number"
+                                                placeholder={`${modeName} amount`}
+                                                min="0"
+                                                value={splitAmounts[modeName] || ''}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    if (val === '' || parseFloat(val) >= 0) {
+                                                        const entered = val === '' ? 0 : (parseFloat(val) || 0);
+                                                        const otherTotal = directPaymentModes
+                                                            .filter(m => m !== modeName)
+                                                            .reduce((sum, m) => sum + (parseFloat(splitAmounts[m]) || 0), 0);
+                                                        const maxForCurrent = Math.max(0, netAfterDiscount - otherTotal);
+                                                        const nextVal = val === '' ? '' : String(Math.min(entered, maxForCurrent));
+                                                        setSplitAmounts(prev => ({ ...prev, [modeName]: nextVal }));
+                                                    }
+                                                }}
+                                                disabled={isPlaceholder}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                                <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#475569', display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>Total Received</span>
+                                    <strong>{cs}{splitTotalReceived.toFixed(2)}</strong>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="payment-input-modern">
+                                <label>Received Amount</label>
+                                <div className="input-box-wrap">
+                                    <span>{cs}</span>
+                                    <input
+                                        type="number"
+                                        placeholder="0.00"
+                                        min="0"
+                                        value={receivedAmount}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === '' || parseFloat(val) >= 0) {
+                                                const entered = val === '' ? '' : String(Math.min(parseFloat(val) || 0, netAfterDiscount));
+                                                setReceivedAmount(entered);
+                                            }
+                                        }}
+                                        disabled={isPlaceholder}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </>
                 ) : (
                     <div className="folio-transfer-form">
                         <div className="payment-input-modern">
