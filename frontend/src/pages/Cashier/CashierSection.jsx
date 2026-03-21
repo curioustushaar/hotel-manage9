@@ -111,13 +111,14 @@ const CashierSection = () => {
             const data = await response.json();
             if (data.success) {
                 const s = data.data;
-                setStats({
+                // Keep pending from fetchPendingOrders; avoid stale closure resets during interval refresh.
+                setStats(prev => ({
+                    ...prev,
                     totalCollection: s.totalRevenue || 0,
                     cash: s.collections?.Cash || 0,
                     upi: s.collections?.UPI || 0,
-                    card: s.collections?.Card || 0,
-                    pending: stats.pending // handled by fetchPendingOrders
-                });
+                    card: s.collections?.Card || 0
+                }));
             }
         } catch (error) {
             console.error("Error fetching dashboard stats:", error);
