@@ -5,18 +5,29 @@ import './BillingSummary.css';
 const BillingSummary = ({
     roomCharges = 0,
     discount = 0,
+    autoDiscount = 0,
+    autoDiscountNames = [],
+    manualDiscount = 0,
+    manualDiscountType = 'FLAT',
+    manualDiscountValue = 0,
+    manualDiscountPercent = 0,
     tax = 0,
     taxLabel = '',
     serviceCharge = 0,
     serviceChargeLabel = 'Service Charge',
     totalAmount = 0,
+    grossTotal = 0,
     paidAmount = 0,
     balanceDue = 0,
     paymentMode = 'Cash',
     onPaymentModeChange = () => { },
     onPaidAmountChange = () => { },
+    onManualDiscountChange = () => { },
+    onManualDiscountTypeChange = () => { },
     onTaxExemptChange = () => { },
-    taxExempt = false
+    taxExempt = false,
+    transactionId = '',
+    onTransactionIdChange = () => { }
 }) => {
     const { getCurrencySymbol, settings } = useSettings();
     const cs = getCurrencySymbol();
@@ -64,6 +75,15 @@ const BillingSummary = ({
                                 <span className="value">{cs}{serviceCharge.toLocaleString('en-IN')}</span>
                             </div>
                         )}
+                        {autoDiscount > 0 && (
+                            <div className="summary-item-v2" style={{ marginTop: '10px' }}>
+                                <span className="label">
+                                    Auto Discount
+                                    {autoDiscountNames.length > 0 ? ` (${autoDiscountNames.join(', ')})` : ''}
+                                </span>
+                                <span className="value" style={{ color: '#059669' }}>-{cs}{Math.round(autoDiscount).toLocaleString('en-IN')}</span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="card-body-right">
@@ -104,6 +124,21 @@ const BillingSummary = ({
                             </select>
                         </div>
 
+                        {paymentMode !== 'Cash' && (
+                            <div className="payment-form-group-v2">
+                                <label className="input-label-v2">TRANSACTION ID <span className="req-star">*</span></label>
+                                <div className="premium-input-wrapper-v2">
+                                    <input
+                                        type="text"
+                                        className="premium-input-v2"
+                                        value={transactionId}
+                                        onChange={(e) => onTransactionIdChange(e.target.value)}
+                                        placeholder="Enter transaction ID"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         <div className="payment-form-group-v2">
                             <label className="input-label-v2">ADVANCE / PAID AMOUNT</label>
                             <div className="premium-input-wrapper-v2">
@@ -120,6 +155,54 @@ const BillingSummary = ({
                                         }
                                     }}
                                     placeholder="0"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="payment-form-group-v2">
+                            <label className="input-label-v2">DISCOUNT</label>
+                            <div className="discount-toggle-v2">
+                                <button
+                                    type="button"
+                                    className={`discount-toggle-btn-v2 ${manualDiscountType === 'FLAT' ? 'active' : ''}`}
+                                    onClick={() => onManualDiscountTypeChange('FLAT')}
+                                >
+                                    {cs}
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`discount-toggle-btn-v2 ${manualDiscountType === 'PERCENTAGE' ? 'active' : ''}`}
+                                    onClick={() => onManualDiscountTypeChange('PERCENTAGE')}
+                                >
+                                    %
+                                </button>
+                            </div>
+                            <div className="premium-input-wrapper-v2 discount-input-wrap-v2">
+                                {manualDiscountType === 'FLAT' ? (
+                                    <span className="currency-prefix-v2">{cs}</span>
+                                ) : (
+                                    <span className="percent-prefix-v2">%</span>
+                                )}
+                                <input
+                                    type="number"
+                                    className="premium-input-v2"
+                                    min="0"
+                                    max={manualDiscountType === 'PERCENTAGE' ? 100 : grossTotal}
+                                    value={manualDiscountValue}
+                                    onChange={(e) => {
+                                        const rawValue = e.target.value;
+                                        if (rawValue === '') {
+                                            onManualDiscountChange('');
+                                            return;
+                                        }
+
+                                        const value = Math.max(0, parseFloat(rawValue) || 0);
+                                        const capped = manualDiscountType === 'PERCENTAGE'
+                                            ? Math.min(value, 100)
+                                            : Math.min(value, grossTotal);
+                                        onManualDiscountChange(capped);
+                                    }}
+                                    placeholder={manualDiscountType === 'PERCENTAGE' ? 'Enter discount %' : 'Enter discount amount'}
                                 />
                             </div>
                         </div>
@@ -170,6 +253,12 @@ const BillingSummary = ({
                         </div>
                     </div>
                 </div>
+
+                {manualDiscount > 0 && (
+                    <div className="discount-applied-note-v2">
+                        Discount Applied: {cs}{manualDiscount.toLocaleString('en-IN')} ({manualDiscountPercent.toFixed(2)}%)
+                    </div>
+                )}
             </div>
         </div>
     );

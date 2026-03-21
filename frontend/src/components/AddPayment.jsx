@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import './AddPayment.css';
 import { useSettings } from '../context/SettingsContext';
 
@@ -36,6 +36,7 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
 
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [selectedGuestId, setSelectedGuestId] = useState('primary');
 
     const handleChange = (field, value) => {
         let finalValue = value;
@@ -43,9 +44,9 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
             const absoluteValue = value.replace(/-/g, '');
             const numVal = parseFloat(absoluteValue);
             finalValue = absoluteValue;
-            
-            if (numVal > balance) {
-                finalValue = balance.toString();
+
+            if (numVal > selectedFolioBalance) {
+                finalValue = selectedFolioBalance.toString();
             }
         }
 
@@ -63,8 +64,8 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
         const amountValue = parseFloat(formData.amount);
         if (!formData.amount || amountValue <= 0) {
             newErrors.amount = 'Enter valid amount';
-        } else if (amountValue > balance) {
-            newErrors.amount = `Amount cannot exceed balance (${cs}${balance.toLocaleString('en-IN')})`;
+        } else if (amountValue > selectedFolioBalance) {
+            newErrors.amount = `Amount cannot exceed selected folio balance (${cs}${selectedFolioBalance.toLocaleString('en-IN')})`;
         }
         
         if (['Card', 'UPI', 'Bank Transfer'].includes(formData.paymentMethod) && !formData.referenceId) {
@@ -84,6 +85,8 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
                 ...formData,
                 amount: parseFloat(formData.amount),
                 paymentType: formData.paymentMethod, // mapping for parent
+                folioId: selectedFolioId,
+                selectedGuestName: selectedGuest?.name || reservation?.guestName || 'Guest',
                 timestamp: new Date().toISOString()
             };
 
@@ -100,6 +103,69 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
         reservation.balanceDue !== undefined ? reservation.balanceDue :
         (reservation.remainingAmount || (reservation.totalAmount - (reservation.paidAmount || reservation.advancePaid || 0)))
     ) : 0;
+
+    const folioGuests = useMemo(() => {
+        const primaryGuest = {
+            id: 'primary',
+            folioId: 0,
+            name: reservation?.guestName || 'Guest'
+        };
+
+        const additional = (Array.isArray(reservation?.additionalGuests) ? reservation.additionalGuests : [])
+            .map((guest, index) => {
+                if (typeof guest === 'string') {
+                    return { id: `guest-${index}`, folioId: index + 1, name: guest };
+                }
+
+                const guestName = guest?.guestName || guest?.name || guest?.fullName || guest?.firstName;
+                if (!guestName) return null;
+
+                return {
+                    id: guest?._id || guest?.id || `guest-${index}`,
+                    folioId: index + 1,
+                    name: guestName
+                };
+            })
+            .filter(Boolean);
+
+        return [primaryGuest, ...additional];
+    }, [reservation?.guestName, reservation?.additionalGuests]);
+
+    const folioBalances = useMemo(() => {
+        const txns = Array.isArray(reservation?.transactions) ? reservation.transactions : [];
+        const overall = Math.max(0, Number(balance) || 0);
+        const balanceMap = {};
+
+        let otherFoliosTotal = 0;
+        folioGuests.forEach((guest) => {
+            if (guest.folioId === 0) return;
+
+            const charges = txns
+                .filter((t) => Number(t.folioId || 0) === guest.folioId && t.type?.toLowerCase() === 'charge')
+                .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+
+            const paid = txns
+                .filter((t) => Number(t.folioId || 0) === guest.folioId && t.type?.toLowerCase() === 'payment')
+                .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+
+            const folioBal = Math.max(0, charges - paid);
+            balanceMap[guest.folioId] = folioBal;
+            otherFoliosTotal += folioBal;
+        });
+
+        balanceMap[0] = Math.max(0, overall - otherFoliosTotal);
+        return balanceMap;
+    }, [reservation?.transactions, folioGuests, balance]);
+
+    const selectedGuest = folioGuests.find((guest) => guest.id === selectedGuestId) || folioGuests[0];
+    const selectedFolioId = selectedGuest?.folioId ?? 0;
+    const selectedFolioBalance = Math.max(0, folioBalances[selectedFolioId] ?? 0);
+
+    useEffect(() => {
+        if (!folioGuests.some((guest) => guest.id === selectedGuestId)) {
+            setSelectedGuestId(folioGuests[0]?.id || 'primary');
+        }
+    }, [folioGuests, selectedGuestId]);
 
     return (
         <div className="add-payment-overlay" onClick={onClose}>
@@ -123,24 +189,31 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
                     {reservation && (
                         <div className="payment-summary-card">
                             <div className="summary-header">
-                                <span className="ref-tag">RESERVATION DETAILS</span>
+                                <span className="ref-tag">SELECT FOLIO / GUEST</span>
                                 <span className="ref-number">{reservation.bookingId || reservation._id?.toString().slice(-6).toUpperCase() || 'RES-1002'}</span>
                             </div>
-                            <div className="summary-details">
-                                <div className="detail-col">
-                                    <label>Guest Name</label>
-                                    <p className="truncate-text">{reservation.guestName || 'Walk-in Guest'}</p>
-                                </div>
-                                <div className="detail-col-group">
-                                    <div className="detail-sub-col">
-                                        <label>Total</label>
-                                        <p>{cs}{(reservation.totalAmount || 0).toLocaleString('en-IN')}</p>
-                                    </div>
-                                    <div className="detail-sub-col text-right">
-                                        <label>Balance</label>
-                                        <p className="balance-text-bold">{cs}{(balance || 0).toLocaleString('en-IN')}</p>
-                                    </div>
-                                </div>
+                            <div className="folio-guest-list" role="radiogroup" aria-label="Folio guests">
+                                {folioGuests.map((guest) => {
+                                    const isSelected = selectedGuestId === guest.id;
+                                    return (
+                                        <button
+                                            key={guest.id}
+                                            type="button"
+                                            className={`folio-guest-item ${isSelected ? 'active' : ''}`}
+                                            onClick={() => setSelectedGuestId(guest.id)}
+                                            role="radio"
+                                            aria-checked={isSelected}
+                                        >
+                                            <span className="folio-radio-dot" aria-hidden="true"></span>
+                                            <span className="folio-guest-meta">
+                                                <span className="folio-guest-name">{guest.name}</span>
+                                                <span className="folio-guest-balance">
+                                                    Folio Balance: {cs}{(folioBalances[guest.folioId] || 0).toLocaleString('en-IN')}
+                                                </span>
+                                            </span>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
@@ -148,8 +221,8 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
                     {/* New Balance Preview (Dynamic) */}
                     <div className="new-balance-preview animate-in">
                         <div className="preview-label">Balance after this payment</div>
-                        <div className={`preview-amount ${ (balance - (parseFloat(formData.amount) || 0)) <= 0 ? 'fully-paid' : ''}`}>
-                            {cs}{Math.max(0, balance - (parseFloat(formData.amount) || 0)).toLocaleString('en-IN')}
+                        <div className={`preview-amount ${ (selectedFolioBalance - (parseFloat(formData.amount) || 0)) <= 0 ? 'fully-paid' : ''}`}>
+                            {cs}{Math.max(0, selectedFolioBalance - (parseFloat(formData.amount) || 0)).toLocaleString('en-IN')}
                         </div>
                     </div>
 
@@ -202,11 +275,11 @@ const AddPayment = ({ onClose, onAdd, reservation }) => {
                                 placeholder="0.00"
                                 className={`amount-input-field ${errors.amount ? 'error' : ''}`}
                             />
-                            {balance > 0 && (
-                                <button 
+                            {selectedFolioBalance > 0 && (
+                                <button
                                     type="button"
                                     className="pay-full-action-btn"
-                                    onClick={() => handleChange('amount', balance.toString())}
+                                    onClick={() => handleChange('amount', selectedFolioBalance.toString())}
                                 >
                                     PAY FULL
                                 </button>

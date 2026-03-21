@@ -260,6 +260,14 @@ const DiscountManagement = () => {
         }));
     };
 
+    const handleDeleteApplyToOption = (optionId) => {
+        setApplyToOptions(prev => prev.filter(option => option.id !== optionId));
+        setFormData(prev => ({
+            ...prev,
+            appliesTo: prev.appliesTo.filter(id => id !== optionId)
+        }));
+    };
+
     return (
         <div className="discount-management-page">
             <div className="dining-header">
@@ -518,14 +526,25 @@ const DiscountManagement = () => {
                                         {showAppliesTo && !isAddingApplyTo && (
                                             <div className="checkbox-grid-group-premium">
                                                 {applyToOptions.map(option => (
-                                                    <label key={option.id} className={`checkbox-item-premium ${formData.appliesTo.includes(option.id) ? 'checked' : ''}`}>
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={formData.appliesTo.includes(option.id)}
-                                                            onChange={() => handleCheckboxChange(option.id)}
-                                                        />
-                                                        <span className="checkbox-label">{option.label}</span>
-                                                    </label>
+                                                    <div key={option.id} className={`checkbox-item-premium ${formData.appliesTo.includes(option.id) ? 'checked' : ''}`}>
+                                                        <label className="checkbox-label-row">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={formData.appliesTo.includes(option.id)}
+                                                                onChange={() => handleCheckboxChange(option.id)}
+                                                            />
+                                                            <span className="checkbox-label">{option.label}</span>
+                                                        </label>
+                                                        <button
+                                                            type="button"
+                                                            className="checkbox-delete-btn"
+                                                            onClick={() => handleDeleteApplyToOption(option.id)}
+                                                            title="Delete category"
+                                                            aria-label={`Delete ${option.label}`}
+                                                        >
+                                                            x
+                                                        </button>
+                                                    </div>
                                                 ))}
                                             </div>
                                         )}

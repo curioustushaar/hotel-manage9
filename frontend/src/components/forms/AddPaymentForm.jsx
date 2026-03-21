@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSettings } from '../../context/SettingsContext';
 import '../AddPayment.css'; 
 
@@ -35,6 +35,7 @@ const AddPaymentForm = ({ booking, onSubmit, onCancel }) => {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState({});
+    const [selectedGuestId, setSelectedGuestId] = useState('primary');
 
     const handleChange = (field, value) => {
         let finalValue = value;
@@ -43,9 +44,9 @@ const AddPaymentForm = ({ booking, onSubmit, onCancel }) => {
             const absoluteValue = value.replace(/-/g, '');
             const numVal = parseFloat(absoluteValue);
             finalValue = absoluteValue;
-            
-            if (numVal > balance) {
-                finalValue = balance.toString();
+
+            if (numVal > selectedFolioBalance) {
+                finalValue = selectedFolioBalance.toString();
             }
         }
         setFormData(prev => ({ ...prev, [field]: finalValue }));
@@ -57,8 +58,8 @@ const AddPaymentForm = ({ booking, onSubmit, onCancel }) => {
         const amt = parseFloat(formData.amount);
         if (!formData.amount || isNaN(amt) || amt <= 0) {
             newErrors.amount = 'Amount is required';
-        } else if (amt > balance) {
-            newErrors.amount = `Amount cannot exceed balance (${cs}${balance.toLocaleString('en-IN')})`;
+        } else if (amt > selectedFolioBalance) {
+            newErrors.amount = `Amount cannot exceed selected folio balance (${cs}${selectedFolioBalance.toLocaleString('en-IN')})`;
         }
         
         if (['Card', 'UPI', 'Bank Transfer', 'Cheque', 'Bank'].includes(formData.paymentMethod) && !formData.referenceId?.trim()) {
@@ -75,8 +76,10 @@ const AddPaymentForm = ({ booking, onSubmit, onCancel }) => {
         try {
             await onSubmit({
                 ...formData,
-                date: formData.paymentDate, 
-                amount: Math.abs(parseFloat(formData.amount))
+                date: formData.paymentDate,
+                amount: Math.abs(parseFloat(formData.amount)),
+                folioId: selectedFolioId,
+                selectedGuestName: selectedGuest?.name || booking?.guestName || 'Guest'
             });
         } catch (error) {
             console.error('Submit error:', error);
@@ -86,38 +89,108 @@ const AddPaymentForm = ({ booking, onSubmit, onCancel }) => {
 
     const balance = booking?.remainingAmount || ((booking?.totalAmount || 0) - (booking?.advancePaid || 0));
 
+    const folioGuests = useMemo(() => {
+        const primaryGuest = {
+            id: 'primary',
+            folioId: 0,
+            name: booking?.guestName || 'Guest'
+        };
+
+        const additional = (Array.isArray(booking?.additionalGuests) ? booking.additionalGuests : [])
+            .map((guest, index) => {
+                if (typeof guest === 'string') {
+                    return { id: `guest-${index}`, folioId: index + 1, name: guest };
+                }
+
+                const guestName = guest?.guestName || guest?.name || guest?.fullName || guest?.firstName;
+                if (!guestName) return null;
+
+                return {
+                    id: guest?._id || guest?.id || `guest-${index}`,
+                    folioId: index + 1,
+                    name: guestName
+                };
+            })
+            .filter(Boolean);
+
+        return [primaryGuest, ...additional];
+    }, [booking?.guestName, booking?.additionalGuests]);
+
+    const folioBalances = useMemo(() => {
+        const txns = Array.isArray(booking?.transactions) ? booking.transactions : [];
+        const overall = Math.max(0, Number(balance) || 0);
+        const balanceMap = {};
+
+        let otherFoliosTotal = 0;
+        folioGuests.forEach((guest) => {
+            if (guest.folioId === 0) return;
+
+            const charges = txns
+                .filter((t) => Number(t.folioId || 0) === guest.folioId && t.type?.toLowerCase() === 'charge')
+                .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+
+            const paid = txns
+                .filter((t) => Number(t.folioId || 0) === guest.folioId && t.type?.toLowerCase() === 'payment')
+                .reduce((sum, t) => sum + (Math.abs(Number(t.amount)) || 0), 0);
+
+            const folioBal = Math.max(0, charges - paid);
+            balanceMap[guest.folioId] = folioBal;
+            otherFoliosTotal += folioBal;
+        });
+
+        balanceMap[0] = Math.max(0, overall - otherFoliosTotal);
+        return balanceMap;
+    }, [booking?.transactions, folioGuests, balance]);
+
+    const selectedGuest = folioGuests.find((guest) => guest.id === selectedGuestId) || folioGuests[0];
+    const selectedFolioId = selectedGuest?.folioId ?? 0;
+    const selectedFolioBalance = Math.max(0, folioBalances[selectedFolioId] ?? 0);
+
+    useEffect(() => {
+        if (!folioGuests.some((guest) => guest.id === selectedGuestId)) {
+            setSelectedGuestId(folioGuests[0]?.id || 'primary');
+        }
+    }, [folioGuests, selectedGuestId]);
+
     return (
         <div className="add-payment-form-premium" style={{ width: '100%', overflowX: 'hidden' }}>
             <div className="add-payment-body">
                 {/* Reservation Summary Card */}
                 <div className="payment-summary-card">
                     <div className="summary-header">
-                        <span className="ref-tag">RESERVATION DETAILS</span>
+                        <span className="ref-tag">SELECT FOLIO / GUEST</span>
                         <span className="ref-number">{booking?.bookingId || 'RES-1002'}</span>
                     </div>
-                    <div className="summary-details">
-                        <div className="detail-col">
-                            <label>GUEST NAME</label>
-                            <p className="truncate-text">{booking?.guestName || 'Pending...'}</p>
-                        </div>
-                        <div className="detail-col-group">
-                            <div className="detail-sub-col">
-                                <label>TOTAL</label>
-                                <p>{cs}{(booking?.totalAmount || 0).toLocaleString('en-IN')}</p>
-                            </div>
-                            <div className="detail-sub-col text-right">
-                                <label>BALANCE</label>
-                                <p className="balance-text-bold">{cs}{(balance || 0).toLocaleString('en-IN')}</p>
-                            </div>
-                        </div>
+                    <div className="folio-guest-list" role="radiogroup" aria-label="Folio guests">
+                        {folioGuests.map((guest) => {
+                            const isSelected = selectedGuestId === guest.id;
+                            return (
+                                <button
+                                    key={guest.id}
+                                    type="button"
+                                    className={`folio-guest-item ${isSelected ? 'active' : ''}`}
+                                    onClick={() => setSelectedGuestId(guest.id)}
+                                    role="radio"
+                                    aria-checked={isSelected}
+                                >
+                                    <span className="folio-radio-dot" aria-hidden="true"></span>
+                                    <span className="folio-guest-meta">
+                                        <span className="folio-guest-name">{guest.name}</span>
+                                        <span className="folio-guest-balance">
+                                            Folio Balance: {cs}{(folioBalances[guest.folioId] || 0).toLocaleString('en-IN')}
+                                        </span>
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
                 {/* Balance Preview - Pink Box */}
                 <div className="new-balance-preview animate-in">
                     <div className="preview-label">Balance after this payment</div>
-                    <div className={`preview-amount ${ (balance - (parseFloat(formData.amount) || 0)) <= 0 ? 'fully-paid' : ''}`}>
-                        {cs}{Math.max(0, balance - (parseFloat(formData.amount) || 0)).toLocaleString('en-IN')}
+                    <div className={`preview-amount ${ (selectedFolioBalance - (parseFloat(formData.amount) || 0)) <= 0 ? 'fully-paid' : ''}`}>
+                        {cs}{Math.max(0, selectedFolioBalance - (parseFloat(formData.amount) || 0)).toLocaleString('en-IN')}
                     </div>
                 </div>
 
@@ -170,11 +243,11 @@ const AddPaymentForm = ({ booking, onSubmit, onCancel }) => {
                             placeholder="0.00"
                             className={`amount-input-field ${errors.amount ? 'error' : ''}`}
                         />
-                        {balance > 0 && (
-                            <button 
+                        {selectedFolioBalance > 0 && (
+                            <button
                                 type="button"
                                 className="pay-full-action-btn"
-                                onClick={() => handleChange('amount', String(balance))}
+                                onClick={() => handleChange('amount', String(selectedFolioBalance))}
                             >
                                 PAY FULL
                             </button>
