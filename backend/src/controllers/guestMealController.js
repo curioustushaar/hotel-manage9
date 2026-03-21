@@ -983,25 +983,6 @@ exports.updateOrderStatus = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        // Persist cashier-calculated billing snapshot so reports can use exact settled values.
-        if (billingMeta && typeof billingMeta === 'object') {
-            const settledSubtotal = Number(billingMeta.subtotal ?? order.subtotal ?? 0) || 0;
-            const settledFoodGst = Number(billingMeta.foodGstAmount ?? order.tax ?? 0) || 0;
-            const settledServiceCharge = Number(billingMeta.serviceChargeAmount ?? order.serviceChargeAmount ?? 0) || 0;
-            const settledDiscount = Number(billingMeta.discountAmount ?? order.discountAmount ?? 0) || 0;
-            const settledGrandTotal = Number(billingMeta.grandTotal ?? (settledSubtotal + settledFoodGst + settledServiceCharge)) || 0;
-            const settledNetPayable = Number(billingMeta.netPayable ?? amount ?? order.finalAmount ?? 0) || 0;
-
-            order.subtotal = settledSubtotal;
-            order.tax = settledFoodGst;
-            order.serviceChargeAmount = settledServiceCharge;
-            order.discountAmount = settledDiscount;
-            order.totalAmount = settledGrandTotal;
-            order.finalAmount = settledNetPayable;
-            order.$locals = order.$locals || {};
-            order.$locals.skipFinancialRecalc = true;
-        }
-
         order.status = status;
         if (status === 'Closed') order.closedAt = new Date();
         if (status === 'Billed') order.billedAt = new Date();
@@ -1226,10 +1207,10 @@ exports.getRevenueReport = async (req, res) => {
 // Get pending orders for Cashier View
 exports.getPendingOrders = async (req, res) => {
     try {
-        // Fetch orders that are 'Pending Payment' (sent to cashier) or 'Pending' (newly created/active?)
-        // The user specifically asked for 'sent' orders, which set status to 'Pending Payment'.
+        // Cashier should only receive orders explicitly sent via "Bill Details".
+        // That transition sets status to 'Pending Payment'.
         const query = {
-            status: { $in: ['Pending Payment', 'Pending'] }
+            status: 'Pending Payment'
         };
 
         const orders = await GuestMealOrder.find(query)
@@ -1254,16 +1235,48 @@ exports.getPendingOrders = async (req, res) => {
 exports.settleOrder = async (req, res) => {
     try {
         const { orderId } = req.params;
-        const { paymentMethod, paymentMode, amount, roomNumber, folioId, billingMeta, performedBy } = req.body;
+    const { paymentMethod, paymentMode, amount, roomNumber, folioId, billingMeta, paymentSplits, performedBy } = req.body;
 
-        const actorName = (typeof performedBy === 'string' && performedBy.trim())
-            ? performedBy.trim()
-            : (performedBy?.name || performedBy?.username || performedBy?.email || req.user?.name || req.user?.username || 'Cashier');
+    const actorName = (typeof performedBy === 'string' && performedBy.trim())
+        ? performedBy.trim()
+        : (performedBy?.name || performedBy?.username || performedBy?.email || req.user?.name || req.user?.username || 'Cashier');
 
         const order = await GuestMealOrder.findById(orderId);
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
+
+        const toNum = (v) => {
+            const n = Number(v);
+            return Number.isFinite(n) ? n : 0;
+        };
+
+        // Persist final bill breakup so reports can show exact Tax/Discount/Total.
+        const applySettledBillMeta = () => {
+            if (!billingMeta || typeof billingMeta !== 'object') return;
+
+            const settledSubtotal = toNum(billingMeta.subtotal ?? order.subtotal);
+            const settledFoodGst = toNum(billingMeta.taxAmount ?? billingMeta.foodGstAmount ?? order.tax);
+            const settledServiceCharge = toNum(billingMeta.serviceChargeAmount ?? order.serviceChargeAmount);
+            const settledDiscount = toNum(billingMeta.discountAmount ?? order.discountAmount);
+            const settledGrandTotal = toNum(billingMeta.grandTotal ?? (settledSubtotal + settledFoodGst + settledServiceCharge));
+            const settledNetPayable = toNum(billingMeta.netPayable ?? amount ?? order.finalAmount ?? (settledGrandTotal - settledDiscount));
+            const combinedTax = Math.max(0, settledFoodGst + settledServiceCharge);
+
+            order.subtotal = settledSubtotal;
+            order.tax = combinedTax;
+            order.discountAmount = settledDiscount;
+            order.totalAmount = settledGrandTotal;
+            order.finalAmount = settledNetPayable;
+            order.taxRate = settledSubtotal > 0 ? ((combinedTax / settledSubtotal) * 100) : 0;
+
+            order.billing = {
+                subtotal: settledSubtotal,
+                tax: combinedTax,
+                total: settledGrandTotal,
+                balance: 0
+            };
+        };
 
         // 1. Handle "Post to Room" (Add to Folio)
         if (paymentMethod === 'Add to Room') {
@@ -1373,43 +1386,70 @@ exports.settleOrder = async (req, res) => {
 
             order.paymentMethod = 'Room Billing';
             order.paymentStatus = 'Completed';
+            applySettledBillMeta();
         } else {
             // 2. Handle Direct Payment
-            order.paymentMethod = paymentMode; // Cash, Card, UPI
-            order.paymentStatus = 'Completed';
-
-            // Also record in overall cashier Transaction model
-            const Transaction = require('../models/Transaction');
-
-            // Normalize payment method to match Transaction model enum
-            // Valid values: 'Cash', 'Card', 'UPI', 'Bank Transfer', 'Cheque', 'Credit'
             const normalizePaymentMethod = (method) => {
                 if (!method) return 'Cash';
-                const lower = method.toLowerCase().trim();
+                const lower = String(method).toLowerCase().trim();
                 if (lower === 'cash') return 'Cash';
                 if (lower === 'card') return 'Card';
                 if (lower === 'upi') return 'UPI';
                 if (lower.includes('bank') || lower.includes('transfer')) return 'Bank Transfer';
                 if (lower === 'cheque' || lower === 'check') return 'Cheque';
                 if (lower === 'credit') return 'Credit';
-                // Default to Cash if unknown
                 return 'Cash';
             };
 
-            // Map paymentMode to transaction type enum
-            // Valid types: ['Income', 'Expense', 'Refund', 'Void']
-            // Valid categories: ['Room', 'Restaurant', 'Service', 'Other']
+            const normalizedSplits = Array.isArray(paymentSplits)
+                ? paymentSplits
+                    .map(split => ({
+                        mode: normalizePaymentMethod(split?.mode),
+                        amount: Number(split?.amount || 0)
+                    }))
+                    .filter(split => split.amount > 0)
+                : [];
 
-            await Transaction.create({
-                date: new Date(),
-                type: 'Income',
-                category: 'Restaurant',
-                amount: amount || order.finalAmount,
-                order: orderId, // Link to the order
-                referenceId: `TXN-${Date.now()}-${orderId.toString().substr(-6).toUpperCase()}`,
-                description: `Restaurant Bill - Table ${order.tableNumber || 'N/A'} - ${order.orderType || 'Dine-In'}`,
-                paymentMethod: normalizePaymentMethod(paymentMode)
-            });
+            const isSplitPayment = normalizedSplits.length > 0;
+            if (isSplitPayment) {
+                const splitTotal = normalizedSplits.reduce((sum, split) => sum + split.amount, 0);
+                const payableAmount = Number(amount || order.finalAmount || 0);
+                if (Math.abs(splitTotal - payableAmount) > 0.01) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Split total (${splitTotal.toFixed(2)}) must match payable amount (${payableAmount.toFixed(2)})`
+                    });
+                }
+            }
+
+            order.paymentMethod = isSplitPayment ? 'Mixed' : paymentMode; // Cash, Card, UPI, or Mixed
+            order.paymentStatus = 'Completed';
+            applySettledBillMeta();
+
+            // Also record in overall cashier Transaction model
+            const Transaction = require('../models/Transaction');
+
+            const createTransactionRecord = async (txnAmount, txnMode, index = 0) => {
+                await Transaction.create({
+                    date: new Date(),
+                    type: 'Income',
+                    category: 'Restaurant',
+                    amount: txnAmount,
+                    order: orderId, // Link to the order
+                    referenceId: `TXN-${Date.now()}-${orderId.toString().substr(-6).toUpperCase()}${index > 0 ? `-${index}` : ''}`,
+                    description: `Restaurant Bill - Table ${order.tableNumber || 'N/A'} - ${order.orderType || 'Dine-In'}${isSplitPayment ? ` [${txnMode}]` : ''}`,
+                    paymentMethod: normalizePaymentMethod(txnMode)
+                });
+            };
+
+            if (isSplitPayment) {
+                for (let i = 0; i < normalizedSplits.length; i++) {
+                    const split = normalizedSplits[i];
+                    await createTransactionRecord(split.amount, split.mode, i + 1);
+                }
+            } else {
+                await createTransactionRecord(amount || order.finalAmount, paymentMode, 0);
+            }
         }
 
         // 3. Mark Order as Closed
