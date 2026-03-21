@@ -536,9 +536,34 @@ const CRMModel = () => {
                                                 <button className="action-icon-btn edit-btn" onClick={() => openEditModal(staff)} title="Edit">
                                                     <Edit2 size={16} />
                                                 </button>
-                                                <button className="action-icon-btn delete-btn" onClick={() => setShowDeleteConfirm(staff)} title="Delete">
+                                                <button
+                                                    className="action-icon-btn delete-btn"
+                                                    onClick={() => setShowDeleteConfirm(showDeleteConfirm?._id === staff._id ? null : staff)}
+                                                    title="Delete"
+                                                >
                                                     <Trash2 size={16} />
                                                 </button>
+                                                {showDeleteConfirm?._id === staff._id && (
+                                                    <div className="crm-delete-inline-warning">
+                                                        <span>Are you sure want to delete?</span>
+                                                        <div className="crm-delete-inline-actions">
+                                                            <button
+                                                                type="button"
+                                                                className="crm-delete-inline-yes"
+                                                                onClick={() => handleDeleteStaff(staff._id)}
+                                                            >
+                                                                Yes
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="crm-delete-inline-no"
+                                                                onClick={() => setShowDeleteConfirm(null)}
+                                                            >
+                                                                No
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -1017,24 +1042,6 @@ const CRMModel = () => {
                 </div>
             )}
 
-            {/* ===== DELETE CONFIRMATION ===== */}
-            {showDeleteConfirm && (
-                <div className="crm-modal-overlay" onClick={() => setShowDeleteConfirm(null)}>
-                    <div className="crm-modal delete-modal" onClick={e => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2 style={{ color: '#ef4444' }}>🗑️ Delete Staff</h2>
-                            <button className="close-btn" onClick={() => setShowDeleteConfirm(null)}><X size={20} /></button>
-                        </div>
-                        <div className="delete-content">
-                            <p style={{ marginTop: '20px', fontSize: '15px' }}>Are you sure you want to delete <strong>{showDeleteConfirm.name}</strong>?<br />This action cannot be undone.</p>
-                            <div className="modal-actions">
-                                <button className="btn-cancel" onClick={() => setShowDeleteConfirm(null)}>Cancel</button>
-                                <button className="btn-delete-confirm" onClick={() => handleDeleteStaff(showDeleteConfirm._id)}>Delete</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

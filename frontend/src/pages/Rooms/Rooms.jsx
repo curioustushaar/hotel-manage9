@@ -30,6 +30,8 @@ const Rooms = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [currentRoom, setCurrentRoom] = useState(null);
+    const [pendingDeleteRoomId, setPendingDeleteRoomId] = useState(null);
+    const [deletingRoomId, setDeletingRoomId] = useState(null);
 
     // Status Options (Static for now, or match RoomSetup)
     const statusOptions = ['Available', 'Booked', 'Occupied', 'Under Maintenance'];
@@ -125,6 +127,12 @@ const Rooms = () => {
         fetchBedTypes();
         fetchFloors();
     }, []);
+
+    useEffect(() => {
+        if (!pendingDeleteRoomId) return;
+        const timer = setTimeout(() => setPendingDeleteRoomId(null), 5000);
+        return () => clearTimeout(timer);
+    }, [pendingDeleteRoomId]);
 
     // Save draft form data to localStorage whenever it changes
     useEffect(() => {
@@ -308,6 +316,28 @@ const Rooms = () => {
         }
     };
 
+    const handleDeleteRoom = async (room) => {
+        const roomId = room?._id || room?.id;
+        if (!roomId) return;
+
+        setDeletingRoomId(roomId);
+        try {
+            const response = await fetch(`${API_URL}/api/rooms/delete/${roomId}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                await fetchRoomsFromAPI();
+            }
+        } catch (error) {
+            console.error('Error deleting room:', error);
+        } finally {
+            setDeletingRoomId(null);
+            setPendingDeleteRoomId(null);
+        }
+    };
+
     const getStatusClass = (status) => {
         switch (status) {
             case 'Available':
@@ -469,10 +499,12 @@ const Rooms = () => {
             {/* Rooms Grid/List */}
             <div className={viewMode === 'grid' ? 'rooms-grid' : 'rooms-list'}>
                 <AnimatePresence>
-                    {filteredRooms.map((room) => (
+                    {filteredRooms.map((room) => {
+                        const roomId = room._id || room.id;
+                        return (
                         <motion.div
-                            key={room.id}
-                            className={`${viewMode === 'grid' ? 'room-card' : 'room-list-item'} ${getStatusClass(room.status)}`}
+                            key={roomId}
+                            className={`${viewMode === 'grid' ? 'room-card' : 'room-list-item'} ${getStatusClass(room.status)} ${pendingDeleteRoomId === roomId ? 'room-card-delete-open' : ''}`}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
@@ -483,6 +515,47 @@ const Rooms = () => {
                                 <>
                                     <div className="room-card-header">
                                         <h3>Room {room.roomNumber}</h3>
+                                        <div className="room-card-actions-top" onClick={(e) => e.stopPropagation()}>
+                                            {room.status === 'Available' && (
+                                                <button className="icon-btn" onClick={() => handleEditRoom(room)} title="Edit">
+                                                    ✏️
+                                                </button>
+                                            )}
+                                            <div className="room-delete-wrap">
+                                                {pendingDeleteRoomId === roomId && (
+                                                    <div className="room-delete-warning">
+                                                        <span>Are you sure want to delete?</span>
+                                                        <div className="room-delete-warning-actions">
+                                                            <button
+                                                                type="button"
+                                                                className="room-delete-warning-yes"
+                                                                onClick={() => handleDeleteRoom(room)}
+                                                                disabled={deletingRoomId === roomId}
+                                                                title="Yes"
+                                                            >
+                                                                Yes
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="room-delete-warning-no"
+                                                                onClick={() => setPendingDeleteRoomId(null)}
+                                                                title="No"
+                                                            >
+                                                                No
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                <button
+                                                    className="icon-btn"
+                                                    onClick={() => setPendingDeleteRoomId(roomId)}
+                                                    title="Delete"
+                                                    disabled={deletingRoomId === roomId}
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div className="room-card-body">
                                         <p className="room-type">{getRoomTypeShort(room.roomType)}</p>
@@ -501,11 +574,6 @@ const Rooms = () => {
                                         <span className={`room-status ${getStatusClass(room.status)}`}>
                                             {room.status}
                                         </span>
-                                        {room.status === 'Available' && (
-                                            <button className="edit-btn" onClick={() => handleEditRoom(room)}>
-                                                ✏️ Edit
-                                            </button>
-                                        )}
                                     </div>
                                 </>
                             ) : (
@@ -538,12 +606,47 @@ const Rooms = () => {
                                                     ✏️ Edit
                                                 </button>
                                             )}
+                                            <div className="room-delete-wrap" onClick={(e) => e.stopPropagation()}>
+                                                {pendingDeleteRoomId === roomId && (
+                                                    <div className="room-delete-warning">
+                                                        <span>Are you sure want to delete?</span>
+                                                        <div className="room-delete-warning-actions">
+                                                            <button
+                                                                type="button"
+                                                                className="room-delete-warning-yes"
+                                                                onClick={() => handleDeleteRoom(room)}
+                                                                disabled={deletingRoomId === roomId}
+                                                                title="Yes"
+                                                            >
+                                                                Yes
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="room-delete-warning-no"
+                                                                onClick={() => setPendingDeleteRoomId(null)}
+                                                                title="No"
+                                                            >
+                                                                No
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                <button
+                                                    className="icon-btn"
+                                                    onClick={() => setPendingDeleteRoomId(roomId)}
+                                                    title="Delete"
+                                                    disabled={deletingRoomId === roomId}
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </>
                             )}
                         </motion.div>
-                    ))}
+                        );
+                    })}
                 </AnimatePresence>
             </div>
 

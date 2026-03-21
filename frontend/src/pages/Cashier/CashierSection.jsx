@@ -16,12 +16,14 @@ const CashierSection = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showNewOrderModal, setShowNewOrderModal] = useState(false);
     const [newOrderDetails, setNewOrderDetails] = useState({ name: '', phone: '' });
+    const [newOrderWarning, setNewOrderWarning] = useState('');
 
     // Track Order State
     const [showTrackModal, setShowTrackModal] = useState(false);
     const [trackQuery, setTrackQuery] = useState('');
     const [trackedOrders, setTrackedOrders] = useState(null); // null means not searched yet
     const [trackLoading, setTrackLoading] = useState(false);
+    const [trackWarning, setTrackWarning] = useState('');
 
     // Checked-in Rooms for Folio
     const [checkedInRooms, setCheckedInRooms] = useState([]);
@@ -213,37 +215,38 @@ const CashierSection = () => {
         }
     };
 
-    const handleRoomPostingAction = (action) => {
-        if (action === 'Print') {
-            alert('Room Posting List Printed Successfully!');
-        } else if (action === 'SMS') {
-            alert('Room Posting Summary Sent via SMS!');
-        } else {
-            alert('Room Posting Summary Sent via Email!');
-        }
-    };
-
     const handleNewOrderClick = () => {
         if (!settings.posEnabled) {
             alert('POS is disabled. Cannot create orders. Enable POS from Company Settings.');
             return;
         }
+        setNewOrderWarning('');
         setShowNewOrderModal(true);
     };
 
     const handleGoToFoodMenu = () => {
-        if (!newOrderDetails.name) {
-            alert('Please enter customer name');
+        const customerName = newOrderDetails.name.trim();
+        const customerPhone = newOrderDetails.phone.trim();
+
+        if (!/^\d{10}$/.test(customerPhone)) {
+            setNewOrderWarning('Please enter a valid 10-digit phone number');
             return;
         }
+
+        if (!/^[A-Za-z\s]+$/.test(customerName) || customerName.length < 2) {
+            setNewOrderWarning('Please enter customer name (letters only)');
+            return;
+        }
+
+        setNewOrderWarning('');
         setShowNewOrderModal(false);
         // Navigate by state instead of preventing default
         // The AdminDashboard listens for location.state.activeMenu
         navigate('/admin/dashboard', {
             state: {
                 activeMenu: 'food-order', // Trigger switching to food order view
-                customerName: newOrderDetails.name,
-                customerPhone: newOrderDetails.phone,
+                customerName,
+                customerPhone,
                 orderMode: 'takeaway'
             }
         });
@@ -251,8 +254,13 @@ const CashierSection = () => {
 
     // --- TRACK ORDER LOGIC ---
     const handleTrackOrderSearch = async () => {
-        if (!trackQuery.trim()) return;
+        if (!/^\d{10}$/.test(trackQuery.trim())) {
+            setTrackWarning('Please enter exactly 10 digits');
+            setTrackedOrders(null);
+            return;
+        }
 
+        setTrackWarning('');
         setTrackLoading(true);
         try {
             // Using getAllOrders to find by phone/name/id
@@ -262,14 +270,12 @@ const CashierSection = () => {
             const data = await response.json();
 
             if (data.success) {
-                const query = trackQuery.toLowerCase();
+                const query = trackQuery.trim();
                 const matched = data.data.filter(o =>
                     ['Take Away', 'Delivery', 'Online', 'Room Service'].includes(o.orderType) &&
                     !['Closed', 'Cancelled', 'Completed', 'Settled'].includes(o.status) &&
                     (
-                        (o.guestPhone && o.guestPhone.includes(query)) ||
-                        (o.guestName && o.guestName.toLowerCase().includes(query)) ||
-                        (o._id && o._id.toLowerCase().includes(query))
+                        (o.guestPhone && o.guestPhone.includes(query))
                     )
                 );
                 setTrackedOrders(matched);
@@ -289,6 +295,13 @@ const CashierSection = () => {
         if (['Ready', 'Served'].includes(status)) return 3;
         if (['Billed', 'Pending Payment', 'Completed'].includes(status)) return 4;
         return 0;
+    };
+
+    const getStepLabel = (step) => {
+        if (step === 1) return 'Pending';
+        if (step === 2) return 'Preparing';
+        if (step >= 3) return 'Ready';
+        return 'Pending';
     };
 
 
@@ -433,7 +446,6 @@ const CashierSection = () => {
                         order={selectedOrder}
                         onPaymentComplete={handlePaymentComplete}
                         onClearSelection={() => setSelectedOrder(null)}
-                        onRoomPostingAction={handleRoomPostingAction}
                         checkedInRooms={checkedInRooms}
                     />
 
@@ -443,7 +455,7 @@ const CashierSection = () => {
 
         {/* Track Order Modal */}
             {showTrackModal && (
-                <div className="add-payment-overlay" onClick={() => { setShowTrackModal(false); setTrackedOrders(null); setTrackQuery(''); }}>
+                <div className="add-payment-overlay" onClick={() => { setShowTrackModal(false); setTrackedOrders(null); setTrackQuery(''); setTrackWarning(''); }}>
                     <div className="add-payment-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="premium-payment-header">
                             <div className="header-icon-wrap">
@@ -453,24 +465,28 @@ const CashierSection = () => {
                                 <h3>Track Order</h3>
                                 <span>Order Status Tracking</span>
                             </div>
-                            <button className="premium-close-btn" onClick={() => { setShowTrackModal(false); setTrackedOrders(null); setTrackQuery(''); }}>×</button>
+                            <button className="premium-close-btn" onClick={() => { setShowTrackModal(false); setTrackedOrders(null); setTrackQuery(''); setTrackWarning(''); }}>×</button>
                         </div>
                         <div className="add-payment-body">
                             <div className="payment-field-group">
-                                <label className="field-label-premium">ORDER DETAILS *</label>
+                                <label className="field-label-premium">PHONE NUMBER *</label>
                                 <div className="premium-input-wrapper">
                                     <div className="input-icon-prefix">🔍</div>
                                     <input
                                         type="text"
-                                        placeholder="Enter Phone Number or Order ID..."
+                                        placeholder="Enter 10-digit phone number"
                                         value={trackQuery}
-                                        onChange={(e) => setTrackQuery(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                                        onChange={(e) => {
+                                            const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                            setTrackQuery(digits);
+                                            if (trackWarning) setTrackWarning('');
+                                        }}
                                         onKeyDown={(e) => e.key === 'Enter' && handleTrackOrderSearch()}
                                     />
                                     <button 
                                         className="btn-primary" 
                                         onClick={handleTrackOrderSearch} 
-                                        disabled={trackLoading}
+                                        disabled={trackLoading || trackQuery.length !== 10}
                                         style={{ 
                                             width: 'auto', 
                                             height: '42px', 
@@ -484,33 +500,79 @@ const CashierSection = () => {
                                         {trackLoading ? '...' : 'CHECK'}
                                     </button>
                                 </div>
+                                {trackWarning && <div className="form-warning-text">{trackWarning}</div>}
                             </div>
-                        </div>
 
-                        <div className="track-results-area" style={{ marginTop: '10px' }}>
+                            {trackedOrders && trackedOrders.length > 0 && (
+                                <div className="track-summary-banner">
+                                    <div>
+                                        <div className="summary-title">Latest Match</div>
+                                        <div className="summary-main">{trackedOrders[0].guestName || 'Walk-in'} • {trackedOrders[0].guestPhone || 'No Phone'}</div>
+                                    </div>
+                                    <div className={`summary-pill step-${getStatusStep(trackedOrders[0].status)}`}>{trackedOrders[0].status}</div>
+                                </div>
+                            )}
 
+                            {trackedOrders && trackedOrders.length > 0 && (() => {
+                                const firstOrder = trackedOrders[0];
+                                const firstStep = getStatusStep(firstOrder.status);
+                                return (
+                                    <div className={`track-top-result-card step-${firstStep}`}>
+                                        <div className="track-card-header">
+                                            <span className="track-id">#{firstOrder._id.substr(-6).toUpperCase()}</span>
+                                            <span className="track-amount">{cs}{firstOrder.finalAmount}</span>
+                                        </div>
+                                        <div className="track-guest">{firstOrder.guestName} ({firstOrder.guestPhone || 'No Phone'})</div>
+                                        <div className="track-current-status">Current Stage: {getStepLabel(firstStep)}</div>
 
+                                        <div className="track-status-stepper">
+                                            <div className={`step-item ${firstStep >= 1 ? 'completed' : ''} ${firstStep === 1 ? 'active' : ''}`}>
+                                                <div className="step-circle">{firstStep > 1 ? '✓' : '1'}</div>
+                                                <div className="step-label">Pending</div>
+                                            </div>
+                                            <div className={`step-line ${firstStep >= 2 ? 'completed' : ''}`}></div>
+                                            <div className={`step-item ${firstStep >= 2 ? 'completed' : ''} ${firstStep === 2 ? 'active' : ''}`}>
+                                                <div className="step-circle">{firstStep > 2 ? '✓' : '2'}</div>
+                                                <div className="step-label">Preparing</div>
+                                            </div>
+                                            <div className={`step-line ${firstStep >= 3 ? 'completed' : ''}`}></div>
+                                            <div className={`step-item ${firstStep >= 3 ? 'completed' : ''} ${firstStep === 3 ? 'active' : ''}`}>
+                                                <div className="step-circle">{firstStep > 3 ? '✓' : '3'}</div>
+                                                <div className="step-label">Ready</div>
+                                            </div>
+                                        </div>
+
+                                        {firstOrder.status === 'Ready' && (
+                                            <div className="ready-alert">
+                                                🎉 Order is Ready for Pickup!
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+
+                            <div className="track-results-area" style={{ marginTop: '10px' }}>
                                 {trackedOrders === null ? (
-                                    <div className="placeholder-text" style={{ textAlign: 'center', color: '#94a3b8', marginTop: '40px' }}>
-                                        Enter details to track status
+                                    <div className="placeholder-text" style={{ textAlign: 'center', color: '#94a3b8', marginTop: '24px' }}>
+                                        Enter 10-digit number to track status
                                     </div>
                                 ) : trackedOrders.length === 0 ? (
-                                    <div className="placeholder-text" style={{ textAlign: 'center', color: '#ef4444', marginTop: '40px' }}>
-                                        No active orders found matching your search.
+                                    <div className="placeholder-text" style={{ textAlign: 'center', color: '#ef4444', marginTop: '24px' }}>
+                                        No active orders found for this number.
                                     </div>
                                 ) : (
                                     <div className="tracked-orders-list">
-                                        {trackedOrders.map(order => {
+                                        {trackedOrders.slice(1).map(order => {
                                             const step = getStatusStep(order.status);
                                             return (
-                                                <div key={order._id} className="track-card">
+                                                <div key={order._id} className={`track-card step-${step}`}>
                                                     <div className="track-card-header">
                                                         <span className="track-id">#{order._id.substr(-6).toUpperCase()}</span>
                                                         <span className="track-amount">{cs}{order.finalAmount}</span>
                                                     </div>
                                                     <div className="track-guest">{order.guestName} ({order.guestPhone || 'No Phone'})</div>
+                                                    <div className="track-current-status">Current Stage: {getStepLabel(step)}</div>
 
-                                                    {/* Status Tracker */}
                                                     <div className="track-status-stepper">
                                                         <div className={`step-item ${step >= 1 ? 'completed' : ''} ${step === 1 ? 'active' : ''}`}>
                                                             <div className="step-circle">{step > 1 ? '✓' : '1'}</div>
@@ -541,10 +603,11 @@ const CashierSection = () => {
                             </div>
                         </div>
                     </div>
+                </div>
             )}
 
             {showNewOrderModal && (
-                <div className="add-payment-overlay" onClick={() => setShowNewOrderModal(false)}>
+                <div className="add-payment-overlay" onClick={() => { setShowNewOrderModal(false); setNewOrderWarning(''); }}>
                     <div className="add-payment-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="premium-payment-header">
                             <div className="header-icon-wrap">
@@ -554,10 +617,29 @@ const CashierSection = () => {
                                 <h3>New Take Away Order</h3>
                                 <span>Customer Essentials</span>
                             </div>
-                            <button className="premium-close-btn" onClick={() => setShowNewOrderModal(false)}>×</button>
+                            <button className="premium-close-btn" onClick={() => { setShowNewOrderModal(false); setNewOrderWarning(''); }}>×</button>
                         </div>
 
                         <div className="add-payment-body">
+                            {newOrderWarning && <div className="form-warning-text">{newOrderWarning}</div>}
+
+                            <div className="payment-field-group">
+                                <label className="field-label-premium">PHONE NUMBER *</label>
+                                <div className="premium-input-wrapper">
+                                    <div className="input-icon-prefix">📞</div>
+                                    <input
+                                        type="tel"
+                                        placeholder="Enter 10-digit phone number"
+                                        value={newOrderDetails.phone}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                            setNewOrderDetails({ ...newOrderDetails, phone: value });
+                                            if (newOrderWarning) setNewOrderWarning('');
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
                             <div className="payment-field-group">
                                 <label className="field-label-premium">CUSTOMER NAME *</label>
                                 <div className="premium-input-wrapper">
@@ -566,24 +648,10 @@ const CashierSection = () => {
                                         type="text"
                                         placeholder="Enter Customer Name"
                                         value={newOrderDetails.name}
-                                        onChange={(e) => setNewOrderDetails({ ...newOrderDetails, name: e.target.value.replace(/[^A-Za-z\s]/g, '') })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="payment-field-group">
-                                <label className="field-label-premium">PHONE NUMBER</label>
-                                <div className="premium-input-wrapper">
-                                    <div className="input-icon-prefix">📞</div>
-                                    <input
-                                        type="text"
-                                        placeholder="Enter Phone Number"
-                                        value={newOrderDetails.phone}
                                         onChange={(e) => {
-                                            const value = e.target.value.replace(/\D/g, '');
-                                            if (value.length <= 10) {
-                                                setNewOrderDetails({ ...newOrderDetails, phone: value });
-                                            }
+                                            const nameValue = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                            setNewOrderDetails({ ...newOrderDetails, name: nameValue });
+                                            if (newOrderWarning) setNewOrderWarning('');
                                         }}
                                     />
                                 </div>
@@ -594,7 +662,12 @@ const CashierSection = () => {
                             <button type="button" className="btn-secondary" onClick={() => setShowNewOrderModal(false)}>
                                 CANCEL
                             </button>
-                            <button type="button" className="btn-primary" onClick={handleGoToFoodMenu}>
+                            <button
+                                type="button"
+                                className="btn-primary"
+                                onClick={handleGoToFoodMenu}
+                                disabled={newOrderDetails.phone.length !== 10 || !newOrderDetails.name.trim()}
+                            >
                                 OPEN FOOD MENU
                             </button>
                         </div>
@@ -605,7 +678,7 @@ const CashierSection = () => {
     );
 };
 
-const CashierPayment = ({ order, onPaymentComplete, onClearSelection, onRoomPostingAction, checkedInRooms = [] }) => {
+const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInRooms = [] }) => {
     const { settings, getCurrencySymbol, formatDate } = useSettings();
     const cs = getCurrencySymbol();
 
@@ -637,9 +710,12 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, onRoomPost
     const [editItems, setEditItems] = useState([]);
     const [pendingRemoveItemIndex, setPendingRemoveItemIndex] = useState(null);
     const [paymentSuccessNote, setPaymentSuccessNote] = useState('');
+    const [sideNoteText, setSideNoteText] = useState('');
+    const [showSideNote, setShowSideNote] = useState(false);
 
     const printDropdownRef = useRef(null);
     const tenderResetTimerRef = useRef(null);
+    const sideNoteTimerRef = useRef(null);
 
     // Derived: list of folios for current booking
     const availableFolios = useMemo(() => {
@@ -735,8 +811,28 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, onRoomPost
                 clearTimeout(tenderResetTimerRef.current);
                 tenderResetTimerRef.current = null;
             }
+
+            if (sideNoteTimerRef.current) {
+                clearTimeout(sideNoteTimerRef.current);
+                sideNoteTimerRef.current = null;
+            }
         };
     }, []);
+
+    const showSimpleSideNote = (message) => {
+        if (sideNoteTimerRef.current) {
+            clearTimeout(sideNoteTimerRef.current);
+            sideNoteTimerRef.current = null;
+        }
+
+        setSideNoteText(message);
+        setShowSideNote(true);
+
+        sideNoteTimerRef.current = setTimeout(() => {
+            setShowSideNote(false);
+            sideNoteTimerRef.current = null;
+        }, 2200);
+    };
 
     // Close print dropdown on outside click
     useEffect(() => {
@@ -966,12 +1062,12 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, onRoomPost
 
     const handleEmailBill = () => {
         if (!order) return;
-        alert(`📧 Email successfully sent to ${order.guest} for Invoice ${order.billNo}`);
+        showSimpleSideNote(`Email successfully sent to ${order.guest} for Invoice ${order.billNo}`);
     };
 
     const handleSendSMS = () => {
         if (!order) return;
-        alert(`💬 SMS successfully sent to ${order.guest} `);
+        showSimpleSideNote(`SMS successfully sent to ${order.guest}`);
     };
 
     const handleTender = async () => {
@@ -1038,6 +1134,10 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, onRoomPost
 
     return (
         <>
+            <div className={`side-note-toast ${showSideNote ? 'show' : ''}`}>
+                {sideNoteText}
+            </div>
+
             {/* CENTER PANEL: Bill Details */}
             <div className="pos-card bill-center-panel">
                 <div className="bill-center-header">
@@ -1514,17 +1614,6 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, onRoomPost
                     </div>
                 )}
 
-                <div className="room-posting-section">
-                    <h4>Room Posting Today</h4>
-                    {settings.billingRules?.autoPost === false && (
-                        <p style={{ fontSize: '0.8rem', color: '#ef4444', margin: '4px 0 8px' }}>Auto Post to Folio is disabled in settings</p>
-                    )}
-                    <div className="room-actions-row">
-                        <button className="ra-btn" onClick={() => onRoomPostingAction('Print')}>💼</button>
-                        <button className="ra-btn" onClick={() => onRoomPostingAction('SMS')}>💬 SMS</button>
-                        <button className="ra-btn" onClick={() => onRoomPostingAction('Email')}>📧 Email</button>
-                    </div>
-                </div>
             </div>
         </>
     );

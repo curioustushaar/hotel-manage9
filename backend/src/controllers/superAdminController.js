@@ -71,7 +71,7 @@ const getAllHotels = async (req, res) => {
         }
         
         const hotels = await Hotel.find(query)
-            .populate('adminId', 'name email phone')
+            .populate('adminId', 'name email phone permissions')
             .sort({ createdAt: -1 });
         
         res.status(200).json(hotels);
@@ -90,7 +90,7 @@ const getAllHotels = async (req, res) => {
 const getHotelById = async (req, res) => {
     try {
         const hotel = await Hotel.findById(req.params.id)
-            .populate('adminId', 'name email phone');
+            .populate('adminId', 'name email phone permissions');
         
         if (!hotel) {
             return res.status(404).json({ message: 'Hotel not found' });
@@ -121,7 +121,8 @@ const createHotel = async (req, res) => {
             adminName,
             adminEmail,
             adminPassword,
-            adminPhone
+            adminPhone,
+            adminPermissions
         } = req.body;
 
         // Validation
@@ -145,6 +146,19 @@ const createHotel = async (req, res) => {
         const expiryDate = new Date();
         expiryDate.setMonth(expiryDate.getMonth() + parseInt(subscriptionDuration));
 
+        const sanitizedAdminPermissions = Array.isArray(adminPermissions)
+            ? [...new Set(adminPermissions
+                .filter((item) => typeof item === 'string')
+                .map((item) => item.trim())
+                .filter(Boolean))]
+            : [];
+
+        if (sanitizedAdminPermissions.length === 0) {
+            return res.status(400).json({
+                message: 'Please select at least one admin screen role'
+            });
+        }
+
         // Create hotel
         const hotel = await Hotel.create({
             name: hotelName,
@@ -167,7 +181,8 @@ const createHotel = async (req, res) => {
             password: adminPassword, // Will be hashed automatically by the User model's pre-save hook
             phone: adminPhone,
             role: 'admin',
-            hotelId: hotel._id
+            hotelId: hotel._id,
+            permissions: sanitizedAdminPermissions
         });
 
         // Update hotel with adminId
@@ -184,7 +199,8 @@ const createHotel = async (req, res) => {
             admin: {
                 id: admin._id,
                 name: admin.name,
-                username: admin.username
+                username: admin.username,
+                permissions: admin.permissions
             }
         });
     } catch (error) {
@@ -192,6 +208,62 @@ const createHotel = async (req, res) => {
         res.status(500).json({ 
             message: 'Error creating hotel', 
             error: error.message 
+        });
+    }
+};
+
+// @desc    Update hotel admin permissions
+// @route   PATCH /api/super-admin/hotel/:id/admin-permissions
+// @access  Private (Super Admin only)
+const updateHotelAdminPermissions = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { permissions } = req.body;
+
+        if (!Array.isArray(permissions)) {
+            return res.status(400).json({ message: 'Permissions must be an array' });
+        }
+
+        const sanitizedPermissions = [...new Set(permissions
+            .filter((item) => typeof item === 'string')
+            .map((item) => item.trim())
+            .filter(Boolean))];
+
+        if (sanitizedPermissions.length === 0) {
+            return res.status(400).json({ message: 'Please select at least one permission' });
+        }
+
+        const hotel = await Hotel.findById(id);
+        if (!hotel) {
+            return res.status(404).json({ message: 'Hotel not found' });
+        }
+
+        if (!hotel.adminId) {
+            return res.status(400).json({ message: 'No admin assigned to this hotel' });
+        }
+
+        const adminUser = await User.findById(hotel.adminId);
+        if (!adminUser) {
+            return res.status(404).json({ message: 'Admin user not found' });
+        }
+
+        adminUser.permissions = sanitizedPermissions;
+        await adminUser.save();
+
+        return res.status(200).json({
+            message: 'Admin permissions updated successfully',
+            admin: {
+                id: adminUser._id,
+                name: adminUser.name,
+                username: adminUser.username,
+                permissions: adminUser.permissions
+            }
+        });
+    } catch (error) {
+        console.error('Error updating hotel admin permissions:', error);
+        return res.status(500).json({
+            message: 'Error updating admin permissions',
+            error: error.message
         });
     }
 };
@@ -741,6 +813,7 @@ module.exports = {
     getAllHotels,
     getHotelById,
     createHotel,
+    updateHotelAdminPermissions,
     suspendHotel,
     activateHotel,
     renewSubscription,

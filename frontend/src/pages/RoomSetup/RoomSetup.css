@@ -472,7 +472,8 @@
 .room-delete-warning {
     position: absolute;
     right: 0;
-    bottom: calc(100% + 14px);
+    top: calc(100% + 10px);
+    bottom: auto;
     min-width: 190px;
     padding: 8px 10px;
     border-radius: 10px;

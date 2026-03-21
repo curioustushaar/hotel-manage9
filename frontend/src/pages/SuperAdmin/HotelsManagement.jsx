@@ -24,7 +24,9 @@ import {
     FaSquare,
     FaClock,
     FaExclamationTriangle,
-    FaBars
+    FaBars,
+    FaUserShield,
+    FaSave
 } from 'react-icons/fa';
 import { MdDashboard, MdLogout } from 'react-icons/md';
 import './SuperAdminDashboard.css';
@@ -87,6 +89,34 @@ const HotelsManagement = () => {
     // Modals
     const [showBulkActions, setShowBulkActions] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
+    const [permissionModal, setPermissionModal] = useState({ open: false, hotel: null });
+    const [editingPermissions, setEditingPermissions] = useState([]);
+    const [permissionSaving, setPermissionSaving] = useState(false);
+
+    const ADMIN_SCREEN_OPTIONS = [
+        'Dashboard',
+        'Reservations',
+        'Rooms (Dashboard)',
+        'Rooms (New Reservation)',
+        'Room Service',
+        'Housekeeping',
+        'Reservation Card',
+        'Food Order',
+        'Cashier Section (Table)',
+        'Cashier Section (Room Service)',
+        'Cashier Section (Take Away)',
+        'Table View',
+        'KOT Order',
+        'View order',
+        'Customer List',
+        'Cashier Logs',
+        'Payment Logs',
+        'Reports',
+        'Property Setup',
+        'Property Configuration',
+        'CRM Model',
+        'Settings'
+    ];
 
     // Fetch Hotels Data
     const fetchHotels = async () => {
@@ -405,6 +435,84 @@ const HotelsManagement = () => {
         setFilterExpiry('all');
     };
 
+    const openPermissionModal = (hotel) => {
+        if (!hotel.adminId?._id) {
+            alert('No admin assigned for this hotel');
+            return;
+        }
+        setPermissionModal({ open: true, hotel });
+        setEditingPermissions(Array.isArray(hotel.adminId.permissions) ? hotel.adminId.permissions : []);
+    };
+
+    const closePermissionModal = () => {
+        setPermissionModal({ open: false, hotel: null });
+        setEditingPermissions([]);
+        setPermissionSaving(false);
+    };
+
+    const togglePermission = (label) => {
+        setEditingPermissions((prev) => (
+            prev.includes(label)
+                ? prev.filter((item) => item !== label)
+                : [...prev, label]
+        ));
+    };
+
+    const savePermissions = async () => {
+        if (!permissionModal.hotel?._id) return;
+        if (editingPermissions.length === 0) {
+            alert('Select at least one screen permission');
+            return;
+        }
+
+        setPermissionSaving(true);
+        try {
+            const token = user?.token;
+            const payload = { permissions: editingPermissions };
+            const config = { headers: { Authorization: `Bearer ${token}` } };
+            const adminUserId = permissionModal.hotel?.adminId?._id;
+
+            // Try primary endpoint first, then fallback aliases for compatibility.
+            try {
+                await axios.patch(
+                    `/api/super-admin/hotel/${permissionModal.hotel._id}/admin-permissions`,
+                    payload,
+                    config
+                );
+            } catch (primaryError) {
+                try {
+                    await axios.patch(
+                        `/api/super-admin/hotel/${permissionModal.hotel._id}/permissions`,
+                        payload,
+                        config
+                    );
+                } catch (secondaryError) {
+                    // Stable fallback: existing staff update endpoint can update admin user fields too.
+                    if (!adminUserId) {
+                        throw secondaryError;
+                    }
+
+                    await axios.put(
+                        `/api/staff/${adminUserId}`,
+                        payload,
+                        config
+                    );
+                }
+            }
+
+            await fetchHotels();
+            closePermissionModal();
+            alert('Permissions updated successfully');
+        } catch (err) {
+            const status = err.response?.status;
+            const message = err.response?.data?.message || err.message || 'Failed to update permissions';
+            alert(`Failed to update permissions${status ? ` (${status})` : ''}: ${message}`);
+            console.error('Permission update error:', err.response?.data || err);
+        } finally {
+            setPermissionSaving(false);
+        }
+    };
+
     const handleLogout = () => {
         logout();
         navigate('/login');
@@ -660,6 +768,13 @@ const HotelsManagement = () => {
                                                         <div className="text-xs opacity-70">
                                                             {hotel.adminId?.email || '-'}
                                                         </div>
+                                                        {hotel.adminId?._id && (
+                                                            <div className="permission-pill-row">
+                                                                <span className="permission-count-pill">
+                                                                    {(hotel.adminId?.permissions || []).length} permissions
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                     </td>
                                                     <td>
                                                         <span className={`badge badge-${hotel.subscription?.plan === 'premium' ? 'primary' : 'secondary'}`}>
@@ -685,6 +800,14 @@ const HotelsManagement = () => {
                                                                 onClick={() => navigate(`/super-admin/hotel/${hotel._id}`)}
                                                             >
                                                                 <FaEye />
+                                                            </button>
+                                                            <button
+                                                                className="icon-btn permission-icon-btn"
+                                                                title="View/Edit Permissions"
+                                                                onClick={() => openPermissionModal(hotel)}
+                                                                disabled={!hotel.adminId?._id}
+                                                            >
+                                                                <FaUserShield />
                                                             </button>
                                                             <button
                                                                 className="icon-btn"
@@ -748,6 +871,77 @@ const HotelsManagement = () => {
                     </div>
                 </div>
             </main>
+
+            {permissionModal.open && (
+                <div className="perm-modal-overlay" onClick={closePermissionModal}>
+                    <div className="perm-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="perm-modal-header">
+                            <div>
+                                <h3>Admin Screen Permissions</h3>
+                                <p>
+                                    {permissionModal.hotel?.name} · {permissionModal.hotel?.adminId?.name || 'Admin'}
+                                </p>
+                            </div>
+                            <button className="perm-close-btn" onClick={closePermissionModal}>
+                                <FaTimes />
+                            </button>
+                        </div>
+
+                        <div className="perm-modal-toolbar">
+                            <button
+                                className="action-btn secondary"
+                                type="button"
+                                onClick={() => setEditingPermissions(ADMIN_SCREEN_OPTIONS)}
+                            >
+                                Select All
+                            </button>
+                            <button
+                                className="action-btn secondary"
+                                type="button"
+                                onClick={() => setEditingPermissions([])}
+                            >
+                                Clear All
+                            </button>
+                            <span className="perm-selected-count">
+                                {editingPermissions.length} selected
+                            </span>
+                        </div>
+
+                        <div className="perm-grid">
+                            {ADMIN_SCREEN_OPTIONS.map((label) => {
+                                const checked = editingPermissions.includes(label);
+                                return (
+                                    <label
+                                        key={label}
+                                        className={`perm-item ${checked ? 'checked' : ''}`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={() => togglePermission(label)}
+                                        />
+                                        <span>{label}</span>
+                                    </label>
+                                );
+                            })}
+                        </div>
+
+                        <div className="perm-modal-actions">
+                            <button className="action-btn secondary" type="button" onClick={closePermissionModal}>
+                                Cancel
+                            </button>
+                            <button
+                                className="action-btn primary"
+                                type="button"
+                                onClick={savePermissions}
+                                disabled={permissionSaving}
+                            >
+                                <FaSave /> {permissionSaving ? 'Saving...' : 'Save Changes'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

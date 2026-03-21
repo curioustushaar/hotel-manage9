@@ -210,6 +210,10 @@
 .room-card-header {
     padding: 10px 12px !important;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
 }
 
 .room-card-header h3 {
@@ -217,6 +221,87 @@
     font-size: 16px !important;
     color: #ef4444;
     font-weight: 700;
+}
+
+.room-card-actions-top {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.icon-btn {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.icon-btn:hover {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.room-delete-wrap {
+    position: relative;
+    display: inline-flex;
+}
+
+.room-delete-warning {
+    position: absolute;
+    top: 36px;
+    right: 0;
+    min-width: 220px;
+    background: #fff5f5;
+    border: 1px solid #fecaca;
+    box-shadow: 0 8px 20px rgba(220, 38, 38, 0.15);
+    border-radius: 12px;
+    padding: 10px;
+    z-index: 15;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.room-delete-warning span {
+    font-size: 14px;
+    font-weight: 700;
+    color: #991b1b;
+}
+
+.room-delete-warning-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.room-delete-warning-yes,
+.room-delete-warning-no {
+    border: 0;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.room-delete-warning-yes {
+    background: #ef4444;
+    color: #fff;
+}
+
+.room-delete-warning-no {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.room-card-delete-open {
+    overflow: visible;
 }
 
 .room-card-body {
@@ -682,6 +767,8 @@ select.form-input option:checked {
 .room-list-actions {
     display: flex;
     justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
 }
 
 .room-list-actions .edit-btn {
@@ -699,6 +786,22 @@ select.form-input option:checked {
 .room-list-actions .edit-btn:hover {
     background: #E31E24;
     transform: translateY(-2px);
+}
+
+.room-list-actions .icon-btn {
+    width: 34px;
+    height: 34px;
+}
+
+/* Rooms page specific override: show delete confirmation below icon */
+.rooms-page .room-delete-wrap {
+    position: relative;
+}
+
+.rooms-page .room-delete-warning {
+    top: calc(100% + 8px);
+    bottom: auto;
+    right: 0;
 }
 
 /* Responsive */

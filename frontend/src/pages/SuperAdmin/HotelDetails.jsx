@@ -541,6 +541,42 @@ const HotelDetails = () => {
                                                 </div>
                                             </div>
                                         )}
+                                        {Array.isArray(hotel.adminId.permissions) && hotel.adminId.permissions.length > 0 && (
+                                            <div style={{ marginTop: '20px' }}>
+                                                <div style={{
+                                                    fontSize: '12px',
+                                                    fontWeight: '600',
+                                                    color: '#6b7280',
+                                                    marginBottom: '10px',
+                                                    textTransform: 'uppercase',
+                                                    letterSpacing: '0.5px'
+                                                }}>
+                                                    ASSIGNED SCREENS
+                                                </div>
+                                                <div style={{
+                                                    display: 'flex',
+                                                    flexWrap: 'wrap',
+                                                    gap: '8px'
+                                                }}>
+                                                    {hotel.adminId.permissions.map((permission) => (
+                                                        <span
+                                                            key={permission}
+                                                            style={{
+                                                                fontSize: '12px',
+                                                                fontWeight: '600',
+                                                                color: '#9f1239',
+                                                                background: '#ffe4e6',
+                                                                border: '1px solid #fecdd3',
+                                                                padding: '6px 10px',
+                                                                borderRadius: '999px'
+                                                            }}
+                                                        >
+                                                            {permission}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </>
                                 ) : (
                                     <div style={{ 

@@ -11,6 +11,8 @@ const ReservationType = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState('add');
     const [currentReservationType, setCurrentReservationType] = useState(null);
+    const [pendingDeleteId, setPendingDeleteId] = useState(null);
+    const [deletingId, setDeletingId] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
         description: ''
@@ -86,21 +88,27 @@ const ReservationType = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this reservation type?')) {
-            try {
-                const response = await fetch(`${API_URL}/api/reservation-types/delete/${id}`, {
-                    method: 'DELETE'
-                });
-                const data = await response.json();
-                if (data.success) {
-                    fetchReservationTypes();
-                } else {
-                    alert('Failed to delete');
-                }
-            } catch (error) {
-                alert('Error deleting');
+    const handleDeleteClick = (id) => {
+        setPendingDeleteId(prev => prev === id ? null : id);
+    };
+
+    const confirmDelete = async (id) => {
+        setDeletingId(id);
+        try {
+            const response = await fetch(`${API_URL}/api/reservation-types/delete/${id}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+            if (data.success) {
+                fetchReservationTypes();
+            } else {
+                setError('Failed to delete reservation type');
             }
+        } catch (error) {
+            setError('Error deleting reservation type');
+        } finally {
+            setDeletingId(null);
+            setPendingDeleteId(null);
         }
     };
 
@@ -133,7 +141,18 @@ const ReservationType = () => {
                                     <td style={{ textAlign: 'right' }}>
                                         <div className="action-btns" style={{ justifyContent: 'flex-end' }}>
                                             <button className="icon-button" onClick={() => handleOpenModal('edit', type)}>✏️</button>
-                                            <button className="icon-button" onClick={() => handleDelete(type._id)}>🗑️</button>
+                                            <div className="inline-delete-wrap">
+                                                <button className="icon-button" onClick={() => handleDeleteClick(type._id)} disabled={deletingId === type._id}>🗑️</button>
+                                                {pendingDeleteId === type._id && (
+                                                    <div className="inline-delete-confirm">
+                                                        <span>Are you sure want to delete?</span>
+                                                        <div className="inline-delete-actions">
+                                                            <button className="inline-delete-yes" onClick={() => confirmDelete(type._id)}>Yes</button>
+                                                            <button className="inline-delete-no" onClick={() => setPendingDeleteId(null)}>No</button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>

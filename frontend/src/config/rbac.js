@@ -432,7 +432,7 @@ export const SUBSCRIPTION_FEATURES = {
 // Shared mapping: module IDs → permission labels assigned via CRM/Settings
 const MODULE_LABEL_MAP = {
     [MODULES.DASHBOARD]: ['Dashboard'],
-    [MODULES.ROOMS]: ['Reservations', 'Rooms (Dashboard)'],
+    [MODULES.ROOMS]: ['Rooms (Dashboard)'],
     [MODULES.RESERVATIONS]: ['Reservations', 'Rooms (New Reservation)'],
     [MODULES.CASHIER_SECTION]: ['Cashier Section (Table)', 'Cashier Section (Room Service)', 'Cashier Section (Take Away)'],
     [MODULES.GUEST_MEAL_SERVICE]: ['Table View'],
@@ -480,6 +480,10 @@ const _hasCustomPermission = (user, module) => {
     return false;
 };
 
+const _isRestrictedAdmin = (user) => {
+    return user?.role === ROLES.ADMIN && Array.isArray(user.permissions) && user.permissions.length > 0;
+};
+
 /**
  * Check if a user has permission for a specific module and action
  */
@@ -489,6 +493,11 @@ export const hasPermission = (user, module, permission) => {
 
     // Everyone has permission for their own profile
     if (module === MODULES.PROFILE) return true;
+
+    // Admin with explicit screen assignments should only access assigned modules.
+    if (_isRestrictedAdmin(user)) {
+        return _hasCustomPermission(user, module);
+    }
 
     // Step 1: Check custom permissions array (works for ALL roles including staff, waiter, chef, etc.)
     if (_hasCustomPermission(user, module)) {
@@ -520,6 +529,11 @@ export const hasModuleAccess = (user, module) => {
     // Everyone can access their own profile
     if (module === MODULES.PROFILE) return true;
 
+    // Admin with explicit screen assignments should only access assigned modules.
+    if (_isRestrictedAdmin(user)) {
+        return _hasCustomPermission(user, module);
+    }
+
     // Step 1: Check custom permissions array (works for ALL roles)
     if (_hasCustomPermission(user, module)) {
         return true;
@@ -541,6 +555,10 @@ export const hasModuleAccess = (user, module) => {
  */
 export const getModulePermissions = (user, module) => {
     if (!user) return [];
+
+    if (_isRestrictedAdmin(user)) {
+        return _hasCustomPermission(user, module) ? [PERMISSIONS.FULL] : [];
+    }
 
     // If user has custom permissions for this module, grant VIEW at minimum
     if (_hasCustomPermission(user, module)) {

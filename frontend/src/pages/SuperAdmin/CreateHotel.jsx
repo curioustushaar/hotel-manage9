@@ -19,6 +19,31 @@ import {
 import { MdDashboard, MdLogout } from 'react-icons/md';
 import './SuperAdminDashboard.css';
 
+const ADMIN_SCREEN_OPTIONS = [
+    'Dashboard',
+    'Reservations',
+    'Rooms (Dashboard)',
+    'Rooms (New Reservation)',
+    'Room Service',
+    'Housekeeping',
+    'Reservation Card',
+    'Food Order',
+    'Cashier Section (Table)',
+    'Cashier Section (Room Service)',
+    'Cashier Section (Take Away)',
+    'Table View',
+    'KOT Order',
+    'View order',
+    'Customer List',
+    'Cashier Logs',
+    'Payment Logs',
+    'Reports',
+    'Property Setup',
+    'Property Configuration',
+    'CRM Model',
+    'Settings'
+];
+
 const CreateHotel = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
@@ -37,7 +62,8 @@ const CreateHotel = () => {
         adminName: '',
         adminEmail: '',
         adminPassword: '',
-        adminPhone: ''
+        adminPhone: '',
+        adminPermissions: []
     });
 
     const handleChange = (e) => {
@@ -45,6 +71,21 @@ const CreateHotel = () => {
         setFormData({
             ...formData,
             [name]: value
+        });
+        setError('');
+    };
+
+    const toggleAdminPermission = (permissionLabel) => {
+        setFormData((prev) => {
+            const alreadySelected = prev.adminPermissions.includes(permissionLabel);
+            const nextPermissions = alreadySelected
+                ? prev.adminPermissions.filter((item) => item !== permissionLabel)
+                : [...prev.adminPermissions, permissionLabel];
+
+            return {
+                ...prev,
+                adminPermissions: nextPermissions
+            };
         });
         setError('');
     };
@@ -93,6 +134,12 @@ const CreateHotel = () => {
             return false;
         }
 
+        // Validate at least one screen permission for admin
+        if (!Array.isArray(formData.adminPermissions) || formData.adminPermissions.length === 0) {
+            setError('Please select at least one screen access for admin');
+            return false;
+        }
+
         return true;
     };
 
@@ -136,7 +183,8 @@ const CreateHotel = () => {
                 adminName: '',
                 adminEmail: '',
                 adminPassword: '',
-                adminPhone: ''
+                adminPhone: '',
+                adminPermissions: []
             });
 
             setTimeout(() => {
@@ -642,6 +690,65 @@ const CreateHotel = () => {
                                                 outline: 'none'
                                             }}
                                         />
+                                    </div>
+                                </div>
+
+                                <div style={{ marginTop: '8px' }}>
+                                    <label style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        fontSize: '14px',
+                                        fontWeight: '600',
+                                        color: '#374151',
+                                        marginBottom: '10px'
+                                    }}>
+                                        Assign Admin Screen Access <span style={{ color: '#ef4444', marginLeft: '4px' }}>*</span>
+                                    </label>
+                                    <p style={{
+                                        margin: '0 0 12px 0',
+                                        fontSize: '12px',
+                                        color: '#6b7280'
+                                    }}>
+                                        Admin ko sirf selected screens hi dikhenge.
+                                    </p>
+
+                                    <div style={{
+                                        border: '1px solid #e5e7eb',
+                                        borderRadius: '10px',
+                                        padding: '14px',
+                                        background: '#fafafa',
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                                        gap: '10px'
+                                    }}>
+                                        {ADMIN_SCREEN_OPTIONS.map((permissionLabel) => {
+                                            const checked = formData.adminPermissions.includes(permissionLabel);
+                                            return (
+                                                <label
+                                                    key={permissionLabel}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '8px',
+                                                        fontSize: '13px',
+                                                        color: '#1f2937',
+                                                        cursor: 'pointer',
+                                                        background: checked ? '#fee2e2' : '#fff',
+                                                        border: checked ? '1px solid #ef4444' : '1px solid #e5e7eb',
+                                                        borderRadius: '8px',
+                                                        padding: '8px 10px'
+                                                    }}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={checked}
+                                                        onChange={() => toggleAdminPermission(permissionLabel)}
+                                                        style={{ cursor: 'pointer' }}
+                                                    />
+                                                    <span>{permissionLabel}</span>
+                                                </label>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
