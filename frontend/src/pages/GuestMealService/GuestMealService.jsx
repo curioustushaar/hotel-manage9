@@ -176,6 +176,49 @@ const GuestMealService = () => {
         setNewTableData(prev => ({ ...prev, ...patch }));
     }, []);
 
+    const isRunningTable = useCallback((table) => {
+        const state = String(table?.calculatedStatus || table?.status || '').toLowerCase();
+        return ['running', 'occupied', 'billed'].includes(state) || !!table?.currentOrderId;
+    }, []);
+
+    const getRunningSinceTs = useCallback((table) => {
+        const stamp =
+            table?.currentOrderStartedAt ||
+            table?.runningSince ||
+            table?.occupiedAt ||
+            table?.updatedAt ||
+            table?.createdAt;
+        const ts = stamp ? new Date(stamp).getTime() : Number.NaN;
+        return Number.isFinite(ts) ? ts : Number.MAX_SAFE_INTEGER;
+    }, []);
+
+    const getTableSortNumber = useCallback((tableName) => {
+        const raw = String(tableName || '');
+        const match = raw.match(/\d+/);
+        return match ? Number(match[0]) : Number.MAX_SAFE_INTEGER;
+    }, []);
+
+    const sortTablesForDisplay = useCallback((list) => {
+        return [...list].sort((a, b) => {
+            const aRunning = isRunningTable(a);
+            const bRunning = isRunningTable(b);
+
+            if (aRunning !== bRunning) return aRunning ? -1 : 1;
+
+            if (aRunning && bRunning) {
+                const aStarted = getRunningSinceTs(a);
+                const bStarted = getRunningSinceTs(b);
+                if (aStarted !== bStarted) return aStarted - bStarted;
+            }
+
+            const numA = getTableSortNumber(a.tableName);
+            const numB = getTableSortNumber(b.tableName);
+            if (numA !== numB) return numA - numB;
+
+            return String(a.tableName || '').localeCompare(String(b.tableName || ''), undefined, { numeric: true, sensitivity: 'base' });
+        });
+    }, [getRunningSinceTs, getTableSortNumber, isRunningTable]);
+
     const closeTableFormModal = useCallback(() => {
         setShowAddTableModal(false);
         setTableTypeDeleteWarning(null);
@@ -1578,7 +1621,7 @@ const GuestMealService = () => {
                 return tableMatch || guestMatch || phoneMatch || allReservationsMatch;
             });
         }
-        setFilteredTables(tableList);
+        setFilteredTables(sortTablesForDisplay(tableList));
 
         // Update stats
         const upcomingCount = tables.reduce((count, table) => {
@@ -1631,7 +1674,7 @@ const GuestMealService = () => {
             upcomingCount: upcomingCount,
             revenue: prev.revenue
         }));
-    }, [statusFilter, typeFilter, locationFilter, searchQuery, tables, appliedDate, appliedTime, isTimeFilterActive, getNowContext, timeToMinutes, toTime24, getReservationTimelineMeta]);
+    }, [statusFilter, typeFilter, locationFilter, searchQuery, tables, appliedDate, appliedTime, isTimeFilterActive, getNowContext, timeToMinutes, toTime24, getReservationTimelineMeta, sortTablesForDisplay]);
 
     const formatDuration = (minutes) => {
         if (minutes === 0) return '--';
