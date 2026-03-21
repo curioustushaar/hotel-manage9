@@ -181,7 +181,7 @@
 .report-stats-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
+    gap: 0;
     /* Reduced gap */
     margin-bottom: 20px;
 }
@@ -240,11 +240,11 @@
 .summary-stat-card {
     border-radius: 16px;
     border: 1px solid #f1d5d8;
-    padding: 20px;
-    min-height: 136px;
+    padding: 14px;
+    min-height: 96px;
     display: flex;
     align-items: flex-start;
-    gap: 14px;
+    gap: 10px;
     box-shadow: 0 6px 16px rgba(163, 20, 32, 0.08);
     transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
@@ -259,26 +259,142 @@
 }
 
 .summary-stat-card .stat-value {
-    font-size: clamp(28px, 3vw, 42px);
+    font-size: clamp(16px, 1.9vw, 24px);
     line-height: 1.08;
     letter-spacing: -0.02em;
     font-weight: 800;
 }
 
 .summary-stat-card .stat-label {
-    margin-top: 8px;
+    margin-top: 4px;
     display: block;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 0.72rem;
+}
+
+.summary-stat-card.report-tone-red,
+.overview-sub-card.report-tone-red {
+    background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+    border-color: #fecdd3;
+}
+
+.summary-stat-card.report-tone-primary,
+.overview-sub-card.report-tone-primary {
+    background: linear-gradient(135deg, #ef1b25 0%, #d70f1f 100%);
+    border-color: #d70f1f;
+}
+
+.summary-stat-card.report-tone-primary .stat-label,
+.overview-sub-card.report-tone-primary .overview-label,
+.summary-stat-card.report-tone-primary .stat-value,
+.overview-sub-card.report-tone-primary .overview-huge-value,
+.overview-sub-card.report-tone-primary .overview-count {
+    color: #ffffff;
+}
+
+.summary-stat-card.report-tone-red .stat-label,
+.overview-sub-card.report-tone-red .overview-label {
+    color: #9f1239;
+}
+
+.summary-stat-card.report-tone-red .stat-value,
+.overview-sub-card.report-tone-red .overview-huge-value,
+.overview-sub-card.report-tone-red .overview-count {
+    color: #881337;
+}
+
+.summary-stat-card.report-tone-rose,
+.overview-sub-card.report-tone-rose {
+    background: linear-gradient(135deg, #fff4f6 0%, #ffe9ee 100%);
+    border-color: #fbcfe8;
+}
+
+.summary-stat-card.report-tone-rose .stat-label,
+.overview-sub-card.report-tone-rose .overview-label {
+    color: #9d174d;
+}
+
+.summary-stat-card.report-tone-rose .stat-value,
+.overview-sub-card.report-tone-rose .overview-huge-value,
+.overview-sub-card.report-tone-rose .overview-count {
+    color: #831843;
+}
+
+.summary-stat-card.report-tone-blue,
+.overview-sub-card.report-tone-blue {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-color: #bfdbfe;
+}
+
+.summary-stat-card.report-tone-blue .stat-label,
+.overview-sub-card.report-tone-blue .overview-label {
+    color: #1e40af;
+}
+
+.summary-stat-card.report-tone-blue .stat-value,
+.overview-sub-card.report-tone-blue .overview-huge-value,
+.overview-sub-card.report-tone-blue .overview-count {
+    color: #1d4ed8;
+}
+
+.summary-stat-card.report-tone-green,
+.overview-sub-card.report-tone-green {
+    background: linear-gradient(135deg, #ecfdf5 0%, #dcfce7 100%);
+    border-color: #bbf7d0;
+}
+
+.summary-stat-card.report-tone-green .stat-label,
+.overview-sub-card.report-tone-green .overview-label {
+    color: #166534;
+}
+
+.summary-stat-card.report-tone-green .stat-value,
+.overview-sub-card.report-tone-green .overview-huge-value,
+.overview-sub-card.report-tone-green .overview-count {
+    color: #14532d;
+}
+
+.summary-stat-card.report-tone-amber,
+.overview-sub-card.report-tone-amber {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border-color: #fde68a;
+}
+
+.summary-stat-card.report-tone-amber .stat-label,
+.overview-sub-card.report-tone-amber .overview-label {
+    color: #92400e;
+}
+
+.summary-stat-card.report-tone-amber .stat-value,
+.overview-sub-card.report-tone-amber .overview-huge-value,
+.overview-sub-card.report-tone-amber .overview-count {
+    color: #78350f;
+}
+
+.summary-stat-card.report-tone-purple,
+.overview-sub-card.report-tone-purple {
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+    border-color: #ddd6fe;
+}
+
+.summary-stat-card.report-tone-purple .stat-label,
+.overview-sub-card.report-tone-purple .overview-label {
+    color: #5b21b6;
+}
+
+.summary-stat-card.report-tone-purple .stat-value,
+.overview-sub-card.report-tone-purple .overview-huge-value,
+.overview-sub-card.report-tone-purple .overview-count {
+    color: #4c1d95;
 }
 
 .billing-summary-card .billing-summary-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 12px;
-    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    font-size: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -357,22 +473,22 @@
 
 @media (max-width: 1200px) {
     .summary-stat-card {
-        min-height: 120px;
-        padding: 16px;
+        min-height: 88px;
+        padding: 12px;
     }
 
     .summary-stat-card .stat-value {
-        font-size: clamp(24px, 3vw, 34px);
+        font-size: clamp(15px, 2vw, 22px);
     }
 }
 
 @media (max-width: 900px) {
     .summary-stat-card {
-        min-height: 106px;
+        min-height: 80px;
     }
 
     .summary-stat-card .stat-label {
-        font-size: 0.8rem;
+        font-size: 0.66rem;
     }
 }
 
@@ -391,7 +507,7 @@
 .overview-sub-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    gap: 0;
 }
 
 .overview-sub-card {
@@ -700,9 +816,184 @@
     overflow-x: auto;
 }
 
+.kitchen-snapshot-top-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    margin-bottom: 10px;
+}
+
+.kitchen-metric-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+    gap: 0;
+}
+
+.kitchen-metric-grid-3 {
+    grid-template-columns: repeat(3, minmax(160px, 1fr));
+}
+
+.kitchen-metric-card {
+    min-height: 68px;
+    padding: 10px 12px;
+    border-width: 1px;
+    border-radius: 12px;
+    box-shadow: 0 2px 7px rgba(163, 20, 32, 0.07);
+}
+
+.kitchen-metric-card .stat-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+}
+
+.kitchen-metric-card .stat-value {
+    font-size: clamp(18px, 1.8vw, 28px);
+    line-height: 1.05;
+}
+
+.kitchen-compact-section {
+    padding: 14px;
+}
+
+.kitchen-compact-section .section-title {
+    margin-bottom: 10px;
+    font-size: 1.45rem;
+}
+
+.kitchen-compact-section .overview-container-card {
+    padding: 10px;
+    border-radius: 12px;
+}
+
+.kitchen-compact-section .overview-container-card h3 {
+    margin-bottom: 8px;
+    font-size: 0.88rem;
+}
+
+.kitchen-metric-card.tone-red {
+    background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+    border-color: #fecdd3;
+}
+
+.kitchen-metric-card.tone-red .stat-label {
+    color: #9f1239;
+}
+
+.kitchen-metric-card.tone-red .stat-value {
+    color: #881337;
+}
+
+.kitchen-metric-card.tone-rose {
+    background: linear-gradient(135deg, #fff4f5 0%, #ffe8ec 100%);
+    border-color: #fbcfe8;
+}
+
+.kitchen-metric-card.tone-rose .stat-label {
+    color: #9d174d;
+}
+
+.kitchen-metric-card.tone-rose .stat-value {
+    color: #831843;
+}
+
+.kitchen-metric-card.tone-orange {
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+    border-color: #fed7aa;
+}
+
+.kitchen-metric-card.tone-orange .stat-label {
+    color: #9a3412;
+}
+
+.kitchen-metric-card.tone-orange .stat-value {
+    color: #7c2d12;
+}
+
+.kitchen-metric-card.tone-amber {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border-color: #fde68a;
+}
+
+.kitchen-metric-card.tone-amber .stat-label {
+    color: #92400e;
+}
+
+.kitchen-metric-card.tone-amber .stat-value {
+    color: #78350f;
+}
+
+.kitchen-metric-card.tone-blue {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-color: #bfdbfe;
+}
+
+.kitchen-metric-card.tone-blue .stat-label {
+    color: #1e40af;
+}
+
+.kitchen-metric-card.tone-blue .stat-value {
+    color: #1d4ed8;
+}
+
+.kitchen-metric-card.tone-indigo {
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+    border-color: #c7d2fe;
+}
+
+.kitchen-metric-card.tone-indigo .stat-label {
+    color: #4338ca;
+}
+
+.kitchen-metric-card.tone-indigo .stat-value {
+    color: #3730a3;
+}
+
+.kitchen-metric-card.tone-slate {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-color: #cbd5e1;
+}
+
+.kitchen-metric-card.tone-slate .stat-label {
+    color: #334155;
+}
+
+.kitchen-metric-card.tone-slate .stat-value {
+    color: #0f172a;
+}
+
+.kitchen-metric-card.tone-green {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border-color: #bbf7d0;
+}
+
+.kitchen-metric-card.tone-green .stat-label {
+    color: #166534;
+}
+
+.kitchen-metric-card.tone-green .stat-value {
+    color: #14532d;
+}
+
+.kitchen-metric-card.tone-purple {
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+    border-color: #ddd6fe;
+}
+
+.kitchen-metric-card.tone-purple .stat-label {
+    color: #5b21b6;
+}
+
+.kitchen-metric-card.tone-purple .stat-value {
+    color: #4c1d95;
+}
+
 @media (max-width: 1024px) {
     .report-stats-grid {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .kitchen-snapshot-top-grid {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -730,5 +1021,23 @@
     .section-title,
     .header-top h1 {
         font-size: 24px;
+    }
+
+    .kitchen-metric-grid,
+    .kitchen-metric-grid-3 {
+        grid-template-columns: repeat(2, minmax(120px, 1fr));
+    }
+
+    .kitchen-metric-card {
+        min-height: 60px;
+        padding: 8px 10px;
+    }
+
+    .kitchen-metric-card .stat-value {
+        font-size: clamp(16px, 5.8vw, 24px);
+    }
+
+    .kitchen-compact-section {
+        padding: 10px;
     }
 }

@@ -69,7 +69,15 @@ const tableSchema = new mongoose.Schema({
             type: String,
             enum: ['Upcoming', 'Arrived', 'Completed', 'Cancelled', 'No Show'],
             default: 'Upcoming'
-        }
+        },
+        cancellationReason: String,
+        cancellationNote: String,
+        cancellationCharge: {
+            type: Number,
+            default: 0
+        },
+        cancelledAt: Date,
+        cancelledBy: String
     }],
 
     location: {

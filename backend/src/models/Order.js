@@ -44,6 +44,7 @@ const orderSchema = new mongoose.Schema({
     subtotal: { type: Number, default: 0 },
     tax: { type: Number, default: 0 },
     taxRate: { type: Number, default: 0 },
+    serviceChargeAmount: { type: Number, default: 0 },
     discountAmount: { type: Number, default: 0 },
     finalAmount: { type: Number, default: 0 }, // Controller uses this
     totalAmount: { type: Number, default: 0 }, // Internal standardized
@@ -89,6 +90,11 @@ orderSchema.pre('save', function (next) {
     // Sync tableId <-> table
     if (this.tableId && !this.table) this.table = this.tableId;
     if (this.table && !this.tableId) this.tableId = this.table;
+
+    // Allow settlement flow to persist exact cashier-calculated values.
+    if (this.$locals && this.$locals.skipFinancialRecalc) {
+        return next();
+    }
 
     // Recalculate if items exist (Controller logic replication)
     if (this.items && this.items.length > 0) {

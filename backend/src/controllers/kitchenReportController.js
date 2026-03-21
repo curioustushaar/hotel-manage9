@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const Menu = require('../models/Menu');
 const Table = require('../models/Table');
+const Room = require('../models/Room');
 
 const ACTIVE_STATUSES = ['Active', 'Pending', 'Preparing', 'Started'];
 const READY_STATUSES = ['Ready'];
@@ -85,10 +86,10 @@ exports.getKitchenReport = async (req, res) => {
             }
         }
 
-        const [orders, totalTables, occupiedTables] = await Promise.all([
+        const [orders, totalTablesDb, totalRoomsDb] = await Promise.all([
             Order.find(query).sort({ createdAt: -1 }).lean(),
             Table.countDocuments(),
-            Table.countDocuments({ status: { $in: ['Running', 'Occupied', 'Reserved', 'Billed'] } })
+            Room.countDocuments().catch(() => 0)
         ]);
 
         const categoryFilter = category && category !== 'All' ? category : null;
@@ -121,6 +122,22 @@ exports.getKitchenReport = async (req, res) => {
         }
 
         const stationMap = {};
+        const engagedTables = new Set();
+        const activeTables = new Set();
+        const engagedRooms = new Set();
+        const activeRooms = new Set();
+        const outletMix = {
+            dineInOrders: 0,
+            roomOrders: 0,
+            takeAwayOrders: 0,
+            onlineOrders: 0
+        };
+        const statusByType = {
+            dineIn: { total: 0, pending: 0, preparing: 0, ready: 0 },
+            roomOrder: { total: 0, pending: 0, preparing: 0, ready: 0 },
+            takeAway: { total: 0, pending: 0, preparing: 0, ready: 0 },
+            onlineOrder: { total: 0, pending: 0, preparing: 0, ready: 0 }
+        };
 
         orders.forEach(order => {
             const normType = normalizeOrderType(order.orderType);
@@ -143,6 +160,38 @@ exports.getKitchenReport = async (req, res) => {
             if (!hasMatchingItem) return;
 
             totalOrders++;
+            const typeKey = normType === 'Dine-In'
+                ? 'dineIn'
+                : normType === 'Room Order'
+                    ? 'roomOrder'
+                    : normType === 'Take Away'
+                        ? 'takeAway'
+                        : 'onlineOrder';
+            statusByType[typeKey].total += 1;
+            statusByType[typeKey].pending += isPending ? 1 : 0;
+            statusByType[typeKey].preparing += (status === 'Preparing' || status === 'Started') ? 1 : 0;
+            statusByType[typeKey].ready += isReady ? 1 : 0;
+
+            if (normType === 'Dine-In') outletMix.dineInOrders += 1;
+            if (normType === 'Room Order') outletMix.roomOrders += 1;
+            if (normType === 'Take Away') outletMix.takeAwayOrders += 1;
+            if (normType === 'Online Order') outletMix.onlineOrders += 1;
+
+            const tableKey = order.tableNumber ? String(order.tableNumber) : '';
+            const roomKey = order.roomNumber ? String(order.roomNumber) : '';
+            if (tableKey) {
+                engagedTables.add(tableKey);
+                if (isPending || status === 'Preparing' || status === 'Started' || isReady) {
+                    activeTables.add(tableKey);
+                }
+            }
+            if (roomKey) {
+                engagedRooms.add(roomKey);
+                if (isPending || status === 'Preparing' || status === 'Started' || isReady) {
+                    activeRooms.add(roomKey);
+                }
+            }
+
             if (isPending) kotPending++;
             if (status === 'Preparing' || status === 'Started') preparingCount++;
             if (isReady) readyCount++;
@@ -200,24 +249,31 @@ exports.getKitchenReport = async (req, res) => {
                 const qty = Number(item.quantity) || 1;
                 const kotNo = `KOT-${order._id.toString().slice(-6).toUpperCase()}`;
 
+                const completedSpanMinutes = getPrepMinutes(order);
+                const pendingDurationMinutes = isPending
+                    ? pendingMins
+                    : (isReady || isDone)
+                        ? completedSpanMinutes
+                        : 0;
+
                 const baseRecord = {
                     kotNo,
                     itemName,
                     category: itemCategory,
                     qty,
                     orderType: normType,
-                    tableRoom,
+                    tableRoom: tableOrRoom,
                     startTime: formatTime(order.createdAt),
                     readyTime: formatTime(readyAt),
                     deliveredTime: formatTime(deliveredAt),
-                    pendingMinutes: pendingMins,
+                    pendingMinutes: pendingDurationMinutes,
                     prepMinutes: prepMins,
                     delayMinutes: isDelayed ? (isPending ? Math.max(0, pendingMins - TARGET_PREP_MIN) : Math.max(0, prepMins - TARGET_PREP_MIN)) : 0,
                     status,
                     createdAt: order.createdAt
                 };
 
-                if (isPending || status === 'Preparing' || status === 'Started') {
+                if (baseRecord.pendingMinutes > 0) {
                     pendingItems.push(baseRecord);
                 }
 
@@ -263,7 +319,15 @@ exports.getKitchenReport = async (req, res) => {
             loadRatio: st.total > 0 ? Number(((st.pending / st.total) * 100).toFixed(1)) : 0
         })).sort((a, b) => b.total - a.total);
 
+        const totalTables = totalTablesDb > 0 ? totalTablesDb : engagedTables.size;
+        const occupiedTables = activeTables.size > 0 ? activeTables.size : engagedTables.size;
         const availableTables = Math.max(0, totalTables - occupiedTables);
+        const totalRooms = totalRoomsDb > 0 ? totalRoomsDb : engagedRooms.size;
+        const occupiedRooms = activeRooms.size > 0 ? activeRooms.size : engagedRooms.size;
+        const availableRooms = Math.max(0, totalRooms - occupiedRooms);
+        const combinedTotal = totalTables + totalRooms;
+        const combinedOccupied = occupiedTables + occupiedRooms;
+        const combinedAvailable = Math.max(0, combinedTotal - combinedOccupied);
         const kitchenLoadRatio = totalOrders > 0 ? Number((((kotPending + preparingCount) / totalOrders) * 100).toFixed(1)) : 0;
         const readyVsDeliveredRatio = deliveredCount > 0 ? Number(((readyCount / deliveredCount) * 100).toFixed(1)) : 0;
 
@@ -295,9 +359,17 @@ exports.getKitchenReport = async (req, res) => {
             success: true,
             summary,
             tableStatus: {
-                total: totalTables,
-                occupied: occupiedTables,
-                available: availableTables
+                total: combinedTotal,
+                occupied: combinedOccupied,
+                available: combinedAvailable,
+                totalTables,
+                occupiedTables,
+                availableTables,
+                totalRooms,
+                occupiedRooms,
+                availableRooms,
+                ...outletMix,
+                statusByType
             },
             pendingItems,
             delayItems,

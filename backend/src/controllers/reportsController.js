@@ -120,6 +120,9 @@ exports.getGstReport = async (req, res) => {
             const baseTax = toNum(order.tax);
             const appliedTaxes = applyTaxes('FOOD', taxableValue, baseTax);
             const taxAmount = appliedTaxes.reduce((sum, t) => sum + toNum(t.amount), 0);
+            const foodGstAmount = appliedTaxes
+                .filter(t => String(t.name || '').toLowerCase() === 'food gst')
+                .reduce((sum, t) => sum + toNum(t.amount), 0);
             const reference = `ORD-${String(order._id).slice(-6).toUpperCase()}`;
 
             rows.push({
@@ -128,8 +131,8 @@ exports.getGstReport = async (req, res) => {
                 reference,
                 section: 'Food & Beverage',
                 taxableValue,
-                cgst: baseTax > 0 ? baseTax / 2 : 0,
-                sgst: baseTax > 0 ? baseTax / 2 : 0,
+                cgst: foodGstAmount / 2,
+                sgst: foodGstAmount / 2,
                 igst: 0,
                 totalTax: taxAmount,
                 appliedTaxes,
@@ -146,14 +149,17 @@ exports.getGstReport = async (req, res) => {
 
             const appliedRoomTaxes = applyTaxes('ROOM', taxableValue, baseRoomTax);
             const roomTaxAmount = appliedRoomTaxes.reduce((sum, t) => sum + toNum(t.amount), 0);
+            const roomGstAmount = appliedRoomTaxes
+                .filter(t => String(t.name || '').toLowerCase() === 'room gst')
+                .reduce((sum, t) => sum + toNum(t.amount), 0);
             rows.push({
                 date: booking.checkOutDate || booking.createdAt,
                 source: `Room ${booking.roomNumber || '-'}`,
                 reference: booking.bookingId || String(booking._id).slice(-6).toUpperCase(),
                 section: 'Room',
                 taxableValue,
-                cgst: baseRoomTax > 0 ? baseRoomTax / 2 : 0,
-                sgst: baseRoomTax > 0 ? baseRoomTax / 2 : 0,
+                cgst: roomGstAmount / 2,
+                sgst: roomGstAmount / 2,
                 igst: 0,
                 totalTax: roomTaxAmount,
                 appliedTaxes: appliedRoomTaxes,

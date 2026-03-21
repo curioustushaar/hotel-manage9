@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import HeroImage from '../assets/Hero Image 3.png';
 import './Hero.css';
 import ParticlesBackground from './ParticlesBackground';
-import AdvikaAI from './AdvikaAI';
 
 const Hero = () => {
     return (
@@ -36,7 +35,6 @@ const Hero = () => {
                 <div className="hero-img-container hero-img-animate">
                     <img src={HeroImage} alt="Hotel Management Dashboard" className="hero-banner-img" />
                 </div>
-                <AdvikaAI />
 
             </div>
         </section>

@@ -4,6 +4,24 @@ const Folio = require('../models/Folio');
 
 const toNum = (value) => Number(value) || 0;
 
+const buildOrderItemSummary = (order) => {
+    const items = Array.isArray(order?.items) ? order.items : [];
+    const normalizedItems = items
+        .map(item => ({
+            name: (item?.name || item?.itemName || 'Item').trim(),
+            qty: Math.max(0, toNum(item?.quantity) || 1)
+        }))
+        .filter(item => item.qty > 0);
+
+    const itemList = normalizedItems.map(item => `${item.name} x${item.qty}`).join(', ');
+    const discountedItemsCount = normalizedItems.reduce((sum, item) => sum + item.qty, 0);
+
+    return {
+        itemList,
+        discountedItemsCount
+    };
+};
+
 const normalizeMode = (mode) => {
     const normalized = String(mode || '').toLowerCase();
     if (normalized.includes('cash')) return 'Cash';
@@ -52,7 +70,7 @@ const buildDiscountReport = async ({ startDate, endDate, cashierFilter, paymentM
             { updatedAt: { $gte: startDate, $lte: endDate } },
             { createdAt: { $gte: startDate, $lte: endDate } }
         ]
-    }).select('booking orderType paymentMethod items finalAmount totalAmount discountAmount status closedAt updatedAt createdAt').lean();
+    }).select('booking guestName orderType paymentMethod transactions items tax serviceChargeAmount subtotal finalAmount totalAmount discountAmount status closedAt updatedAt createdAt').lean();
 
     const ordersByBooking = new Map();
     const standaloneOrders = [];
@@ -86,8 +104,11 @@ const buildDiscountReport = async ({ startDate, endDate, cashierFilter, paymentM
         totalRoomCharge: 0,
         totalRoomGst: 0,
         totalServiceCharge: 0,
+        serviceChargeBillsCount: 0,
         totalFood: 0,
         totalBeverage: 0,
+        totalFoodGst: 0,
+        totalDiscountedItems: 0,
         totalNetPayable: 0,
         totalPaid: 0
     };
@@ -96,6 +117,8 @@ const buildDiscountReport = async ({ startDate, endDate, cashierFilter, paymentM
         const bookingKey = String(booking._id);
         const bookingOrders = ordersByBooking.get(bookingKey) || [];
         const bookingFolios = foliosByBooking.get(bookingKey) || [];
+
+        if (bookingOrders.length === 0) return;
 
         const billing = booking.billing || {};
         const roomCharge = toNum(billing.roomRate) * Math.max(1, toNum(booking?.duration?.nights) || 1);
@@ -106,6 +129,9 @@ const buildDiscountReport = async ({ startDate, endDate, cashierFilter, paymentM
         let foodAmountCountable = 0;
         let beverageAmountCountable = 0;
         let foodDiscount = 0;
+        let totalFoodGst = 0;
+        let discountedItemsCount = 0;
+        const itemNames = [];
         let lastOrderPaymentMode = 'N/A';
 
         bookingOrders.forEach(order => {
@@ -125,11 +151,20 @@ const buildDiscountReport = async ({ startDate, endDate, cashierFilter, paymentM
             // Ensure we use gross amounts (before discount) for the component breakdown
             // If order.totalAmount exists, use that, otherwise use sum of items
             const orderGross = toNum(order.totalAmount) || (foodSubtotal + beverageSubtotal);
-            const ordDis = toNum(order.discountAmount);
+            const explicitOrderDiscount = toNum(order.discountAmount);
+            const derivedOrderDiscount = Math.max(0, orderGross - toNum(order.finalAmount));
+            const ordDis = Math.max(explicitOrderDiscount, derivedOrderDiscount);
+            const orderTax = toNum(order.tax);
+            const { itemList, discountedItemsCount: orderDiscountedItemsCount } = buildOrderItemSummary(order);
 
             foodAmountCountable += foodSubtotal > 0 ? foodSubtotal : Math.max(0, orderGross - beverageSubtotal);
             beverageAmountCountable += beverageSubtotal;
             foodDiscount += ordDis;
+            totalFoodGst += orderTax;
+            if (ordDis > 0) {
+                discountedItemsCount += orderDiscountedItemsCount;
+                if (itemList) itemNames.push(itemList);
+            }
             if (order.paymentMethod) lastOrderPaymentMode = order.paymentMethod;
         });
 
@@ -152,7 +187,6 @@ const buildDiscountReport = async ({ startDate, endDate, cashierFilter, paymentM
             .reduce((sum, tx) => sum + toNum(tx.amount), 0);
 
         const totalDiscount = roomDiscount + foodDiscount + folioDiscount + transactionDiscount;
-        if (totalDiscount <= 0) return;
 
         const totalBeforeDiscount = roomCharge + roomGst + serviceCharge + foodAmountCountable + beverageAmountCountable;
         const netPayable = Math.max(0, totalBeforeDiscount - totalDiscount);
@@ -176,26 +210,31 @@ const buildDiscountReport = async ({ startDate, endDate, cashierFilter, paymentM
         if (!matchesPaymentMode(paymentMode, paymentModeFilter)) return;
         if (!isWithinShift(createdAt, shiftFilter)) return;
 
-        const sectionRows = [
+        let sectionRows = [
             { section: 'Room Discount', amount: roomDiscount },
             { section: 'Food Discount', amount: foodDiscount },
             { section: 'Folio Discount', amount: folioDiscount },
             { section: 'Other Discount', amount: transactionDiscount }
         ].filter(section => section.amount > 0);
 
-        if (sectionRows.length === 0) return;
+        if (sectionRows.length === 0) {
+            sectionRows = [{ section: 'No Discount', amount: 0 }];
+        }
 
         totals.totalDiscount += totalDiscount;
         totals.totalRoomCharge += roomCharge;
         totals.totalRoomGst += roomGst;
         totals.totalServiceCharge += serviceCharge;
+        if (serviceCharge > 0) totals.serviceChargeBillsCount += 1;
         totals.totalFood += foodAmountCountable;
         totals.totalBeverage += beverageAmountCountable;
+        totals.totalFoodGst += totalFoodGst;
+        totals.totalDiscountedItems += discountedItemsCount;
         totals.totalNetPayable += netPayable;
         totals.totalPaid += totalPaid;
 
         sectionRows.forEach(section => {
-            const ratio = toNum(section.amount) / totalDiscount;
+            const ratio = totalDiscount > 0 ? (toNum(section.amount) / totalDiscount) : 1;
             const sectionNetPayable = netPayable * ratio;
             const sectionTotalPaid = totalPaid * ratio;
 
@@ -219,10 +258,13 @@ const buildDiscountReport = async ({ startDate, endDate, cashierFilter, paymentM
                 serviceCharge: ratio * serviceCharge,
                 foodAmount: ratio * foodAmountCountable,
                 beverageAmount: ratio * beverageAmountCountable,
+                foodGst: ratio * totalFoodGst,
                 discountAmount: toNum(section.amount),
                 totalDiscount: totalDiscount,
                 netPayable: sectionNetPayable,
                 totalPaid: sectionTotalPaid,
+                discountedItemsCount,
+                itemList: itemNames.join(', '),
                 status: booking.status || 'N/A',
                 createdAt
             });
@@ -231,8 +273,8 @@ const buildDiscountReport = async ({ startDate, endDate, cashierFilter, paymentM
 
     // Handle Standalone F&B Orders
     standaloneOrders.forEach(order => {
-        const orderDiscount = toNum(order.discountAmount);
-        if (orderDiscount <= 0 || (order.status !== 'Closed' && order.status !== 'Completed' && order.status !== 'Settled')) return; // Ignore unpaid discounts if necessary, though report usually shows all closed
+        const explicitOrderDiscount = toNum(order.discountAmount);
+        if (order.status !== 'Closed' && order.status !== 'Completed' && order.status !== 'Settled') return;
 
         let beverageSubtotal = 0;
         let foodSubtotal = 0;
@@ -250,8 +292,16 @@ const buildDiscountReport = async ({ startDate, endDate, cashierFilter, paymentM
         const orderGross = toNum(order.totalAmount) || (foodSubtotal + beverageSubtotal);
         const foodAmountCountable = foodSubtotal > 0 ? foodSubtotal : Math.max(0, orderGross - beverageSubtotal);
         const beverageAmountCountable = beverageSubtotal;
+        const totalFoodGst = toNum(order.tax);
+        const storedServiceCharge = toNum(order.serviceChargeAmount);
+        const derivedServiceCharge = Math.max(0, orderGross - (toNum(order.subtotal) || (foodAmountCountable + beverageAmountCountable)) - totalFoodGst);
+        const serviceChargeAmount = storedServiceCharge > 0 ? storedServiceCharge : derivedServiceCharge;
+        const { itemList, discountedItemsCount } = buildOrderItemSummary(order);
 
-        const netPayable = Math.max(0, orderGross - orderDiscount);
+        const netPayableFromOrder = toNum(order.finalAmount);
+        const derivedOrderDiscount = Math.max(0, orderGross - netPayableFromOrder);
+        const orderDiscount = Math.max(explicitOrderDiscount, derivedOrderDiscount);
+        const netPayable = netPayableFromOrder > 0 ? netPayableFromOrder : Math.max(0, orderGross - orderDiscount);
 
         // Standalone orders usually are fully paid if closed
         const paymentTrans = (order.transactions || []).filter(tx => String(tx.type || '').toLowerCase() === 'payment');
@@ -274,10 +324,14 @@ const buildDiscountReport = async ({ startDate, endDate, cashierFilter, paymentM
         totals.totalDiscount += orderDiscount;
         totals.totalFood += foodAmountCountable;
         totals.totalBeverage += beverageAmountCountable;
+        totals.totalServiceCharge += serviceChargeAmount;
+        if (serviceChargeAmount > 0) totals.serviceChargeBillsCount += 1;
+        totals.totalFoodGst += totalFoodGst;
+        totals.totalDiscountedItems += orderDiscount > 0 ? discountedItemsCount : 0;
         totals.totalNetPayable += netPayable;
         totals.totalPaid += totalPaid;
 
-        const sectionName = 'Food Discount';
+        const sectionName = orderDiscount > 0 ? 'Food Discount' : 'No Discount';
         if (!sectionSummaryMap[sectionName]) {
             sectionSummaryMap[sectionName] = { section: sectionName, totalDiscount: 0, totalNetPayable: 0, totalPaid: 0, records: 0 };
         }
@@ -295,13 +349,16 @@ const buildDiscountReport = async ({ startDate, endDate, cashierFilter, paymentM
             paymentMode,
             roomCharge: 0,
             roomGst: 0,
-            serviceCharge: 0,
+            serviceCharge: serviceChargeAmount,
             foodAmount: foodAmountCountable,
             beverageAmount: beverageAmountCountable,
+            foodGst: totalFoodGst,
             discountAmount: orderDiscount,
             totalDiscount: orderDiscount,
             netPayable: netPayable,
             totalPaid,
+            discountedItemsCount: orderDiscount > 0 ? discountedItemsCount : 0,
+            itemList,
             status: order.status || 'Closed',
             createdAt
         });
@@ -478,9 +535,13 @@ exports.getPaymentReport = async (req, res) => {
             };
         });
 
+        const includeAllHistory = String(req.query.includeAllHistory || 'false').toLowerCase() === 'true';
+        const discountStartDate = includeAllHistory ? new Date('2000-01-01T00:00:00.000Z') : startDate;
+        const discountEndDate = includeAllHistory ? new Date() : endDate;
+
         const discountReport = await buildDiscountReport({
-            startDate,
-            endDate,
+            startDate: discountStartDate,
+            endDate: discountEndDate,
             cashierFilter: req.query.cashier || 'All',
             paymentModeFilter: req.query.paymentMode || 'All',
             shiftFilter: req.query.shift || 'All'

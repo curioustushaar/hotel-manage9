@@ -25,7 +25,7 @@ const Reveal = ({ children, width = "fit-content" }) => {
             style={{
                 width,
                 opacity: visible ? 1 : 0,
-                transform: visible ? "translateY(0px)" : "translateY(60px)",
+                transform: visible ? "none" : "translateY(60px)",
                 transition: "all 0.8s cubic-bezier(0.22,1,0.36,1)",
                 willChange: "opacity, transform",
             }}

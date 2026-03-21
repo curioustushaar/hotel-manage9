@@ -1,6 +1,17 @@
 const Table = require('../models/Table');
 const Order = require('../models/Order');
 
+const toYmdLocal = (value) => {
+    if (!value) return null;
+    const dt = new Date(value);
+    if (Number.isNaN(dt.getTime())) return null;
+
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth() + 1).padStart(2, '0');
+    const d = String(dt.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
+
 // @desc    Get table reservation report data
 // @route   GET /api/reservation-report
 // @access  Private
@@ -13,7 +24,7 @@ const getReservationReport = async (req, res) => {
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const todayStr = today.toISOString().split('T')[0];
+        const todayStr = toYmdLocal(today);
 
         const start = startDate ? new Date(startDate) : new Date(today);
         start.setHours(0, 0, 0, 0);
@@ -74,7 +85,9 @@ const getReservationReport = async (req, res) => {
                     source: rSource,
                     type: table.type || 'General',
                     note: r.note || '',
-                    advancePayment: r.advancePayment || 0
+                    advancePayment: r.advancePayment || 0,
+                    cancellationCharge: Number(r.cancellationCharge) || 0,
+                    cancellationReason: r.cancellationReason || ''
                 });
             });
         });
@@ -100,21 +113,34 @@ const getReservationReport = async (req, res) => {
                     source: 'Walk-In',
                     type: orderTable ? (orderTable.type || 'General') : 'General',
                     note: '',
-                    advancePayment: 0
+                    advancePayment: 0,
+                    cancellationCharge: 0,
+                    cancellationReason: ''
                 });
             }
         }
 
         // --- Summary Stats ---
+        const reservationCountByDate = {};
+        combinedData.forEach((d) => {
+            const key = toYmdLocal(d.date);
+            if (!key) return;
+            reservationCountByDate[key] = (reservationCountByDate[key] || 0) + 1;
+        });
+
         const totalCount = combinedData.length;
-        const todayCount = combinedData.filter(d => d.date === todayStr).length;
+        const todayCount = reservationCountByDate[todayStr] || 0;
 
         let noShowCount = 0;
         let cancelledCount = 0;
+        let cancellationRevenue = 0;
         combinedData.forEach(d => {
             const st = (d.status || '').toLowerCase();
             if (st.includes('no show') || st.includes('noshow')) noShowCount++;
-            if (st.includes('cancel')) cancelledCount++;
+            if (st.includes('cancel')) {
+                cancelledCount++;
+                cancellationRevenue += Number(d.cancellationCharge) || 0;
+            }
         });
 
         const totalGuests = combinedData.reduce((sum, d) => sum + (Number(d.guests) || 1), 0);
@@ -181,7 +207,9 @@ const getReservationReport = async (req, res) => {
                 todayCount,
                 noShowCount,
                 cancelledCount,
-                avgGuests
+                avgGuests,
+                cancellationRevenue: Number(cancellationRevenue.toFixed(2)),
+                reservationCountByDate
             },
             distributions: {
                 time: timeDistribution,

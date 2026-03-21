@@ -6,8 +6,8 @@
   background: linear-gradient(135deg, #fff 0%, #fde7ec 60%, #f8d7df 100%);
   position: relative;
   /* For particles */
-  overflow: hidden;
-  /* Contain particles */
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 /* Reduce unnecessary container spacing */
