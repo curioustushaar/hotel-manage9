@@ -169,7 +169,7 @@ const CashierSection = () => {
         setSelectedOrder(order);
     };
 
-    const handlePaymentComplete = async (orderId, amount, mode, type, roomNumber = null, folioId = 0) => {
+    const handlePaymentComplete = async (orderId, amount, mode, type, roomNumber = null, folioId = 0, billingMeta = null) => {
         try {
             const response = await fetch(`${API_URL}/api/guest-meal/orders/${orderId}/settle`, {
                 method: 'POST',
@@ -179,7 +179,8 @@ const CashierSection = () => {
                     paymentMode: mode,   // 'Cash', 'UPI', etc.
                     amount: amount,
                     roomNumber: roomNumber,
-                    folioId: folioId
+                    folioId: folioId,
+                    billingMeta
                 })
             });
 
@@ -712,6 +713,7 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
     const [paymentSuccessNote, setPaymentSuccessNote] = useState('');
     const [sideNoteText, setSideNoteText] = useState('');
     const [showSideNote, setShowSideNote] = useState(false);
+    const [lastPrintableBill, setLastPrintableBill] = useState(null);
 
     const printDropdownRef = useRef(null);
     const tenderResetTimerRef = useRef(null);
@@ -889,7 +891,11 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
     ];
 
     const handlePrintBill = (format = 'thermal') => {
-        if (!order) return;
+        const printOrder = order || lastPrintableBill?.order;
+        if (!printOrder) {
+            showSimpleSideNote('No bill available to print');
+            return;
+        }
         setShowPrintDropdown(false);
 
         const fmt = printFormats.find(f => f.key === format) || printFormats[2];
@@ -897,12 +903,24 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
         const fontSize = format === '2inch' ? '9px' : format === '3inch' ? '10px' : '11px';
         const logoSize = isNarrow ? '16px' : '24px';
         const windowWidth = isNarrow ? 350 : 700;
+        const printSubtotal = order ? computedSubtotal : (lastPrintableBill?.subtotal || 0);
+        const printTax = order ? taxAmtComputed : (lastPrintableBill?.tax || 0);
+        const printService = order ? svcAmtComputed : (lastPrintableBill?.service || 0);
+        const printGrand = order ? grandTotalComputed : (lastPrintableBill?.grand || 0);
+        const printDiscount = order ? discountAmt : (lastPrintableBill?.discountAmt || 0);
+        const printNet = order ? netAfterDiscount : (lastPrintableBill?.net || 0);
+        const printDiscountType = order ? discountType : (lastPrintableBill?.discountType || 'PERCENTAGE');
+        const printDiscountValue = order ? discountValue : (lastPrintableBill?.discountValue || '');
+        const printDiscountSource = order ? discountSource : (lastPrintableBill?.discountSource || '');
+        const printDiscountLabel = printDiscountType === 'PERCENTAGE'
+            ? `${Number(printDiscountValue || 0)}%`
+            : `${cs}${Number(printDiscountValue || 0).toFixed(2)}`;
 
         const invoiceContent = `
     <!DOCTYPE html>
         <html>
             <head>
-                <title>Invoice ${order.billNo}</title>
+                <title>Invoice ${printOrder.billNo}</title>
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Libre+Barcode+39+Text&display=swap" rel="stylesheet">
                     <style>
                         @page { size: ${fmt.pageSize}; margin: ${isNarrow ? '0' : '10mm'}; }
@@ -974,15 +992,15 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
                 <div class="bill-info">
                     <div class="info-row">
                         <span class="info-label">Bill No:</span>
-                        <span class="info-value">${order.billNo}</span>
+                        <span class="info-value">${printOrder.billNo}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Guest:</span>
-                        <span class="info-value">${order.guest}</span>
+                        <span class="info-value">${printOrder.guest}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">Source:</span>
-                        <span class="info-value">${order.type} - ${order.name}</span>
+                        <span class="info-value">${printOrder.type} - ${printOrder.name}</span>
                     </div>
                 </div>
 
@@ -995,7 +1013,7 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
                         </tr>
                     </thead>
                     <tbody>
-                        ${order.items.map(item => `
+                        ${printOrder.items.map(item => `
                                 <tr>
                                     <td class="col-item">${item.name}</td>
                                     <td class="col-qty">${item.qty}</td>
@@ -1008,37 +1026,40 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
                 <div class="totals">
                     <div class="total-row">
                         <span>Subtotal</span>
-                        <span>${cs} ${order.items.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</span>
+                        <span>${cs} ${printSubtotal.toFixed(2)}</span>
                     </div>
-                    ${((parseFloat(settings.cgst) || 0) + (parseFloat(settings.sgst) || 0) > 0) ? `<div class="total-row">
-                        <span>GST (CGST + SGST) (${((parseFloat(settings.cgst) || 0) + (parseFloat(settings.sgst) || 0)).toFixed(2)}%)</span>
-                        <span>${cs} ${Math.round(order.items.reduce((s,i)=>s+i.amount,0)*(((parseFloat(settings.cgst) || 0) + (parseFloat(settings.sgst) || 0))/100)).toFixed(2)}</span>
+                    ${foodGstPct > 0 ? `<div class="total-row">
+                        <span>Food GST (${foodGstPct.toFixed(0)}%)</span>
+                        <span>${cs} ${printTax.toFixed(2)}</span>
                     </div>` : ''}
-                    ${parseFloat(settings.roomServiceCharge) > 0 ? `<div class="total-row">
-                        <span>Service Charge (${settings.roomServiceCharge}%)</span>
-                        <span>${cs} ${Math.round(order.items.reduce((s,i)=>s+i.amount,0)*parseFloat(settings.roomServiceCharge)/100).toFixed(2)}</span>
+                    ${svcChargePct > 0 ? `<div class="total-row">
+                        <span>Service Charge (${svcChargePct.toFixed(0)}%)</span>
+                        <span>${cs} ${printService.toFixed(2)}</span>
+                    </div>` : ''}
+                    <div class="total-row">
+                        <span>Grand Total</span>
+                        <span>${cs} ${printGrand.toFixed(2)}</span>
+                    </div>
+                    ${printDiscount > 0 ? `<div class="total-row">
+                        <span>Discount${printDiscountSource ? ` (${printDiscountSource} - ${printDiscountLabel})` : ` (${printDiscountLabel})`}</span>
+                        <span>-${cs} ${printDiscount.toFixed(2)}</span>
                     </div>` : ''}
                     <div class="grand-total">
                         <span>NET PAYABLE</span>
-                        <span>${cs} ${(() => {
-                            const sub = order.items.reduce((s,i)=>s+i.amount,0);
-                            const fGst = ((parseFloat(settings.cgst)||0) + (parseFloat(settings.sgst)||0)) || (parseFloat(settings.foodGst)||0);
-                            const sSvc = parseFloat(settings.roomServiceCharge)||0;
-                            return (sub + Math.round(sub*fGst/100) + Math.round(sub*sSvc/100)).toFixed(2);
-                        })()}</span>
+                        <span>${cs} ${printNet.toFixed(2)}</span>
                     </div>
                 </div>
 
-                ${order.notes ? `
+                ${printOrder.notes ? `
                 <div class="divider"></div>
                 <div style="font-style: italic; background: #f8f9fa; padding: 5px; border-left: 3px solid #000; font-size: 10px; margin-top: 10px;">
-                    <strong>Note:</strong> ${order.notes}
+                    <strong>Note:</strong> ${printOrder.notes}
                 </div>` : ''}
 
                 <div class="footer">
                     <div class="thanks">${settings.thankYouMessage || 'Thank You!'}</div>
                     <div class="visit-again">We hope to see you again soon.</div>
-                    <div class="barcode">${order.billNo.replace('#', '')}</div>
+                    <div class="barcode">${printOrder.billNo.replace('#', '')}</div>
                 </div>
 
                 <div class="timestamp">
@@ -1098,8 +1119,49 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
         }
 
         // Trigger completion callback
-        const settled = await onPaymentComplete(order.id, netAfterDiscount, paymentMode, paymentType, targetRoom, targetFolioId);
+        const settled = await onPaymentComplete(
+            order.id,
+            netAfterDiscount,
+            paymentMode,
+            paymentType,
+            targetRoom,
+            targetFolioId,
+            {
+                subtotal: computedSubtotal,
+                taxAmount: taxAmtComputed,
+                serviceChargeAmount: svcAmtComputed,
+                grandTotal: grandTotalComputed,
+                discountAmount: discountAmt,
+                discountType,
+                discountValue,
+                discountSource,
+                netPayable: netAfterDiscount,
+                sourceOrderCategory: order.type,
+                sourceOrderName: order.name,
+                items: (order.items || []).map(item => ({
+                    name: item.name,
+                    quantity: item.qty || item.quantity || 1,
+                    amount: item.amount
+                }))
+            }
+        );
         if (!settled) return;
+
+        setLastPrintableBill({
+            order: {
+                ...order,
+                items: Array.isArray(order.items) ? order.items.map(item => ({ ...item })) : []
+            },
+            subtotal: computedSubtotal,
+            tax: taxAmtComputed,
+            service: svcAmtComputed,
+            grand: grandTotalComputed,
+            discountAmt,
+            discountType,
+            discountValue,
+            discountSource,
+            net: netAfterDiscount
+        });
 
         setIsTendered(true);
         setPaymentSuccessNote('Payment successful');
@@ -1447,9 +1509,14 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
                     <div className="print-dropdown-wrapper" ref={printDropdownRef}>
                         <button
                             className={`q-btn print-btn-main ${!isPlaceholder ? 'print-ready' : ''}`}
-                            onClick={() => !isPlaceholder && setShowPrintDropdown(!showPrintDropdown)}
-                            disabled={isPlaceholder}
-                            title={isPlaceholder ? 'Select an order first' : 'Select print format'}
+                            onClick={() => {
+                                if (!order && !lastPrintableBill) {
+                                    showSimpleSideNote('No bill available to print');
+                                    return;
+                                }
+                                setShowPrintDropdown(!showPrintDropdown);
+                            }}
+                            title={order || lastPrintableBill ? 'Select print format' : 'No bill available to print'}
                         >
                             🖨️ Print Bill {showPrintDropdown ? '▲' : '▼'}
                         </button>

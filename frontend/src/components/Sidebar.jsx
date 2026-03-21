@@ -83,8 +83,6 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
             hasDropdown: true,
             dropdownItems: [
                 { id: 'discount', label: 'Discount', iconVal: <Icons.Dot /> },
-                { id: 'taxes', label: 'Taxes', iconVal: <Icons.Dot /> },
-                { id: 'tax-mapping', label: 'Tax Mapping', iconVal: <Icons.Dot /> },
                 { id: 'generate-room-qr', label: 'Generate Room QR', iconVal: <Icons.Dot /> }
             ]
         },

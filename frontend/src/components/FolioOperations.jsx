@@ -179,6 +179,25 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
 
     // Handler for adding new charge
     const handleAddCharge = async (chargeData) => {
+        const chargeLabel = chargeData.chargeType
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, l => l.toUpperCase());
+        const grossAmount = Number(chargeData.totalAmount) || 0;
+        const discountAmount = Number(chargeData.discAmt) || 0;
+        const netAmount = Number(chargeData.netAmount ?? grossAmount) || 0;
+        const qty = Number(chargeData.quantity) || 1;
+        const hasDiscount = discountAmount > 0;
+        const discountName = String(chargeData.discountSource || '').trim();
+        const discountRateText = chargeData.discountType === 'PERCENTAGE'
+            ? `${Number(chargeData.discountValue || 0)}%`
+            : `${cs}${Number(chargeData.discountValue || 0).toFixed(2)}`;
+
+        const discountMeta = hasDiscount
+            ? `${discountName ? `${discountName} (${discountRateText})` : discountRateText} [${cs}${discountAmount.toFixed(2)}]`
+            : 'No discount';
+
+        const detailSummary = `Qty: ${qty} | Gross: ${cs}${grossAmount.toFixed(2)} | Discount: ${discountMeta} | Net: ${cs}${netAmount.toFixed(2)}`;
+
         const newTransaction = {
             type: 'Charge',
             day: new Date(chargeData.date).toLocaleDateString('en-GB', {
@@ -187,9 +206,11 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
                 year: 'numeric',
                 weekday: 'short'
             }),
-            particulars: chargeData.chargeType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            description: chargeData.description || `${chargeData.chargeType} - Qty: ${chargeData.quantity}`,
-            amount: chargeData.totalAmount,
+            particulars: chargeLabel,
+            description: chargeData.description
+                ? `${chargeData.description} | ${detailSummary}`
+                : `${chargeLabel} | ${detailSummary}`,
+            amount: netAmount,
             user: 'current_user',
             folioId: selectedRoom // Associate with current folio
         };

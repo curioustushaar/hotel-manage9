@@ -838,6 +838,11 @@
 .btn-save:hover {
     background: #2563eb;
 }
+.checkbox-delete-btn:disabled {
+     opacity: 0.35;
+     cursor: not-allowed;
+     pointer-events: none;
+}
 
 /* ====================================
    APPLIES TO DROPDOWN

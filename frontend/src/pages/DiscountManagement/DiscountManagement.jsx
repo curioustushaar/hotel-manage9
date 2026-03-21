@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './DiscountManagement.css';
 import { useSettings } from '../../context/SettingsContext';
+import { buildLinkedAppliesToOptions, getAllChargeOptions } from '../../utils/chargeTypeOptions';
 
 const DiscountManagement = () => {
     const { getCurrencySymbol, settings } = useSettings();
@@ -25,18 +26,20 @@ const DiscountManagement = () => {
     const [showAppliesTo, setShowAppliesTo] = useState(false);
     const menuRef = useRef(null);
 
-    const [applyToOptions, setApplyToOptions] = useState([
-        { id: 'ROOM', label: 'Room Charges' },
-        { id: 'FOOD', label: 'Food & Beverage' },
-        { id: 'LAUNDRY', label: 'Laundry' },
-        { id: 'SPA', label: 'Spa / Services' },
-        { id: 'BILL', label: 'Entire Bill' }
-    ]);
+    const [applyToOptions, setApplyToOptions] = useState(() => buildLinkedAppliesToOptions(getAllChargeOptions()));
     const [isAddingApplyTo, setIsAddingApplyTo] = useState(false);
     const [newApplyTo, setNewApplyTo] = useState('');
 
     // Load discounts from localStorage on mount
     useEffect(() => {
+        const syncApplyToOptions = () => {
+            const linked = buildLinkedAppliesToOptions(getAllChargeOptions());
+            setApplyToOptions(linked);
+        };
+
+        syncApplyToOptions();
+        window.addEventListener('storage', syncApplyToOptions);
+
         const storedDiscounts = localStorage.getItem('discounts');
         if (storedDiscounts) {
             setDiscounts(JSON.parse(storedDiscounts));
@@ -77,7 +80,17 @@ const DiscountManagement = () => {
             setDiscounts(sampleDiscounts);
             localStorage.setItem('discounts', JSON.stringify(sampleDiscounts));
         }
+
+        return () => {
+            window.removeEventListener('storage', syncApplyToOptions);
+        };
     }, []);
+
+    useEffect(() => {
+        if (showModal) {
+            setApplyToOptions(buildLinkedAppliesToOptions(getAllChargeOptions()));
+        }
+    }, [showModal]);
 
     // Close menu when clicking outside
     useEffect(() => {
@@ -261,6 +274,10 @@ const DiscountManagement = () => {
     };
 
     const handleDeleteApplyToOption = (optionId) => {
+        if (optionId === 'ROOM' || optionId === 'FOOD') {
+            return;
+        }
+
         setApplyToOptions(prev => prev.filter(option => option.id !== optionId));
         setFormData(prev => ({
             ...prev,
@@ -539,6 +556,7 @@ const DiscountManagement = () => {
                                                             type="button"
                                                             className="checkbox-delete-btn"
                                                             onClick={() => handleDeleteApplyToOption(option.id)}
+                                                            disabled={option.locked}
                                                             title="Delete category"
                                                             aria-label={`Delete ${option.label}`}
                                                         >
@@ -549,37 +567,6 @@ const DiscountManagement = () => {
                                             </div>
                                         )}
                                         {formErrors.appliesTo && <span className="error-message">{formErrors.appliesTo}</span>}
-                                    </div>
-
-                                    {/* Toggles Row */}
-                                    <div className="premium-form-row">
-                                        <div className="payment-field-group flex-1">
-                                            <label className="toggle-label-premium">
-                                                <span>Auto Apply</span>
-                                                <div className="toggle-switch-p">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={formData.autoApply}
-                                                        onChange={(e) => setFormData({ ...formData, autoApply: e.target.checked })}
-                                                    />
-                                                    <span className="toggle-slider-p"></span>
-                                                </div>
-                                            </label>
-                                        </div>
-
-                                        <div className="payment-field-group flex-1">
-                                            <label className="toggle-label-premium">
-                                                <span>Status</span>
-                                                <div className="toggle-switch-p">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={formData.status === 'ACTIVE'}
-                                                        onChange={(e) => setFormData({ ...formData, status: e.target.checked ? 'ACTIVE' : 'INACTIVE' })}
-                                                    />
-                                                    <span className="toggle-slider-p"></span>
-                                                </div>
-                                            </label>
-                                        </div>
                                     </div>
 
                                     {/* Description */}
