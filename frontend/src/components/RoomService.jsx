@@ -141,9 +141,21 @@ const RoomService = () => {
         }
     };
 
-    const handleBillDetails = async (room, orderId) => {
+    const handleBillDetails = async (room, orderId, currentStatus) => {
         if (!orderId) {
             alert("No active order to bill");
+            return;
+        }
+
+        // If already sent to cashier, open cashier directly.
+        if (currentStatus === 'Pending Payment') {
+            navigate('/admin/cashier-section', {
+                state: {
+                    activeMenu: 'cashier-section',
+                    refresh: true,
+                    room: { ...room, id: room._id, orderId }
+                }
+            });
             return;
         }
 
@@ -157,7 +169,7 @@ const RoomService = () => {
             const data = await response.json();
             if (data.success) {
                 // Then navigate to cashier section
-                navigate('/admin/dashboard', {
+                navigate('/admin/cashier-section', {
                     state: {
                         activeMenu: 'cashier-section',
                         refresh: true,
@@ -367,7 +379,7 @@ const RoomService = () => {
                                     {roomOrder ? (
                                         <button
                                             className={`rs-bill-details-btn ${roomOrder?.status === 'Pending Payment' ? 'pending' : ''}`}
-                                            onClick={() => handleBillDetails(room, roomOrder?._id)}
+                                            onClick={() => handleBillDetails(room, roomOrder?._id, roomOrder?.status)}
                                         >
                                             {roomOrder?.status === 'Pending Payment' ? 'Pending Payment' : 'Bill Details'}
                                         </button>
