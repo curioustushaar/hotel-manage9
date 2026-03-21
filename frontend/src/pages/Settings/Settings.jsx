@@ -246,7 +246,7 @@ const Settings = () => {
                                 type="text"
                                 placeholder="Search by name or phone number..."
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => setSearchTerm(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
                                 className="settings-search-input"
                             />
                         </div>
@@ -604,3 +604,4 @@ const Settings = () => {
 };
 
 export default Settings;
+

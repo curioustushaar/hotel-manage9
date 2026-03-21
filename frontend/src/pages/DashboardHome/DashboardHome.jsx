@@ -94,8 +94,52 @@ const DashboardHome = () => {
     const [revenueBreakup, setRevenueBreakup] = useState({
         rooms: 0,
         restaurant: 0,
+        fragments: 0,
         other: 0
     });
+
+    const getLocalDateKey = (value = new Date()) => {
+        const d = new Date(value);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    };
+
+    const getDateCandidates = (value) => {
+        if (!value) return [];
+
+        const keys = new Set();
+        if (typeof value === 'string') {
+            const isoDate = value.match(/^(\d{4}-\d{2}-\d{2})/);
+            if (isoDate?.[1]) keys.add(isoDate[1]);
+        }
+
+        const d = new Date(value);
+        if (!Number.isNaN(d.getTime())) {
+            keys.add(getLocalDateKey(d));
+            keys.add(d.toISOString().split('T')[0]);
+        }
+
+        return Array.from(keys);
+    };
+
+    const isSameDayKey = (value, dayKey) => getDateCandidates(value).includes(dayKey);
+
+    const getBookingDayKey = (value) => {
+        const candidates = getDateCandidates(value);
+        return candidates.length > 0 ? candidates[0] : null;
+    };
+
+    const normalizePaymentMethod = (method) => {
+        const raw = String(method || '').trim().toLowerCase();
+        if (!raw) return 'cash';
+        if (raw.includes('cash')) return 'cash';
+        if (raw.includes('card') || raw.includes('debit') || raw.includes('credit')) return 'card';
+        if (raw.includes('upi') || raw.includes('online') || raw.includes('wallet')) return 'upi';
+        if (raw.includes('bank') || raw.includes('transfer') || raw.includes('neft') || raw.includes('rtgs') || raw.includes('imps')) return 'bank';
+        return 'cash';
+    };
 
     useEffect(() => {
         // Initial load
@@ -117,37 +161,47 @@ const DashboardHome = () => {
 
     const calculateStatistics = async () => {
         try {
+            const now = new Date();
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = getLocalDateKey(yesterday);
+
             // 1. Fetch all required data in parallel
-            const [roomsRes, bookingsRes, reportRes, ordersRes] = await Promise.all([
+            const [roomsRes, bookingsRes, reportRes, ordersRes, transactionsRes, yesterdayReportRes] = await Promise.all([
                 fetch(`${API_URL}/api/rooms/list`),
                 fetch(`${API_URL}/api/bookings/list`),
                 fetch(`${API_URL}/api/cashier/report`),
-                fetch(`${API_URL}/api/guest-meal/orders`)
+                fetch(`${API_URL}/api/guest-meal/orders`),
+                fetch(`${API_URL}/api/cashier/transactions`),
+                fetch(`${API_URL}/api/cashier/report?startDate=${encodeURIComponent(yesterdayStr)}&endDate=${encodeURIComponent(yesterdayStr)}`)
             ]);
 
-            const [roomsData, bookingsData, reportData, ordersData] = await Promise.all([
+            const [roomsData, bookingsData, reportData, ordersData, transactionsData, yesterdayReportData] = await Promise.all([
                 roomsRes.json(),
                 bookingsRes.json(),
                 reportRes.json(),
-                ordersRes.json()
+                ordersRes.json(),
+                transactionsRes.json(),
+                yesterdayReportRes.json()
             ]);
 
             const rooms = roomsData.success ? roomsData.data : [];
             const bookings = bookingsData.success ? bookingsData.data : [];
             const report = reportData.success ? reportData.data : null;
+            const yesterdayReport = yesterdayReportData.success ? yesterdayReportData.data : null;
             const allOrders = ordersData.success ? ordersData.data : [];
+            const allTransactions = transactionsData.success ? transactionsData.data : [];
 
             // ---- Date helpers ----
-            const now = new Date();
-            const todayStr = now.toISOString().split('T')[0];
+            const todayStr = getLocalDateKey(now);
             const tomorrow = new Date(now);
             tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            const tomorrowStr = getLocalDateKey(tomorrow);
             const nextWeek = new Date(now);
             nextWeek.setDate(nextWeek.getDate() + 7);
-            const nextWeekStr = nextWeek.toISOString().split('T')[0];
-            const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-            const thisMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+            const nextWeekStr = getLocalDateKey(nextWeek);
+            const thisMonthStart = getLocalDateKey(new Date(now.getFullYear(), now.getMonth(), 1));
+            const thisMonthEnd = getLocalDateKey(new Date(now.getFullYear(), now.getMonth() + 1, 0));
             const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 
             // ---- 2. Room Statistics ----
@@ -169,12 +223,12 @@ const DashboardHome = () => {
             const currentGuests = checkedInBookings.length;
 
             const todayCheckIns = bookings.filter(b => {
-                const cin = b.checkInDate?.split('T')[0];
+                const cin = getBookingDayKey(b.checkInDate);
                 return cin === todayStr;
             }).length;
 
             const todayCheckOuts = bookings.filter(b => {
-                const cout = b.checkOutDate?.split('T')[0];
+                const cout = getBookingDayKey(b.checkOutDate);
                 return cout === todayStr;
             }).length;
 
@@ -200,7 +254,7 @@ const DashboardHome = () => {
 
             // ---- 6. Arrival & Departure Split ----
             const arrivedToday = bookings.filter(b =>
-                b.checkInDate?.split('T')[0] === todayStr && isCheckedIn(b.status)
+                getBookingDayKey(b.checkInDate) === todayStr && isCheckedIn(b.status)
             ).length;
             setArrivalStats({
                 total: todayCheckIns,
@@ -209,7 +263,7 @@ const DashboardHome = () => {
             });
 
             const departedToday = bookings.filter(b =>
-                b.checkOutDate?.split('T')[0] === todayStr && isCheckedOut(b.status)
+                getBookingDayKey(b.checkOutDate) === todayStr && isCheckedOut(b.status)
             ).length;
             setDepartureStats({
                 total: todayCheckOuts,
@@ -241,16 +295,16 @@ const DashboardHome = () => {
             // Tomorrow: count bookings whose stay period includes tomorrow
             const tomorrowOccupied = bookings.filter(b => {
                 if (isCheckedOut(b.status) || b.status === 'Cancelled' || b.status === 'NoShow') return false;
-                const cin = b.checkInDate?.split('T')[0];
-                const cout = b.checkOutDate?.split('T')[0];
+                const cin = getBookingDayKey(b.checkInDate);
+                const cout = getBookingDayKey(b.checkOutDate);
                 return cin && cout && tomorrowStr >= cin && tomorrowStr < cout;
             }).length;
 
             // Month: count unique room-nights booked this month
             const monthRoomNights = bookings.reduce((count, b) => {
                 if (b.status === 'Cancelled' || b.status === 'NoShow') return count;
-                const cin = b.checkInDate?.split('T')[0];
-                const cout = b.checkOutDate?.split('T')[0];
+                const cin = getBookingDayKey(b.checkInDate);
+                const cout = getBookingDayKey(b.checkOutDate);
                 if (!cin || !cout) return count;
                 // Count overlapping nights in this month
                 const stayStart = cin > thisMonthStart ? cin : thisMonthStart;
@@ -278,13 +332,13 @@ const DashboardHome = () => {
 
             // ---- 9. Upcoming Reservations ----
             const todayArrivals = bookings.filter(b =>
-                b.checkInDate?.split('T')[0] === todayStr && isUpcoming(b.status)
+                getBookingDayKey(b.checkInDate) === todayStr && isUpcoming(b.status)
             ).length;
             const tomorrowArrivals = bookings.filter(b =>
-                b.checkInDate?.split('T')[0] === tomorrowStr
+                getBookingDayKey(b.checkInDate) === tomorrowStr
             ).length;
             const next7Arrivals = bookings.filter(b => {
-                const cin = b.checkInDate?.split('T')[0];
+                const cin = getBookingDayKey(b.checkInDate);
                 return cin > todayStr && cin <= nextWeekStr;
             }).length;
 
@@ -295,44 +349,198 @@ const DashboardHome = () => {
             });
 
             // ---- 10. Revenue Data ----
-            // Room revenue from bookings
-            const roomRevenue = bookings.reduce((sum, b) => {
-                if (b.status === 'Cancelled' || b.status === 'NoShow') return sum;
-                // Use billing.totalAmount or billing.paidAmount
-                const paid = b.billing?.paidAmount || b.billing?.totalAmount || 0;
+            const isOrderSettled = (order) => {
+                const status = String(order?.status || '').toLowerCase();
+                const paymentStatus = String(order?.paymentStatus || '').toLowerCase();
+                return (
+                    ['closed', 'billed', 'pending payment', 'completed', 'settled', 'served'].includes(status) ||
+                    ['completed', 'success', 'settled', 'paid'].includes(paymentStatus)
+                );
+            };
+
+            const getOrderDateKey = (order) => {
+                const stamp = order?.closedAt || order?.billedAt || order?.updatedAt || order?.createdAt;
+                return stamp ? getLocalDateKey(stamp) : null;
+            };
+
+            const sumBookingPaymentsByDay = (dayKey) => bookings.reduce((sum, booking) => {
+                const txns = Array.isArray(booking?.transactions) ? booking.transactions : [];
+                const paid = txns
+                    .filter((t) => String(t?.type || '').toLowerCase() === 'payment' && isSameDayKey(t.date || booking.updatedAt || booking.createdAt, dayKey))
+                    .reduce((s, t) => s + Math.abs(Number(t?.amount) || 0), 0);
                 return sum + paid;
             }, 0);
 
-            // Restaurant revenue from orders
-            const restaurantRevenue = allOrders.reduce((sum, o) => {
-                if (o.status === 'Cancelled') return sum;
-                return sum + (o.finalAmount || o.totalAmount || 0);
+            const sumExtraChargesByDay = (dayKey) => bookings.reduce((sum, booking) => {
+                const txns = Array.isArray(booking?.transactions) ? booking.transactions : [];
+                const extra = txns
+                    .filter((t) => {
+                        const type = String(t?.type || '').toLowerCase();
+                        const particulars = String(t?.particulars || '').toLowerCase();
+                        const isCharge = type === 'charge';
+                        const isRoomTariff = particulars === 'room tariff' || particulars === 'room charges';
+                        return isCharge && !isRoomTariff && isSameDayKey(t.date || booking.updatedAt || booking.createdAt, dayKey);
+                    })
+                    .reduce((s, t) => s + Math.abs(Number(t?.amount) || 0), 0);
+                return sum + extra;
             }, 0);
 
-            // Cashier report data
-            const totalCashierRevenue = report ? (report.totalCollections || 0) : 0;
-            const yesterdayCashierRevenue = report ? (report.openingBalance || 0) : 0;
+            const sumOrderRevenueByDay = (dayKey) => allOrders.reduce((sum, order) => {
+                if (String(order?.status || '').toLowerCase() === 'cancelled') return sum;
+                if (!isOrderSettled(order)) return sum;
+                if (!isSameDayKey(order?.closedAt || order?.billedAt || order?.updatedAt || order?.createdAt, dayKey)) return sum;
+                return sum + (Number(order?.finalAmount) || Number(order?.totalAmount) || 0);
+            }, 0);
 
-            // Use the higher of cashier or calculated
-            const totalRev = Math.max(totalCashierRevenue, roomRevenue + restaurantRevenue);
+            const estimateRoomRevenueFromStayByDay = (dayKey) => bookings.reduce((sum, booking) => {
+                if (booking?.status === 'Cancelled' || booking?.status === 'NoShow') return sum;
 
-            setRevenueBreakup({
-                rooms: roomRevenue,
-                restaurant: restaurantRevenue,
-                other: Math.max(0, totalRev - roomRevenue - restaurantRevenue)
+                const cin = getBookingDayKey(booking?.checkInDate);
+                const cout = getBookingDayKey(booking?.checkOutDate);
+                if (!cin || !cout || !(dayKey >= cin && dayKey < cout)) return sum;
+
+                const nights = Number(booking?.duration?.nights) || 1;
+                const roomCount = Array.isArray(booking?.rooms) && booking.rooms.length > 0 ? booking.rooms.length : 1;
+
+                let nightly = 0;
+                if (Array.isArray(booking?.rooms) && booking.rooms.length > 0) {
+                    nightly = booking.rooms.reduce((acc, r) => {
+                        const rpn = Number(r?.ratePerNight) || 0;
+                        const total = Number(r?.total) || 0;
+                        const fallbackRpn = nights > 0 ? total / nights : 0;
+                        return acc + (rpn > 0 ? rpn : fallbackRpn);
+                    }, 0);
+                }
+
+                if (nightly <= 0) {
+                    const billingRate = Number(booking?.billing?.roomRate) || 0;
+                    const legacyRate = Number(booking?.roomRate) || 0;
+                    const totalAmount = Number(booking?.billing?.totalAmount) || Number(booking?.totalAmount) || 0;
+                    const fallbackNightly = nights > 0 ? totalAmount / nights : 0;
+                    const perRoomRate = billingRate || legacyRate || fallbackNightly;
+                    nightly = perRoomRate * roomCount;
+                }
+
+                return sum + Math.max(0, nightly);
+            }, 0);
+
+            const bookingReceiptsByDay = (dayKey) => {
+                const receipt = { cash: 0, card: 0, upi: 0, bank: 0 };
+                bookings.forEach((booking) => {
+                    const txns = Array.isArray(booking?.transactions) ? booking.transactions : [];
+                    txns.forEach((txn) => {
+                        if (String(txn?.type || '').toLowerCase() !== 'payment') return;
+                        if (!isSameDayKey(txn.date || booking.updatedAt || booking.createdAt, dayKey)) return;
+                        const method = normalizePaymentMethod(txn?.method);
+                        receipt[method] += Math.abs(Number(txn?.amount) || 0);
+                    });
+                });
+                return receipt;
+            };
+
+            const orderReceiptsByDay = (dayKey) => {
+                const receipt = { cash: 0, card: 0, upi: 0, bank: 0 };
+                allOrders.forEach((order) => {
+                    if (!isOrderSettled(order)) return;
+                    if (!isSameDayKey(order?.closedAt || order?.billedAt || order?.updatedAt || order?.createdAt, dayKey)) return;
+                    const amount = Number(order?.finalAmount) || Number(order?.totalAmount) || 0;
+                    if (amount <= 0) return;
+                    const method = normalizePaymentMethod(order?.paymentMethod);
+                    receipt[method] += amount;
+                });
+                return receipt;
+            };
+
+            const cashierReceiptsByDay = (dayKey) => {
+                const receipt = { cash: 0, card: 0, upi: 0, bank: 0 };
+                allTransactions.forEach((txn) => {
+                    const category = String(txn?.category || '').toLowerCase();
+                    const type = String(txn?.type || '').toLowerCase();
+                    const isCollection = category === 'collection' || type === 'income' || type.includes('collection');
+                    if (!isCollection) return;
+                    if (!isSameDayKey(txn?.date || txn?.createdAt || txn?.updatedAt, dayKey)) return;
+                    const method = normalizePaymentMethod(txn?.paymentMethod);
+                    receipt[method] += Math.abs(Number(txn?.amount) || 0);
+                });
+                return receipt;
+            };
+
+            const combineReceipts = (preferred, fallback) => ({
+                cash: preferred.cash > 0 ? preferred.cash : fallback.cash,
+                card: preferred.card > 0 ? preferred.card : fallback.card,
+                upi: preferred.upi > 0 ? preferred.upi : fallback.upi,
+                bank: preferred.bank > 0 ? preferred.bank : fallback.bank
             });
 
+            const roomRevenueTodayPaid = sumBookingPaymentsByDay(todayStr);
+            const roomRevenueYesterdayPaid = sumBookingPaymentsByDay(yesterdayStr);
+            const roomRevenueTodayStay = estimateRoomRevenueFromStayByDay(todayStr);
+            const roomRevenueYesterdayStay = estimateRoomRevenueFromStayByDay(yesterdayStr);
+            const roomRevenueToday = roomRevenueTodayPaid > 0 ? roomRevenueTodayPaid : roomRevenueTodayStay;
+            const roomRevenueYesterday = roomRevenueYesterdayPaid > 0 ? roomRevenueYesterdayPaid : roomRevenueYesterdayStay;
+            const fragmentRevenueToday = sumExtraChargesByDay(todayStr);
+            const fragmentRevenueYesterday = sumExtraChargesByDay(yesterdayStr);
+            const restaurantRevenueToday = sumOrderRevenueByDay(todayStr);
+            const restaurantRevenueYesterday = sumOrderRevenueByDay(yesterdayStr);
+
+            const todayCalculated = roomRevenueToday + restaurantRevenueToday + fragmentRevenueToday;
+            const yesterdayCalculated = roomRevenueYesterday + restaurantRevenueYesterday + fragmentRevenueYesterday;
+
+            const todayCashier = report ? Number(report.totalCollections || 0) : 0;
+            const yesterdayCashier = (() => {
+                const explicitYesterday = Number(yesterdayReport?.totalCollections || 0);
+                if (explicitYesterday > 0) return explicitYesterday;
+
+                const y = cashierReceiptsByDay(yesterdayStr);
+                return (y.cash || 0) + (y.card || 0) + (y.upi || 0) + (y.bank || 0);
+            })();
+
+            const totalTodayRevenue = Math.max(todayCashier, todayCalculated);
+            const totalYesterdayRevenue = Math.max(yesterdayCashier, yesterdayCalculated);
+
+            const receiptFallbackToday = (() => {
+                const b = bookingReceiptsByDay(todayStr);
+                const o = orderReceiptsByDay(todayStr);
+                return {
+                    cash: b.cash + o.cash,
+                    card: b.card + o.card,
+                    upi: b.upi + o.upi,
+                    bank: b.bank + o.bank
+                };
+            })();
+
+            const receiptPreferredToday = cashierReceiptsByDay(todayStr);
+            const finalReceipts = combineReceipts(receiptPreferredToday, receiptFallbackToday);
+
+            const yesterdayOccupied = bookings.filter((b) => {
+                if (b.status === 'Cancelled' || b.status === 'NoShow') return false;
+                const cin = getBookingDayKey(b.checkInDate);
+                const cout = getBookingDayKey(b.checkOutDate);
+                return cin && cout && yesterdayStr >= cin && yesterdayStr < cout;
+            }).length;
+
+            setRevenueBreakup({
+                rooms: roomRevenueToday,
+                restaurant: restaurantRevenueToday,
+                fragments: fragmentRevenueToday,
+                other: Math.max(0, totalTodayRevenue - (roomRevenueToday + restaurantRevenueToday + fragmentRevenueToday))
+            });
+
+            const computedYesterdayAvgRate = yesterdayOccupied > 0
+                ? Math.round((roomRevenueYesterday / yesterdayOccupied) * 100) / 100
+                : 0;
+
             setRevenue({
-                total: totalRev,
-                today: totalCashierRevenue,
-                yesterday: yesterdayCashierRevenue,
-                avgDailyRate: occupied > 0 ? Math.round((roomRevenue / occupied) * 100) / 100 : 0,
-                yesterdayAvgRate: report ? Math.round(((report.openingBalance || 0) / Math.max(occupied, 1)) * 100) / 100 : 0,
+                total: totalTodayRevenue,
+                today: totalTodayRevenue,
+                yesterday: totalYesterdayRevenue,
+                avgDailyRate: occupied > 0 ? Math.round((roomRevenueToday / occupied) * 100) / 100 : 0,
+                yesterdayAvgRate: computedYesterdayAvgRate > 0 ? computedYesterdayAvgRate : totalYesterdayRevenue,
                 receipts: {
-                    cash: report?.paymentsReceived?.cash || 0,
-                    card: report?.paymentsReceived?.card || 0,
-                    diCard: report?.paymentsReceived?.upi || 0,
-                    bank: report?.paymentsReceived?.bankTransfer || 0
+                    cash: finalReceipts.cash,
+                    card: finalReceipts.card,
+                    diCard: finalReceipts.upi,
+                    bank: finalReceipts.bank
                 }
             });
 
@@ -341,7 +549,7 @@ const DashboardHome = () => {
             for (let i = 0; i < 14; i++) {
                 const date = new Date(now);
                 date.setDate(date.getDate() + i);
-                const dateStr = date.toISOString().split('T')[0];
+                const dateStr = getLocalDateKey(date);
                 const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
                 const dayDate = date.getDate();
 
@@ -349,8 +557,8 @@ const DashboardHome = () => {
                 const bookedOnDate = bookings.filter(b => {
                     if (b.status === 'Cancelled' || b.status === 'NoShow') return false;
                     if (isCheckedOut(b.status)) return false;
-                    const cin = b.checkInDate?.split('T')[0];
-                    const cout = b.checkOutDate?.split('T')[0];
+                    const cin = getBookingDayKey(b.checkInDate);
+                    const cout = getBookingDayKey(b.checkOutDate);
                     return cin && cout && dateStr >= cin && dateStr < cout;
                 }).length;
 
@@ -375,7 +583,7 @@ const DashboardHome = () => {
             setAdvancedOccupancy({ today: 0, tomorrow: 0, thisMonth: 0, todayOccupied: 0, todayBooked: 0, tomorrowBooked: 0, monthBooked: 0, monthAvailable: 0 });
             setUpcomingReservations({ today: 0, tomorrow: 0, next7Days: 0 });
             setRevenue({ total: 0, today: 0, yesterday: 0, avgDailyRate: 0, yesterdayAvgRate: 0, receipts: { cash: 0, card: 0, diCard: 0, bank: 0 } });
-            setRevenueBreakup({ rooms: 0, restaurant: 0, other: 0 });
+            setRevenueBreakup({ rooms: 0, restaurant: 0, fragments: 0, other: 0 });
             setRoomAvailability([]);
         }
     };
@@ -417,6 +625,18 @@ const DashboardHome = () => {
         const offset = circumference - (percentage / 100) * circumference;
         return { circumference, offset };
     };
+
+    const getDeltaPercentage = (current, previous) => {
+        const safeCurrent = Number(current) || 0;
+        const safePrevious = Number(previous) || 0;
+        if (safePrevious <= 0) return safeCurrent > 0 ? 100 : 0;
+        const pct = ((safeCurrent - safePrevious) / safePrevious) * 100;
+        return Math.max(-100, Math.round(pct));
+    };
+
+    const revenueChangePct = getDeltaPercentage(revenue.today, revenue.yesterday);
+    const adrCompareBase = Number(revenue.yesterdayAvgRate) > 0 ? revenue.yesterdayAvgRate : revenue.yesterday;
+    const adrChangePct = getDeltaPercentage(revenue.avgDailyRate, adrCompareBase);
 
     return (
         <div className="dashboard-home">
@@ -1010,9 +1230,10 @@ const DashboardHome = () => {
                                 <h3>Total Revenue</h3>
                                 <div className="revenue-main-value">{revenue.total.toLocaleString()}</div>
                                 <div className="revenue-sub-text">Today: {revenue.today.toLocaleString()}</div>
+                                <div className="revenue-sub-text">Yesterday: {revenue.yesterday.toLocaleString()}</div>
                                 <div className="revenue-percentage">
-                                    <span className={`percentage-badge ${revenue.today >= revenue.yesterday ? 'up' : 'down'}`}>
-                                        {revenue.today >= revenue.yesterday ? '+' : '-'}{Math.abs(Math.round(((revenue.today - revenue.yesterday) / (revenue.yesterday || 1)) * 100))}%
+                                    <span className={`percentage-badge ${revenueChangePct >= 0 ? 'up' : 'down'}`}>
+                                        {revenueChangePct >= 0 ? '+' : ''}{revenueChangePct}%
                                     </span>
                                 </div>
                             </div>
@@ -1037,11 +1258,11 @@ const DashboardHome = () => {
                                     </div>
                                     <div className="breakup-item">
                                         <span className="breakup-label">Fragments</span>
-                                        <span className="breakup-value">{revenueBreakup.other.toLocaleString()}</span>
+                                        <span className="breakup-value">{revenueBreakup.fragments.toLocaleString()}</span>
                                     </div>
                                     <div className="breakup-item">
                                         <span className="breakup-label">Other</span>
-                                        <span className="breakup-value">0</span>
+                                        <span className="breakup-value">{revenueBreakup.other.toLocaleString()}</span>
                                     </div>
                                 </div>
                             </div>
@@ -1050,10 +1271,10 @@ const DashboardHome = () => {
                             <div className="revenue-stat-card adr-card">
                                 <h3>Average Daily Room Rate</h3>
                                 <div className="revenue-main-value">{revenue.avgDailyRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                                <div className="revenue-sub-text">Yesterday: RS {revenue.yesterdayAvgRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                <div className="revenue-sub-text">Yesterday: RS {adrCompareBase.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                 <div className="revenue-percentage">
-                                    <span className={`percentage-badge ${revenue.avgDailyRate >= revenue.yesterdayAvgRate ? 'up' : 'down'}`}>
-                                        {revenue.avgDailyRate >= revenue.yesterdayAvgRate ? '+' : '-'}{Math.abs(Math.round(((revenue.avgDailyRate - revenue.yesterdayAvgRate) / (revenue.yesterdayAvgRate || 1)) * 100))}%
+                                    <span className={`percentage-badge ${adrChangePct >= 0 ? 'up' : 'down'}`}>
+                                        {adrChangePct >= 0 ? '+' : ''}{adrChangePct}%
                                     </span>
                                 </div>
                             </div>

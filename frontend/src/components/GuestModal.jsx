@@ -151,7 +151,7 @@ const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGues
                                     type="text"
                                     placeholder="Search by name or phone..."
                                     value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onChange={(e) => setSearchTerm(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
                                     className="search-input"
                                 />
                             </div>
@@ -274,3 +274,4 @@ const GuestModal = ({ isOpen, onClose, onSelectGuest, guests = [], onRefreshGues
 };
 
 export default GuestModal;
+

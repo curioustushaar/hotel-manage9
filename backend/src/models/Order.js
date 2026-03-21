@@ -46,6 +46,14 @@ const orderSchema = new mongoose.Schema({
     taxRate: { type: Number, default: 0 },
     serviceChargeAmount: { type: Number, default: 0 },
     discountAmount: { type: Number, default: 0 },
+    discountMeta: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null
+    },
+    discountHistory: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: []
+    },
     finalAmount: { type: Number, default: 0 }, // Controller uses this
     totalAmount: { type: Number, default: 0 }, // Internal standardized
 

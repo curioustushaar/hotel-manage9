@@ -298,6 +298,12 @@
     gap: 0.5rem;
 }
 
+.hk-action-buttons {
+    display: inline-flex;
+    gap: 0.55rem;
+    align-items: center;
+}
+
 .action-btn {
     width: 32px;
     height: 32px;
@@ -311,6 +317,57 @@
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 0.9rem;
+}
+
+.action-btn.pending-btn {
+    width: auto;
+    min-width: 118px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid #f59e0b;
+    background: #fff7ed;
+    color: #b45309;
+    font-weight: 700;
+    padding: 0 12px;
+}
+
+.action-btn.pending-btn:hover {
+    background: #ffedd5;
+    border-color: #d97706;
+    color: #92400e;
+}
+
+.action-btn.pending-btn.is-dimmed,
+.action-btn.pending-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    filter: grayscale(0.15);
+    box-shadow: none;
+}
+
+.card-actions-row {
+    display: flex;
+    gap: 0.6rem;
+    width: 100%;
+}
+
+.card-action-btn.pending {
+    background: #fff7ed;
+    color: #b45309;
+    border: 1px solid #f59e0b;
+}
+
+.card-action-btn.pending:hover {
+    background: #ffedd5;
+    color: #92400e;
+}
+
+.card-action-btn.pending.is-dimmed,
+.card-action-btn.pending:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    filter: grayscale(0.15);
+    box-shadow: none;
 }
 
 .edit-btn:hover {

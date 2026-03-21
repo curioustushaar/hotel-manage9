@@ -1,5 +1,21 @@
 const Transaction = require('../models/Transaction');
 
+const isCollectionTxn = (t) => {
+    const type = String(t?.type || '').toLowerCase();
+    const category = String(t?.category || '').toLowerCase();
+    return type === 'income' || category === 'collection';
+};
+
+const isPayoutTxn = (t) => {
+    const type = String(t?.type || '').toLowerCase();
+    const category = String(t?.category || '').toLowerCase();
+    return ['expense', 'refund', 'void'].includes(type) || category === 'payout';
+};
+
+const paymentMethodSum = (txns, matcher) => txns
+    .filter(t => matcher(String(t?.paymentMethod || '').toLowerCase()))
+    .reduce((sum, t) => sum + (Number(t?.amount) || 0), 0);
+
 // Get cashier report data
 const getCashierReport = async (req, res) => {
     try {
@@ -19,8 +35,8 @@ const getCashierReport = async (req, res) => {
         }).sort({ date: 1 });
 
         // Calculate totals
-        const collections = transactions.filter(t => t.category === 'collection');
-        const payouts = transactions.filter(t => t.category === 'payout');
+        const collections = transactions.filter(isCollectionTxn);
+        const payouts = transactions.filter(isPayoutTxn);
 
         const totalCollections = collections.reduce((sum, t) => sum + t.amount, 0);
         const totalPayouts = payouts.reduce((sum, t) => sum + t.amount, 0);
@@ -32,11 +48,11 @@ const getCashierReport = async (req, res) => {
         });
         
         const previousCollections = previousTransactions
-            .filter(t => t.category === 'collection')
+            .filter(isCollectionTxn)
             .reduce((sum, t) => sum + t.amount, 0);
         
         const previousPayouts = previousTransactions
-            .filter(t => t.category === 'payout')
+            .filter(isPayoutTxn)
             .reduce((sum, t) => sum + t.amount, 0);
         
         const openingBalance = previousCollections - previousPayouts;
@@ -44,17 +60,17 @@ const getCashierReport = async (req, res) => {
 
         // Calculate payment breakdowns
         const paymentsReceived = {
-            cash: collections.filter(t => t.paymentMethod === 'cash').reduce((sum, t) => sum + t.amount, 0),
-            card: collections.filter(t => t.paymentMethod === 'card').reduce((sum, t) => sum + t.amount, 0),
-            upi: collections.filter(t => t.paymentMethod === 'upi').reduce((sum, t) => sum + t.amount, 0),
-            bankTransfer: collections.filter(t => t.paymentMethod === 'bank-transfer').reduce((sum, t) => sum + t.amount, 0)
+            cash: paymentMethodSum(collections, (m) => m.includes('cash')),
+            card: paymentMethodSum(collections, (m) => m.includes('card') || m.includes('credit') || m.includes('debit')),
+            upi: paymentMethodSum(collections, (m) => m.includes('upi') || m.includes('online') || m.includes('wallet')),
+            bankTransfer: paymentMethodSum(collections, (m) => m.includes('bank') || m.includes('transfer') || m.includes('neft') || m.includes('rtgs') || m.includes('imps'))
         };
 
         const paymentsMade = {
-            cash: payouts.filter(t => t.type === 'Expense' || t.type === 'Other Payment').reduce((sum, t) => sum + t.amount, 0),
-            expensePaid: payouts.filter(t => t.type === 'Expense').reduce((sum, t) => sum + t.amount, 0),
-            refunds: payouts.filter(t => t.type === 'Refund').reduce((sum, t) => sum + t.amount, 0),
-            salaries: payouts.filter(t => t.type === 'Salary').reduce((sum, t) => sum + t.amount, 0)
+            cash: paymentMethodSum(payouts, (m) => m.includes('cash')),
+            expensePaid: payouts.filter(t => String(t?.type || '').toLowerCase() === 'expense').reduce((sum, t) => sum + t.amount, 0),
+            refunds: payouts.filter(t => String(t?.type || '').toLowerCase() === 'refund').reduce((sum, t) => sum + t.amount, 0),
+            salaries: payouts.filter(t => String(t?.type || '').toLowerCase() === 'salary').reduce((sum, t) => sum + t.amount, 0)
         };
 
         // Format activity log
@@ -79,7 +95,7 @@ const getCashierReport = async (req, res) => {
                 netCashFlow,
                 netTransactions: transactions.length,
                 openingBalance,
-                openingPayments: previousTransactions.filter(t => t.category === 'collection').length,
+                openingPayments: previousTransactions.filter(isCollectionTxn).length,
                 closingBalance,
                 paymentsReceived,
                 paymentsMade,

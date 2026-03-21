@@ -258,7 +258,7 @@ const StaffReport = () => {
                                             type="text"
                                             placeholder="Search staff..."
                                             value={searchTerm}
-                                            onChange={e => setSearchTerm(e.target.value)}
+                                            onChange={e => setSearchTerm(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
                                         />
                                         {searchTerm && (
                                             <button className="sr-search-clear" onClick={() => setSearchTerm('')}>×</button>
@@ -584,3 +584,4 @@ const StaffReport = () => {
 };
 
 export default StaffReport;
+

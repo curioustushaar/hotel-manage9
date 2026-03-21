@@ -294,7 +294,7 @@ const Bookings = () => {
                         type="text"
                         placeholder="Guest name / Mobile number"
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
                     />
                 </div>
 
@@ -614,3 +614,4 @@ const Bookings = () => {
 };
 
 export default Bookings;
+

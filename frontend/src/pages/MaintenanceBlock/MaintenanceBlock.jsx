@@ -214,7 +214,7 @@ const MaintenanceBlock = () => {
                         type="text"
                         placeholder="Search here..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
                     />
                     <span className="search-icon">🔍</span>
                 </div>
@@ -438,3 +438,4 @@ const MaintenanceBlock = () => {
     );
 };
 export default MaintenanceBlock;
+

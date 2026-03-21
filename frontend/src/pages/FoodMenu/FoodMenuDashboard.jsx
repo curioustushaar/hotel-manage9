@@ -479,7 +479,7 @@ const FoodMenuDashboard = () => {
                         type="text"
                         placeholder="Search items..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => setSearchTerm(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
                         style={{
                             width: '100%',
                             padding: '10px',
@@ -1041,3 +1041,4 @@ const FoodMenuDashboard = () => {
 };
 
 export default FoodMenuDashboard;
+

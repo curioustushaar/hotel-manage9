@@ -406,7 +406,7 @@ const CompanySettings = () => {
                                     type="text"
                                     placeholder="Search Room Number / Name..."
                                     value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
                                 />
                             </div>
                         </div>
@@ -1065,3 +1065,4 @@ const CompanySettings = () => {
 };
 
 export default CompanySettings;
+

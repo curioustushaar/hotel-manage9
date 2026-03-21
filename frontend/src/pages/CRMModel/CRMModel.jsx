@@ -411,7 +411,7 @@ const CRMModel = () => {
                     <div className="crm-filters">
                         <div className="crm-search-box">
                             <Search size={16} />
-                            <input type="text" placeholder="Search staff..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="crm-search-input" />
+                            <input type="text" placeholder="Search staff..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))} className="crm-search-input" />
                         </div>
                         <select className="crm-filter-select" value={filterRole} onChange={(e) => setFilterRole(e.target.value)}>
                             <option value="All">All Roles</option>
@@ -1047,4 +1047,5 @@ const CRMModel = () => {
 };
 
 export default CRMModel;
+
 

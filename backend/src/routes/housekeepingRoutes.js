@@ -63,4 +63,52 @@ router.post('/mark-clean', async (req, res) => {
     }
 });
 
+// POST mark room as pending (needs follow-up)
+router.post('/mark-pending', async (req, res) => {
+    try {
+        const { taskId, roomNumber } = req.body;
+
+        if (!taskId && !roomNumber) {
+            return res.status(400).json({ success: false, message: 'taskId or roomNumber is required' });
+        }
+
+        let task = null;
+        if (taskId) {
+            task = await HousekeepingTask.findById(taskId);
+        }
+
+        if (!task && roomNumber) {
+            task = await HousekeepingTask.findOne({ roomNumber }).sort({ createdAt: -1 });
+        }
+
+        const effectiveRoomNumber = task?.roomNumber || roomNumber;
+        if (!effectiveRoomNumber) {
+            return res.status(404).json({ success: false, message: 'Task/room not found' });
+        }
+
+        // 1. Update Room housekeeping state so Dashboard graph can count it under Pending.
+        await Room.findOneAndUpdate(
+            { roomNumber: effectiveRoomNumber },
+            { housekeepingStatus: 'pending' }
+        );
+
+        // 2. Keep/reopen task as pending for housekeeping queue.
+        if (task) {
+            task.status = 'pending';
+            await task.save();
+        }
+
+        res.json({
+            success: true,
+            message: `Room ${effectiveRoomNumber} marked as pending`
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error updating housekeeping status',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;

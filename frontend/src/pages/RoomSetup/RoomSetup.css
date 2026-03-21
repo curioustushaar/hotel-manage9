@@ -646,6 +646,12 @@
     border-radius: 4px;
 }
 
+.dirty-badge-small.pending {
+    background: #f59e0b;
+    color: #1f2937;
+    animation: pendingBlink 0.95s ease-in-out infinite;
+}
+
 .room-list-type,
 .room-list-capacity,
 .room-list-price {
@@ -1108,6 +1114,12 @@
     animation: pulse 2s infinite;
 }
 
+.dirty-badge.pending {
+    background: #f59e0b;
+    color: #1f2937;
+    animation: pendingBlink 0.95s ease-in-out infinite;
+}
+
 @keyframes pulse {
     0% {
         opacity: 1;
@@ -1119,5 +1131,18 @@
 
     100% {
         opacity: 1;
+    }
+}
+
+@keyframes pendingBlink {
+    0%,
+    100% {
+        opacity: 1;
+        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.45);
+    }
+
+    50% {
+        opacity: 0.4;
+        box-shadow: 0 2px 14px rgba(245, 158, 11, 0.75);
     }
 }

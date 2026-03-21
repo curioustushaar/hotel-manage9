@@ -167,7 +167,7 @@ const FoodMenu = () => {
                             type="text"
                             placeholder="Search..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => setSearchTerm(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
                         />
                     </div>
                     <div className="notification-icon">
@@ -890,3 +890,4 @@ const EditItemModal = ({ item, onSave, onCancel }) => {
 };
 
 export default FoodMenu;
+
