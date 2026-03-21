@@ -1229,7 +1229,7 @@ exports.getPendingOrders = async (req, res) => {
 exports.settleOrder = async (req, res) => {
     try {
         const { orderId } = req.params;
-        const { paymentMethod, paymentMode, amount, roomNumber, folioId } = req.body;
+        const { paymentMethod, paymentMode, amount, roomNumber, folioId, billingMeta } = req.body;
 
         const order = await GuestMealOrder.findById(orderId);
         if (!order) {
@@ -1252,20 +1252,59 @@ exports.settleOrder = async (req, res) => {
                 });
             }
 
-            // Build item summary for folio description
-            const itemSummary = (order.items || []).map(i => `${i.name} x${i.quantity || 1}`).join(', ');
+            // Build item summary and full billing detail for folio description
+            const sourceItems = Array.isArray(billingMeta?.items) && billingMeta.items.length > 0
+                ? billingMeta.items
+                : (order.items || []).map(i => ({ name: i.name, quantity: i.quantity || 1, amount: i.subtotal || i.amount || 0 }));
+            const itemSummary = sourceItems.map(i => `${i.name} x${i.quantity || 1}`).join(', ');
+            const normalizedOrderType = String(order.orderType || '').toLowerCase().trim();
+            const sourceOrderCategory = String(billingMeta?.sourceOrderCategory || '').toLowerCase().trim();
+            const isRoomServiceSource = ['room service', 'room order'].includes(normalizedOrderType);
+            const isPostToRoomSource = normalizedOrderType === 'post to room';
+            const hasTableLink = Boolean(order.tableId) || Boolean(order.tableNumber);
+            const hasRoomLink = Boolean(order.roomNumber);
+            let sourceLabel = '';
+
+            if (sourceOrderCategory === 'room') {
+                sourceLabel = 'Room Service';
+            } else if (sourceOrderCategory === 'table' && order.tableNumber) {
+                sourceLabel = `Table ${order.tableNumber}`;
+            } else if (isRoomServiceSource) {
+                sourceLabel = 'Room Service';
+            } else if (isPostToRoomSource && hasRoomLink && !hasTableLink) {
+                // Orders raised directly from room service flow should show Room Service context.
+                sourceLabel = 'Room Service';
+            } else if (isPostToRoomSource && order.tableNumber) {
+                sourceLabel = `Table ${order.tableNumber}`;
+            } else if (order.tableNumber) {
+                sourceLabel = `Table ${order.tableNumber}`;
+            } else if (order.roomNumber) {
+                sourceLabel = `Room ${order.roomNumber}`;
+            }
+
+            const grossTotal = Number(billingMeta?.grandTotal ?? order.finalAmount ?? 0) || 0;
+            const discountAmount = Number(billingMeta?.discountAmount ?? 0) || 0;
+            const netPayable = Number(amount ?? billingMeta?.netPayable ?? order.finalAmount ?? 0) || 0;
+            const discountValue = Number(billingMeta?.discountValue ?? 0) || 0;
+            const discountType = String(billingMeta?.discountType || 'PERCENTAGE');
+            const discountSource = String(billingMeta?.discountSource || '').trim();
+            const discountLabel = discountAmount > 0
+                ? (discountSource
+                    ? `${discountSource} (${discountType === 'PERCENTAGE' ? `${discountValue}%` : `Rs ${discountValue.toFixed(2)}`})`
+                    : (discountType === 'PERCENTAGE' ? `${discountValue}%` : `Rs ${discountValue.toFixed(2)}`))
+                : 'No discount';
             const folioAmount = amount || order.finalAmount;
 
             // Create folio transaction
             const transactionData = {
                 type: 'Charge',
                 particulars: 'Restaurant Bill',
-                description: `${order.orderType || 'Dine-In'} ${order.tableNumber ? `(Table ${order.tableNumber})` : order.roomNumber ? `(Room ${order.roomNumber})` : ''} #${orderId.toString().substr(-6).toUpperCase()}${itemSummary ? ' | ' + itemSummary : ''}`,
+                description: `${order.orderType || 'Dine-In'} ${sourceLabel ? `(${sourceLabel})` : ''} #${orderId.toString().substr(-6).toUpperCase()}${itemSummary ? ` | ${itemSummary}` : ''} | Gross: Rs ${grossTotal.toFixed(2)} | Discount: ${discountLabel} [Rs ${discountAmount.toFixed(2)}] | Net: Rs ${netPayable.toFixed(2)}`,
                 amount: folioAmount,
                 date: new Date(),
                 day: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
                 user: 'Cashier',
-                notes: `Restaurant Bill - ${orderId.toString().substr(-6).toUpperCase()} | Items: ${itemSummary}`,
+                notes: `Restaurant Bill - ${orderId.toString().substr(-6).toUpperCase()} | Items: ${itemSummary || 'N/A'} | Gross: Rs ${grossTotal.toFixed(2)} | Discount: ${discountLabel} [Rs ${discountAmount.toFixed(2)}] | Net: Rs ${netPayable.toFixed(2)}`,
                 folioId: folioId !== undefined ? parseInt(folioId) : 0 // User selected folio or default to Primary
             };
 

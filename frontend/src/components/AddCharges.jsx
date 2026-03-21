@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import './AddCharges.css';
+import { DEFAULT_CHARGE_OPTIONS, getAllChargeOptions } from '../utils/chargeTypeOptions';
 
 // Maps a charge type value to its discount category used in discount rules
 const CHARGE_CATEGORY_MAP = {
@@ -11,19 +12,6 @@ const CHARGE_CATEGORY_MAP = {
     pool_access: 'SPA',
     bar: 'FOOD',
 };
-
-const DEFAULT_CHARGE_OPTIONS = [
-    { value: 'laundry', label: 'Laundry', icon: '🧺' },
-    { value: 'dry_cleaning', label: 'Dry Cleaning', icon: '👔' },
-    { value: 'spa_wellness', label: 'Spa & Wellness', icon: '🧖' },
-    { value: 'gym_access', label: 'Gym Access', icon: '💪' },
-    { value: 'pool_access', label: 'Pool Access', icon: '🏊' },
-    { value: 'bar', label: 'Bar & Drinks', icon: '🍹' },
-    { value: 'special_requests', label: 'Special Service', icon: '✨' },
-    { value: 'damage_security', label: 'Damage/Security', icon: '🛡️' },
-    { value: 'lost_key', label: 'Key Replacement', icon: '🔑' },
-    { value: 'smoking_fees', label: 'Smoking Fees', icon: '🚬' },
-];
 
 const AddCharges = ({ onClose, onAdd, reservation }) => {
     const { getCurrencySymbol } = useSettings();
@@ -48,12 +36,7 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
     const [discountValue, setDiscountValue] = useState('');
     const [discountSource, setDiscountSource] = useState('');
 
-    const [chargeOptions, setChargeOptions] = useState(() => {
-        try {
-            const custom = JSON.parse(localStorage.getItem('customChargeTypes') || '[]');
-            return [...DEFAULT_CHARGE_OPTIONS, ...custom];
-        } catch { return [...DEFAULT_CHARGE_OPTIONS]; }
-    });
+    const [chargeOptions, setChargeOptions] = useState(() => getAllChargeOptions());
     const [showAddCustom, setShowAddCustom] = useState(false);
     const [newCustomLabel, setNewCustomLabel] = useState('');
     const [showChargeDropdown, setShowChargeDropdown] = useState(false);
@@ -69,8 +52,11 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
     }, [showChargeDropdown]);
 
     useEffect(() => {
-        const category = CHARGE_CATEGORY_MAP[formData.chargeType];
-        if (!category) {
+        const normalizedType = String(formData.chargeType || '').toUpperCase();
+        const mappedCategory = CHARGE_CATEGORY_MAP[formData.chargeType];
+        const matchedCategories = [mappedCategory, normalizedType].filter(Boolean);
+
+        if (matchedCategories.length === 0) {
             setDiscountValue('');
             setDiscountSource('');
             setDiscountType('PERCENTAGE');
@@ -78,10 +64,18 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
         }
         try {
             const discounts = JSON.parse(localStorage.getItem('discounts') || '[]');
+            const matchByCategory = (discount) =>
+                discount.status === 'ACTIVE' &&
+                Array.isArray(discount.appliesTo) &&
+                discount.appliesTo.some(category => matchedCategories.includes(String(category || '').toUpperCase()));
+
+            // Priority: auto-apply discounts first. If none found, fall back to any active matching discount.
             const match = discounts.find(
                 d => d.status === 'ACTIVE' && d.autoApply &&
-                    Array.isArray(d.appliesTo) && d.appliesTo.includes(category)
-            );
+                    Array.isArray(d.appliesTo) &&
+                    d.appliesTo.some(category => matchedCategories.includes(String(category || '').toUpperCase()))
+            ) || discounts.find(matchByCategory);
+
             if (match) {
                 setDiscountType(match.type === 'FLAT' ? 'FLAT' : 'PERCENTAGE');
                 setDiscountValue(String(match.value));
@@ -160,6 +154,8 @@ const AddCharges = ({ onClose, onAdd, reservation }) => {
                 quantity: parseInt(formData.quantity),
                 totalAmount, discAmt, netAmount,
                 discountType: discountValue ? discountType : null,
+                discountValue: discountValue ? Number(discountValue) : 0,
+                discountSource: discountSource || '',
                 timestamp: new Date().toISOString()
             };
             if (onAdd) await onAdd(chargeData);

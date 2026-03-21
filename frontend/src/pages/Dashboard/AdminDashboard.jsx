@@ -16,8 +16,6 @@ import MyProfile from '../Profile/MyProfile';
 import ReservationStayManagement from "../../components/ReservationStayManagement";
 import GuestMealService from '../GuestMealService/GuestMealService';
 import DiscountManagement from '../DiscountManagement/DiscountManagement';
-import TaxConfiguration from '../TaxConfiguration/TaxConfiguration';
-import TaxMapping from '../TaxMapping/TaxMapping';
 import CashierReport from '../CashierReport/CashierReport';
 import CashierSection from '../Cashier/CashierSection';
 import StayOverview from '../../components/StayOverview';
@@ -208,8 +206,6 @@ const AdminDashboard = () => {
 
         // Property Setup
         else if (path.includes('/discount')) setActiveMenu('discount');
-        else if (path.includes('/taxes')) setActiveMenu('taxes');
-        else if (path.includes('/tax-mapping')) setActiveMenu('tax-mapping');
         else if (path.includes('/generate-room-qr')) setActiveMenu('generate-room-qr');
 
         // Property Configuration
@@ -523,8 +519,6 @@ const AdminDashboard = () => {
 
         // Property Setup
         else if (menuId === 'discount') { setMenuNow('discount'); navigate(`${prefix}/discount`); }
-        else if (menuId === 'taxes') { setMenuNow('taxes'); navigate(`${prefix}/taxes`); }
-        else if (menuId === 'tax-mapping') { setMenuNow('tax-mapping'); navigate(`${prefix}/tax-mapping`); }
         else if (menuId === 'generate-room-qr') { setMenuNow('generate-room-qr'); navigate(`${prefix}/generate-room-qr`); }
 
         // Property Config
@@ -943,18 +937,6 @@ const AdminDashboard = () => {
             {
                 activeMenu === 'reservation-card' && (
                     <StayOverview />
-                )
-            }
-
-            {
-                activeMenu === 'taxes' && (
-                    <TaxConfiguration />
-                )
-            }
-
-            {
-                activeMenu === 'tax-mapping' && (
-                    <TaxMapping />
                 )
             }
 
