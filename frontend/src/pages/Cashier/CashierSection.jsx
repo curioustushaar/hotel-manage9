@@ -871,7 +871,7 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
         }
     }, [receivedAmount, order, discountType, discountValue, grandTotalComputed]);
 
-    // Discount + net payable computation
+    // Discount + final payable computation
     const discountAmt = discountValue
         ? discountType === 'PERCENTAGE'
             ? Math.round(grandTotalComputed * (parseFloat(discountValue) || 0) / 100)
@@ -1019,7 +1019,7 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
                         <span>${cs} ${Math.round(order.items.reduce((s,i)=>s+i.amount,0)*parseFloat(settings.roomServiceCharge)/100).toFixed(2)}</span>
                     </div>` : ''}
                     <div class="grand-total">
-                        <span>NET PAYABLE</span>
+                        <span>GRAND TOTAL</span>
                         <span>${cs} ${(() => {
                             const sub = order.items.reduce((s,i)=>s+i.amount,0);
                             const fGst = ((parseFloat(settings.cgst)||0) + (parseFloat(settings.sgst)||0)) || (parseFloat(settings.foodGst)||0);
@@ -1092,7 +1092,7 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
 
         // Percentage discount validation
         if (discountType === 'PERCENTAGE' && parseFloat(discountValue) > 100) {
-            if (!window.confirm(`⚠️ You have entered a ${discountValue}% discount, which is more than 100%. The net payable will be 0. Continue?`)) {
+            if (!window.confirm(`⚠️ You have entered a ${discountValue}% discount, which is more than 100%. The grand total will be 0. Continue?`)) {
                 return;
             }
         }
@@ -1273,7 +1273,7 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
                                 </div>
                             )}
                             <div className="summary-row-modern" style={{ fontWeight: 700, color: '#15803d', borderTop: '1.5px solid #e2e8f0', paddingTop: '6px', marginTop: '4px' }}>
-                                <span>Net Payable</span>
+                                <span>Grand Total</span>
                                 <span>{cs} {netAfterDiscount.toFixed(0)}</span>
                             </div>
                         </div>
@@ -1329,7 +1329,7 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
                 </div>
 
                 <div className="total-indicator-strip">
-                    <span>{discountAmt > 0 ? 'Net Payable' : 'Grand Total'}</span>
+                    <span>Grand Total</span>
                     <span className="big-sum">{cs}{netAfterDiscount.toFixed(2)}</span>
                 </div>
 
@@ -1620,4 +1620,6 @@ const CashierPayment = ({ order, onPaymentComplete, onClearSelection, checkedInR
 };
 
 export default CashierSection;
+
+
 
