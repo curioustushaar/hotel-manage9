@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import API_URL from '../config/api';
 import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../context/AuthContext';
 import './FolioOperations.css';
 import AddPayment from './AddPayment';
 import AddCharges from './AddCharges';
@@ -13,6 +14,7 @@ import VisitorList from './visitors/VisitorList';
 
 const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
     const { settings, getCurrencySymbol } = useSettings();
+    const { user } = useAuth();
     const cs = getCurrencySymbol();
     const [selectedRoom, setSelectedRoom] = useState(0);
     const [showAddPayment, setShowAddPayment] = useState(false);
@@ -37,6 +39,7 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
     const [selectedPrintType, setSelectedPrintType] = useState('a4');
 
     const BASE_API_URL = `${API_URL}/api/bookings`;
+    const actorName = user?.name || user?.username || user?.email || user?.role || 'System';
 
     // Fetch all bookings and current booking transactions on component load
     // Also refetch when reservation.updatedAt changes (e.g. after external actions like add payment/visitor)
@@ -213,7 +216,8 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
                 ? `${chargeData.description} | ${detailSummary}`
                 : `${chargeLabel} | ${detailSummary}`,
             amount: netAmount,
-            user: 'current_user',
+            user: actorName,
+            performedBy: actorName,
             folioId: selectedRoom // Associate with current folio
         };
 
@@ -259,7 +263,8 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
             particulars: paymentData.paymentType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
             description: `Payment via ${paymentData.paymentType} ${paymentData.comment ? '- ' + paymentData.comment : ''}`,
             amount: -paymentData.amount,
-            user: 'current_user',
+            user: actorName,
+            performedBy: actorName,
             folioId: selectedRoom // Associate with current folio
         };
 
@@ -326,7 +331,8 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
             discountType: discountData.discountType,
             discountValue: discountData.discountValue,
             folio: discountData.folio,
-            user: 'current_user',
+            user: actorName,
+            performedBy: actorName,
             folioId: selectedRoom // Associate with current folio
         };
 
@@ -444,7 +450,7 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
                     targetFolioId: targetFolio.folioId, // Use actual folioId (0, 1, 2...)
                     transactionIds: pendingRouteData.transactionIds,
                     selectedCategories: pendingRouteData.selectedCategories,
-                    routedBy: 'current_user',
+                    routedBy: actorName,
                     targetBookingId: targetBookingId
                 })
             });
@@ -796,7 +802,9 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
                     body: JSON.stringify({
                         particulars: editingItem.particulars,
                         description: editingItem.description,
-                        amount: editingItem.amount
+                        amount: editingItem.amount,
+                        user: actorName,
+                        performedBy: actorName
                     })
                 });
 
@@ -819,7 +827,12 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
             try {
                 const bookingId = reservation.id || reservation._id;
                 const response = await fetch(`${BASE_API_URL}/${bookingId}/transactions/${transaction._id}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user: actorName,
+                        performedBy: actorName
+                    })
                 });
 
                 const data = await response.json();

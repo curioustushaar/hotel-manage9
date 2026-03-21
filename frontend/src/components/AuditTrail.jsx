@@ -4,6 +4,14 @@ import './EditReservationModal.css';
 const AuditTrail = ({ reservation }) => {
     if (!reservation) return null;
 
+    const getActionBadgeClass = (action = '') => {
+        const upper = String(action).toUpperCase();
+        if (upper.includes('CREATE')) return 'in_house';
+        if (upper.includes('VOID') || upper.includes('DELETE')) return 'cancelled';
+        if (upper.includes('ROUTE')) return 'checked_out';
+        return 'reserved';
+    };
+
     const formatDate = (dateString) => {
         if (!dateString) return '-';
         return new Date(dateString).toLocaleString('en-GB', {
@@ -29,7 +37,7 @@ const AuditTrail = ({ reservation }) => {
                             </div>
                             <div className="audit-content">
                                 <div className="audit-action">
-                                    <span className={`status-badge-modal ${log.action === 'CREATE' ? 'in_house' : 'reserved'}`}>
+                                    <span className={`status-badge-modal ${getActionBadgeClass(log.action)}`}>
                                         {log.action}
                                     </span>
                                     <span className="audit-user">by {log.performedBy || 'System'}</span>
@@ -37,6 +45,11 @@ const AuditTrail = ({ reservation }) => {
                                 <div className="audit-description">
                                     {log.description}
                                 </div>
+                                {log.metadata?.source && (
+                                    <div className="audit-user" style={{ marginTop: '6px' }}>
+                                        Source: {log.metadata.source}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))
