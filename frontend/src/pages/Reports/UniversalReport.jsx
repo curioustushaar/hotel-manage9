@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './UniversalReport.css';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
@@ -6,6 +6,70 @@ import soundManager from '../../utils/soundManager';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import API_URL from '../../config/api';
+
+const ROOM_SECTION_DEFAULT_STATUSES = ['Available', 'Booked', 'Occupied', 'Under Maintenance'];
+
+const parseDateLike = (value) => {
+    if (value === null || value === undefined) return null;
+
+    if (value instanceof Date && !isNaN(value.getTime())) {
+        return value.getTime();
+    }
+
+    const raw = String(value).trim();
+    if (!raw) return null;
+
+    const normalized = raw.replace(/\s+/g, ' ');
+    const direct = Date.parse(normalized);
+    if (!isNaN(direct)) return direct;
+
+    const dmy = normalized.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (dmy) {
+        const dd = Number(dmy[1]);
+        const mm = Number(dmy[2]) - 1;
+        const yyyy = Number(dmy[3]);
+        const hh = Number(dmy[4] || 0);
+        const min = Number(dmy[5] || 0);
+        const ss = Number(dmy[6] || 0);
+        const ts = new Date(yyyy, mm, dd, hh, min, ss).getTime();
+        return isNaN(ts) ? null : ts;
+    }
+
+    return null;
+};
+
+const getRowTimestamp = (row) => {
+    if (!row || typeof row !== 'object') return null;
+
+    const directKeys = ['_sortDate', 'createdAt', 'updatedAt', 'date'];
+    for (const key of directKeys) {
+        const ts = parseDateLike(row[key]);
+        if (ts !== null) return ts;
+    }
+
+    for (let i = 1; i <= 12; i += 1) {
+        const ts = parseDateLike(row[`val${i}`]);
+        if (ts !== null) return ts;
+    }
+
+    return null;
+};
+
+const sortRowsLatestFirst = (rows) => {
+    if (!Array.isArray(rows) || rows.length <= 1) return rows || [];
+
+    return rows
+        .map((row, index) => ({ row, index, ts: getRowTimestamp(row) }))
+        .sort((a, b) => {
+            const aHasTs = a.ts !== null;
+            const bHasTs = b.ts !== null;
+            if (aHasTs && bHasTs && a.ts !== b.ts) return b.ts - a.ts;
+            if (aHasTs && !bHasTs) return -1;
+            if (!aHasTs && bHasTs) return 1;
+            return a.index - b.index;
+        })
+        .map(entry => entry.row);
+};
 
 const UniversalReport = ({ type }) => {
     const { user } = useAuth();
@@ -29,13 +93,13 @@ const UniversalReport = ({ type }) => {
         },
         'reports-payments': {
             title: 'PAYMENT REPORTS',
-            tabs: ['Cashier Collection', 'Pending Bills', 'Settled Bills', 'Discount', 'Refund'],
+            tabs: ['Settled Bills', 'Discount'],
             filters: ['Cashier', 'Payment Mode', 'Shift'],
             columns: ['Bill No', 'Cashier', 'Mode', 'Amount', 'Status']
         },
         'reports-rooms': {
             title: 'ROOM REPORTS',
-            tabs: ['Room Occupancy', 'Check-In / Check-Out', 'Room Revenue', 'Reservation', 'No-Show', 'Cancellation'],
+            tabs: ['Room Occupancy', 'Check-In / Check-Out', 'Room Revenue', 'Reservation', 'Cancellation'],
             filters: ['Room Type', 'Floor', 'Status'],
             columns: ['Room No', 'Guest', 'Check-In', 'Check-Out', 'Nights', 'Amount']
         },
@@ -59,7 +123,7 @@ const UniversalReport = ({ type }) => {
         },
         'reports-billing': {
             title: 'BILLING REPORTS',
-            tabs: ['Overview', 'Detailed Bills', 'Top Items', 'Cancelled Bills'],
+            tabs: ['Overview', 'Detailed Bills', 'Top Items'],
             filters: ['Order Type', 'Payment Method'],
             columns: ['Bill No', 'Date', 'Table / Room', 'Items', 'Amt', 'Tax', 'Disc', 'Total', 'Payment', 'Staff']
         },
@@ -67,7 +131,7 @@ const UniversalReport = ({ type }) => {
             title: 'RESERVATION REPORTS',
             tabs: ['Upcoming', 'Today', 'Completed', 'Guest History', 'Repeat Guests'],
             filters: ['Source', 'Table Type'],
-            columns: ['Guest', 'Table / Area', 'Date', 'Time / Duration', 'Persons', 'Source', 'Status']
+            columns: ['Guest', 'Table / Area', 'Date', 'Time / Duration', 'Persons', 'Source', 'Status', 'Cancel Charge']
         },
         'reports-analytics': {
             title: 'ANALYTICS REPORTS',
@@ -92,7 +156,7 @@ const UniversalReport = ({ type }) => {
         } else if (type === 'reports-payments' && activeTab === 'Discount') {
             return {
                 ...base,
-                columns: ['Bill No', 'Section', 'Cashier', 'Mode', 'Room GST', 'Service', 'Food', 'Beverage', 'Discount', 'Net Payable', 'Paid']
+                columns: ['Bill No', 'Section', 'Cashier', 'Mode', 'Food GST', 'Service Charge', 'Discounted Items', 'Items', 'Discount', 'Net Payable', 'Paid']
             };
         } else if (type === 'reports-kitchen') {
             if (activeTab === 'KOT Pending Time') {
@@ -147,6 +211,7 @@ const UniversalReport = ({ type }) => {
     }, [type]);
 
     const [roomOptions, setRoomOptions] = useState({ types: [], floors: [], statuses: [] });
+    const [roomStatusOptions, setRoomStatusOptions] = useState([]);
     const [menuItems, setMenuItems] = useState([]);
     const [kitchenCategories, setKitchenCategories] = useState([]);
     const [tableTypes, setTableTypes] = useState(['General', 'AC', 'Non-AC', 'Garden']);
@@ -199,6 +264,12 @@ const UniversalReport = ({ type }) => {
         totals: { taxableValue: 0, totalTax: 0, cgst: 0, sgst: 0, igst: 0 },
         sourceBreakdown: []
     });
+    const [analyticsSummary, setAnalyticsSummary] = useState({
+        totalMetrics: 0,
+        upTrends: 0,
+        downTrends: 0,
+        stableTrends: 0
+    });
 
     const getLocalConfiguredTaxes = () => {
         try {
@@ -219,6 +290,131 @@ const UniversalReport = ({ type }) => {
         }
     };
 
+    const isNoShowStatus = (statusValue) => {
+        const normalized = String(statusValue || '')
+            .trim()
+            .toLowerCase()
+            .replace(/[_\s-]+/g, '');
+        return normalized === 'noshow';
+    };
+
+    const normalizeRoomStatus = (statusValue) => {
+        const value = String(statusValue || '').trim();
+        const lower = value.toLowerCase();
+
+        if (!value) return '';
+        if (isNoShowStatus(value)) return '';
+        if (lower === 'booked' || lower === 'reserved') return 'Booked';
+        if (lower.includes('maint')) return 'Under Maintenance';
+        if (lower === 'occupied' || lower === 'in house' || lower === 'in_house') return 'Occupied';
+        if (lower === 'available') return 'Available';
+
+        return value;
+    };
+
+    const getEntityName = (entry) => {
+        if (typeof entry === 'string') return entry.trim();
+        if (!entry || typeof entry !== 'object') return '';
+        return String(entry.name || entry.roomType || entry.type || '').trim();
+    };
+
+    const dedupeTextList = (values = []) => {
+        const seen = new Set();
+        const out = [];
+
+        values.forEach((value) => {
+            const text = String(value || '').trim();
+            if (!text) return;
+            const key = text.toLowerCase();
+            if (seen.has(key)) return;
+            seen.add(key);
+            out.push(text);
+        });
+
+        return out;
+    };
+
+    const createRoomStatusOptions = (statuses = []) => {
+        const options = [];
+        const seen = new Set();
+
+        statuses.forEach((status) => {
+            const raw = String(status || '').trim();
+            const normalized = normalizeRoomStatus(raw);
+            if (!normalized) return;
+
+            if (isNoShowStatus(normalized)) return;
+
+            const lowerNormalized = normalized.toLowerCase();
+            if (!seen.has(lowerNormalized)) {
+                seen.add(lowerNormalized);
+                options.push({
+                    label: normalized,
+                    value: normalized
+                });
+            }
+        });
+
+        const preferredOrder = ['Available', 'Booked', 'Occupied', 'Under Maintenance'];
+        options.sort((a, b) => {
+            const ia = preferredOrder.indexOf(a.label);
+            const ib = preferredOrder.indexOf(b.label);
+            if (ia !== -1 || ib !== -1) {
+                if (ia === -1) return 1;
+                if (ib === -1) return -1;
+                return ia - ib;
+            }
+            return a.label.localeCompare(b.label);
+        });
+
+        return options;
+    };
+
+    const loadRoomFilterOptions = async () => {
+        try {
+            const [optionsData, facilityTypesData, floorsData, roomsData] = await Promise.all([
+                fetch(`${API_URL}/api/reports/rooms/options`).then(res => res.json()).catch(() => ({ success: false, data: {} })),
+                fetch(`${API_URL}/api/facility-types/list`).then(res => res.json()).catch(() => ({ success: false, data: [] })),
+                fetch(`${API_URL}/api/floors/list`).then(res => res.json()).catch(() => ({ success: false, data: [] })),
+                fetch(`${API_URL}/api/rooms/list`).then(res => res.json()).catch(() => ({ success: false, data: [] }))
+            ]);
+
+            const roomTypeNames = dedupeTextList([
+                ...((facilityTypesData.success ? facilityTypesData.data : []).map(getEntityName)),
+                ...((optionsData.success ? optionsData.data?.types : []).map(getEntityName)),
+                ...((roomsData.success ? roomsData.data : []).map(room => room?.roomType))
+            ]);
+
+            const floorNames = dedupeTextList([
+                ...((floorsData.success ? floorsData.data : []).map(getEntityName)),
+                ...((optionsData.success ? optionsData.data?.floors : []).map(getEntityName)),
+                ...((roomsData.success ? roomsData.data : []).map(room => room?.floor))
+            ]);
+
+            const mergedStatuses = [
+                ...ROOM_SECTION_DEFAULT_STATUSES,
+                ...((optionsData.success ? optionsData.data?.statuses : []) || []),
+                ...((roomsData.success ? roomsData.data : []).map(room => room?.status))
+            ];
+
+            const normalizedStatuses = dedupeTextList(
+                mergedStatuses
+                    .map(normalizeRoomStatus)
+                    .filter(status => status && !isNoShowStatus(status))
+            );
+
+            setRoomOptions({
+                types: roomTypeNames,
+                floors: floorNames,
+                statuses: normalizedStatuses
+            });
+
+            setRoomStatusOptions(createRoomStatusOptions(normalizedStatuses));
+        } catch (err) {
+            console.error('Error fetching room options:', err);
+        }
+    };
+
     // Fetch dynamic options based on report type
     useEffect(() => {
         if (type === 'reports-sales') {
@@ -231,14 +427,21 @@ const UniversalReport = ({ type }) => {
                 })
                 .catch(err => console.error("Error fetching menu:", err));
         } else if (type === 'reports-rooms') {
-            fetch(`${API_URL}/api/reports/rooms/options`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        setRoomOptions(data.data);
-                    }
-                })
-                .catch(err => console.error("Error fetching room options:", err));
+            loadRoomFilterOptions();
+
+            const intervalId = setInterval(() => {
+                loadRoomFilterOptions();
+            }, 30000);
+
+            const onVisible = () => {
+                if (!document.hidden) loadRoomFilterOptions();
+            };
+            document.addEventListener('visibilitychange', onVisible);
+
+            return () => {
+                clearInterval(intervalId);
+                document.removeEventListener('visibilitychange', onVisible);
+            };
         } else if (type === 'reports-reservations') {
             fetch(`${API_URL}/api/guest-meal/tables`)
                 .then(res => res.json())
@@ -268,7 +471,10 @@ const UniversalReport = ({ type }) => {
         if (type === 'reports-rooms') {
             if (filterName === 'Room Type') return roomOptions.types || [];
             if (filterName === 'Floor') return roomOptions.floors || [];
-            if (filterName === 'Status') return roomOptions.statuses || [];
+            if (filterName === 'Status') {
+                if (roomStatusOptions.length > 0) return roomStatusOptions;
+                return createRoomStatusOptions(roomOptions.statuses || []);
+            }
             return [];
         }
 
@@ -374,7 +580,8 @@ const UniversalReport = ({ type }) => {
                 endDate: dateRange.to,
                 cashier: filters['Cashier'] || 'All',
                 paymentMode: filters['Payment Mode'] || 'All',
-                shift: filters['Shift'] || 'All'
+                shift: filters['Shift'] || 'All',
+                includeAllHistory: activeTab === 'Discount' ? 'true' : 'false'
             };
 
             const res = await axios.get(`${API_URL}/api/payment-report`, { params: queryParams });
@@ -389,10 +596,10 @@ const UniversalReport = ({ type }) => {
                         val2: d.section,
                         val3: d.cashier,
                         val4: d.paymentMode,
-                        val5: `${cs}${parseFloat(d.roomGst || 0).toFixed(2)}`,
+                        val5: `${cs}${parseFloat(d.foodGst || 0).toFixed(2)}`,
                         val6: `${cs}${parseFloat(d.serviceCharge || 0).toFixed(2)}`,
-                        val7: `${cs}${parseFloat(d.foodAmount || 0).toFixed(2)}`,
-                        val8: `${cs}${parseFloat(d.beverageAmount || 0).toFixed(2)}`,
+                        val7: parseInt(d.discountedItemsCount || 0, 10),
+                        val8: d.itemList || '-',
                         val9: `${cs}${parseFloat(d.discountAmount || 0).toFixed(2)}`,
                         val10: `${cs}${parseFloat(d.netPayable || 0).toFixed(2)}`,
                         val11: `${cs}${parseFloat(d.totalPaid || 0).toFixed(2)}`
@@ -406,8 +613,11 @@ const UniversalReport = ({ type }) => {
                             totalRoomCharge: 0,
                             totalRoomGst: 0,
                             totalServiceCharge: 0,
+                            serviceChargeBillsCount: 0,
                             totalFood: 0,
                             totalBeverage: 0,
+                            totalFoodGst: 0,
+                            totalDiscountedItems: 0,
                             totalNetPayable: 0,
                             totalPaid: 0
                         }
@@ -466,6 +676,26 @@ const UniversalReport = ({ type }) => {
                 setReportData(mappedData);
                 setPaymentInsights(prev => ({ ...prev, sectionSummary: [] }));
 
+                const collectionTotal = filteredData.reduce((sum, row) => sum + (parseFloat(row.amount) || 0), 0);
+                const paymentMethods = filteredData.reduce((acc, row) => {
+                    const mode = String(row.paymentMode || '').toLowerCase();
+                    const amount = parseFloat(row.amount) || 0;
+                    if (mode.includes('cash')) acc.cash += amount;
+                    else if (mode.includes('upi')) acc.upi += amount;
+                    else if (mode.includes('card')) acc.card += amount;
+                    else acc.bankTransfer += amount;
+                    return acc;
+                }, { cash: 0, card: 0, upi: 0, bankTransfer: 0 });
+
+                setSummaryStats(prev => ({
+                    ...prev,
+                    totalCollections: collectionTotal,
+                    netCashFlow: collectionTotal,
+                    paymentsReceived: collectionTotal,
+                    paymentsCount: filteredData.length,
+                    paymentMethods
+                }));
+
                 if (isManual && mappedData.length > 0) {
                     downloadCSV(mappedData, `Payment_Report_${new Date().toISOString().split('T')[0]}.csv`);
                 }
@@ -491,7 +721,8 @@ const UniversalReport = ({ type }) => {
             });
 
             if (res.data.success) {
-                const mappedData = res.data.data.map((item, idx) => ({
+                const sourceRows = Array.isArray(res.data.data) ? res.data.data : [];
+                const mappedData = sourceRows.map((item, idx) => ({
                     id: idx,
                     val1: item.metric,
                     val2: item.value,
@@ -499,6 +730,16 @@ const UniversalReport = ({ type }) => {
                     val4: item.trend
                 }));
                 setReportData(mappedData);
+
+                const upTrends = sourceRows.filter(row => String(row.trend || '').toLowerCase() === 'up').length;
+                const downTrends = sourceRows.filter(row => String(row.trend || '').toLowerCase() === 'down').length;
+                const stableTrends = sourceRows.filter(row => String(row.trend || '').toLowerCase() === 'stable').length;
+                setAnalyticsSummary({
+                    totalMetrics: sourceRows.length,
+                    upTrends,
+                    downTrends,
+                    stableTrends
+                });
 
                 if (isManual && mappedData.length > 0) {
                     downloadCSV(mappedData, `Analytics_${metricFilter.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
@@ -659,10 +900,7 @@ const UniversalReport = ({ type }) => {
                 endDate: dateRange.to
             };
 
-            const [res, liveRes] = await Promise.all([
-                axios.get(`${API_URL}/api/reports/kitchen`, { params: queryParams }),
-                axios.get(`${API_URL}/api/guest-meal/analytics/outlet-status`).catch(() => ({ data: { success: false } }))
-            ]);
+            const res = await axios.get(`${API_URL}/api/reports/kitchen`, { params: queryParams });
 
             if (res.data.success) {
                 if (res.data.categories && res.data.categories.length > 0) {
@@ -772,29 +1010,6 @@ const UniversalReport = ({ type }) => {
                     loadStations: res.data.kitchenLoad?.stations || []
                 });
 
-                if (liveRes?.data?.success) {
-                    const lk = liveRes.data.data?.kitchen || {};
-                    const lt = liveRes.data.data?.tables || {};
-                    setKitchenInsights(prev => ({
-                        ...prev,
-                        tableStatus: {
-                            total: lt.total ?? prev.tableStatus.total,
-                            occupied: lt.occupied ?? prev.tableStatus.occupied,
-                            available: lt.available ?? prev.tableStatus.available
-                        },
-                        summary: {
-                            ...prev.summary,
-                            kotPending: lk.pending ?? prev.summary.kotPending,
-                            preparingCount: lk.preparing ?? prev.summary.preparingCount,
-                            ordersReady: lk.ready ?? prev.summary.ordersReady,
-                            avgPrepTime: lk.avgPrepTime ?? prev.summary.avgPrepTime,
-                            kitchenLoadLabel: lk.load || prev.summary.kitchenLoadLabel,
-                            staffLoadLabel: lk.staffLoad || prev.summary.staffLoadLabel,
-                            delayRiskLabel: lk.delayRisk || prev.summary.delayRiskLabel
-                        }
-                    }));
-                }
-
                 if (isManual && mappedData.length > 0) {
                     downloadCSV(mappedData, `Kitchen_Report_${activeTab.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
                 }
@@ -903,11 +1118,19 @@ const UniversalReport = ({ type }) => {
                     val4: `${item.startTime || ''} ${item.endTime ? '- ' + item.endTime : ''}`,
                     val5: item.guests,
                     val6: item.source === 'Phone' ? 'Phone Number' : item.source === 'Walk-In' ? 'Walk In' : (item.source || 'Phone'),
-                    val7: item.status
+                    val7: item.status,
+                    val8: `${cs}${(Number(item.cancellationCharge) || 0).toFixed(2)}`
                 }));
 
                 setReportData(mappedData);
                 setResSummary({ summary, distributions, reservationList });
+                setSummaryStats(prev => ({
+                    ...prev,
+                    totalCollections: Number(summary?.cancellationRevenue || 0),
+                    netCashFlow: Number(summary?.cancellationRevenue || 0),
+                    paymentsReceived: Number(summary?.cancellationRevenue || 0),
+                    paymentsCount: Number(summary?.cancelledCount || 0)
+                }));
             }
         } catch (error) {
             console.error("Error fetching reservation report:", error);
@@ -946,14 +1169,118 @@ const UniversalReport = ({ type }) => {
     const handleExport = (format) => {
         soundManager.play('success');
         if (format === 'Excel') {
-            if (reportData.length === 0) {
+            if (sortedReportData.length === 0) {
                 alert("No data available to export.");
                 return;
             }
-            downloadCSV(reportData, `${config.title.replace(/\s+/g, '_')}_${activeTab.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+            downloadCSV(sortedReportData, `${config.title.replace(/\s+/g, '_')}_${activeTab.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
         } else {
             window.print();
         }
+    };
+
+    const sortedReportData = useMemo(() => sortRowsLatestFirst(reportData), [reportData]);
+
+    const kitchenStatusPanel = useMemo(() => {
+        const status = kitchenInsights.tableStatus || {};
+        const typeStats = status.statusByType || {};
+        const selectedType = filters['Order Type'] || 'All';
+
+        if (selectedType === 'Dine-In') {
+            const s = typeStats.dineIn || {};
+            return {
+                title: 'Floor / Table Status',
+                columns: 6,
+                cards: [
+                    { label: 'Total Tables', value: status.totalTables || 0 },
+                    { label: 'Occupied Tables', value: status.occupiedTables || 0 },
+                    { label: 'Available Tables', value: status.availableTables || 0 },
+                    { label: 'KOT Pending', value: s.pending || 0 },
+                    { label: 'Preparing', value: s.preparing || 0 },
+                    { label: 'Ready', value: s.ready || 0 }
+                ]
+            };
+        }
+
+        if (selectedType === 'Room Order') {
+            const s = typeStats.roomOrder || {};
+            return {
+                title: 'Room Status',
+                columns: 6,
+                cards: [
+                    { label: 'Total Rooms', value: status.totalRooms || 0 },
+                    { label: 'Occupied Rooms', value: status.occupiedRooms || 0 },
+                    { label: 'Available Rooms', value: status.availableRooms || 0 },
+                    { label: 'KOT Pending', value: s.pending || 0 },
+                    { label: 'Preparing', value: s.preparing || 0 },
+                    { label: 'Ready', value: s.ready || 0 }
+                ]
+            };
+        }
+
+        if (selectedType === 'Take Away') {
+            const s = typeStats.takeAway || {};
+            return {
+                title: 'Take Away Status',
+                columns: 4,
+                cards: [
+                    { label: 'Total Orders', value: s.total || 0 },
+                    { label: 'KOT Pending', value: s.pending || 0 },
+                    { label: 'Preparing', value: s.preparing || 0 },
+                    { label: 'Ready', value: s.ready || 0 }
+                ]
+            };
+        }
+
+        if (selectedType === 'Online Order') {
+            const s = typeStats.onlineOrder || {};
+            return {
+                title: 'Online Order Status',
+                columns: 4,
+                cards: [
+                    { label: 'Total Orders', value: s.total || 0 },
+                    { label: 'KOT Pending', value: s.pending || 0 },
+                    { label: 'Preparing', value: s.preparing || 0 },
+                    { label: 'Ready', value: s.ready || 0 }
+                ]
+            };
+        }
+
+        return {
+            title: 'All Status',
+            columns: 7,
+            cards: [
+                { label: 'Total Tables', value: status.totalTables || 0 },
+                { label: 'Total Rooms', value: status.totalRooms || 0 },
+                { label: 'Dine-In', value: status.dineInOrders || 0 },
+                { label: 'Take Away', value: status.takeAwayOrders || 0 },
+                { label: 'Online Order', value: status.onlineOrders || 0 },
+                { label: 'Occupied', value: status.occupied || 0 },
+                { label: 'Available', value: status.available || 0 }
+            ]
+        };
+    }, [filters, kitchenInsights.tableStatus]);
+
+    const getKitchenToneClass = (label = '') => {
+        const key = String(label || '').toLowerCase().trim();
+
+        if (key.includes('available')) return 'tone-blue';
+        if (key.includes('occupied')) return 'tone-slate';
+        if (key.includes('dine')) return 'tone-orange';
+        if (key.includes('take away')) return 'tone-amber';
+        if (key.includes('online')) return 'tone-indigo';
+        if (key.includes('pending')) return 'tone-red';
+        if (key.includes('preparing')) return 'tone-rose';
+        if (key.includes('ready')) return 'tone-green';
+        if (key.includes('avg prep')) return 'tone-orange';
+        if (key.includes('staff load')) return 'tone-purple';
+        if (key.includes('delay risk')) return 'tone-red';
+        if (key.includes('kitchen load ratio')) return 'tone-red';
+        if (key.includes('total tables')) return 'tone-blue';
+        if (key.includes('total rooms')) return 'tone-slate';
+        if (key.includes('total orders')) return 'tone-orange';
+
+        return 'tone-red';
     };
 
     useEffect(() => {
@@ -967,7 +1294,7 @@ const UniversalReport = ({ type }) => {
         else if (type === 'reports-reservations') fetchReservationReport();
         else if (type === 'reports-payments') {
             fetchPaymentReport(false).then(data => {
-                if (data && data.success && activeTab === 'Cashier Collection') {
+                if (data && data.success && activeTab === 'Settled Bills') {
                     setSummaryStats(prev => ({
                         ...prev,
                         totalCollections: data.totals?.totalAmount || 0,
@@ -1060,7 +1387,11 @@ const UniversalReport = ({ type }) => {
                                 value={filters[filter] || (type === 'reports-analytics' && filter === 'Metric' ? 'All Metrics' : 'All')}
                                 onChange={(e) => setFilters({ ...filters, [filter]: e.target.value })}
                             >
-                                {filter !== 'Metric' && <option value="All">All {filter}s</option>}
+                                {filter !== 'Metric' && (
+                                    <option value="All">
+                                        {filter === 'Status' ? 'All Status' : `All ${filter}s`}
+                                    </option>
+                                )}
                                 {getOptionsForFilter(filter).map((opt, idx) => {
                                     if (typeof opt === 'object') return <option key={opt.value} value={opt.value}>{opt.label}</option>;
                                     return opt === 'All' ? null : <option key={idx} value={opt}>{opt}</option>;
@@ -1081,40 +1412,47 @@ const UniversalReport = ({ type }) => {
 
             <div className="report-content">
                 {type === 'reports-reservations' && (
-                    <div className="reservation-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '30px' }}>
-                        <div className="summary-stat-card">
+                    <div className="reservation-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0px', marginBottom: '30px' }}>
+                        <div className="summary-stat-card report-tone-blue">
                             <div className="stat-icon" style={{ background: '#e0e7ff', color: '#4f46e5' }}>📅</div>
                             <div className="stat-info">
                                 <span className="stat-value">{resSummary.summary?.totalReservations || 0}</span>
                                 <span className="stat-label">Total Reservations</span>
                             </div>
                         </div>
-                        <div className="summary-stat-card">
+                        <div className="summary-stat-card report-tone-green">
                             <div className="stat-icon" style={{ background: '#dcfce7', color: '#16a34a' }}>🕒</div>
                             <div className="stat-info">
                                 <span className="stat-value">{resSummary.summary?.todayCount || 0}</span>
-                                <span className="stat-label">Today's Arrival</span>
+                                <span className="stat-label">Today's Reservations</span>
                             </div>
                         </div>
-                        <div className="summary-stat-card">
+                        <div className="summary-stat-card report-tone-amber">
                             <div className="stat-icon" style={{ background: '#fef3c7', color: '#d97706' }}>👎</div>
                             <div className="stat-info">
                                 <span className="stat-value">{resSummary.summary?.noShowCount || 0}</span>
                                 <span className="stat-label">No Shows</span>
                             </div>
                         </div>
-                        <div className="summary-stat-card">
+                        <div className="summary-stat-card report-tone-red">
                             <div className="stat-icon" style={{ background: '#fee2e2', color: '#E31E24' }}>❌</div>
                             <div className="stat-info">
                                 <span className="stat-value">{resSummary.summary?.cancelledCount || 0}</span>
                                 <span className="stat-label">Cancellations</span>
                             </div>
                         </div>
+                        <div className="summary-stat-card report-tone-rose">
+                            <div className="stat-icon" style={{ background: '#ffe4e6', color: '#be123c' }}>💸</div>
+                            <div className="stat-info">
+                                <span className="stat-value">{cs}{(resSummary.summary?.cancellationRevenue || 0).toFixed(2)}</span>
+                                <span className="stat-label">Cancellation Revenue</span>
+                            </div>
+                        </div>
                     </div>
                 )}
 
                 {type === 'reports-reservations' && (
-                    <div className="report-charts-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
+                    <div className="report-charts-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0px', marginBottom: '30px' }}>
                         <div className="overview-container-card">
                             <h3>⏰ Reservation Time Slots</h3>
                             <div className="breakdown-items" style={{ padding: '20px' }}>
@@ -1147,10 +1485,39 @@ const UniversalReport = ({ type }) => {
                     </div>
                 )}
 
-                {type === 'reports-billing' && activeTab === 'Overview' && (
+                {type === 'reports-analytics' && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0px', marginBottom: '24px' }}>
+                        <div className="summary-stat-card report-tone-blue">
+                            <div className="stat-info">
+                                <span className="stat-value">{analyticsSummary.totalMetrics}</span>
+                                <span className="stat-label">Total Metrics</span>
+                            </div>
+                        </div>
+                        <div className="summary-stat-card report-tone-green">
+                            <div className="stat-info">
+                                <span className="stat-value">{analyticsSummary.upTrends}</span>
+                                <span className="stat-label">Up Trends</span>
+                            </div>
+                        </div>
+                        <div className="summary-stat-card report-tone-red">
+                            <div className="stat-info">
+                                <span className="stat-value">{analyticsSummary.downTrends}</span>
+                                <span className="stat-label">Down Trends</span>
+                            </div>
+                        </div>
+                        <div className="summary-stat-card report-tone-purple">
+                            <div className="stat-info">
+                                <span className="stat-value">{analyticsSummary.stableTrends}</span>
+                                <span className="stat-label">Stable Trends</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {type === 'reports-billing' && (
                     <>
                         {/* Summary Cards */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0px', marginBottom: '24px' }}>
                             <div className="summary-stat-card billing-summary-card billing-summary-card-1">
                                 <div className="stat-icon billing-summary-icon">🧾</div>
                                 <div className="stat-info">
@@ -1172,22 +1539,17 @@ const UniversalReport = ({ type }) => {
                                     <span className="stat-label">Avg Bill Value</span>
                                 </div>
                             </div>
-                            <div className="summary-stat-card billing-summary-card billing-summary-card-4">
-                                <div className="stat-icon billing-summary-icon">❌</div>
-                                <div className="stat-info">
-                                    <span className="stat-value">{(billingSummary.cancelledBills || []).length}</span>
-                                    <span className="stat-label">Cancelled Bills</span>
-                                </div>
-                            </div>
                         </div>
 
+                        {activeTab === 'Overview' && (
+                            <>
                         {/* Payment Method + Order Type Breakdown */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0px', marginBottom: '24px' }}>
                             <div className="overview-container-card">
                                 <h3 style={{ margin: '0 0 16px', fontSize: '15px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <span style={{ background: '#e0e7ff', borderRadius: '8px', padding: '4px 8px' }}>💳</span> Payment Method
                                 </h3>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0px' }}>
                                     {['Cash', 'UPI', 'Card', 'Bank Transfer', 'Add to Room'].map(method => {
                                         const val = billingSummary.breakdowns?.payment?.[method] || 0;
                                         const total = billingSummary.summary?.totalRevenue || 1;
@@ -1277,22 +1639,25 @@ const UniversalReport = ({ type }) => {
                                 </div>
                             </div>
                         )}
+                            </>
+                        )}
                     </>
                 )}
 
-                {['reports-sales', 'reports-rooms'].includes(type) && (
+                {['reports-sales', 'reports-rooms'].includes(type)
+                    || (type === 'reports-payments' && activeTab === 'Settled Bills') ? (
                     <div className="summary-overview-section">
                         <h2 className="section-title">SUMMARY OVERVIEW</h2>
                         <div className="overview-container-card">
-                            <div className="overview-sub-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-                                <div className="overview-sub-card">
+                            <div className="overview-sub-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0px' }}>
+                                <div className="overview-sub-card report-tone-green">
                                     <div className="overview-icon-box green-icon">💰</div>
                                     <div className="overview-text">
                                         <span className="overview-label">Total Collections</span>
                                         <span className="overview-huge-value">{cs}{summaryStats.totalCollections.toFixed(2)}</span>
                                     </div>
                                 </div>
-                                <div className="overview-sub-card">
+                                <div className="overview-sub-card report-tone-rose">
                                     <div className="overview-icon-box pink-icon">💸</div>
                                     <div className="overview-text">
                                         <span className="overview-label">Payments Received</span>
@@ -1300,7 +1665,7 @@ const UniversalReport = ({ type }) => {
                                         <span className="overview-count">{summaryStats.paymentsCount} payments</span>
                                     </div>
                                 </div>
-                                <div className="overview-sub-card">
+                                <div className="overview-sub-card report-tone-blue">
                                     <div className="overview-icon-box blue-icon">💳</div>
                                     <div className="overview-text">
                                         <span className="overview-label">Net Cash Flow</span>
@@ -1310,39 +1675,44 @@ const UniversalReport = ({ type }) => {
                             </div>
                         </div>
                     </div>
-                )}
+                ) : null}
 
                 {type === 'reports-kitchen' && (
-                    <div className="summary-overview-section" style={{ marginBottom: '20px' }}>
+                    <div className="summary-overview-section kitchen-compact-section" style={{ marginBottom: '20px' }}>
                         <h2 className="section-title">KITCHEN LIVE SNAPSHOT</h2>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                        <div className="kitchen-snapshot-top-grid">
                             <div className="overview-container-card">
-                                <h3 style={{ margin: 0, marginBottom: '12px', color: '#334155' }}>Floor / Table Status</h3>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                                    <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Total Tables</span><span className="stat-value">{kitchenInsights.tableStatus?.total || 0}</span></div></div>
-                                    <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Occupied</span><span className="stat-value">{kitchenInsights.tableStatus?.occupied || 0}</span></div></div>
-                                    <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Available</span><span className="stat-value">{kitchenInsights.tableStatus?.available || 0}</span></div></div>
+                                <h3 style={{ margin: 0, marginBottom: '12px', color: '#334155' }}>{kitchenStatusPanel.title}</h3>
+                                <div className="kitchen-metric-grid" style={{ gridTemplateColumns: `repeat(${kitchenStatusPanel.columns}, minmax(110px, 1fr))` }}>
+                                    {kitchenStatusPanel.cards.map((card, index) => (
+                                        <div key={index} className={`summary-stat-card kitchen-metric-card ${getKitchenToneClass(card.label)}`}>
+                                            <div className="stat-info">
+                                                <span className="stat-label">{card.label}</span>
+                                                <span className="stat-value">{card.value}</span>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
 
                             <div className="overview-container-card">
                                 <h3 style={{ margin: 0, marginBottom: '12px', color: '#334155' }}>Kitchen Live Load</h3>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
-                                    <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">KOT Pending</span><span className="stat-value">{kitchenInsights.summary?.kotPending || 0}</span></div></div>
-                                    <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Preparing</span><span className="stat-value">{kitchenInsights.summary?.preparingCount || 0}</span></div></div>
-                                    <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Ready</span><span className="stat-value">{kitchenInsights.summary?.ordersReady || 0}</span></div></div>
-                                    <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Avg Prep</span><span className="stat-value">{kitchenInsights.summary?.avgPrepTime || 0}m</span></div></div>
+                                <div className="kitchen-metric-grid">
+                                    <div className={`summary-stat-card kitchen-metric-card ${getKitchenToneClass('KOT Pending')}`}><div className="stat-info"><span className="stat-label">KOT Pending</span><span className="stat-value">{kitchenInsights.summary?.kotPending || 0}</span></div></div>
+                                    <div className={`summary-stat-card kitchen-metric-card ${getKitchenToneClass('Preparing')}`}><div className="stat-info"><span className="stat-label">Preparing</span><span className="stat-value">{kitchenInsights.summary?.preparingCount || 0}</span></div></div>
+                                    <div className={`summary-stat-card kitchen-metric-card ${getKitchenToneClass('Ready')}`}><div className="stat-info"><span className="stat-label">Ready</span><span className="stat-value">{kitchenInsights.summary?.ordersReady || 0}</span></div></div>
+                                    <div className={`summary-stat-card kitchen-metric-card ${getKitchenToneClass('Avg Prep')}`}><div className="stat-info"><span className="stat-label">Avg Prep</span><span className="stat-value">{kitchenInsights.summary?.avgPrepTime || 0}m</span></div></div>
                                 </div>
                             </div>
                         </div>
 
                         <div className="overview-container-card" style={{ marginBottom: '16px' }}>
                             <h3 style={{ margin: 0, marginBottom: '12px', color: '#334155' }}>Operational Indicators</h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                                <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Kitchen Load Ratio</span><span className="stat-value">{kitchenInsights.summary?.kitchenLoadRatio || 0}% ({kitchenInsights.summary?.kitchenLoadLabel || 'Low'})</span></div></div>
-                                <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Staff Load</span><span className="stat-value">{kitchenInsights.summary?.staffLoadLabel || 'Normal'}</span></div></div>
-                                <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Delay Risk</span><span className="stat-value">{kitchenInsights.summary?.delayRiskLabel || 'Minimal'}</span></div></div>
+                            <div className="kitchen-metric-grid kitchen-metric-grid-3">
+                                <div className={`summary-stat-card kitchen-metric-card ${getKitchenToneClass('Kitchen Load Ratio')}`}><div className="stat-info"><span className="stat-label">Kitchen Load Ratio</span><span className="stat-value">{kitchenInsights.summary?.kitchenLoadRatio || 0}% ({kitchenInsights.summary?.kitchenLoadLabel || 'Low'})</span></div></div>
+                                <div className={`summary-stat-card kitchen-metric-card ${getKitchenToneClass('Staff Load')}`}><div className="stat-info"><span className="stat-label">Staff Load</span><span className="stat-value">{kitchenInsights.summary?.staffLoadLabel || 'Normal'}</span></div></div>
+                                <div className={`summary-stat-card kitchen-metric-card ${getKitchenToneClass('Delay Risk')}`}><div className="stat-info"><span className="stat-label">Delay Risk</span><span className="stat-value">{kitchenInsights.summary?.delayRiskLabel || 'Minimal'}</span></div></div>
                             </div>
                         </div>
 
@@ -1358,12 +1728,12 @@ const UniversalReport = ({ type }) => {
                                     const a = activeTab === 'Ready vs Delivered' ? (point.ready || 0) : (point.pending || 0);
                                     const b = activeTab === 'Ready vs Delivered' ? (point.delivered || 0) : (point.delayed || 0);
                                     return (
-                                        <div key={index} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: '10px', alignItems: 'center' }}>
-                                            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 700 }}>{point.hour}</span>
-                                            <div style={{ background: '#eef2ff', borderRadius: '6px', height: '12px', overflow: 'hidden' }}>
+                                        <div key={index} style={{ display: 'grid', gridTemplateColumns: '56px 1fr 1fr', gap: '8px', alignItems: 'center' }}>
+                                            <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 700 }}>{point.hour}</span>
+                                            <div style={{ background: '#eef2ff', borderRadius: '6px', height: '10px', overflow: 'hidden' }}>
                                                 <div style={{ width: `${(a / max) * 100}%`, height: '100%', background: '#3b82f6' }}></div>
                                             </div>
-                                            <div style={{ background: '#fee2e2', borderRadius: '6px', height: '12px', overflow: 'hidden' }}>
+                                            <div style={{ background: '#fee2e2', borderRadius: '6px', height: '10px', overflow: 'hidden' }}>
                                                 <div style={{ width: `${(b / max) * 100}%`, height: '100%', background: '#ef4444' }}></div>
                                             </div>
                                         </div>
@@ -1379,26 +1749,35 @@ const UniversalReport = ({ type }) => {
                     <div className="summary-overview-section" style={{ marginTop: '24px' }}>
                         <h2 className="section-title">DISCOUNT BREAKDOWN</h2>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '18px' }}>
-                            <div className="summary-stat-card">
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0px', marginBottom: '18px' }}>
+                            <div className="summary-stat-card report-tone-rose">
                                 <div className="stat-info">
                                     <span className="stat-label">Total Discount</span>
                                     <span className="stat-value">{cs}{(paymentInsights.totals?.totalDiscount || 0).toFixed(2)}</span>
                                 </div>
                             </div>
-                            <div className="summary-stat-card">
+                            <div className="summary-stat-card report-tone-blue">
                                 <div className="stat-info">
-                                    <span className="stat-label">Room GST + Service</span>
-                                    <span className="stat-value">{cs}{((paymentInsights.totals?.totalRoomGst || 0) + (paymentInsights.totals?.totalServiceCharge || 0)).toFixed(2)}</span>
+                                    <span className="stat-label">Discounted Items</span>
+                                    <span className="stat-value">{parseInt(paymentInsights.totals?.totalDiscountedItems || 0, 10)}</span>
                                 </div>
                             </div>
-                            <div className="summary-stat-card">
+                            <div className="summary-stat-card report-tone-amber">
                                 <div className="stat-info">
-                                    <span className="stat-label">Food + Beverage</span>
-                                    <span className="stat-value">{cs}{((paymentInsights.totals?.totalFood || 0) + (paymentInsights.totals?.totalBeverage || 0)).toFixed(2)}</span>
+                                    <span className="stat-label">Food GST</span>
+                                    <span className="stat-value">{cs}{(paymentInsights.totals?.totalFoodGst || 0).toFixed(2)}</span>
                                 </div>
                             </div>
-                            <div className="summary-stat-card">
+                            <div className="summary-stat-card report-tone-red">
+                                <div className="stat-info">
+                                    <span className="stat-label">Service Charge</span>
+                                    <span className="stat-value">{cs}{(paymentInsights.totals?.totalServiceCharge || 0).toFixed(2)}</span>
+                                    <span className="stat-label" style={{ marginTop: '4px', fontSize: '12px', opacity: 0.85 }}>
+                                        Bills: {parseInt(paymentInsights.totals?.serviceChargeBillsCount || 0, 10)}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="summary-stat-card report-tone-purple">
                                 <div className="stat-info">
                                     <span className="stat-label">Net Payable</span>
                                     <span className="stat-value">{cs}{(paymentInsights.totals?.totalNetPayable || 0).toFixed(2)}</span>
@@ -1447,12 +1826,11 @@ const UniversalReport = ({ type }) => {
                 {type === 'reports-gst' && (
                     <div className="summary-overview-section" style={{ marginTop: '24px' }}>
                         <h2 className="section-title">GST OVERVIEW</h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '16px' }}>
-                            <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Taxable Value</span><span className="stat-value">{cs}{(gstInsights.totals?.taxableValue || 0).toFixed(2)}</span></div></div>
-                            <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">Total Tax</span><span className="stat-value">{cs}{(gstInsights.totals?.totalTax || 0).toFixed(2)}</span></div></div>
-                            <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">CGST</span><span className="stat-value">{cs}{(gstInsights.totals?.cgst || 0).toFixed(2)}</span></div></div>
-                            <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">SGST</span><span className="stat-value">{cs}{(gstInsights.totals?.sgst || 0).toFixed(2)}</span></div></div>
-                            <div className="summary-stat-card"><div className="stat-info"><span className="stat-label">IGST</span><span className="stat-value">{cs}{(gstInsights.totals?.igst || 0).toFixed(2)}</span></div></div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0px', marginBottom: '16px' }}>
+                            <div className="summary-stat-card report-tone-primary"><div className="stat-info"><span className="stat-label">Taxable Value</span><span className="stat-value">{cs}{(gstInsights.totals?.taxableValue || 0).toFixed(2)}</span></div></div>
+                            <div className="summary-stat-card report-tone-rose"><div className="stat-info"><span className="stat-label">Total Tax</span><span className="stat-value">{cs}{(gstInsights.totals?.totalTax || 0).toFixed(2)}</span></div></div>
+                            <div className="summary-stat-card report-tone-blue"><div className="stat-info"><span className="stat-label">CGST</span><span className="stat-value">{cs}{(gstInsights.totals?.cgst || 0).toFixed(2)}</span></div></div>
+                            <div className="summary-stat-card report-tone-purple"><div className="stat-info"><span className="stat-label">SGST</span><span className="stat-value">{cs}{(gstInsights.totals?.sgst || 0).toFixed(2)}</span></div></div>
                         </div>
 
                         <div className="overview-container-card">
@@ -1508,8 +1886,8 @@ const UniversalReport = ({ type }) => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {reportData.length > 0 ? (
-                                        reportData.map((row, idx) => (
+                                    {sortedReportData.length > 0 ? (
+                                        sortedReportData.map((row, idx) => (
                                             <tr key={idx}>
                                                 {config.columns.map((_, i) => (
                                                     <td key={i}>{row[`val${i + 1}`]}</td>

@@ -23,6 +23,7 @@ import Testimonials from './components/Testimonials'
 import Ratings from './components/Ratings'
 import DemoForm from './components/DemoForm'
 import Footer from './components/Footer'
+import AdvikaAI from './components/AdvikaAI'
 import Login from './pages/Login/Login'
 import AdminDashboard from './pages/Dashboard/AdminDashboard'
 import SuperAdminDashboard from './pages/SuperAdmin/SuperAdminDashboard'
@@ -98,6 +99,7 @@ const AppRoutes = () => {
         <>
           <TopBar />
           <Navbar />
+          {location.pathname === '/' && <AdvikaAI />}
         </>
       )}
       <div>

@@ -1,8 +1,8 @@
 .advika-wrapper {
     position: fixed;
-    bottom: 67px;
+    bottom: 52px;
     right: 40px;
-    z-index: 999;
+    z-index: 1305;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
@@ -18,7 +18,7 @@
     width: 360px;
     max-width: 92vw;
     height: auto;
-    max-height: calc(100vh - 140px);
+    max-height: calc(100dvh - 220px);
     background: linear-gradient(180deg, #ffe6ee, #ffd5e6);
     border-radius: 28px;
     box-shadow:
@@ -229,12 +229,13 @@
 @media (max-width: 768px) {
     .advika-wrapper {
         right: 20px;
-        bottom: 20px;
+        bottom: 16px;
     }
 
     .chat-container {
         width: 320px;
-        height: 480px;
+        height: min(480px, calc(100dvh - 150px));
+        max-height: calc(100dvh - 150px);
     }
 }
 

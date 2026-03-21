@@ -33,6 +33,8 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
     const [folioList, setFolioList] = useState([]);
     const [allBookings, setAllBookings] = useState([]);
     const [toast, setToast] = useState(null);
+    const [showPrintDrawer, setShowPrintDrawer] = useState(false);
+    const [selectedPrintType, setSelectedPrintType] = useState('a4');
 
     const BASE_API_URL = `${API_URL}/api/bookings`;
 
@@ -485,80 +487,316 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
     };
 
     // Action handlers
+    const printFormats = [
+        { key: 'a4', label: 'A4', icon: '📄', desc: 'Standard', pageSize: 'A4', bodyWidth: '100%', windowWidth: 980 },
+        { key: 'a5', label: 'A5', icon: '📃', desc: 'Half Sheet', pageSize: 'A5', bodyWidth: '100%', windowWidth: 820 },
+        { key: 'thermal', label: 'Thermal', icon: '🧾', desc: '80mm Roll', pageSize: '80mm auto', bodyWidth: '72mm', windowWidth: 420 },
+        { key: 'dotmatrix', label: 'Dot Matrix', icon: '🖨️', desc: 'DMP', pageSize: 'A4', bodyWidth: '100%', windowWidth: 980 },
+        { key: '3inch', label: '3 inch', icon: '📜', desc: '76mm Roll', pageSize: '76mm auto', bodyWidth: '68mm', windowWidth: 390 },
+        { key: '2inch', label: '2 inch', icon: '🔖', desc: '58mm Roll', pageSize: '58mm auto', bodyWidth: '50mm', windowWidth: 360 },
+    ];
+
     // Print full folio statement
-    const handlePrintFolio = () => {
+    const handlePrintFolio = (format = 'a4') => {
         if (!currentFolioTransactions.length) return;
+
+        const fmt = printFormats.find(f => f.key === format) || printFormats[0];
+        const isNarrow = ['thermal', '3inch', '2inch'].includes(fmt.key);
+        const fontFamily = fmt.key === 'dotmatrix' ? "'Courier New', monospace" : "'Segoe UI', Arial, sans-serif";
+        const baseFont = fmt.key === '2inch' ? '9px' : fmt.key === '3inch' ? '9.5px' : isNarrow ? '10px' : '11px';
+
         const selectedFolioData = folioList.find(f => f.id === selectedRoom);
         const guestName = selectedFolioData?.guestName || reservation?.guestName || '';
         const roomNo = selectedFolioData?.roomNumber || reservation?.roomNumber || '';
         const hotelName = settings?.name || 'Hotel';
         const address = [settings?.address, settings?.city, settings?.state].filter(Boolean).join(', ');
 
-        const rows = currentFolioTransactions.map(t => `
-            <tr>
-                <td>${t.day || ''}</td>
-                <td><strong>${t.particulars || ''}</strong></td>
-                <td style="color:#6b7280">${t.description || ''}</td>
-                <td style="text-align:right;font-weight:600;color:${t.amount < 0 ? '#16a34a' : '#111'}">
-                    ${t.amount < 0 ? '&minus; ' : ''}${cs} ${Math.abs(Number(t.amount)).toFixed(2)}
-                </td>
-                <td style="color:#9ca3af;font-size:11px">${t.user || ''}</td>
-            </tr>`).join('');
+        const toNum = (v) => {
+            const n = Number(v);
+            return Number.isFinite(n) ? n : 0;
+        };
 
-        const content = `<!DOCTYPE html><html><head><title>Folio - ${roomNo}</title>
+        const parseAmount = (text, label) => {
+            if (!text) return null;
+            const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const escapedCurrency = cs.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const re = new RegExp(`${escapedLabel}\\s*:\\s*(?:Rs|INR|${escapedCurrency})?\\s*([0-9]+(?:\\.[0-9]+)?)`, 'i');
+            const m = String(text).match(re);
+            return m ? toNum(m[1]) : null;
+        };
+
+        const tx = currentFolioTransactions.map((t) => ({
+            ...t,
+            amountAbs: Math.abs(toNum(t.amount)),
+            typeLc: String(t.type || '').toLowerCase(),
+            particularsLc: String(t.particulars || '').toLowerCase(),
+            text: `${t.particulars || ''} ${t.description || ''} ${t.notes || ''}`.toLowerCase(),
+        }));
+
+        const getTaxConfig = () => {
+            const cgst = toNum(settings?.cgst);
+            const sgst = toNum(settings?.sgst);
+            const defaultFoodGst = (cgst + sgst) > 0 ? (cgst + sgst) : toNum(settings?.foodGst);
+            return {
+                roomGstPercent: toNum(settings?.roomGst) || 12,
+                foodGstPercent: defaultFoodGst,
+                addGstPercent: defaultFoodGst,
+                cgst,
+                sgst,
+                roomServicePercent: toNum(settings?.roomServiceCharge ?? settings?.serviceCharge),
+            };
+        };
+
+        const isRoomTx = (t) => t.typeLc === 'charge' && (/room\s*(tariff|charge|rent|stay)/i.test(t.particulars) || /room\s*(tariff|charge|rent|stay)/i.test(t.text));
+        const isFoodTx = (t) => t.typeLc === 'charge' && (/restaurant|food|meal|kot|dine|table|bill\s*#/i.test(t.text) || /dry\s*cleaning|laundry/.test(t.text) === false && /qty[:\s]|gross[:\s]/i.test(t.text));
+        const isDiscountTx = (t) => t.typeLc === 'discount';
+        const isPaymentTx = (t) => t.typeLc === 'payment';
+
+        const getRoomCharges = () => {
+            const roomTx = tx.filter(isRoomTx);
+            const roomCharge = roomTx.reduce((s, t) => s + t.amountAbs, 0);
+            const serviceCharge = toNum(reservation?.billing?.serviceCharge);
+            const roomDiscount = tx.filter(isDiscountTx).reduce((s, t) => s + t.amountAbs, 0);
+            const taxCfg = getTaxConfig();
+            const roomTaxable = Math.max(0, roomCharge + serviceCharge - roomDiscount);
+            const roomGstAmount = toNum(reservation?.billing?.tax) || (roomTaxable * taxCfg.roomGstPercent / 100);
+            const roomTotal = roomTaxable + roomGstAmount;
+            return { roomCharge, serviceCharge, roomDiscount, roomTaxable, roomGstPercent: taxCfg.roomGstPercent, roomGstAmount, roomTotal };
+        };
+
+        const getFoodItems = () => {
+            const foodTx = tx.filter(isFoodTx);
+            const taxCfg = getTaxConfig();
+
+            const items = foodTx.map((t, idx) => {
+                const desc = `${t.description || ''} ${t.notes || ''}`;
+                const gross = parseAmount(desc, 'Gross');
+                const discount = parseAmount(desc, 'Discount') || 0;
+                const net = parseAmount(desc, 'Net') || t.amountAbs;
+                const taxable = gross !== null ? Math.max(0, gross - discount) : net / (1 + taxCfg.foodGstPercent / 100);
+                const gstAmount = net - taxable;
+                const qtyMatch = desc.match(/qty\s*[:\-]?\s*([0-9]+)/i);
+                return {
+                    name: t.particulars || `Food Item ${idx + 1}`,
+                    qty: qtyMatch ? Number(qtyMatch[1]) : 1,
+                    rate: taxable,
+                    amount: net,
+                    taxable,
+                    gstAmount,
+                    discount,
+                    date: t.day || '',
+                };
+            });
+
+            const subtotal = items.reduce((s, i) => s + i.taxable, 0);
+            const gstAmount = items.reduce((s, i) => s + i.gstAmount, 0);
+            const total = items.reduce((s, i) => s + i.amount, 0);
+
+            return { items, subtotal, foodGstPercent: taxCfg.foodGstPercent, foodTaxAmount: gstAmount, total };
+        };
+
+        const getAddCharges = () => {
+            const addTx = tx.filter(t => t.typeLc === 'charge' && !isRoomTx(t) && !isFoodTx(t));
+            const taxCfg = getTaxConfig();
+
+            const items = addTx.map((t) => {
+                const desc = `${t.description || ''} ${t.notes || ''}`;
+                const gross = parseAmount(desc, 'Gross');
+                const discount = parseAmount(desc, 'Discount') || 0;
+                const net = parseAmount(desc, 'Net') || t.amountAbs;
+                const taxable = gross !== null ? Math.max(0, gross - discount) : net / (1 + taxCfg.addGstPercent / 100);
+                const gstAmount = net - taxable;
+                return {
+                    name: t.particulars || 'Add Charge',
+                    taxable,
+                    gstAmount,
+                    total: net,
+                    date: t.day || '',
+                };
+            });
+
+            const subtotal = items.reduce((s, i) => s + i.taxable, 0);
+            const gstAmount = items.reduce((s, i) => s + i.gstAmount, 0);
+            const total = items.reduce((s, i) => s + i.total, 0);
+
+            return { items, subtotal, addGstPercent: taxCfg.addGstPercent, addTaxAmount: gstAmount, total };
+        };
+
+        const getDiscount = () => {
+            const discountTx = tx.filter(isDiscountTx);
+            const discountFromTx = discountTx.reduce((s, t) => s + t.amountAbs, 0);
+            const roomDiscount = toNum(reservation?.billing?.discount);
+            const totalDiscount = Math.max(discountFromTx, roomDiscount);
+            return {
+                totalDiscount,
+                roomDiscount,
+                foodDiscount: Math.max(0, totalDiscount - roomDiscount),
+                addDiscount: 0,
+            };
+        };
+
+        const getPayments = () => {
+            const payments = tx.filter(isPaymentTx);
+            const split = { cash: 0, upi: 0, card: 0, other: 0, total: 0 };
+            payments.forEach((p) => {
+                const text = `${p.particulars || ''} ${p.description || ''}`.toLowerCase();
+                split.total += p.amountAbs;
+                if (text.includes('upi')) split.upi += p.amountAbs;
+                else if (text.includes('card')) split.card += p.amountAbs;
+                else if (text.includes('cash')) split.cash += p.amountAbs;
+                else split.other += p.amountAbs;
+            });
+            return split;
+        };
+
+        const room = getRoomCharges();
+        const food = getFoodItems();
+        const add = getAddCharges();
+        const disc = getDiscount();
+        const taxCfg = getTaxConfig();
+        const pay = getPayments();
+
+        const grossBeforeDiscount = room.roomTotal + food.total + add.total;
+        const grandTotal = Math.max(0, grossBeforeDiscount - disc.totalDiscount);
+        const pending = Math.max(0, grandTotal - pay.total);
+
+        const gstMap = new Map();
+        const pushGstRow = (percent, taxable, taxAmount) => {
+            const pct = Number(percent) || 0;
+            if (pct <= 0) return;
+            const key = pct.toFixed(2);
+            const prev = gstMap.get(key) || { taxable: 0, tax: 0 };
+            prev.taxable += taxable;
+            prev.tax += taxAmount;
+            gstMap.set(key, prev);
+        };
+
+        pushGstRow(taxCfg.roomGstPercent, room.roomTaxable, room.roomGstAmount);
+        pushGstRow(food.foodGstPercent, food.subtotal, food.foodTaxAmount);
+        pushGstRow(add.addGstPercent, add.subtotal, add.addTaxAmount);
+
+        [5, 12, 18].forEach((p) => {
+            const k = p.toFixed(2);
+            if (!gstMap.has(k)) gstMap.set(k, { taxable: 0, tax: 0 });
+        });
+
+        const gstRows = [...gstMap.entries()]
+            .sort((a, b) => Number(a[0]) - Number(b[0]))
+            .map(([pct, v]) => {
+                const cgst = v.tax / 2;
+                const sgst = v.tax / 2;
+                return `<tr><td>${Number(pct).toFixed(2)}%</td><td style="text-align:right">${cs} ${v.taxable.toFixed(2)}</td><td style="text-align:right">${cs} ${cgst.toFixed(2)}</td><td style="text-align:right">${cs} ${sgst.toFixed(2)}</td><td style="text-align:right">${cs} ${(cgst + sgst).toFixed(2)}</td></tr>`;
+            }).join('');
+
+        const foodRows = food.items.length
+            ? food.items.map(i => `<tr><td>${i.name}</td><td style="text-align:right">${i.qty}</td><td style="text-align:right">${cs} ${i.rate.toFixed(2)}</td><td style="text-align:right">${cs} ${i.amount.toFixed(2)}</td></tr>`).join('')
+            : '<tr><td colspan="4" style="text-align:center;color:#94a3b8">No food items</td></tr>';
+
+        const addRows = add.items.length
+            ? add.items.map(i => `<tr><td>${i.name}</td><td style="text-align:right">${cs} ${i.taxable.toFixed(2)}</td><td style="text-align:right">${cs} ${i.gstAmount.toFixed(2)}</td><td style="text-align:right">${cs} ${i.total.toFixed(2)}</td></tr>`).join('')
+            : '<tr><td colspan="4" style="text-align:center;color:#94a3b8">No add charges</td></tr>';
+
+        const content = `<!DOCTYPE html><html><head><title>Tax Invoice - ${roomNo}</title>
             <style>
-                @page { size: A4; margin: 15mm; }
-                body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #111; margin: 0; }
-                .header { text-align: center; margin-bottom: 18px; }
-                .hotel-name { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
-                .sub { font-size: 10px; color: #777; margin-top: 2px; }
-                .meta { display: flex; justify-content: space-between; margin: 14px 0; padding: 10px 14px;
-                    background: #f8f9fa; border-radius: 6px; font-size: 11px; }
-                .meta-col { display: flex; flex-direction: column; gap: 3px; }
-                .meta span { color: #6b7280; } .meta strong { color: #111; font-size: 12px; }
-                table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                th { padding: 8px 10px; text-align: left; border-bottom: 2px solid #000;
-                    font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #374151; }
-                td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
-                .totals-wrap { display: flex; justify-content: flex-end; margin-top: 18px; }
-                .totals-table { width: 280px; border-collapse: collapse; }
-                .totals-table td { padding: 5px 10px; border: none; }
-                .totals-table .grand td { font-weight: 800; font-size: 14px; border-top: 2px solid #000;
-                    border-bottom: 2.5px double #000; padding-top: 8px; padding-bottom: 8px; }
-                .footer { margin-top: 30px; text-align: center; font-size: 11px; color: #9ca3af;
-                    border-top: 1px dashed #ddd; padding-top: 10px; }
-            </style></head><body>
+                @page { size: ${fmt.pageSize}; margin: ${isNarrow ? '4mm' : '10mm'}; }
+                body { font-family: ${fontFamily}; font-size: ${baseFont}; color:#111; margin: 0 auto; width:${fmt.bodyWidth}; max-width:${fmt.bodyWidth}; }
+                .topline { display:flex; justify-content:space-between; font-size:${isNarrow ? '8px' : '9px'}; color:#6b7280; margin-bottom:4px; }
+                .header { text-align:center; margin-bottom:8px; }
+                .title { font-size:${isNarrow ? '14px' : '20px'}; font-weight:800; margin:2px 0; }
+                .sub { font-size:${isNarrow ? '8px' : '9px'}; color:#6b7280; }
+                .meta { display:flex; justify-content:space-between; gap:8px; background:#f8f9fa; padding:8px; border-radius:6px; margin:8px 0; }
+                .meta b { display:block; font-size:${isNarrow ? '9px' : '10px'}; }
+                .meta span { font-size:${isNarrow ? '8px' : '9px'}; color:#6b7280; }
+                .sec { margin-top:8px; }
+                .sec h4 { margin:0 0 4px; font-size:${isNarrow ? '9px' : '10px'}; text-transform:uppercase; letter-spacing:.04em; }
+                table { width:100%; border-collapse:collapse; }
+                th { text-align:left; padding:5px 4px; border-bottom:1.6px solid #111; font-size:${isNarrow ? '8px' : '9px'}; }
+                td { padding:4px; border-bottom:1px solid #ececec; font-size:${isNarrow ? '8px' : '9px'}; vertical-align:top; }
+                .sum { margin-top:10px; border-top:1.5px dashed #bbb; padding-top:6px; }
+                .line { display:flex; justify-content:space-between; padding:2px 0; font-size:${isNarrow ? '9px' : '10px'}; }
+                .grand { border-top:2px solid #111; border-bottom:2px double #111; font-weight:800; padding:6px 0; margin-top:4px; }
+                .neg { color:#b91c1c; }
+                .pos { color:#166534; }
+                .foot { margin-top:12px; text-align:center; color:#94a3b8; font-size:${isNarrow ? '8px' : '9px'}; }
+            </style>
+        </head><body>
+            <div class="topline"><span>${new Date().toLocaleString('en-IN')}</span><span>Folio - ${roomNo}</span></div>
             <div class="header">
-                <div class="hotel-name">${hotelName}</div>
+                <div class="title">${hotelName}</div>
                 ${address ? `<div class="sub">${address}</div>` : ''}
+                <div class="sub">TAX INVOICE</div>
             </div>
             <div class="meta">
-                <div class="meta-col"><span>Room No.</span><strong>${roomNo}</strong></div>
-                <div class="meta-col"><span>Guest</span><strong>${guestName}</strong></div>
-                <div class="meta-col"><span>Printed</span><strong>${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</strong></div>
+                <div><span>Room No.</span><b>${roomNo}</b></div>
+                <div><span>Guest</span><b>${guestName || 'N/A'}</b></div>
+                <div><span>Printed</span><b>${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</b></div>
             </div>
-            <table>
-                <thead><tr>
-                    <th>Date</th><th>Particulars</th><th>Description</th>
-                    <th style="text-align:right">Amount</th><th>User</th>
-                </tr></thead>
-                <tbody>${rows}</tbody>
-            </table>
-            <div class="totals-wrap"><table class="totals-table">
-                <tr><td>Subtotal</td><td style="text-align:right">${cs} ${totals.subTotal.toFixed(2)}</td></tr>
-                ${totals.discounts > 0 ? `<tr><td>Discount</td><td style="text-align:right;color:#E31E24">&minus; ${cs} ${totals.discounts.toFixed(2)}</td></tr>` : ''}
-                <tr class="grand"><td>Grand Total</td><td style="text-align:right">${cs} ${totals.grandTotal.toFixed(2)}</td></tr>
-                <tr><td>Paid</td><td style="text-align:right;color:#16a34a">${cs} ${totals.paid.toFixed(2)}</td></tr>
-                <tr><td style="color:${totals.remaining > 0 ? '#E31E24' : '#16a34a'};font-weight:600">Remaining</td>
-                    <td style="text-align:right;color:${totals.remaining > 0 ? '#E31E24' : '#16a34a'};font-weight:700">${cs} ${totals.remaining.toFixed(2)}</td></tr>
-            </table></div>
-            <div class="footer">Thank you for staying with us &mdash; ${hotelName}</div>
-            <script>window.onload=function(){window.print();setTimeout(()=>window.close(),500)}<\/script>
-            </body></html>`;
 
-        const w = window.open('', '_blank', 'height=700,width=900');
+            <div class="sec">
+                <h4>Room Charges</h4>
+                <div class="line"><span>Room charge</span><span>${cs} ${room.roomCharge.toFixed(2)}</span></div>
+                <div class="line"><span>Service charge</span><span>${cs} ${room.serviceCharge.toFixed(2)}</span></div>
+                <div class="line"><span>Room GST (${room.roomGstPercent.toFixed(2)}%)</span><span>${cs} ${room.roomGstAmount.toFixed(2)}</span></div>
+                <div class="line"><span>Room total after tax</span><span>${cs} ${room.roomTotal.toFixed(2)}</span></div>
+            </div>
+
+            <div class="sec">
+                <h4>Food Charges</h4>
+                <table>
+                    <thead><tr><th>Item</th><th style="text-align:right">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount</th></tr></thead>
+                    <tbody>${foodRows}</tbody>
+                </table>
+                <div class="line"><span>Food subtotal</span><span>${cs} ${food.subtotal.toFixed(2)}</span></div>
+                <div class="line"><span>Food GST (${food.foodGstPercent.toFixed(2)}%)</span><span>${cs} ${food.foodTaxAmount.toFixed(2)}</span></div>
+                <div class="line"><span>Food total after tax</span><span>${cs} ${food.total.toFixed(2)}</span></div>
+            </div>
+
+            <div class="sec">
+                <h4>Add Charges</h4>
+                <table>
+                    <thead><tr><th>Charge</th><th style="text-align:right">Taxable</th><th style="text-align:right">GST</th><th style="text-align:right">Total</th></tr></thead>
+                    <tbody>${addRows}</tbody>
+                </table>
+                <div class="line"><span>Add charges subtotal</span><span>${cs} ${add.subtotal.toFixed(2)}</span></div>
+                <div class="line"><span>GST on add charges (${add.addGstPercent.toFixed(2)}%)</span><span>${cs} ${add.addTaxAmount.toFixed(2)}</span></div>
+                <div class="line"><span>Add charges total after tax</span><span>${cs} ${add.total.toFixed(2)}</span></div>
+            </div>
+
+            <div class="sec">
+                <h4>Discount</h4>
+                <div class="line"><span>Room discount</span><span class="neg">- ${cs} ${disc.roomDiscount.toFixed(2)}</span></div>
+                <div class="line"><span>Food discount</span><span class="neg">- ${cs} ${disc.foodDiscount.toFixed(2)}</span></div>
+                <div class="line"><span>Add discount</span><span class="neg">- ${cs} ${disc.addDiscount.toFixed(2)}</span></div>
+                <div class="line"><span>Total discount</span><span class="neg">- ${cs} ${disc.totalDiscount.toFixed(2)}</span></div>
+            </div>
+
+            <div class="sec">
+                <h4>GST Breakup Details</h4>
+                <table>
+                    <thead><tr><th>GST %</th><th style="text-align:right">Taxable Amount</th><th style="text-align:right">CGST</th><th style="text-align:right">SGST</th><th style="text-align:right">Total</th></tr></thead>
+                    <tbody>${gstRows}</tbody>
+                </table>
+            </div>
+
+            <div class="sec sum">
+                <h4>Final Total</h4>
+                <div class="line grand"><span>Grand Total</span><span>${cs} ${grandTotal.toFixed(2)}</span></div>
+                <div class="line"><span>Paid Amount</span><span class="pos">${cs} ${pay.total.toFixed(2)}</span></div>
+                <div class="line"><span>Cash</span><span>${cs} ${pay.cash.toFixed(2)}</span></div>
+                <div class="line"><span>UPI</span><span>${cs} ${pay.upi.toFixed(2)}</span></div>
+                <div class="line"><span>Card</span><span>${cs} ${pay.card.toFixed(2)}</span></div>
+                ${pay.other > 0 ? `<div class="line"><span>Other</span><span>${cs} ${pay.other.toFixed(2)}</span></div>` : ''}
+                <div class="line"><span>Pending</span><span class="${pending > 0 ? 'neg' : 'pos'}">${cs} ${pending.toFixed(2)}</span></div>
+            </div>
+
+            <div class="foot">Thank you for staying with us - ${hotelName}</div>
+            <script>window.onload=function(){window.print();setTimeout(function(){window.close();},500)}<\/script>
+        </body></html>`;
+
+        const w = window.open('', '_blank', `height=760,width=${fmt.windowWidth}`);
         w.document.write(content);
         w.document.close();
+        setShowPrintDrawer(false);
     };
 
     // Print individual receipt
@@ -777,9 +1015,9 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
                     </div>
                     <button
                         className="folio-action-btn btn-print-folio"
-                        onClick={handlePrintFolio}
+                        onClick={() => setShowPrintDrawer(true)}
                         disabled={currentFolioTransactions.length === 0}
-                        title="Print full folio"
+                        title="Open print options"
                     >
                         🖨️ Print Folio
                     </button>
@@ -991,6 +1229,110 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
                     isProcessing={isProcessingRoute}
                     variant="danger"
                 />
+            )}
+
+            {/* Print Folio Slide Drawer */}
+            {showPrintDrawer && (
+                <div className="add-payment-overlay" onClick={() => setShowPrintDrawer(false)}>
+                    <div className="add-payment-modal" onClick={(e) => e.stopPropagation()} style={{ width: '420px' }}>
+                        <div className="premium-payment-header">
+                            <div className="header-icon-wrap" aria-hidden="true">
+                                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.3"><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                            </div>
+                            <div className="header-text">
+                                <h3>Print Folio</h3>
+                                <span>Select Print Format</span>
+                            </div>
+                            <button className="premium-close-btn" onClick={() => setShowPrintDrawer(false)} aria-label="Close print options">×</button>
+                        </div>
+
+                        <div className="add-payment-form-premium" style={{ height: '100%', width: '100%', boxSizing: 'border-box' }}>
+                            <div className="add-payment-body" style={{ gap: '16px' }}>
+                                <div className="payment-summary-card" style={{ marginBottom: '4px' }}>
+                                    <div className="summary-header">
+                                        <span className="ref-tag">FOLIO</span>
+                                        <span className="ref-number">{folioList.find(f => f.id === selectedRoom)?.roomNumber || reservation?.roomNumber || '-'}</span>
+                                    </div>
+                                    <div className="summary-main">
+                                        <div className="summary-column">
+                                            <div className="summary-item"><label>GUEST</label><span>{folioList.find(f => f.id === selectedRoom)?.guestName || reservation?.guestName || 'N/A'}</span></div>
+                                        </div>
+                                        <div className="summary-column">
+                                            <div className="summary-item"><label>BALANCE</label><span style={{ color: '#e11d48', fontWeight: '900' }}>{cs}{totals.remaining.toFixed(2)}</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="field-label-premium" style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span>🖨️</span> SELECT PRINT FORMAT
+                                    </label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                                        {printFormats.map((fmt) => (
+                                            <button
+                                                key={fmt.key}
+                                                type="button"
+                                                onClick={() => setSelectedPrintType(fmt.key)}
+                                                style={{
+                                                    background: selectedPrintType === fmt.key ? '#fef2f2' : 'white',
+                                                    border: selectedPrintType === fmt.key ? '2px solid #e11d48' : '2px solid #f1f5f9',
+                                                    borderRadius: '16px',
+                                                    padding: '16px 8px',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '6px',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                    boxShadow: selectedPrintType === fmt.key ? '0 8px 20px rgba(225, 29, 72, 0.15)' : 'none',
+                                                    position: 'relative',
+                                                    overflow: 'hidden'
+                                                }}
+                                            >
+                                                <span style={{ fontSize: '24px' }}>{fmt.icon}</span>
+                                                <span style={{ fontSize: '13px', fontWeight: '800', color: selectedPrintType === fmt.key ? '#e11d48' : '#475569' }}>{fmt.label}</span>
+                                                <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '700' }}>{fmt.desc}</span>
+                                                {selectedPrintType === fmt.key && (
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        top: '-6px',
+                                                        right: '-6px',
+                                                        background: '#e11d48',
+                                                        color: 'white',
+                                                        width: '20px',
+                                                        height: '20px',
+                                                        borderRadius: '50%',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '10px',
+                                                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                                                        border: '2px solid white'
+                                                    }}>✓</div>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div style={{ marginTop: 'auto', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 14px' }}>
+                                    <div style={{ color: '#64748b', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Selected Format</div>
+                                    <div style={{ color: '#1e293b', fontSize: '14px', fontWeight: '800', marginTop: '4px' }}>
+                                        {printFormats.find(p => p.key === selectedPrintType)?.icon} {printFormats.find(p => p.key === selectedPrintType)?.label}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="payment-modal-footer">
+                                <button type="button" className="btn-secondary" onClick={() => setShowPrintDrawer(false)}>CANCEL</button>
+                                <button type="button" className="btn-primary" onClick={() => handlePrintFolio(selectedPrintType)} style={{ flex: 2 }}>
+                                    PRINT FOLIO
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Edit Modal */}

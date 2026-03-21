@@ -21,6 +21,7 @@ exports.getAllTables = async (req, res) => {
             tableNumber: table.tableNumber,
             tableName: table.tableName || `T${table.tableNumber}`,
             type: table.type,
+            location: table.location || 'Main Hall',
             status: table.status,
             capacity: table.capacity,
             guests: table.guests,
@@ -84,16 +85,19 @@ exports.getTableById = async (req, res) => {
 // Create new table
 exports.createTable = async (req, res) => {
     try {
-        const { tableName, capacity, type } = req.body;
+        const { tableName, capacity, type, location } = req.body;
+        const normalizedName = String(tableName || '').trim();
+        const normalizedType = String(type || '').trim() || 'General';
+        const normalizedLocation = String(location || '').trim() || 'Main Hall';
 
-        if (!tableName) {
+        if (!normalizedName) {
             return res.status(400).json({ success: false, message: 'Table name is required' });
         }
 
         // Check if table name already exists
-        const existingTable = await Table.findOne({ tableName: { $regex: new RegExp(`^${tableName}$`, 'i') } });
+        const existingTable = await Table.findOne({ tableName: { $regex: new RegExp(`^${normalizedName}$`, 'i') } });
         if (existingTable) {
-            return res.status(400).json({ success: false, message: `Table "${tableName}" already exists` });
+            return res.status(400).json({ success: false, message: `Table "${normalizedName}" already exists` });
         }
 
         // Auto-generate table number
@@ -115,10 +119,11 @@ exports.createTable = async (req, res) => {
         }
 
         const table = new Table({
-            tableName,
+            tableName: normalizedName,
             tableNumber,
             capacity: capacity || 4,
-            type: type || 'General',
+            type: normalizedType,
+            location: normalizedLocation,
             status: 'Available'
         });
 
@@ -167,13 +172,14 @@ exports.deleteTable = async (req, res) => {
 // Update table details (status, type, reservation, etc.)
 exports.updateTable = async (req, res) => {
     try {
-        const { status, type, capacity, tableName, guests, reservation, currentOrderId, runningOrderAmount, orderStartTime, orderDuration } = req.body;
+        const { status, type, capacity, tableName, guests, reservation, currentOrderId, runningOrderAmount, orderStartTime, orderDuration, location } = req.body;
 
         let updateData = {};
         if (status) updateData.status = status;
-        if (type) updateData.type = type;
+        if (typeof type !== 'undefined') updateData.type = String(type || '').trim() || 'General';
+        if (typeof location !== 'undefined') updateData.location = String(location || '').trim() || 'Main Hall';
         if (capacity) updateData.capacity = capacity;
-        if (tableName) updateData.tableName = tableName;
+        if (tableName) updateData.tableName = String(tableName || '').trim();
         if (guests !== undefined) updateData.guests = guests;
 
         // Handle order-related fields (allow clearing with null/0)
@@ -975,6 +981,25 @@ exports.updateOrderStatus = async (req, res) => {
         const order = await GuestMealOrder.findById(orderId);
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        // Persist cashier-calculated billing snapshot so reports can use exact settled values.
+        if (billingMeta && typeof billingMeta === 'object') {
+            const settledSubtotal = Number(billingMeta.subtotal ?? order.subtotal ?? 0) || 0;
+            const settledFoodGst = Number(billingMeta.foodGstAmount ?? order.tax ?? 0) || 0;
+            const settledServiceCharge = Number(billingMeta.serviceChargeAmount ?? order.serviceChargeAmount ?? 0) || 0;
+            const settledDiscount = Number(billingMeta.discountAmount ?? order.discountAmount ?? 0) || 0;
+            const settledGrandTotal = Number(billingMeta.grandTotal ?? (settledSubtotal + settledFoodGst + settledServiceCharge)) || 0;
+            const settledNetPayable = Number(billingMeta.netPayable ?? amount ?? order.finalAmount ?? 0) || 0;
+
+            order.subtotal = settledSubtotal;
+            order.tax = settledFoodGst;
+            order.serviceChargeAmount = settledServiceCharge;
+            order.discountAmount = settledDiscount;
+            order.totalAmount = settledGrandTotal;
+            order.finalAmount = settledNetPayable;
+            order.$locals = order.$locals || {};
+            order.$locals.skipFinancialRecalc = true;
         }
 
         order.status = status;

@@ -133,6 +133,7 @@ const GuestMealService = () => {
     // Filters & Search
     const [statusFilter, setStatusFilter] = useState('All');
     const [typeFilter, setTypeFilter] = useState('All');
+    const [locationFilter, setLocationFilter] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
 
     // Modals
@@ -148,13 +149,32 @@ const GuestMealService = () => {
     const [newTableType, setNewTableType] = useState('');
     const [showTypeDropdown, setShowTypeDropdown] = useState(false);
     const typeDropdownRef = useRef(null);
+    const selectedTypeRef = useRef('');
     const [tableTypeDeleteWarning, setTableTypeDeleteWarning] = useState(null);
+    const [tableLocations, setTableLocations] = useState(['Main Hall', 'Garden', 'Rooftop', 'Poolside']);
+    const [isAddingTableLocation, setIsAddingTableLocation] = useState(false);
+    const [newTableLocation, setNewTableLocation] = useState('');
+    const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+    const locationDropdownRef = useRef(null);
+    const selectedLocationRef = useRef('');
+    const [tableLocationDeleteWarning, setTableLocationDeleteWarning] = useState(null);
+
+    const findCaseInsensitiveMatch = (items, value) => {
+        const target = String(value || '').trim().toLowerCase();
+        if (!target) return null;
+        return items.find(item => String(item || '').trim().toLowerCase() === target) || null;
+    };
 
     const [newTableData, setNewTableData] = useState({
         tableName: '',
         type: '',
-        capacity: ''
+        capacity: '',
+        location: ''
     });
+
+    const patchNewTableData = useCallback((patch) => {
+        setNewTableData(prev => ({ ...prev, ...patch }));
+    }, []);
 
     const closeTableFormModal = useCallback(() => {
         setShowAddTableModal(false);
@@ -162,16 +182,25 @@ const GuestMealService = () => {
         setIsAddingTableType(false);
         setNewTableType('');
         setShowTypeDropdown(false);
+        setTableLocationDeleteWarning(null);
+        setIsAddingTableLocation(false);
+        setNewTableLocation('');
+        setShowLocationDropdown(false);
         setIsEditTableMode(false);
         setEditingTableId(null);
-        setNewTableData({ tableName: '', type: '', capacity: '' });
+        setNewTableData({ tableName: '', type: '', capacity: '', location: '' });
+        selectedTypeRef.current = '';
+        selectedLocationRef.current = '';
     }, []);
 
     const openCreateTableModal = () => {
         setIsEditTableMode(false);
         setEditingTableId(null);
-        setNewTableData({ tableName: '', type: '', capacity: '' });
+        setNewTableData({ tableName: '', type: '', capacity: '', location: '' });
+        selectedTypeRef.current = '';
+        selectedLocationRef.current = '';
         setTableTypeDeleteWarning(null);
+        setTableLocationDeleteWarning(null);
         setShowAddTableModal(true);
     };
 
@@ -183,14 +212,23 @@ const GuestMealService = () => {
             setTableTypes(prev => [...new Set([...prev, tableType])]);
         }
 
+        const tableLocation = table.location || 'Main Hall';
+        if (tableLocation && !tableLocations.includes(tableLocation)) {
+            setTableLocations(prev => [...new Set([...prev, tableLocation])]);
+        }
+
         setIsEditTableMode(true);
         setEditingTableId(table.tableId || table._id);
         setNewTableData({
             tableName: table.tableName || '',
             type: tableType,
-            capacity: table.capacity ? String(table.capacity) : ''
+            capacity: table.capacity ? String(table.capacity) : '',
+            location: tableLocation
         });
+        selectedTypeRef.current = tableType;
+        selectedLocationRef.current = tableLocation;
         setTableTypeDeleteWarning(null);
+        setTableLocationDeleteWarning(null);
         setShowAddTableModal(true);
     };
 
@@ -199,6 +237,9 @@ const GuestMealService = () => {
         const handleClickOutside = (e) => {
             if (typeDropdownRef.current && !typeDropdownRef.current.contains(e.target)) {
                 setShowTypeDropdown(false);
+            }
+            if (locationDropdownRef.current && !locationDropdownRef.current.contains(e.target)) {
+                setShowLocationDropdown(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -211,6 +252,13 @@ const GuestMealService = () => {
         const timer = setTimeout(() => setTableTypeDeleteWarning(null), 5000);
         return () => clearTimeout(timer);
     }, [tableTypeDeleteWarning]);
+
+    useEffect(() => {
+        if (!tableLocationDeleteWarning) return;
+
+        const timer = setTimeout(() => setTableLocationDeleteWarning(null), 5000);
+        return () => clearTimeout(timer);
+    }, [tableLocationDeleteWarning]);
 
     // Move Guest State
     const [showMoveModal, setShowMoveModal] = useState(false);
@@ -250,6 +298,15 @@ const GuestMealService = () => {
     const [verifyPhoneInput, setVerifyPhoneInput] = useState('');
     const [verifyTableId, setVerifyTableId] = useState(null);
     const [selectedVerifyMatchKey, setSelectedVerifyMatchKey] = useState('');
+    const [showCancelReservationPanel, setShowCancelReservationPanel] = useState(false);
+    const [cancelPanelTarget, setCancelPanelTarget] = useState(null);
+    const [cancelPanelForm, setCancelPanelForm] = useState({
+        guestName: '',
+        phone: '',
+        reason: '',
+        charge: '0',
+        note: ''
+    });
 
     const [splitSubTables, setSplitSubTables] = useState([]);
     // Reservation List State
@@ -297,6 +354,10 @@ const GuestMealService = () => {
                         .filter(t => !t.toLowerCase().includes('burr'));
                     return merged;
                 });
+
+                const locations = [...new Set(data.data.map(t => t.location || 'Main Hall'))]
+                    .filter(loc => !!String(loc || '').trim());
+                setTableLocations(prev => [...new Set([...prev, ...locations])]);
             } else {
                 console.error("Failed to fetch tables", data);
             }
@@ -309,10 +370,35 @@ const GuestMealService = () => {
 
     // --- TOAST NOTIFICATION ---
     const [toast, setToast] = useState({ show: false, message: '', subtext: '' });
+    const [cancelSuccessNote, setCancelSuccessNote] = useState({ show: false, message: '', subtext: '' });
+    const cancelSuccessTimerRef = useRef(null);
+
     const showToast = (message, subtext = '') => {
         setToast({ show: true, message, subtext });
         setTimeout(() => setToast({ show: false, message: '', subtext: '' }), 2000);
     };
+
+    const showCancelSuccessNote = (message, subtext = '') => {
+        if (cancelSuccessTimerRef.current) {
+            clearTimeout(cancelSuccessTimerRef.current);
+            cancelSuccessTimerRef.current = null;
+        }
+
+        setCancelSuccessNote({ show: true, message, subtext });
+        cancelSuccessTimerRef.current = setTimeout(() => {
+            setCancelSuccessNote({ show: false, message: '', subtext: '' });
+            cancelSuccessTimerRef.current = null;
+        }, 6000);
+    };
+
+    useEffect(() => {
+        return () => {
+            if (cancelSuccessTimerRef.current) {
+                clearTimeout(cancelSuccessTimerRef.current);
+                cancelSuccessTimerRef.current = null;
+            }
+        };
+    }, []);
 
     const handleSendToCashier = async (e, table) => {
         e.stopPropagation();
@@ -400,6 +486,8 @@ const GuestMealService = () => {
     const checkReservationConflict = (table, formData) => {
         if (!table || !table.reservations) return null;
         return table.reservations.find(res =>
+            String(res.status || '').toLowerCase() !== 'cancelled' &&
+            !getReservationTimelineMeta(res).isExpiredFromView &&
             res.id !== formData.id &&
             res.date === formData.date &&
             isTimeOverlap(res.startTime, res.endTime, formData.startTime, formData.endTime)
@@ -520,6 +608,8 @@ const GuestMealService = () => {
         setVerifyTableId(table ? (table.tableId || table._id) : null);
         setVerifyPhoneInput('');
         setSelectedVerifyMatchKey('');
+        setShowCancelReservationPanel(false);
+        setCancelPanelTarget(null);
         setShowVerifyModal(true);
     };
 
@@ -543,96 +633,124 @@ const GuestMealService = () => {
             return;
         }
 
-        if (matchedReservation.phone === verifyPhoneInput) {
-            // Verified! Just seat the guest as 'Occupied'
-            setShowVerifyModal(false);
+        if (!matchedReservation.canVerify) {
+            showToast('Verification Blocked', 'Only active or upcoming reservations can be verified.');
+            return;
+        }
 
-            try {
-                const targetId = tableToVerify.tableId || tableToVerify._id;
-                const response = await fetch(`${API_URL}/api/guest-meal/tables/${targetId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        status: 'Occupied',
-                        currentOrderGuestName: matchedReservation.name,
-                        currentOrderGuestPhone: matchedReservation.phone,
-                        currentOrderGuestCount: matchedReservation.guests
-                    })
+        // Verified! Just seat the guest as 'Occupied'
+        setShowVerifyModal(false);
+
+        try {
+            const targetId = tableToVerify.tableId || tableToVerify._id;
+            const response = await fetch(`${API_URL}/api/guest-meal/tables/${targetId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    status: 'Occupied',
+                    currentOrderGuestName: matchedReservation.name,
+                    currentOrderGuestPhone: matchedReservation.phone,
+                    currentOrderGuestCount: matchedReservation.guests
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                setTables(prev => prev.map(t => (t.tableId || t._id) === targetId ? {
+                    ...data.data,
+                    tableId: data.data._id || data.data.tableId
+                } : t));
+
+                setToast({
+                    show: true,
+                    message: "Guest Verified",
+                    subtext: `${matchedReservation.name} seated at Table ${tableToVerify.tableName}`
                 });
+                setTimeout(() => setToast({ show: false, message: '', subtext: '' }), 3000);
+                // Update local state to Occupied (Guest is seated/verified but hasn't ordered yet)
+                setTables(prev => prev.map(t => (t.tableId === tableToVerify.tableId || t._id === tableToVerify._id) ? { ...t, status: 'Occupied' } : t));
 
-                const data = await response.json();
-                if (data.success) {
-                    setTables(prev => prev.map(t => (t.tableId || t._id) === targetId ? {
-                        ...data.data,
-                        tableId: data.data._id || data.data.tableId
-                    } : t));
-
-                    setToast({
-                        show: true,
-                        message: "Guest Verified",
-                        subtext: `${matchedReservation.name} seated at Table ${tableToVerify.tableName}`
-                    });
-                    setTimeout(() => setToast({ show: false, message: '', subtext: '' }), 3000);
-                    // Update local state to Occupied (Guest is seated/verified but hasn't ordered yet)
-                    setTables(prev => prev.map(t => (t.tableId === tableToVerify.tableId || t._id === tableToVerify._id) ? { ...t, status: 'Occupied' } : t));
-
-                    // Navigate with guest details
-                    navigate('/admin/dashboard', {
-                        state: {
-                            activeMenu: 'food-order',
-                            orderMode: 'dinein',
-                            source: 'table-order',
-                            room: {
-                                roomNumber: tableToVerify.tableName,
-                                guestName: matchedReservation.name,
-                                guestPhone: matchedReservation.phone,
-                                id: tableToVerify.tableId || tableToVerify._id
-                            }
+                // Navigate with guest details
+                navigate('/admin/dashboard', {
+                    state: {
+                        activeMenu: 'food-order',
+                        orderMode: 'dinein',
+                        source: 'table-order',
+                        room: {
+                            roomNumber: tableToVerify.tableName,
+                            guestName: matchedReservation.name,
+                            guestPhone: matchedReservation.phone,
+                            id: tableToVerify.tableId || tableToVerify._id
                         }
-                    });
-                }
-            } catch (error) {
-                console.error("Error verifying user:", error);
-                showToast('Verification Failed', 'Network error during verification.');
+                    }
+                });
             }
+        } catch (error) {
+            console.error("Error verifying user:", error);
+            showToast('Verification Failed', 'Network error during verification.');
         }
     };
 
     const normalizePhoneDigits = (value = '') => String(value).replace(/\D/g, '');
 
-    const parseTimeToMinutes = (timeValue = '') => {
-        if (!timeValue || typeof timeValue !== 'string') return 0;
-        const match = timeValue.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-        if (!match) return 0;
-        let hour = parseInt(match[1], 10);
-        const minute = parseInt(match[2], 10);
-        const meridian = match[3].toUpperCase();
-        if (meridian === 'PM' && hour !== 12) hour += 12;
-        if (meridian === 'AM' && hour === 12) hour = 0;
-        return hour * 60 + minute;
-    };
+    const parseReservationDateTime = useCallback((dateValue, timeValue) => {
+        if (!dateValue || !timeValue) return null;
+        const normalizedTime = toTime24(timeValue);
+        if (!normalizedTime || !normalizedTime.includes(':')) return null;
 
-    const getReservationLatestScore = (reservation = {}, fallbackIndex = 0) => {
-        const createdAtTs = reservation.updatedAt
-            ? new Date(reservation.updatedAt).getTime()
-            : reservation.createdAt
-                ? new Date(reservation.createdAt).getTime()
-                : 0;
-        const dateTs = reservation.date ? new Date(reservation.date).getTime() : 0;
-        const timeScore = parseTimeToMinutes(reservation.startTime);
-        const baseTs = Math.max(createdAtTs, dateTs);
+        const [year, month, day] = String(dateValue).split('-').map(Number);
+        const [hour, minute] = normalizedTime.split(':').map(Number);
+        if ([year, month, day, hour, minute].some(Number.isNaN)) return null;
 
-        if (baseTs > 0) {
-            return (baseTs * 10000) + timeScore;
+        return new Date(year, month - 1, day, hour, minute, 0, 0);
+    }, [toTime24]);
+
+    const getReservationTimelineMeta = useCallback((reservation = {}) => {
+        const nowTs = Date.now();
+        const retentionCutoffTs = nowTs - (24 * 60 * 60 * 1000);
+
+        const startDateTime = parseReservationDateTime(reservation.date, reservation.startTime);
+        const endDateTime = parseReservationDateTime(reservation.date, reservation.endTime || reservation.startTime);
+
+        const startTs = startDateTime ? startDateTime.getTime() : 0;
+        const endTs = endDateTime ? endDateTime.getTime() : startTs;
+        const status = String(reservation.status || 'Upcoming').trim();
+        const normalizedStatus = status.toLowerCase();
+        const isCancelled = normalizedStatus === 'cancelled';
+        const isExpiredFromView = endTs > 0 && endTs < retentionCutoffTs;
+
+        const isInSession = startTs > 0 && endTs > 0 && nowTs >= startTs && nowTs <= endTs;
+        const isFuture = startTs > nowTs;
+        const isPast = endTs > 0 && endTs < nowTs;
+        const canVerify = !isCancelled && !isPast && !isExpiredFromView;
+
+        let statusLabel = status || 'Upcoming';
+        if (isCancelled) {
+            statusLabel = 'Cancelled';
+        } else if (isInSession) {
+            statusLabel = 'In Session';
+        } else if (isFuture) {
+            statusLabel = 'Reserved';
+        } else if (isPast) {
+            statusLabel = 'Completed';
         }
 
-        // Fallback keeps later entries above older ones when timestamps are missing.
-        return fallbackIndex + 1;
-    };
+        return {
+            startTs,
+            endTs,
+            isCancelled,
+            isExpiredFromView,
+            isFuture,
+            isPast,
+            isInSession,
+            canVerify,
+            statusLabel
+        };
+    }, [parseReservationDateTime]);
 
     const getVerifyMatchKey = (match) => {
         if (!match) return '';
-        return `${match.type}-${match.tableId}-${normalizePhoneDigits(match.phone)}-${match.isLatestScore}`;
+        return `${match.type}-${match.tableId}-${normalizePhoneDigits(match.phone)}-${match.sortValue}`;
     };
 
     const getVerifyMatches = (phoneInput) => {
@@ -656,10 +774,20 @@ const GuestMealService = () => {
                 const isMatch = resDigits.includes(inputDigits) || inputDigits.includes(resDigits);
                 if (!isMatch) return;
 
+                const timelineMeta = getReservationTimelineMeta(r);
+                if (timelineMeta.isExpiredFromView) return;
+
+                const sortGroup = timelineMeta.isFuture || timelineMeta.isInSession ? 1 : 2;
+                const sortValue = timelineMeta.isFuture || timelineMeta.isInSession
+                    ? (timelineMeta.startTs || (Date.now() + index))
+                    : -(timelineMeta.endTs || Date.now());
+
                 reservationMatches.push({
                     type: 'reservation',
                     tableId: t.tableId || t._id,
                     tableName: tName,
+                    _id: r._id,
+                    id: r.id,
                     name: r.name,
                     phone: r.phone,
                     guests: r.guests,
@@ -667,8 +795,11 @@ const GuestMealService = () => {
                     startTime: r.startTime,
                     endTime: r.endTime,
                     advancePayment: r.advancePayment,
-                    statusLabel: 'Reserved',
-                    isLatestScore: getReservationLatestScore(r, index),
+                    status: r.status || 'Upcoming',
+                    statusLabel: timelineMeta.statusLabel,
+                    canVerify: timelineMeta.canVerify,
+                    sortGroup,
+                    sortValue,
                 });
             });
 
@@ -690,13 +821,21 @@ const GuestMealService = () => {
                     endTime: null,
                     advancePayment: 0,
                     statusLabel: 'Currently Running',
-                    isLatestScore: runningTs,
+                    canVerify: false,
+                    sortGroup: 0,
+                    sortValue: -runningTs,
                 });
             }
         });
 
         return [...reservationMatches, ...runningMatches]
-            .sort((a, b) => b.isLatestScore - a.isLatestScore);
+            .sort((a, b) => {
+                if (a.sortGroup !== b.sortGroup) return a.sortGroup - b.sortGroup;
+                const nameA = String(a.name || '').trim().toLowerCase();
+                const nameB = String(b.name || '').trim().toLowerCase();
+                if (nameA !== nameB) return nameA.localeCompare(nameB);
+                return a.sortValue - b.sortValue;
+            });
     };
 
     useEffect(() => {
@@ -949,37 +1088,170 @@ const GuestMealService = () => {
         }
     };
 
-    const handleCancelReservation = async (table, reservationId) => {
+    const handleCancelReservation = async (table, reservation, cancelDetails = {}) => {
+        if (!table || !reservation) return;
+
         const targetId = table.tableId || table._id;
+        const reservationId = reservation._id || reservation.id;
+        const reason = String(cancelDetails.reason || '').trim();
+        const note = String(cancelDetails.note || '').trim();
+        const charge = Number(cancelDetails.charge || 0);
+
+        if (!reason) {
+            showToast('Cancellation Failed', 'Cancellation reason is required.');
+            return;
+        }
+
         try {
+            const updatedReservations = (table.reservations || []).map(r => {
+                const rowId = r._id || r.id;
+                if (String(rowId) !== String(reservationId)) return r;
+
+                return {
+                    ...r,
+                    name: reservation.name || reservation.guestName || r.name || r.guestName || '',
+                    guestName: reservation.guestName || reservation.name || r.guestName || r.name || '',
+                    phone: reservation.phone || r.phone || '',
+                    status: 'Cancelled',
+                    cancellationReason: reason,
+                    cancellationNote: note,
+                    cancellationCharge: Number.isFinite(charge) ? charge : 0,
+                    cancelledAt: new Date().toISOString(),
+                    cancelledBy: cancelDetails.source || 'Front Desk',
+                };
+            });
+
             const response = await fetch(`${API_URL}/api/guest-meal/tables/${targetId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ removeReservationId: reservationId })
+                body: JSON.stringify({ reservations: updatedReservations })
             });
 
             const data = await response.json();
-            if (data.success) {
-                setTables(prev => prev.map(t => {
-                    if ((t.tableId || t._id) === targetId) {
-                        return {
-                            ...t,
-                            reservations: (t.reservations || []).filter(r => r.id !== reservationId)
-                        };
-                    }
-                    return t;
-                }));
-                // Also update the local reservationListTable if it's the same table
-                if (reservationListTable && (reservationListTable.tableId || reservationListTable._id) === targetId) {
-                    setReservationListTable(prev => ({
-                        ...prev,
-                        reservations: (prev.reservations || []).filter(r => r.id !== reservationId)
-                    }));
-                }
+            if (!data.success) {
+                showToast('Cancellation Failed', data.message || 'Could not cancel reservation.');
+                return;
             }
+
+            const normalizedUpdatedTable = {
+                ...data.data,
+                tableId: data.data._id || data.data.tableId
+            };
+
+            setTables(prev => prev.map(t => (t.tableId || t._id) === targetId ? normalizedUpdatedTable : t));
+            if (reservationListTable && (reservationListTable.tableId || reservationListTable._id) === targetId) {
+                setReservationListTable(normalizedUpdatedTable);
+            }
+
+            const cancelledGuest = reservation.name || reservation.guestName || 'Guest';
+            const chargeText = `${cs}${(Number.isFinite(charge) ? charge : 0).toFixed(2)}`;
+            const notePart = note ? ` | Note: ${note}` : '';
+            showCancelSuccessNote('Reservation Cancelled', `${cancelledGuest} | Charge: ${chargeText}${notePart}`);
         } catch (error) {
             console.error("Error cancelling reservation:", error);
+            showToast('Cancellation Failed', 'Network error while cancelling reservation.');
         }
+    };
+
+    const handleCancelFromVerifyModal = () => {
+        const inputDigits = normalizePhoneDigits(verifyPhoneInput);
+        if (inputDigits.length !== 10) {
+            showToast('Cancellation Failed', 'Enter valid 10 digit phone first.');
+            return;
+        }
+
+        const verifyMatches = getVerifyMatches(verifyPhoneInput);
+        const exactReservationMatches = verifyMatches.filter(
+            (m) => m.type === 'reservation' && normalizePhoneDigits(m.phone) === inputDigits
+        );
+        const selectedReservationMatch = exactReservationMatches.find(
+            (m) => getVerifyMatchKey(m) === selectedVerifyMatchKey
+        );
+        const matchedReservation = selectedReservationMatch || exactReservationMatches[0] || null;
+
+        if (!matchedReservation) {
+            showToast('Cancellation Failed', 'No reservation found for this phone.');
+            return;
+        }
+
+        if (String(matchedReservation.status || '').toLowerCase() === 'cancelled') {
+            showToast('Already Cancelled', 'This reservation is already cancelled.');
+            return;
+        }
+
+        if (!matchedReservation.canVerify) {
+            showToast('Cancellation Blocked', 'Only active or upcoming reservations can be cancelled from verify panel.');
+            return;
+        }
+
+        const tableToCancel = tables.find((t) => (t.tableId || t._id) === matchedReservation.tableId);
+        if (!tableToCancel) {
+            showToast('Cancellation Failed', 'Table not found for selected reservation.');
+            return;
+        }
+
+        const fullReservation = (tableToCancel.reservations || []).find(
+            r => String(r._id || r.id) === String(matchedReservation._id || matchedReservation.id)
+        ) || matchedReservation;
+
+        setCancelPanelTarget({
+            table: tableToCancel,
+            reservation: fullReservation,
+        });
+        setCancelPanelForm({
+            guestName: String(fullReservation.name || fullReservation.guestName || '').trim(),
+            phone: String(fullReservation.phone || '').trim(),
+            reason: 'Guest requested cancellation',
+            charge: '0',
+            note: ''
+        });
+        setShowCancelReservationPanel(true);
+    };
+
+    const submitCancelFromPanel = async () => {
+        if (!cancelPanelTarget?.table || !cancelPanelTarget?.reservation) return;
+
+        const reason = String(cancelPanelForm.reason || '').trim();
+        const guestName = String(cancelPanelForm.guestName || '').trim();
+        const phone = String(cancelPanelForm.phone || '').trim();
+        const charge = Number(cancelPanelForm.charge || 0);
+
+        if (!reason) {
+            showToast('Cancellation Failed', 'Please enter cancellation reason.');
+            return;
+        }
+
+        if (!guestName) {
+            showToast('Cancellation Failed', 'Please enter guest name.');
+            return;
+        }
+
+        if (!/^\d{10}$/.test(phone)) {
+            showToast('Cancellation Failed', 'Please enter valid 10 digit number.');
+            return;
+        }
+
+        if (!Number.isFinite(charge) || charge < 0) {
+            showToast('Cancellation Failed', 'Cancellation charge should be zero or positive.');
+            return;
+        }
+
+        const reservationWithContact = {
+            ...cancelPanelTarget.reservation,
+            name: guestName,
+            guestName,
+            phone
+        };
+
+        await handleCancelReservation(cancelPanelTarget.table, reservationWithContact, {
+            reason,
+            charge,
+            note: String(cancelPanelForm.note || '').trim(),
+            source: 'Verify Modal'
+        });
+
+        setShowCancelReservationPanel(false);
+        setCancelPanelTarget(null);
     };
 
 
@@ -1175,7 +1447,10 @@ const GuestMealService = () => {
                     // Skip if Running or Billed (Active Session)
                     if (t.status === 'Running' || t.status === 'Billed') return t;
 
-                    const reservations = t.reservations || [];
+                    const reservations = (t.reservations || []).filter(res => {
+                        const timeline = getReservationTimelineMeta(res);
+                        return !timeline.isCancelled && !timeline.isExpiredFromView;
+                    });
 
                     // Check if ANY reservation is active NOW
                     let isActive = false;
@@ -1213,7 +1488,7 @@ const GuestMealService = () => {
         checkReservations(); // Initial check
 
         return () => clearInterval(interval);
-    }, [getNowContext]);
+    }, [getNowContext, getReservationTimelineMeta]);
 
 
 
@@ -1228,6 +1503,8 @@ const GuestMealService = () => {
         let tableList = tables.filter(t => !t.tableName.startsWith('_MERGED_')).map(table => {
             // Check for current active reservation
             const activeRes = (table.reservations || []).find(res => {
+                const timeline = getReservationTimelineMeta(res);
+                if (timeline.isCancelled || timeline.isExpiredFromView) return false;
                 if (res.date !== todayStr) return false;
                 const [sH, sM] = res.startTime.split(':').map(Number);
                 const [eH, eM] = res.endTime.split(':').map(Number);
@@ -1255,6 +1532,11 @@ const GuestMealService = () => {
             tableList = tableList.filter(table => table.type === typeFilter);
         }
 
+        // Filter by Location
+        if (locationFilter !== 'All') {
+            tableList = tableList.filter(table => (table.location || 'Main Hall') === locationFilter);
+        }
+
         // --- Time Availability Filter Logic ---
         if (isTimeFilterActive) {
             const isSelectedTimeNearNow =
@@ -1264,6 +1546,8 @@ const GuestMealService = () => {
 
             tableList = tableList.filter(table => {
                 const hasConflict = (table.reservations || []).some(res => {
+                    const timeline = getReservationTimelineMeta(res);
+                    if (timeline.isCancelled || timeline.isExpiredFromView) return false;
                     if (res.date !== appliedDate) return false;
                     const [startH, startM] = res.startTime.split(':').map(Number);
                     const [endH, endM] = res.endTime.split(':').map(Number);
@@ -1298,7 +1582,7 @@ const GuestMealService = () => {
 
         // Update stats
         const upcomingCount = tables.reduce((count, table) => {
-            const todayRes = (table.reservations || []).filter(r => r.date === todayStr);
+            const todayRes = (table.reservations || []).filter(r => r.date === todayStr && String(r.status || '').toLowerCase() !== 'cancelled');
             // Count reservations that haven't happened yet (start time > now)
             return count + todayRes.filter(r => {
                 const [h, m] = r.startTime.split(':').map(Number);
@@ -1320,6 +1604,8 @@ const GuestMealService = () => {
 
             availableCount = tables.filter(table => {
                 const hasConflict = (table.reservations || []).some(res => {
+                    const timeline = getReservationTimelineMeta(res);
+                    if (timeline.isCancelled || timeline.isExpiredFromView) return false;
                     if (res.date !== appliedDate) return false;
                     const [startH, startM] = res.startTime.split(':').map(Number);
                     const [endH, endM] = res.endTime.split(':').map(Number);
@@ -1345,7 +1631,7 @@ const GuestMealService = () => {
             upcomingCount: upcomingCount,
             revenue: prev.revenue
         }));
-    }, [statusFilter, typeFilter, searchQuery, tables, appliedDate, appliedTime, isTimeFilterActive, getNowContext, timeToMinutes, toTime24]);
+    }, [statusFilter, typeFilter, locationFilter, searchQuery, tables, appliedDate, appliedTime, isTimeFilterActive, getNowContext, timeToMinutes, toTime24, getReservationTimelineMeta]);
 
     const formatDuration = (minutes) => {
         if (minutes === 0) return '--';
@@ -1425,23 +1711,57 @@ const GuestMealService = () => {
     const handleAddTableType = () => {
         if (!newTableType.trim()) return;
         const type = newTableType.trim();
-        if (!tableTypes.includes(type)) {
-            setTableTypes([...tableTypes, type]);
-            setNewTableData({ ...newTableData, type: type });
+        const existingType = findCaseInsensitiveMatch(tableTypes, type);
+        const selectedType = existingType || type;
+
+        if (!existingType) {
+            setTableTypes(prev => [...prev, type]);
         }
+        setNewTableData(prev => ({ ...prev, type: selectedType }));
+        selectedTypeRef.current = selectedType;
+
         setTableTypeDeleteWarning(null);
         setIsAddingTableType(false);
         setNewTableType('');
+    };
+
+    const handleAddTableLocation = () => {
+        if (!newTableLocation.trim()) return;
+        const location = newTableLocation.trim();
+        const existingLocation = findCaseInsensitiveMatch(tableLocations, location);
+        const selectedLocation = existingLocation || location;
+
+        if (!existingLocation) {
+            setTableLocations(prev => [...prev, location]);
+        }
+        setNewTableData(prev => ({ ...prev, location: selectedLocation }));
+        selectedLocationRef.current = selectedLocation;
+
+        setTableLocationDeleteWarning(null);
+        setIsAddingTableLocation(false);
+        setNewTableLocation('');
     };
 
     const handleCreateTable = async () => {
         if (!newTableData.tableName || !newTableData.capacity) return;
 
         try {
+            const normalizedType = (newTableData.type || '').trim() || 'General';
+            const selectedType = String(selectedTypeRef.current || newTableData.type || '').trim() || 'General';
+            const draftLocation = isAddingTableLocation
+                ? newTableLocation
+                : (selectedLocationRef.current || newTableData.location);
+            const normalizedLocation = String(draftLocation || '').trim() || 'Main Hall';
+
+            if (!newTableData.location && normalizedLocation && normalizedLocation !== 'Main Hall') {
+                setNewTableData(prev => ({ ...prev, location: normalizedLocation }));
+            }
+
             const tablePayload = {
-                tableName: newTableData.tableName,
+                tableName: (newTableData.tableName || '').trim(),
                 capacity: parseInt(newTableData.capacity),
-                type: newTableData.type || 'General'
+                type: selectedType,
+                location: normalizedLocation
             };
 
             const response = await fetch(
@@ -1458,8 +1778,15 @@ const GuestMealService = () => {
 
             if (data.success) {
                 // Determine if we need to add the type to the list (handled by state visually, but backend saves it)
-                if (newTableData.type && !tableTypes.includes(newTableData.type)) {
-                    setTableTypes([...tableTypes, newTableData.type]);
+                if (!findCaseInsensitiveMatch(tableTypes, selectedType)) {
+                    setTableTypes(prev => [...prev, selectedType]);
+                }
+                if (!findCaseInsensitiveMatch(tableLocations, normalizedLocation)) {
+                    setTableLocations(prev => [...prev, normalizedLocation]);
+                }
+
+                if (locationFilter !== 'All' && locationFilter !== normalizedLocation) {
+                    setLocationFilter('All');
                 }
 
                 // Refresh tables from backend to ensure consistent state
@@ -1485,6 +1812,36 @@ const GuestMealService = () => {
             );
         }
     };
+
+    const todayDateKey = getCurrentDateISO();
+    const cancellationRevenueToday = tables.reduce((sum, table) => {
+        const tableCancellationRevenue = (table.reservations || []).reduce((inner, reservation) => {
+            if (String(reservation.status || '').toLowerCase() !== 'cancelled') return inner;
+
+            const charge = Number(reservation.cancellationCharge || 0);
+            if (!Number.isFinite(charge) || charge <= 0) return inner;
+
+            let isTodayCancellation = false;
+            if (reservation.cancelledAt) {
+                const cancelledAt = new Date(reservation.cancelledAt);
+                if (!Number.isNaN(cancelledAt.getTime())) {
+                    const key = `${cancelledAt.getFullYear()}-${String(cancelledAt.getMonth() + 1).padStart(2, '0')}-${String(cancelledAt.getDate()).padStart(2, '0')}`;
+                    isTodayCancellation = key === todayDateKey;
+                }
+            }
+
+            if (!isTodayCancellation && reservation.date === todayDateKey) {
+                isTodayCancellation = true;
+            }
+
+            return isTodayCancellation ? inner + charge : inner;
+        }, 0);
+
+        return sum + tableCancellationRevenue;
+    }, 0);
+
+    const activeTableRevenue = tables.reduce((acc, table) => acc + (Number(table.amount) || 0), 0);
+    const revenueTodayTotal = Math.floor((Number(stats.revenue) || 0) + activeTableRevenue + cancellationRevenueToday);
 
     return (
         <div className="gms-wrapper">
@@ -1518,7 +1875,12 @@ const GuestMealService = () => {
                     </div>
                     <div style={{ background: '#eff6ff', padding: '20px', borderRadius: '12px', border: '1px solid #dbeafe' }}>
                         <div style={{ fontSize: '0.875rem', color: '#1e40af', fontWeight: '600' }}>Revenue Today</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#111827', marginTop: '8px' }}>{cs}{Math.floor(stats.revenue + tables.reduce((acc, t) => acc + (t.amount || 0), 0))}</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#111827', marginTop: '8px' }}>{cs}{revenueTodayTotal}</div>
+                        {cancellationRevenueToday > 0 && (
+                            <div style={{ fontSize: '0.72rem', color: '#1d4ed8', fontWeight: '700', marginTop: '4px' }}>
+                                includes cancellation: +{cs}{cancellationRevenueToday.toFixed(2)}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -1614,6 +1976,7 @@ const GuestMealService = () => {
                                 setAppliedTime(nowCtx.time24);
                                 setStatusFilter('All');
                                 setTypeFilter('All');
+                                setLocationFilter('All');
                                 setSearchQuery('');
                                 setIsTimeFilterActive(false);
                             }}
@@ -1684,6 +2047,22 @@ const GuestMealService = () => {
                             <option key={type} value={type}>{type}</option>
                         ))}
                     </select>
+
+                    <select
+                        value={locationFilter}
+                        onChange={(e) => setLocationFilter(e.target.value)}
+                        style={{ padding: '8px 16px', borderRadius: '10px', border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', fontWeight: '600', outline: 'none', fontSize: '0.85rem' }}
+                    >
+                        <option value="All">All Locations</option>
+                        {[...new Set([
+                            ...tableLocations,
+                            ...tables.map(t => t.location || 'Main Hall')
+                        ])]
+                            .filter(loc => String(loc || '').trim())
+                            .map(loc => (
+                                <option key={loc} value={loc}>{loc}</option>
+                            ))}
+                    </select>
                 </div>
             </div >
 
@@ -1743,7 +2122,7 @@ const GuestMealService = () => {
                                         className="premium-input-field"
                                         placeholder="e.g., T15, VIP-1"
                                         value={newTableData.tableName}
-                                        onChange={e => setNewTableData({ ...newTableData, tableName: e.target.value })}
+                                        onChange={e => patchNewTableData({ tableName: e.target.value })}
                                     />
                                 </div>
                             </div>
@@ -1759,7 +2138,7 @@ const GuestMealService = () => {
                                         placeholder="Number of seats"
                                         min="1"
                                         value={newTableData.capacity}
-                                        onChange={e => setNewTableData({ ...newTableData, capacity: e.target.value })}
+                                        onChange={e => patchNewTableData({ capacity: e.target.value })}
                                     />
                                 </div>
                             </div>
@@ -1788,7 +2167,8 @@ const GuestMealService = () => {
                                                             key={type}
                                                             className={`select-option-premium ${newTableData.type === type ? 'selected' : ''}`}
                                                             onClick={() => {
-                                                                setNewTableData({ ...newTableData, type });
+                                                                patchNewTableData({ type });
+                                                                selectedTypeRef.current = type;
                                                                 setShowTypeDropdown(false);
                                                             }}
                                                         >
@@ -1805,7 +2185,7 @@ const GuestMealService = () => {
                                                                                     e.stopPropagation();
                                                                                     setTableTypes(tableTypes.filter(t => t !== type));
                                                                                     if (newTableData.type === type) {
-                                                                                        setNewTableData({ ...newTableData, type: '' });
+                                                                                        patchNewTableData({ type: '' });
                                                                                     }
                                                                                     setTableTypeDeleteWarning(null);
                                                                                 }}
@@ -1841,7 +2221,10 @@ const GuestMealService = () => {
                                                     ))}
                                                     <button
                                                         className="add-new-type-action-btn"
-                                                        onClick={() => setIsAddingTableType(true)}
+                                                        onClick={() => {
+                                                            setShowLocationDropdown(false);
+                                                            setIsAddingTableType(true);
+                                                        }}
                                                     >
                                                         + Create New Type
                                                     </button>
@@ -1862,6 +2245,118 @@ const GuestMealService = () => {
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                                             </button>
                                             <button className="action-btn-p cancel" onClick={() => setIsAddingTableType(false)}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Location */}
+                            <div className="payment-field-group">
+                                <label className="field-label-premium">Location</label>
+                                <div className="type-selection-container">
+                                    {!isAddingTableLocation ? (
+                                        <div className="custom-premium-select" ref={locationDropdownRef}>
+                                            <div
+                                                className={`select-trigger-premium ${showLocationDropdown ? 'active' : ''}`}
+                                                onClick={() => {
+                                                    setShowTypeDropdown(false);
+                                                    setShowLocationDropdown(!showLocationDropdown);
+                                                }}
+                                            >
+                                                <div className="trigger-content">
+                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                                    <span>{newTableData.location || 'Select Location'}</span>
+                                                </div>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ transform: showLocationDropdown ? 'rotate(180deg)' : 'none', transition: '0.3s' }}><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                            </div>
+
+                                            {showLocationDropdown && (
+                                                <div className="select-dropdown-options-premium">
+                                                    {tableLocations.map(location => (
+                                                        <div
+                                                            key={location}
+                                                            className={`select-option-premium ${newTableData.location === location ? 'selected' : ''}`}
+                                                            onClick={() => {
+                                                                patchNewTableData({ location });
+                                                                selectedLocationRef.current = location;
+                                                                setShowLocationDropdown(false);
+                                                            }}
+                                                        >
+                                                            <span>{location}</span>
+                                                            <div className="type-delete-wrap" onClick={(e) => e.stopPropagation()}>
+                                                                {tableLocationDeleteWarning === location && (
+                                                                    <div className="type-delete-warning-inline">
+                                                                        <span>Are you sure want to delete?</span>
+                                                                        <div className="type-delete-warning-actions">
+                                                                            <button
+                                                                                type="button"
+                                                                                className="type-delete-warning-yes"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    setTableLocations(tableLocations.filter(loc => loc !== location));
+                                                                                    if (newTableData.location === location) {
+                                                                                        patchNewTableData({ location: '' });
+                                                                                    }
+                                                                                    setTableLocationDeleteWarning(null);
+                                                                                }}
+                                                                                title="Yes"
+                                                                            >
+                                                                                Yes
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                className="type-delete-warning-no"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    setTableLocationDeleteWarning(null);
+                                                                                }}
+                                                                                title="No"
+                                                                            >
+                                                                                No
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                <div
+                                                                    className="type-delete-small"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setTableLocationDeleteWarning(location);
+                                                                    }}
+                                                                >
+                                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    <button
+                                                        className="add-new-type-action-btn"
+                                                        onClick={() => {
+                                                            setShowTypeDropdown(false);
+                                                            setIsAddingTableLocation(true);
+                                                        }}
+                                                    >
+                                                        + Create New Location
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="new-type-input-group-premium">
+                                            <input
+                                                type="text"
+                                                className="premium-input-field"
+                                                placeholder="New location name..."
+                                                value={newTableLocation}
+                                                onChange={e => setNewTableLocation(e.target.value)}
+                                                autoFocus
+                                            />
+                                            <button className="action-btn-p confirm" onClick={handleAddTableLocation}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                            </button>
+                                            <button className="action-btn-p cancel" onClick={() => setIsAddingTableLocation(false)}>
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                                             </button>
                                         </div>
@@ -2466,7 +2961,7 @@ const GuestMealService = () => {
                     <ReservationListModal
                         table={reservationListTable}
                         onClose={() => setShowReservationListModal(false)}
-                        onCancel={(resId) => handleCancelReservation(reservationListTable, resId)}
+                        onCancel={(reservation, cancelDetails) => handleCancelReservation(reservationListTable, reservation, cancelDetails)}
                         onAdd={() => {
                             setShowReservationListModal(false);
                             openReserveModal(reservationListTable);
@@ -2495,6 +2990,46 @@ const GuestMealService = () => {
                             </div>
 
                             <div className="add-payment-body">
+                                {cancelSuccessNote.show && (
+                                    <div style={{
+                                        marginBottom: '12px',
+                                        background: 'linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)',
+                                        border: '1px solid #86efac',
+                                        borderLeft: '4px solid #16a34a',
+                                        borderRadius: '12px',
+                                        padding: '10px 12px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: '10px'
+                                    }}>
+                                        <div style={{ minWidth: 0 }}>
+                                            <div style={{ fontWeight: 800, color: '#166534', fontSize: '0.86rem' }}>{cancelSuccessNote.message}</div>
+                                            {cancelSuccessNote.subtext && (
+                                                <div style={{ color: '#15803d', fontSize: '0.76rem', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cancelSuccessNote.subtext}</div>
+                                            )}
+                                        </div>
+                                        <button
+                                            onClick={() => setCancelSuccessNote({ show: false, message: '', subtext: '' })}
+                                            style={{
+                                                background: '#dcfce7',
+                                                border: '1px solid #86efac',
+                                                color: '#166534',
+                                                cursor: 'pointer',
+                                                width: '26px',
+                                                height: '26px',
+                                                borderRadius: '8px',
+                                                fontSize: '1rem',
+                                                fontWeight: 800,
+                                                lineHeight: 1,
+                                                flexShrink: 0
+                                            }}
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                )}
+
                                 {/* Phone Input */}
                                 <div className="payment-field-group">
                                     <label className="field-label-premium">ENTER LINKED PHONE NUMBER <span className="req-star">*</span></label>
@@ -2528,33 +3063,64 @@ const GuestMealService = () => {
                                     }
 
                                     if (primaryMatch) {
+                                        const primaryIsCancelled = String(primaryMatch.statusLabel || primaryMatch.status || '').toLowerCase().includes('cancel');
+                                        const cardTheme = primaryIsCancelled
+                                            ? {
+                                                bg: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)',
+                                                border: '1px solid #fecdd3',
+                                                shadow: '0 4px 12px rgba(190, 24, 93, 0.08)',
+                                                title: '#9f1239',
+                                                badgeBg: '#be123c',
+                                                statusBg: '#ffe4e6',
+                                                statusBorder: '#fda4af',
+                                                statusText: '#9f1239',
+                                                divider: '#fda4af',
+                                                altBg: 'rgba(255,255,255,0.7)',
+                                                selectedBg: 'rgba(253, 164, 175, 0.22)',
+                                                selectedBorder: '1px solid #fb7185'
+                                            }
+                                            : {
+                                                bg: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                                                border: '1px solid #bbf7d0',
+                                                shadow: '0 4px 12px rgba(22, 101, 52, 0.05)',
+                                                title: '#166534',
+                                                badgeBg: '#166534',
+                                                statusBg: '#ecfdf5',
+                                                statusBorder: '#86efac',
+                                                statusText: '#166534',
+                                                divider: '#86efac',
+                                                altBg: 'rgba(255,255,255,0.55)',
+                                                selectedBg: 'rgba(134, 239, 172, 0.35)',
+                                                selectedBorder: '1px solid #4ade80'
+                                            };
+
                                         return (
                                             <div style={{
                                                 marginTop: '16px',
                                                 padding: '16px',
-                                                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                                                background: cardTheme.bg,
                                                 borderRadius: '16px',
-                                                border: '1px solid #bbf7d0',
-                                                boxShadow: '0 4px 12px rgba(22, 101, 52, 0.05)'
+                                                border: cardTheme.border,
+                                                boxShadow: cardTheme.shadow
                                             }}>
-                                                <div style={{ color: '#166534', fontWeight: '900', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>
-                                                    ✅ {primaryMatch.type === 'running' ? 'Running Guest Found' : 'Latest Reservation Found'}
+                                                <div style={{ color: cardTheme.title, fontWeight: '900', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px' }}>
+                                                    {primaryIsCancelled ? '⛔ Cancelled Reservation' : `✅ ${primaryMatch.type === 'running' ? 'Running Guest Found' : 'Latest Reservation Found'}`}
                                                 </div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                                     <div style={{ fontSize: '1.05rem', fontWeight: '900', color: '#111827' }}>{primaryMatch.name}</div>
-                                                    <div style={{ padding: '5px 10px', background: '#166534', color: '#fff', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800' }}>
+                                                    <div style={{ padding: '5px 10px', background: cardTheme.badgeBg, color: '#fff', borderRadius: '8px', fontSize: '0.75rem', fontWeight: '800' }}>
                                                         Table {primaryMatch.tableName}
                                                     </div>
                                                 </div>
 
                                                 {primaryMatch.type === 'reservation' && (
                                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                                                        <div style={{ background: 'rgba(255,255,255,0.5)', padding: '10px', borderRadius: '10px' }}>
-                                                            <div style={{ fontSize: '0.68rem', color: '#166534', fontWeight: '800', textTransform: 'uppercase' }}>Date</div>
+                                                        <div style={{ background: cardTheme.altBg, padding: '10px', borderRadius: '10px' }}>
+                                                            <div style={{ fontSize: '0.68rem', color: cardTheme.title, fontWeight: '800', textTransform: 'uppercase' }}>Date</div>
                                                             <div style={{ fontWeight: '700', color: '#111827' }}>{formatDate(primaryMatch.date)}</div>
                                                         </div>
-                                                        <div style={{ background: 'rgba(255,255,255,0.5)', padding: '10px', borderRadius: '10px' }}>
-                                                            <div style={{ fontSize: '0.68rem', color: '#166534', fontWeight: '800', textTransform: 'uppercase' }}>Session</div>
+                                                        <div style={{ background: cardTheme.altBg, padding: '10px', borderRadius: '10px' }}>
+                                                            <div style={{ fontSize: '0.68rem', color: cardTheme.title, fontWeight: '800', textTransform: 'uppercase' }}>Session</div>
                                                             <div style={{ fontWeight: '700', color: '#111827' }}>{formatTime(primaryMatch.startTime)}{primaryMatch.endTime ? ` - ${formatTime(primaryMatch.endTime)}` : ''}</div>
                                                         </div>
                                                     </div>
@@ -2564,19 +3130,19 @@ const GuestMealService = () => {
                                                     <div style={{ fontSize: '0.86rem', color: '#4b5563', fontWeight: '600' }}>
                                                         Guests: <span style={{ color: '#111827', fontWeight: '800' }}>{primaryMatch.guests} Persons</span>
                                                     </div>
-                                                    <div style={{ color: '#166534', fontWeight: '900', fontSize: '0.88rem', background: '#ecfdf5', border: '1px solid #86efac', borderRadius: '999px', padding: '4px 10px' }}>
+                                                    <div style={{ color: cardTheme.statusText, fontWeight: '900', fontSize: '0.88rem', background: cardTheme.statusBg, border: `1px solid ${cardTheme.statusBorder}`, borderRadius: '999px', padding: '4px 10px' }}>
                                                         {primaryMatch.statusLabel}
                                                     </div>
                                                 </div>
 
                                                 {primaryMatch.type === 'reservation' && primaryMatch.advancePayment > 0 && (
-                                                    <div style={{ marginTop: '8px', color: '#166534', fontWeight: '900', fontSize: '0.95rem', textAlign: 'right' }}>
+                                                    <div style={{ marginTop: '8px', color: cardTheme.title, fontWeight: '900', fontSize: '0.95rem', textAlign: 'right' }}>
                                                         {cs}{primaryMatch.advancePayment} <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>Paid</span>
                                                     </div>
                                                 )}
 
                                                 {verifyMatches.length > 1 && (
-                                                    <div style={{ marginTop: '10px', borderTop: '1px dashed #86efac', paddingTop: '8px' }}>
+                                                    <div style={{ marginTop: '10px', borderTop: `1px dashed ${cardTheme.divider}`, paddingTop: '8px' }}>
                                                         {verifyMatches.slice(1, 5).map((m, idx) => (
                                                             <div
                                                                 key={getVerifyMatchKey(m)}
@@ -2585,12 +3151,12 @@ const GuestMealService = () => {
                                                                     display: 'flex',
                                                                     justifyContent: 'space-between',
                                                                     alignItems: 'center',
-                                                                    background: selectedVerifyMatchKey === getVerifyMatchKey(m) ? 'rgba(134, 239, 172, 0.35)' : 'rgba(255,255,255,0.55)',
+                                                                    background: selectedVerifyMatchKey === getVerifyMatchKey(m) ? cardTheme.selectedBg : cardTheme.altBg,
                                                                     borderRadius: '9px',
                                                                     padding: '8px 10px',
                                                                     marginTop: idx === 0 ? 0 : '6px',
                                                                     cursor: 'pointer',
-                                                                    border: selectedVerifyMatchKey === getVerifyMatchKey(m) ? '1px solid #4ade80' : '1px solid transparent',
+                                                                    border: selectedVerifyMatchKey === getVerifyMatchKey(m) ? cardTheme.selectedBorder : '1px solid transparent',
                                                                     transition: 'all 0.15s ease'
                                                                 }}
                                                             >
@@ -2598,7 +3164,7 @@ const GuestMealService = () => {
                                                                     <span style={{ fontWeight: '800', fontSize: '0.88rem', color: '#0f172a' }}>{m.name}</span>
                                                                     <span style={{ fontSize: '0.74rem', color: '#475569' }}>Table {m.tableName} • {m.statusLabel}</span>
                                                                 </div>
-                                                                <span style={{ fontSize: '0.74rem', fontWeight: '700', color: '#166534' }}>#{idx + 2}</span>
+                                                                <span style={{ fontSize: '0.74rem', fontWeight: '700', color: cardTheme.title }}>#{idx + 2}</span>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -2620,25 +3186,56 @@ const GuestMealService = () => {
                                     return null;
                                 })()}
 
-                                <div className="payment-modal-footer" style={{ marginTop: '24px' }}>
-                                    <button className="btn-secondary" onClick={() => setShowVerifyModal(false)}>CANCEL</button>
+                                <div className="payment-modal-footer" style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: '1fr 1.2fr 1.5fr', gap: '10px' }}>
+                                    <button
+                                        className="btn-secondary"
+                                        style={{
+                                            minHeight: '44px',
+                                            borderRadius: '10px',
+                                            fontWeight: 800,
+                                            letterSpacing: '0.03em'
+                                        }}
+                                        onClick={() => setShowVerifyModal(false)}
+                                    >
+                                        CLOSE
+                                    </button>
+                                    <button
+                                        className="btn-secondary"
+                                        style={{
+                                            borderColor: '#fca5a5',
+                                            color: '#b91c1c',
+                                            background: '#fff5f5',
+                                            minHeight: '44px',
+                                            borderRadius: '10px',
+                                            fontWeight: 800,
+                                            letterSpacing: '0.02em'
+                                        }}
+                                        onClick={handleCancelFromVerifyModal}
+                                    >
+                                        <span>✂ CUT / CANCEL</span>
+                                    </button>
                                     <button
                                         className="btn-primary"
                                         style={{
+                                            minHeight: '44px',
+                                            borderRadius: '10px',
+                                            fontWeight: 900,
+                                            letterSpacing: '0.02em',
                                             opacity: (() => {
                                                 const inputDigits = normalizePhoneDigits(verifyPhoneInput);
                                                 if (inputDigits.length !== 10) return 0.5;
                                                 return getVerifyMatches(verifyPhoneInput).some(
-                                                    m => m.type === 'reservation' && normalizePhoneDigits(m.phone) === inputDigits
+                                                    m => m.type === 'reservation' && normalizePhoneDigits(m.phone) === inputDigits && m.canVerify
                                                 ) ? 1 : 0.5;
-                                            })()
+                                            })(),
+                                            boxShadow: '0 8px 18px rgba(220, 38, 38, 0.24)'
                                         }}
                                         onClick={handleVerifyUser}
                                         disabled={(() => {
                                             const inputDigits = normalizePhoneDigits(verifyPhoneInput);
                                             if (inputDigits.length !== 10) return true;
                                             return !getVerifyMatches(verifyPhoneInput).some(
-                                                m => m.type === 'reservation' && normalizePhoneDigits(m.phone) === inputDigits
+                                                m => m.type === 'reservation' && normalizePhoneDigits(m.phone) === inputDigits && m.canVerify
                                             );
                                         })()}
                                     >
@@ -2647,6 +3244,118 @@ const GuestMealService = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {showCancelReservationPanel && (
+                            <div
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                    position: 'fixed',
+                                    top: 0,
+                                    right: 0,
+                                    width: '380px',
+                                    height: '100vh',
+                                    background: 'linear-gradient(180deg, #fff5f5 0%, #ffffff 100%)',
+                                    borderLeft: '2px solid #fecdd3',
+                                    boxShadow: '-12px 0 30px rgba(225, 29, 72, 0.2)',
+                                    zIndex: 12000,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    animation: 'slideInRight 0.25s ease-out'
+                                }}
+                            >
+                                <div style={{ background: '#E31E24', color: '#fff', padding: '18px 16px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ fontSize: '1.05rem', fontWeight: 900 }}>Cancel Reservation</div>
+                                            <div style={{ fontSize: '0.74rem', opacity: 0.9, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Cut / Cancel Panel</div>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                setShowCancelReservationPanel(false);
+                                                setCancelPanelTarget(null);
+                                            }}
+                                            style={{ border: 'none', background: 'rgba(255,255,255,0.18)', color: '#fff', borderRadius: '8px', width: '30px', height: '30px', cursor: 'pointer', fontSize: '1rem', fontWeight: 700 }}
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto' }}>
+                                    <label className="field-label-premium" style={{ color: '#9f1239' }}>Guest Name</label>
+                                    <input
+                                        className="premium-input-field"
+                                        value={cancelPanelForm.guestName}
+                                        onChange={(e) => setCancelPanelForm(prev => ({ ...prev, guestName: e.target.value }))}
+                                        placeholder="Enter guest name"
+                                    />
+
+                                    <label className="field-label-premium" style={{ color: '#9f1239', marginTop: '4px' }}>Phone Number</label>
+                                    <input
+                                        className="premium-input-field"
+                                        value={cancelPanelForm.phone}
+                                        onChange={(e) => {
+                                            const digits = String(e.target.value || '').replace(/\D/g, '').slice(0, 10);
+                                            setCancelPanelForm(prev => ({ ...prev, phone: digits }));
+                                        }}
+                                        placeholder="10 digit phone"
+                                    />
+
+                                    <label className="field-label-premium" style={{ color: '#9f1239', marginTop: '4px' }}>Cancellation Charge</label>
+                                    <input
+                                        className="premium-input-field"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={cancelPanelForm.charge}
+                                        onChange={(e) => setCancelPanelForm(prev => ({ ...prev, charge: e.target.value }))}
+                                        placeholder="0"
+                                    />
+
+                                    <label className="field-label-premium" style={{ color: '#9f1239', marginTop: '4px' }}>Reason</label>
+                                    <input
+                                        className="premium-input-field"
+                                        value={cancelPanelForm.reason}
+                                        onChange={(e) => setCancelPanelForm(prev => ({ ...prev, reason: e.target.value }))}
+                                        placeholder="Cancellation reason"
+                                    />
+
+                                    <label className="field-label-premium" style={{ color: '#9f1239', marginTop: '4px' }}>Note (Optional)</label>
+                                    <textarea
+                                        className="premium-input-field"
+                                        value={cancelPanelForm.note}
+                                        onChange={(e) => setCancelPanelForm(prev => ({ ...prev, note: e.target.value }))}
+                                        placeholder="Additional details"
+                                        rows={3}
+                                        style={{ resize: 'vertical', minHeight: '78px' }}
+                                    />
+
+                                    <div style={{ marginTop: '6px', padding: '12px', borderRadius: '10px', background: '#fff1f2', border: '1px solid #fecdd3', color: '#881337', fontWeight: 700, fontSize: '0.82rem' }}>
+                                        Added charge will be counted in cancellation revenue and reservation reports.
+                                    </div>
+                                </div>
+
+                                <div style={{ marginTop: 'auto', padding: '14px 16px', borderTop: '1px solid #fecdd3', display: 'flex', gap: '10px', background: '#fff' }}>
+                                    <button
+                                        className="btn-secondary"
+                                        style={{ flex: 1 }}
+                                        onClick={() => {
+                                            setShowCancelReservationPanel(false);
+                                            setCancelPanelTarget(null);
+                                        }}
+                                    >
+                                        Back
+                                    </button>
+                                    <button
+                                        className="btn-primary"
+                                        style={{ flex: 1, background: '#E31E24' }}
+                                        onClick={submitCancelFromPanel}
+                                    >
+                                        Confirm Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )
             }
@@ -2732,31 +3441,43 @@ const TableCard = ({ table, formatDuration, onMenuAction, onDeleteTable, onCardC
     const [showMenu, setShowMenu] = useState(false);
     const [showDeleteWarning, setShowDeleteWarning] = useState(false);
     const menuRef = useRef(null);
-    const { settings, getCurrencySymbol, getCurrentDateISO, getCurrentTime24, timeToMinutes, formatTime } = useSettings();
+    const { settings, getCurrencySymbol, formatTime } = useSettings();
     const cs = getCurrencySymbol();
 
     // Helper logic to find nearest upcoming reservation
     const getNextReservation = () => {
         if (!table.reservations || table.reservations.length === 0) return null;
 
-        const currentVal = timeToMinutes(getCurrentTime24()) ?? 0;
-        const todayStr = getCurrentDateISO();
+        const nowTs = Date.now();
+        const retentionCutoffTs = nowTs - (24 * 60 * 60 * 1000);
 
-        // Filter: Today, future start time
+        const toDateTime = (dateValue, timeValue) => {
+            if (!dateValue || !timeValue) return null;
+            const [year, month, day] = String(dateValue).split('-').map(Number);
+            const [hour, minute] = String(timeValue).split(':').map(Number);
+            if ([year, month, day, hour, minute].some(Number.isNaN)) return null;
+            return new Date(year, month - 1, day, hour, minute, 0, 0);
+        };
+
+        // Filter: only future reservations for operational view.
         const future = table.reservations.filter(res => {
-            if (res.date && res.date !== todayStr) return false;
-            const val = timeToMinutes(res.startTime);
-            if (val === null) return false;
-            return val > currentVal;
+            if (String(res.status || '').toLowerCase() === 'cancelled') return false;
+
+            const startDateTime = toDateTime(res.date, res.startTime);
+            const endDateTime = toDateTime(res.date, res.endTime || res.startTime);
+            if (!startDateTime) return false;
+
+            if (endDateTime && endDateTime.getTime() < retentionCutoffTs) return false;
+            return startDateTime.getTime() > nowTs;
         });
 
         if (future.length === 0) return null;
 
-        // Sort by time
+        // Sort by nearest upcoming date/time first.
         future.sort((a, b) => {
-            const valA = timeToMinutes(a.startTime) ?? 0;
-            const valB = timeToMinutes(b.startTime) ?? 0;
-            return valA - valB;
+            const dtA = toDateTime(a.date, a.startTime);
+            const dtB = toDateTime(b.date, b.startTime);
+            return (dtA ? dtA.getTime() : 0) - (dtB ? dtB.getTime() : 0);
         });
 
         return future[0];
@@ -3041,9 +3762,16 @@ const TableCard = ({ table, formatDuration, onMenuAction, onDeleteTable, onCardC
                         <>
                             <div style={{ color: '#10b981', fontSize: '0.9rem', fontWeight: '600', marginBottom: '4px' }}>Ready for guests</div>
                             {nextRes && (() => {
-                                const nextVal = timeToMinutes(nextRes.startTime) ?? 0;
-                                const currVal = timeToMinutes(getCurrentTime24()) ?? 0;
-                                const diff = nextVal - currVal;
+                                const toDateTime = (dateValue, timeValue) => {
+                                    if (!dateValue || !timeValue) return null;
+                                    const [year, month, day] = String(dateValue).split('-').map(Number);
+                                    const [hour, minute] = String(timeValue).split(':').map(Number);
+                                    if ([year, month, day, hour, minute].some(Number.isNaN)) return null;
+                                    return new Date(year, month - 1, day, hour, minute, 0, 0);
+                                };
+
+                                const nextDt = toDateTime(nextRes.date, nextRes.startTime);
+                                const diff = nextDt ? Math.max(0, Math.round((nextDt.getTime() - Date.now()) / 60000)) : 0;
                                 const isNear = diff > 0 && diff <= 30;
 
                                 return (
