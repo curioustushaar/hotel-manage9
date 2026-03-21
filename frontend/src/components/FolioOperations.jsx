@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import API_URL from '../config/api';
 import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../context/AuthContext';
 import './FolioOperations.css';
 import AddPayment from './AddPayment';
 import AddCharges from './AddCharges';
@@ -13,6 +14,7 @@ import VisitorList from './visitors/VisitorList';
 
 const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
     const { settings, getCurrencySymbol } = useSettings();
+    const { user } = useAuth();
     const cs = getCurrencySymbol();
     const [selectedRoom, setSelectedRoom] = useState(0);
     const [showAddPayment, setShowAddPayment] = useState(false);
@@ -37,6 +39,7 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
     const [selectedPrintType, setSelectedPrintType] = useState('a4');
 
     const BASE_API_URL = `${API_URL}/api/bookings`;
+    const actorName = user?.name || user?.username || user?.email || user?.role || 'System';
 
     // Fetch all bookings and current booking transactions on component load
     // Also refetch when reservation.updatedAt changes (e.g. after external actions like add payment/visitor)
@@ -213,7 +216,8 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
                 ? `${chargeData.description} | ${detailSummary}`
                 : `${chargeLabel} | ${detailSummary}`,
             amount: netAmount,
-            user: 'current_user',
+            user: actorName,
+            performedBy: actorName,
             folioId: selectedRoom // Associate with current folio
         };
 
@@ -259,7 +263,8 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
             particulars: paymentData.paymentType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
             description: `Payment via ${paymentData.paymentType} ${paymentData.comment ? '- ' + paymentData.comment : ''}`,
             amount: -paymentData.amount,
-            user: 'current_user',
+            user: actorName,
+            performedBy: actorName,
             folioId: selectedRoom // Associate with current folio
         };
 
@@ -326,7 +331,8 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
             discountType: discountData.discountType,
             discountValue: discountData.discountValue,
             folio: discountData.folio,
-            user: 'current_user',
+            user: actorName,
+            performedBy: actorName,
             folioId: selectedRoom // Associate with current folio
         };
 
@@ -444,7 +450,7 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
                     targetFolioId: targetFolio.folioId, // Use actual folioId (0, 1, 2...)
                     transactionIds: pendingRouteData.transactionIds,
                     selectedCategories: pendingRouteData.selectedCategories,
-                    routedBy: 'current_user',
+                    routedBy: actorName,
                     targetBookingId: targetBookingId
                 })
             });
@@ -497,303 +503,262 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
     ];
 
     // Print full folio statement
-    const handlePrintFolio = (format = 'a4') => {
+    const handlePrintFolio = async () => {
         if (!currentFolioTransactions.length) return;
-
-        const fmt = printFormats.find(f => f.key === format) || printFormats[0];
-        const isNarrow = ['thermal', '3inch', '2inch'].includes(fmt.key);
-        const fontFamily = fmt.key === 'dotmatrix' ? "'Courier New', monospace" : "'Segoe UI', Arial, sans-serif";
-        const baseFont = fmt.key === '2inch' ? '9px' : fmt.key === '3inch' ? '9.5px' : isNarrow ? '10px' : '11px';
 
         const selectedFolioData = folioList.find(f => f.id === selectedRoom);
         const guestName = selectedFolioData?.guestName || reservation?.guestName || '';
         const roomNo = selectedFolioData?.roomNumber || reservation?.roomNumber || '';
         const hotelName = settings?.name || 'Hotel';
-        const address = [settings?.address, settings?.city, settings?.state].filter(Boolean).join(', ');
+        const address = [settings?.address, settings?.city, settings?.state].filter(Boolean).join(' ');
 
         const toNum = (v) => {
             const n = Number(v);
             return Number.isFinite(n) ? n : 0;
         };
 
-        const parseAmount = (text, label) => {
+        const parseTaggedAmount = (text, tags) => {
             if (!text) return null;
-            const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const escapedCurrency = cs.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const re = new RegExp(`${escapedLabel}\\s*:\\s*(?:Rs|INR|${escapedCurrency})?\\s*([0-9]+(?:\\.[0-9]+)?)`, 'i');
-            const m = String(text).match(re);
-            return m ? toNum(m[1]) : null;
+            for (const tag of tags) {
+                const escapedTag = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const re = new RegExp(`${escapedTag}\\s*[:=-]?\\s*(?:Rs|INR|${escapedCurrency})?\\s*([0-9]+(?:\\.[0-9]+)?)`, 'i');
+                const m = String(text).match(re);
+                if (m) return toNum(m[1]);
+            }
+            return null;
         };
 
-        const tx = currentFolioTransactions.map((t) => ({
-            ...t,
-            amountAbs: Math.abs(toNum(t.amount)),
-            typeLc: String(t.type || '').toLowerCase(),
-            particularsLc: String(t.particulars || '').toLowerCase(),
-            text: `${t.particulars || ''} ${t.description || ''} ${t.notes || ''}`.toLowerCase(),
-        }));
-
-        const getTaxConfig = () => {
-            const cgst = toNum(settings?.cgst);
-            const sgst = toNum(settings?.sgst);
-            const defaultFoodGst = (cgst + sgst) > 0 ? (cgst + sgst) : toNum(settings?.foodGst);
+        const tx = currentFolioTransactions.map((t) => {
+            const text = `${t.particulars || ''} ${t.description || ''} ${t.notes || ''}`;
             return {
-                roomGstPercent: toNum(settings?.roomGst) || 12,
-                foodGstPercent: defaultFoodGst,
-                addGstPercent: defaultFoodGst,
-                cgst,
-                sgst,
-                roomServicePercent: toNum(settings?.roomServiceCharge ?? settings?.serviceCharge),
+                ...t,
+                amountAbs: Math.abs(toNum(t.amount)),
+                typeLc: String(t.type || '').toLowerCase(),
+                textLc: text.toLowerCase(),
+                textRaw: text,
             };
-        };
-
-        const isRoomTx = (t) => t.typeLc === 'charge' && (/room\s*(tariff|charge|rent|stay)/i.test(t.particulars) || /room\s*(tariff|charge|rent|stay)/i.test(t.text));
-        const isFoodTx = (t) => t.typeLc === 'charge' && (/restaurant|food|meal|kot|dine|table|bill\s*#/i.test(t.text) || /dry\s*cleaning|laundry/.test(t.text) === false && /qty[:\s]|gross[:\s]/i.test(t.text));
-        const isDiscountTx = (t) => t.typeLc === 'discount';
-        const isPaymentTx = (t) => t.typeLc === 'payment';
-
-        const getRoomCharges = () => {
-            const roomTx = tx.filter(isRoomTx);
-            const roomCharge = roomTx.reduce((s, t) => s + t.amountAbs, 0);
-            const serviceCharge = toNum(reservation?.billing?.serviceCharge);
-            const roomDiscount = tx.filter(isDiscountTx).reduce((s, t) => s + t.amountAbs, 0);
-            const taxCfg = getTaxConfig();
-            const roomTaxable = Math.max(0, roomCharge + serviceCharge - roomDiscount);
-            const roomGstAmount = toNum(reservation?.billing?.tax) || (roomTaxable * taxCfg.roomGstPercent / 100);
-            const roomTotal = roomTaxable + roomGstAmount;
-            return { roomCharge, serviceCharge, roomDiscount, roomTaxable, roomGstPercent: taxCfg.roomGstPercent, roomGstAmount, roomTotal };
-        };
-
-        const getFoodItems = () => {
-            const foodTx = tx.filter(isFoodTx);
-            const taxCfg = getTaxConfig();
-
-            const items = foodTx.map((t, idx) => {
-                const desc = `${t.description || ''} ${t.notes || ''}`;
-                const gross = parseAmount(desc, 'Gross');
-                const discount = parseAmount(desc, 'Discount') || 0;
-                const net = parseAmount(desc, 'Net') || t.amountAbs;
-                const taxable = gross !== null ? Math.max(0, gross - discount) : net / (1 + taxCfg.foodGstPercent / 100);
-                const gstAmount = net - taxable;
-                const qtyMatch = desc.match(/qty\s*[:\-]?\s*([0-9]+)/i);
-                return {
-                    name: t.particulars || `Food Item ${idx + 1}`,
-                    qty: qtyMatch ? Number(qtyMatch[1]) : 1,
-                    rate: taxable,
-                    amount: net,
-                    taxable,
-                    gstAmount,
-                    discount,
-                    date: t.day || '',
-                };
-            });
-
-            const subtotal = items.reduce((s, i) => s + i.taxable, 0);
-            const gstAmount = items.reduce((s, i) => s + i.gstAmount, 0);
-            const total = items.reduce((s, i) => s + i.amount, 0);
-
-            return { items, subtotal, foodGstPercent: taxCfg.foodGstPercent, foodTaxAmount: gstAmount, total };
-        };
-
-        const getAddCharges = () => {
-            const addTx = tx.filter(t => t.typeLc === 'charge' && !isRoomTx(t) && !isFoodTx(t));
-            const taxCfg = getTaxConfig();
-
-            const items = addTx.map((t) => {
-                const desc = `${t.description || ''} ${t.notes || ''}`;
-                const gross = parseAmount(desc, 'Gross');
-                const discount = parseAmount(desc, 'Discount') || 0;
-                const net = parseAmount(desc, 'Net') || t.amountAbs;
-                const taxable = gross !== null ? Math.max(0, gross - discount) : net / (1 + taxCfg.addGstPercent / 100);
-                const gstAmount = net - taxable;
-                return {
-                    name: t.particulars || 'Add Charge',
-                    taxable,
-                    gstAmount,
-                    total: net,
-                    date: t.day || '',
-                };
-            });
-
-            const subtotal = items.reduce((s, i) => s + i.taxable, 0);
-            const gstAmount = items.reduce((s, i) => s + i.gstAmount, 0);
-            const total = items.reduce((s, i) => s + i.total, 0);
-
-            return { items, subtotal, addGstPercent: taxCfg.addGstPercent, addTaxAmount: gstAmount, total };
-        };
-
-        const getDiscount = () => {
-            const discountTx = tx.filter(isDiscountTx);
-            const discountFromTx = discountTx.reduce((s, t) => s + t.amountAbs, 0);
-            const roomDiscount = toNum(reservation?.billing?.discount);
-            const totalDiscount = Math.max(discountFromTx, roomDiscount);
-            return {
-                totalDiscount,
-                roomDiscount,
-                foodDiscount: Math.max(0, totalDiscount - roomDiscount),
-                addDiscount: 0,
-            };
-        };
-
-        const getPayments = () => {
-            const payments = tx.filter(isPaymentTx);
-            const split = { cash: 0, upi: 0, card: 0, other: 0, total: 0 };
-            payments.forEach((p) => {
-                const text = `${p.particulars || ''} ${p.description || ''}`.toLowerCase();
-                split.total += p.amountAbs;
-                if (text.includes('upi')) split.upi += p.amountAbs;
-                else if (text.includes('card')) split.card += p.amountAbs;
-                else if (text.includes('cash')) split.cash += p.amountAbs;
-                else split.other += p.amountAbs;
-            });
-            return split;
-        };
-
-        const room = getRoomCharges();
-        const food = getFoodItems();
-        const add = getAddCharges();
-        const disc = getDiscount();
-        const taxCfg = getTaxConfig();
-        const pay = getPayments();
-
-        const grossBeforeDiscount = room.roomTotal + food.total + add.total;
-        const grandTotal = Math.max(0, grossBeforeDiscount - disc.totalDiscount);
-        const pending = Math.max(0, grandTotal - pay.total);
-
-        const gstMap = new Map();
-        const pushGstRow = (percent, taxable, taxAmount) => {
-            const pct = Number(percent) || 0;
-            if (pct <= 0) return;
-            const key = pct.toFixed(2);
-            const prev = gstMap.get(key) || { taxable: 0, tax: 0 };
-            prev.taxable += taxable;
-            prev.tax += taxAmount;
-            gstMap.set(key, prev);
-        };
-
-        pushGstRow(taxCfg.roomGstPercent, room.roomTaxable, room.roomGstAmount);
-        pushGstRow(food.foodGstPercent, food.subtotal, food.foodTaxAmount);
-        pushGstRow(add.addGstPercent, add.subtotal, add.addTaxAmount);
-
-        [5, 12, 18].forEach((p) => {
-            const k = p.toFixed(2);
-            if (!gstMap.has(k)) gstMap.set(k, { taxable: 0, tax: 0 });
         });
 
-        const gstRows = [...gstMap.entries()]
-            .sort((a, b) => Number(a[0]) - Number(b[0]))
-            .map(([pct, v]) => {
-                const cgst = v.tax / 2;
-                const sgst = v.tax / 2;
-                return `<tr><td>${Number(pct).toFixed(2)}%</td><td style="text-align:right">${cs} ${v.taxable.toFixed(2)}</td><td style="text-align:right">${cs} ${cgst.toFixed(2)}</td><td style="text-align:right">${cs} ${sgst.toFixed(2)}</td><td style="text-align:right">${cs} ${(cgst + sgst).toFixed(2)}</td></tr>`;
-            }).join('');
+        const isPayment = (t) => t.typeLc === 'payment';
+        const isDiscount = (t) => t.typeLc === 'discount';
+        const isRoom = (t) => t.typeLc === 'charge' && /room\s*(tariff|charge|rent|stay|night)/i.test(t.textLc);
+        const isFood = (t) => t.typeLc === 'charge' && (/food|meal|restaurant|kot|paneer|roti|breakfast|lunch|dinner|snack|beverage|table|bill\s*#/i.test(t.textLc));
+        const isAdd = (t) => t.typeLc === 'charge' && !isRoom(t) && !isFood(t);
 
-        const foodRows = food.items.length
-            ? food.items.map(i => `<tr><td>${i.name}</td><td style="text-align:right">${i.qty}</td><td style="text-align:right">${cs} ${i.rate.toFixed(2)}</td><td style="text-align:right">${cs} ${i.amount.toFixed(2)}</td></tr>`).join('')
-            : '<tr><td colspan="4" style="text-align:center;color:#94a3b8">No food items</td></tr>';
+        const roomTx = tx.filter(isRoom);
+        const foodTx = tx.filter(isFood);
+        const addTx = tx.filter(isAdd);
+        const discountTx = tx.filter(isDiscount);
+        const paymentTx = tx.filter(isPayment);
 
-        const addRows = add.items.length
-            ? add.items.map(i => `<tr><td>${i.name}</td><td style="text-align:right">${cs} ${i.taxable.toFixed(2)}</td><td style="text-align:right">${cs} ${i.gstAmount.toFixed(2)}</td><td style="text-align:right">${cs} ${i.total.toFixed(2)}</td></tr>`).join('')
-            : '<tr><td colspan="4" style="text-align:center;color:#94a3b8">No add charges</td></tr>';
+        const taxCfg = {
+            foodGstPercent: (toNum(settings?.cgst) + toNum(settings?.sgst)) || toNum(settings?.foodGst) || 0,
+            servicePercent: toNum(settings?.roomServiceCharge ?? settings?.serviceCharge) || 0,
+        };
+
+        const extractOrderCode = (text) => {
+            const m = String(text || '').match(/#([A-F0-9]{6})/i);
+            return m ? m[1].toUpperCase() : null;
+        };
+
+        // Fetch settled cashier order snapshots to get exact subtotal/gst/service/discount splits for restaurant rows.
+        const orderCodeSet = new Set(foodTx.map(row => extractOrderCode(row.textRaw)).filter(Boolean));
+        const orderByCode = new Map();
+
+        if (orderCodeSet.size > 0) {
+            try {
+                const orderResp = await fetch(`${API_URL}/api/guest-meal/orders`);
+                const orderJson = await orderResp.json();
+                if (orderJson?.success && Array.isArray(orderJson?.data)) {
+                    orderJson.data.forEach((order) => {
+                        const code = String(order?._id || order?.id || '').slice(-6).toUpperCase();
+                        if (code) orderByCode.set(code, order);
+                    });
+                }
+            } catch (err) {
+                console.warn('Unable to fetch guest meal order snapshots for print split:', err);
+            }
+        }
+
+        const sumAmount = (rows) => rows.reduce((s, r) => s + r.amountAbs, 0);
+        const chargesTotal = sumAmount(tx.filter(t => t.typeLc === 'charge'));
+        const discountTotal = sumAmount(discountTx);
+        const grandTotal = Math.max(0, chargesTotal - discountTotal);
+
+        const buildSectionBreakdown = (rows, sectionType) => {
+            const sectionTotal = sumAmount(rows);
+            const tagged = rows.reduce((acc, row) => {
+                const code = extractOrderCode(row.textRaw);
+                const linkedOrder = code ? orderByCode.get(code) : null;
+
+                if (sectionType === 'food' && linkedOrder) {
+                    const gst = toNum(linkedOrder.tax);
+                    const service = toNum(linkedOrder.serviceChargeAmount);
+                    const discount = toNum(linkedOrder.discountAmount);
+                    // Make base align with folio line amount so printed equation resolves exactly to posted folio total.
+                    const base = Math.max(0, row.amountAbs - gst - service + discount);
+                    acc.gross += base;
+                    acc.gst += gst;
+                    acc.service += service;
+                    acc.discount += discount;
+                    return acc;
+                }
+
+                const gross = parseTaggedAmount(row.textRaw, ['Gross', 'Amount']);
+                const gstTag = parseTaggedAmount(row.textRaw, ['GST', 'Tax']);
+                const serviceTag = parseTaggedAmount(row.textRaw, ['Service', 'Service Charge']);
+                const discount = parseTaggedAmount(row.textRaw, ['Discount']) || 0;
+                const finalTag = parseTaggedAmount(row.textRaw, ['Final', 'Net']);
+
+                let gst = gstTag || 0;
+                let service = serviceTag || 0;
+
+                // If cashier percentages are available and bill contains gross/final info, infer split without altering folio total.
+                if (sectionType === 'food' && (gross !== null || finalTag !== null) && gst === 0 && service === 0 && (taxCfg.foodGstPercent > 0 || taxCfg.servicePercent > 0)) {
+                    const targetBeforeDiscount = Math.max(0, row.amountAbs + discount);
+                    const denom = 1 + (taxCfg.foodGstPercent / 100) + (taxCfg.servicePercent / 100);
+                    const inferredBase = denom > 0 ? targetBeforeDiscount / denom : targetBeforeDiscount;
+                    gst = inferredBase * (taxCfg.foodGstPercent / 100);
+                    service = inferredBase * (taxCfg.servicePercent / 100);
+                }
+
+                if (sectionType === 'add' && gross !== null && finalTag !== null && gst === 0) {
+                    // For add charges like: Gross 70, Discount 6, Final 64 -> GST should remain 0.
+                    gst = Math.max(0, finalTag - (gross - discount));
+                }
+
+                const baseFromEquation = Math.max(0, row.amountAbs - gst - service + discount);
+                const base = gross !== null ? Math.max(gross, baseFromEquation) : baseFromEquation;
+
+                acc.gross += base;
+                acc.gst += gst;
+                acc.service += service;
+                acc.discount += discount;
+                return acc;
+            }, { gross: 0, gst: 0, service: 0, discount: 0 });
+
+            return {
+                base: tagged.gross,
+                gst: tagged.gst,
+                service: tagged.service,
+                discount: tagged.discount,
+                total: sectionTotal,
+            };
+        };
+
+        const roomCalc = buildSectionBreakdown(roomTx, 'room');
+        const foodCalc = buildSectionBreakdown(foodTx, 'food');
+        const addCalc = buildSectionBreakdown(addTx, 'add');
+
+        const subtotal = roomCalc.base + foodCalc.base + addCalc.base;
+        const gstTotal = roomCalc.gst + foodCalc.gst + addCalc.gst;
+        const serviceTotal = roomCalc.service + foodCalc.service + addCalc.service;
+
+        const paymentSplit = { cash: 0, upi: 0, card: 0, other: 0, total: 0 };
+        paymentTx.forEach((p) => {
+            paymentSplit.total += p.amountAbs;
+            if (p.textLc.includes('cash')) paymentSplit.cash += p.amountAbs;
+            else if (p.textLc.includes('upi')) paymentSplit.upi += p.amountAbs;
+            else if (p.textLc.includes('card')) paymentSplit.card += p.amountAbs;
+            else paymentSplit.other += p.amountAbs;
+        });
+
+        const pending = Math.max(0, grandTotal - paymentSplit.total);
+        const netPayable = pending;
+
+        const money = (n) => `${Math.abs(toNum(n)).toFixed(2)}`;
+        const lineRow = (label, value, strong = false) =>
+            `<div class="row ${strong ? 'strong' : ''}"><span>${label}</span><span>${value}</span></div>`;
+
+        const foodNameLines = foodTx.length
+            ? foodTx.map((i) => lineRow(i.particulars || 'Food', money(i.amountAbs))).join('')
+            : lineRow('No food items', '0.00');
+
+        const addNameLines = addTx.length
+            ? addTx.map((i) => lineRow(i.particulars || 'Add Charge', money(i.amountAbs))).join('')
+            : lineRow('No add charges', '0.00');
 
         const content = `<!DOCTYPE html><html><head><title>Tax Invoice - ${roomNo}</title>
             <style>
-                @page { size: ${fmt.pageSize}; margin: ${isNarrow ? '4mm' : '10mm'}; }
-                body { font-family: ${fontFamily}; font-size: ${baseFont}; color:#111; margin: 0 auto; width:${fmt.bodyWidth}; max-width:${fmt.bodyWidth}; }
-                .topline { display:flex; justify-content:space-between; font-size:${isNarrow ? '8px' : '9px'}; color:#6b7280; margin-bottom:4px; }
-                .header { text-align:center; margin-bottom:8px; }
-                .title { font-size:${isNarrow ? '14px' : '20px'}; font-weight:800; margin:2px 0; }
-                .sub { font-size:${isNarrow ? '8px' : '9px'}; color:#6b7280; }
-                .meta { display:flex; justify-content:space-between; gap:8px; background:#f8f9fa; padding:8px; border-radius:6px; margin:8px 0; }
-                .meta b { display:block; font-size:${isNarrow ? '9px' : '10px'}; }
-                .meta span { font-size:${isNarrow ? '8px' : '9px'}; color:#6b7280; }
-                .sec { margin-top:8px; }
-                .sec h4 { margin:0 0 4px; font-size:${isNarrow ? '9px' : '10px'}; text-transform:uppercase; letter-spacing:.04em; }
-                table { width:100%; border-collapse:collapse; }
-                th { text-align:left; padding:5px 4px; border-bottom:1.6px solid #111; font-size:${isNarrow ? '8px' : '9px'}; }
-                td { padding:4px; border-bottom:1px solid #ececec; font-size:${isNarrow ? '8px' : '9px'}; vertical-align:top; }
-                .sum { margin-top:10px; border-top:1.5px dashed #bbb; padding-top:6px; }
-                .line { display:flex; justify-content:space-between; padding:2px 0; font-size:${isNarrow ? '9px' : '10px'}; }
-                .grand { border-top:2px solid #111; border-bottom:2px double #111; font-weight:800; padding:6px 0; margin-top:4px; }
-                .neg { color:#b91c1c; }
-                .pos { color:#166534; }
-                .foot { margin-top:12px; text-align:center; color:#94a3b8; font-size:${isNarrow ? '8px' : '9px'}; }
+                @page { size: 80mm auto; margin: 4mm; }
+                body { font-family: 'Courier New', monospace; font-size: 12px; color: #111; margin: 0 auto; width: 74mm; }
+                .center { text-align: center; }
+                .row { display: flex; justify-content: space-between; gap: 8px; margin: 2px 0; }
+                .row span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                .strong { font-weight: 700; }
+                .sep { border-top: 1px dashed #333; margin: 6px 0; }
+                .title { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+                .muted { color: #333; }
+                .formula { font-size: 11px; color: #333; margin: 1px 0 3px 0; }
+                .section { margin-top: 2px; }
             </style>
         </head><body>
-            <div class="topline"><span>${new Date().toLocaleString('en-IN')}</span><span>Folio - ${roomNo}</span></div>
-            <div class="header">
-                <div class="title">${hotelName}</div>
-                ${address ? `<div class="sub">${address}</div>` : ''}
-                <div class="sub">TAX INVOICE</div>
-            </div>
-            <div class="meta">
-                <div><span>Room No.</span><b>${roomNo}</b></div>
-                <div><span>Guest</span><b>${guestName || 'N/A'}</b></div>
-                <div><span>Printed</span><b>${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</b></div>
-            </div>
+            <div class="center title">TAX INVOICE</div>
+            <div class="row"><span>${new Date().toLocaleString('en-IN')}</span><span>Folio: ${roomNo}</span></div>
+            <div class="sep"></div>
+            <div class="center strong">${hotelName}</div>
+            ${address ? `<div class="center muted">${address}</div>` : ''}
+            <div class="sep"></div>
+            ${lineRow('Guest Name', guestName || '-')}
+            <div class="sep"></div>
 
-            <div class="sec">
-                <h4>Room Charges</h4>
-                <div class="line"><span>Room charge</span><span>${cs} ${room.roomCharge.toFixed(2)}</span></div>
-                <div class="line"><span>Service charge</span><span>${cs} ${room.serviceCharge.toFixed(2)}</span></div>
-                <div class="line"><span>Room GST (${room.roomGstPercent.toFixed(2)}%)</span><span>${cs} ${room.roomGstAmount.toFixed(2)}</span></div>
-                <div class="line"><span>Room total after tax</span><span>${cs} ${room.roomTotal.toFixed(2)}</span></div>
-            </div>
+            <div class="section strong">ROOM</div>
+            ${roomTx.length ? roomTx.map((i) => lineRow(i.particulars || 'Room charge', money(i.amountAbs))).join('') : lineRow('Room charge', '0.00')}
+            ${lineRow('Service charge', money(roomCalc.service))}
+            ${lineRow('GST', money(roomCalc.gst))}
+            ${lineRow('Discount', `-${money(roomCalc.discount)}`)}
+            <div class="sep"></div>
+            ${lineRow('ROOM TOTAL', money(roomCalc.total), true)}
+            <div class="formula">ROOM = ${money(roomCalc.base)} + ${money(roomCalc.service)} + ${money(roomCalc.gst)} - ${money(roomCalc.discount)} = ${money(roomCalc.total)}</div>
+            <div class="sep"></div>
 
-            <div class="sec">
-                <h4>Food Charges</h4>
-                <table>
-                    <thead><tr><th>Item</th><th style="text-align:right">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount</th></tr></thead>
-                    <tbody>${foodRows}</tbody>
-                </table>
-                <div class="line"><span>Food subtotal</span><span>${cs} ${food.subtotal.toFixed(2)}</span></div>
-                <div class="line"><span>Food GST (${food.foodGstPercent.toFixed(2)}%)</span><span>${cs} ${food.foodTaxAmount.toFixed(2)}</span></div>
-                <div class="line"><span>Food total after tax</span><span>${cs} ${food.total.toFixed(2)}</span></div>
-            </div>
+            <div class="section strong">FOOD</div>
+            ${foodNameLines}
+            ${lineRow('Food amount', money(foodCalc.base))}
+            ${lineRow('Food GST', money(foodCalc.gst))}
+            ${lineRow('Food service', money(foodCalc.service))}
+            ${lineRow('Food discount', `-${money(foodCalc.discount)}`)}
+            ${lineRow('FOOD TOTAL', money(foodCalc.total), true)}
+            <div class="formula">FOOD = ${money(foodCalc.base)} + ${money(foodCalc.gst)} + ${money(foodCalc.service)} - ${money(foodCalc.discount)} = ${money(foodCalc.total)}</div>
+            <div class="sep"></div>
 
-            <div class="sec">
-                <h4>Add Charges</h4>
-                <table>
-                    <thead><tr><th>Charge</th><th style="text-align:right">Taxable</th><th style="text-align:right">GST</th><th style="text-align:right">Total</th></tr></thead>
-                    <tbody>${addRows}</tbody>
-                </table>
-                <div class="line"><span>Add charges subtotal</span><span>${cs} ${add.subtotal.toFixed(2)}</span></div>
-                <div class="line"><span>GST on add charges (${add.addGstPercent.toFixed(2)}%)</span><span>${cs} ${add.addTaxAmount.toFixed(2)}</span></div>
-                <div class="line"><span>Add charges total after tax</span><span>${cs} ${add.total.toFixed(2)}</span></div>
-            </div>
+            <div class="section strong">ADD</div>
+            ${addNameLines}
+            ${lineRow('Add amount', money(addCalc.base))}
+            ${lineRow('Add GST', money(addCalc.gst))}
+            ${lineRow('Add discount', `-${money(addCalc.discount)}`)}
+            ${lineRow('ADD TOTAL', money(addCalc.total), true)}
+            <div class="formula">ADD = ${money(addCalc.base)} + ${money(addCalc.gst)} - ${money(addCalc.discount)} = ${money(addCalc.total)}</div>
+            <div class="sep"></div>
 
-            <div class="sec">
-                <h4>Discount</h4>
-                <div class="line"><span>Room discount</span><span class="neg">- ${cs} ${disc.roomDiscount.toFixed(2)}</span></div>
-                <div class="line"><span>Food discount</span><span class="neg">- ${cs} ${disc.foodDiscount.toFixed(2)}</span></div>
-                <div class="line"><span>Add discount</span><span class="neg">- ${cs} ${disc.addDiscount.toFixed(2)}</span></div>
-                <div class="line"><span>Total discount</span><span class="neg">- ${cs} ${disc.totalDiscount.toFixed(2)}</span></div>
-            </div>
+            ${lineRow('Subtotal', money(subtotal))}
+            ${lineRow('GST total', money(gstTotal))}
+            ${lineRow('Service total', money(serviceTotal))}
+            ${lineRow('Discount total', `-${money(discountTotal)}`)}
+            <div class="sep"></div>
+            ${lineRow('GRAND TOTAL', money(grandTotal), true)}
+            <div class="sep"></div>
 
-            <div class="sec">
-                <h4>GST Breakup Details</h4>
-                <table>
-                    <thead><tr><th>GST %</th><th style="text-align:right">Taxable Amount</th><th style="text-align:right">CGST</th><th style="text-align:right">SGST</th><th style="text-align:right">Total</th></tr></thead>
-                    <tbody>${gstRows}</tbody>
-                </table>
-            </div>
+            ${lineRow('Cash', money(paymentSplit.cash))}
+            ${lineRow('UPI', money(paymentSplit.upi))}
+            ${lineRow('Card', money(paymentSplit.card))}
+            ${lineRow('Other', money(paymentSplit.other))}
+            <div class="sep"></div>
+            ${lineRow('Paid', money(paymentSplit.total), true)}
+            ${lineRow('Pending', money(pending), true)}
+            <div class="sep"></div>
+            ${lineRow('NET PAYABLE', money(netPayable), true)}
+            <div class="sep"></div>
 
-            <div class="sec sum">
-                <h4>Final Total</h4>
-                <div class="line grand"><span>Grand Total</span><span>${cs} ${grandTotal.toFixed(2)}</span></div>
-                <div class="line"><span>Paid Amount</span><span class="pos">${cs} ${pay.total.toFixed(2)}</span></div>
-                <div class="line"><span>Cash</span><span>${cs} ${pay.cash.toFixed(2)}</span></div>
-                <div class="line"><span>UPI</span><span>${cs} ${pay.upi.toFixed(2)}</span></div>
-                <div class="line"><span>Card</span><span>${cs} ${pay.card.toFixed(2)}</span></div>
-                ${pay.other > 0 ? `<div class="line"><span>Other</span><span>${cs} ${pay.other.toFixed(2)}</span></div>` : ''}
-                <div class="line"><span>Pending</span><span class="${pending > 0 ? 'neg' : 'pos'}">${cs} ${pending.toFixed(2)}</span></div>
-            </div>
-
-            <div class="foot">Thank you for staying with us - ${hotelName}</div>
+            ${lineRow('Subtotal', money(subtotal))}
+            ${lineRow('GST total', money(gstTotal))}
+            ${lineRow('Discount total', `-${money(discountTotal)}`)}
+            ${lineRow('Grand Total', money(grandTotal), true)}
             <script>window.onload=function(){window.print();setTimeout(function(){window.close();},500)}<\/script>
         </body></html>`;
 
-        const w = window.open('', '_blank', `height=760,width=${fmt.windowWidth}`);
+        const w = window.open('', '_blank', 'height=820,width=420');
         w.document.write(content);
         w.document.close();
         setShowPrintDrawer(false);
@@ -837,7 +802,9 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
                     body: JSON.stringify({
                         particulars: editingItem.particulars,
                         description: editingItem.description,
-                        amount: editingItem.amount
+                        amount: editingItem.amount,
+                        user: actorName,
+                        performedBy: actorName
                     })
                 });
 
@@ -860,7 +827,12 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
             try {
                 const bookingId = reservation.id || reservation._id;
                 const response = await fetch(`${BASE_API_URL}/${bookingId}/transactions/${transaction._id}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user: actorName,
+                        performedBy: actorName
+                    })
                 });
 
                 const data = await response.json();

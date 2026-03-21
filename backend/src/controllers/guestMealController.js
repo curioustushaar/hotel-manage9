@@ -1235,7 +1235,11 @@ exports.getPendingOrders = async (req, res) => {
 exports.settleOrder = async (req, res) => {
     try {
         const { orderId } = req.params;
-        const { paymentMethod, paymentMode, amount, roomNumber, folioId, billingMeta, paymentSplits } = req.body;
+    const { paymentMethod, paymentMode, amount, roomNumber, folioId, billingMeta, paymentSplits, performedBy } = req.body;
+
+    const actorName = (typeof performedBy === 'string' && performedBy.trim())
+        ? performedBy.trim()
+        : (performedBy?.name || performedBy?.username || performedBy?.email || req.user?.name || req.user?.username || 'Cashier');
 
         const order = await GuestMealOrder.findById(orderId);
         if (!order) {
@@ -1341,7 +1345,7 @@ exports.settleOrder = async (req, res) => {
                 amount: folioAmount,
                 date: new Date(),
                 day: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', weekday: 'short' }),
-                user: 'Cashier',
+                user: actorName,
                 notes: `Restaurant Bill - ${orderId.toString().substr(-6).toUpperCase()} | Items: ${itemSummary || 'N/A'} | Gross: Rs ${grossTotal.toFixed(2)} | Discount: ${discountLabel} [Rs ${discountAmount.toFixed(2)}] | Net: Rs ${netPayable.toFixed(2)}`,
                 folioId: folioId !== undefined ? parseInt(folioId) : 0 // User selected folio or default to Primary
             };
@@ -1352,6 +1356,27 @@ exports.settleOrder = async (req, res) => {
 
             // Add to transactions and update total billing
             booking.transactions.push(transactionData);
+
+            // Reservation/Folio level audit trail for staff/admin action visibility.
+            if (!booking.auditTrail) booking.auditTrail = [];
+            booking.auditTrail.push({
+                action: 'CASHIER_POST_TO_FOLIO',
+                description: `Cashier posted restaurant bill to folio (Order #${orderId.toString().substr(-6).toUpperCase()}, Room ${roomNumber}, Amount Rs ${folioAmount}).`,
+                performedBy: actorName,
+                performedAt: new Date(),
+                metadata: {
+                    source: 'Cashier Section',
+                    orderId,
+                    roomNumber,
+                    folioId: folioId !== undefined ? parseInt(folioId) : 0,
+                    grossTotal,
+                    discountAmount,
+                    netPayable,
+                    paymentMethod,
+                    paymentMode,
+                    itemSummary
+                }
+            });
 
             // Increment total amount - hooks should handle it, but we update explicit mapping here
             if (!booking.billing) booking.billing = {};

@@ -152,6 +152,13 @@ const bookingSchema = new mongoose.Schema({
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     checkedInBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     checkedOutBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    auditTrail: [{
+        action: { type: String, trim: true },
+        description: { type: String, trim: true },
+        performedBy: { type: String, trim: true, default: 'System' },
+        performedAt: { type: Date, default: Date.now },
+        metadata: { type: mongoose.Schema.Types.Mixed }
+    }],
 
     // Multi-folio routing
     folios: [{

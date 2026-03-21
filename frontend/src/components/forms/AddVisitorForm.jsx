@@ -1,10 +1,11 @@
 import { useState } from 'react';
+import { sanitizeIdProofInput, validateIdProofNumber } from '../../utils/idProofValidation';
 
 const AddVisitorForm = ({ booking, onSubmit, onCancel }) => {
     const [formData, setFormData] = useState({
         visitorName: '',
         mobileNumber: '',
-        idProofType: 'Aadhaar (ID)',
+        idProofType: 'Aadhaar',
         idProofNumber: '',
         visitPurpose: '',
         inTime: new Date().toISOString().slice(0, 16),
@@ -16,8 +17,29 @@ const AddVisitorForm = ({ booking, onSubmit, onCancel }) => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+
+        setFormData(prev => {
+            if (name === 'idProofType') {
+                return {
+                    ...prev,
+                    idProofType: value,
+                    idProofNumber: sanitizeIdProofInput(value, prev.idProofNumber)
+                };
+            }
+
+            if (name === 'idProofNumber') {
+                return {
+                    ...prev,
+                    idProofNumber: sanitizeIdProofInput(prev.idProofType, value)
+                };
+            }
+
+            return { ...prev, [name]: value };
+        });
         if (errors[name]) setErrors(prev => { const u = { ...prev }; delete u[name]; return u; });
+        if (name === 'idProofType' && errors.idProofNumber) {
+            setErrors(prev => { const u = { ...prev }; delete u.idProofNumber; return u; });
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -26,6 +48,12 @@ const AddVisitorForm = ({ booking, onSubmit, onCancel }) => {
         if (!formData.visitorName.trim()) newErrors.visitorName = 'Visitor name is required';
         if (!formData.mobileNumber.trim()) newErrors.mobileNumber = 'Mobile number is required';
         if (!formData.idProofNumber.trim()) newErrors.idProofNumber = 'ID number is required';
+        if (formData.idProofNumber.trim()) {
+            const validation = validateIdProofNumber(formData.idProofType, formData.idProofNumber);
+            if (!validation.isValid) {
+                newErrors.idProofNumber = validation.message;
+            }
+        }
 
         setErrors(newErrors);
         if (Object.keys(newErrors).length > 0) return;
@@ -82,7 +110,7 @@ const AddVisitorForm = ({ booking, onSubmit, onCancel }) => {
                     <div>
                         <label style={labelStyle}>ID Type</label>
                         <select name="idProofType" value={formData.idProofType} onChange={handleChange} style={{ ...boxStyle, width: '100%', fontWeight: '700', appearance: 'none', cursor: 'pointer' }}>
-                            <option value="Aadhaar (ID)">Aadhaar (ID)</option>
+                            <option value="Aadhaar">Aadhaar Card</option>
                             <option value="Passport">Passport</option>
                             <option value="Driving License">Driving License</option>
                             <option value="Voter ID">Voter ID</option>

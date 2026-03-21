@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import API_URL from '../config/api';
 import soundManager from '../utils/soundManager';
 import { useSettings } from '../context/SettingsContext';
+import { sanitizeIdProofInput, validateIdProofNumber } from '../utils/idProofValidation';
 import './AddBooking.css';
 
 const AddBooking = () => {
@@ -186,21 +187,6 @@ const AddBooking = () => {
         return mobileRegex.test(mobile);
     };
 
-    const validateIdProof = (type, number) => {
-        switch (type) {
-            case 'Aadhaar':
-                return /^\d{12}$/.test(number);
-            case 'PAN Card':
-                return /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(number);
-            case 'Passport':
-                return /^[A-Z]{1}[0-9]{7}$/.test(number);
-            case 'Driving License':
-                return /^[A-Z]{2}[0-9]{13}$/.test(number);
-            default:
-                return true;
-        }
-    };
-
     const validateForm = () => {
         const newErrors = {};
 
@@ -234,14 +220,11 @@ const AddBooking = () => {
             newErrors.checkOutDate = 'Check-out date must be after check-in date';
         }
 
-        if (idProofNumber && !validateIdProof(idProofType, idProofNumber)) {
-            const formats = {
-                'Aadhaar': '12 digits',
-                'PAN Card': 'ABCDE1234F format',
-                'Passport': 'A1234567 format',
-                'Driving License': 'AB1234567890123 format'
-            };
-            newErrors.idProofNumber = `Invalid ${idProofType} format (${formats[idProofType]})`;
+        if (idProofNumber) {
+            const validation = validateIdProofNumber(idProofType, idProofNumber);
+            if (!validation.isValid) {
+                newErrors.idProofNumber = validation.message;
+            }
         }
 
         setErrors(newErrors);
@@ -257,23 +240,7 @@ const AddBooking = () => {
     };
 
     const handleIdProofNumberChange = (e) => {
-        let value = e.target.value.toUpperCase();
-
-        // Apply format-specific restrictions
-        switch (idProofType) {
-            case 'Aadhaar':
-                value = value.replace(/\D/g, '').slice(0, 12);
-                break;
-            case 'PAN Card':
-                value = value.replace(/[^A-Z0-9]/g, '').slice(0, 10);
-                break;
-            case 'Passport':
-                value = value.replace(/[^A-Z0-9]/g, '').slice(0, 8);
-                break;
-            case 'Driving License':
-                value = value.replace(/[^A-Z0-9]/g, '').slice(0, 15);
-                break;
-        }
+        const value = sanitizeIdProofInput(idProofType, e.target.value);
 
         setIdProofNumber(value);
         if (errors.idProofNumber) {
@@ -533,11 +500,15 @@ const AddBooking = () => {
                                     id="idProofType"
                                     className="form-input"
                                     value={idProofType}
-                                    onChange={(e) => setIdProofType(e.target.value)}
+                                    onChange={(e) => {
+                                        setIdProofType(e.target.value);
+                                        setIdProofNumber('');
+                                    }}
                                 >
                                     <option value="Aadhaar">Aadhaar</option>
                                     <option value="Passport">Passport</option>
                                     <option value="Driving License">Driving License</option>
+                                    <option value="Voter ID">Voter ID</option>
                                     <option value="PAN Card">PAN Card</option>
                                 </select>
                             </div>

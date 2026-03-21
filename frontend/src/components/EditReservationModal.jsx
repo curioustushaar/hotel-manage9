@@ -14,6 +14,8 @@ const EditReservationModal = ({ isOpen, onClose, reservation, onRefresh }) => {
     const [activeTab, setActiveTab] = useState('folio-operations');
     const [balance, setBalance] = useState(0);
     const [loading, setLoading] = useState(false);
+    const [showActionConfirm, setShowActionConfirm] = useState(false);
+    const [actionMessage, setActionMessage] = useState({ type: '', text: '' });
     const { formatDate } = useSettings();
 
     // Initial balance calculation or updates when reservation changes
@@ -66,18 +68,15 @@ const EditReservationModal = ({ isOpen, onClose, reservation, onRefresh }) => {
     const isCheckout = ['IN_HOUSE', 'Checked-in', 'Occupied', 'CheckedIn'].includes(reservation?.status);
     const isCheckoutDisabled = isCheckout && balance > 0.5;
 
-    const handleAction = async () => {
+    const performStatusAction = async () => {
         if (loading) return;
 
         const newStatus = isCheckout ? 'Checked-out' : 'Checked-in';
         const actionText = isCheckout ? 'checkout' : 'check-in';
 
-        if (!window.confirm(`Are you sure you want to proceed with ${actionText}?`)) {
-            return;
-        }
-
         try {
             setLoading(true);
+            setActionMessage({ type: '', text: '' });
             const response = await fetch(`${API_URL}/api/bookings/status/${reservation._id || reservation.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
@@ -86,18 +85,25 @@ const EditReservationModal = ({ isOpen, onClose, reservation, onRefresh }) => {
 
             const data = await response.json();
             if (data.success) {
-                alert(`Guest ${newStatus} successfully!`);
+                setActionMessage({ type: 'success', text: `Guest ${newStatus} successfully.` });
+                setShowActionConfirm(false);
                 if (onRefresh) onRefresh();
-                onClose();
+                setTimeout(() => onClose(), 900);
             } else {
-                alert(data.message || `Failed to ${actionText}`);
+                setActionMessage({ type: 'error', text: data.message || `Failed to ${actionText}` });
             }
         } catch (error) {
             console.error(`Error during ${actionText}:`, error);
-            alert(`An error occurred during ${actionText}.`);
+            setActionMessage({ type: 'error', text: `An error occurred during ${actionText}.` });
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleAction = async () => {
+        if (loading) return;
+        setActionMessage({ type: '', text: '' });
+        setShowActionConfirm(true);
     };
 
     const handleOverlayClick = (e) => {
@@ -178,6 +184,34 @@ const EditReservationModal = ({ isOpen, onClose, reservation, onRefresh }) => {
                         >
                             {loading ? 'Processing...' : (isCheckout ? 'Checkout' : 'Check-in')}
                         </button>
+                        {showActionConfirm && !isCheckoutDisabled && (
+                            <div className="inline-checkin-confirm">
+                                <p>{`Are you sure you want to proceed with ${isCheckout ? 'checkout' : 'check-in'}?`}</p>
+                                <div className="inline-checkin-confirm-actions">
+                                    <button
+                                        type="button"
+                                        className="inline-confirm-btn yes"
+                                        onClick={performStatusAction}
+                                        disabled={loading}
+                                    >
+                                        Yes
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="inline-confirm-btn no"
+                                        onClick={() => setShowActionConfirm(false)}
+                                        disabled={loading}
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                        {actionMessage.text && (
+                            <div className={`inline-action-message ${actionMessage.type}`}>
+                                {actionMessage.text}
+                            </div>
+                        )}
                     </div>
                 </div>
 

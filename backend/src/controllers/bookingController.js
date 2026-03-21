@@ -2,6 +2,27 @@ const Booking = require('../models/Booking');
 const MaintenanceBlock = require('../models/MaintenanceBlock');
 const { applyRoutingRules, CATEGORIES_MAPPING } = require('../utils/folioUtils');
 
+const resolveActorName = (rawActor, fallback = 'System') => {
+    if (!rawActor) return fallback;
+    if (typeof rawActor === 'string') return rawActor.trim() || fallback;
+    if (typeof rawActor === 'object') {
+        return rawActor.name || rawActor.username || rawActor.email || rawActor.role || fallback;
+    }
+    return fallback;
+};
+
+const pushAuditTrail = (booking, payload) => {
+    if (!booking) return;
+    if (!booking.auditTrail) booking.auditTrail = [];
+    booking.auditTrail.push({
+        action: payload.action,
+        description: payload.description,
+        performedBy: resolveActorName(payload.performedBy, 'System'),
+        performedAt: new Date(),
+        metadata: payload.metadata || {}
+    });
+};
+
 
 // Get all bookings
 exports.getBookings = async (req, res) => {
@@ -633,6 +654,7 @@ exports.addTransaction = async (req, res) => {
     try {
         const { bookingId } = req.params;
         const transactionData = req.body;
+        const actor = resolveActorName(transactionData?.performedBy || transactionData?.user || req.user, 'System');
 
         const booking = await Booking.findById(bookingId);
         if (!booking) {
@@ -645,7 +667,27 @@ exports.addTransaction = async (req, res) => {
         // Apply automatic routing rules if it's a new charge
         applyRoutingRules(booking, transactionData);
 
+        if (!transactionData.user || transactionData.user === 'current_user') {
+            transactionData.user = actor;
+        }
+
         booking.transactions.push(transactionData);
+        const latestTransaction = booking.transactions[booking.transactions.length - 1];
+
+        pushAuditTrail(booking, {
+            action: 'FOLIO_TRANSACTION_ADDED',
+            description: `${transactionData.type || 'Transaction'} added in folio: ${transactionData.particulars || '-'} (${transactionData.amount || 0})`,
+            performedBy: actor,
+            metadata: {
+                transactionId: latestTransaction?._id,
+                folioId: transactionData.folioId ?? 0,
+                type: transactionData.type,
+                particulars: transactionData.particulars,
+                amount: transactionData.amount,
+                source: 'Folio Operations'
+            }
+        });
+
         await booking.save();
 
         res.status(200).json({
@@ -667,6 +709,7 @@ exports.updateTransaction = async (req, res) => {
     try {
         const { bookingId, transactionId } = req.params;
         const updatedData = req.body;
+        const actor = resolveActorName(updatedData?.performedBy || updatedData?.user || req.user, 'System');
 
         const booking = await Booking.findById(bookingId);
         if (!booking) {
@@ -684,7 +727,38 @@ exports.updateTransaction = async (req, res) => {
             });
         }
 
+        const before = {
+            particulars: transaction.particulars,
+            description: transaction.description,
+            amount: transaction.amount,
+            type: transaction.type,
+            folioId: transaction.folioId
+        };
+
         Object.assign(transaction, updatedData);
+
+        if (!transaction.user || transaction.user === 'current_user') {
+            transaction.user = actor;
+        }
+
+        pushAuditTrail(booking, {
+            action: 'FOLIO_TRANSACTION_UPDATED',
+            description: `Folio transaction updated: ${transaction.particulars || '-'} (${before.amount} -> ${transaction.amount})`,
+            performedBy: actor,
+            metadata: {
+                transactionId: transaction._id,
+                before,
+                after: {
+                    particulars: transaction.particulars,
+                    description: transaction.description,
+                    amount: transaction.amount,
+                    type: transaction.type,
+                    folioId: transaction.folioId
+                },
+                source: 'Folio Operations'
+            }
+        });
+
         await booking.save();
 
         res.status(200).json({
@@ -705,6 +779,7 @@ exports.updateTransaction = async (req, res) => {
 exports.deleteTransaction = async (req, res) => {
     try {
         const { bookingId, transactionId } = req.params;
+        const actor = resolveActorName(req.body?.performedBy || req.body?.user || req.user, 'System');
 
         const booking = await Booking.findById(bookingId);
         if (!booking) {
@@ -714,7 +789,29 @@ exports.deleteTransaction = async (req, res) => {
             });
         }
 
+        const transaction = booking.transactions.id(transactionId);
+        const removedSnapshot = transaction ? {
+            type: transaction.type,
+            particulars: transaction.particulars,
+            amount: transaction.amount,
+            folioId: transaction.folioId
+        } : null;
+
         booking.transactions.pull(transactionId);
+
+        if (removedSnapshot) {
+            pushAuditTrail(booking, {
+                action: 'FOLIO_TRANSACTION_VOIDED',
+                description: `Folio transaction removed: ${removedSnapshot.particulars || '-'} (${removedSnapshot.amount})`,
+                performedBy: actor,
+                metadata: {
+                    transactionId,
+                    removedSnapshot,
+                    source: 'Folio Operations'
+                }
+            });
+        }
+
         await booking.save();
 
         res.status(200).json({
@@ -743,6 +840,8 @@ exports.routeFolioTransactions = async (req, res) => {
             selectedCategories,
             routedBy
         } = req.body;
+
+        const actor = resolveActorName(routedBy || req.user, 'System');
 
         // Validate input
         if (sourceFolioId === undefined || targetFolioId === undefined) {
@@ -833,7 +932,7 @@ exports.routeFolioTransactions = async (req, res) => {
                     folioId: targetFolioId,
                     routedFrom: sourceFolioId,
                     routedTo: targetFolioId,
-                    routedBy: routedBy || 'system',
+                    routedBy: actor,
                     routedAt: routingTimestamp,
                     originalBookingId: bookingId,
                     createdAt: transaction.createdAt || new Date()
@@ -846,7 +945,7 @@ exports.routeFolioTransactions = async (req, res) => {
                 transaction.folioId = targetFolioId;
                 transaction.routedFrom = sourceFolioId;
                 transaction.routedTo = targetFolioId;
-                transaction.routedBy = routedBy || 'system';
+                transaction.routedBy = actor;
                 transaction.routedAt = routingTimestamp;
             }
 
@@ -868,6 +967,20 @@ exports.routeFolioTransactions = async (req, res) => {
 
         // Save target booking first (in case of cross-booking)
         if (isCrossBookingRoute) {
+            pushAuditTrail(targetBooking, {
+                action: 'FOLIO_TRANSACTION_ROUTED_IN',
+                description: `${routedCount} transaction(s) routed in from booking ${bookingId}`,
+                performedBy: actor,
+                metadata: {
+                    sourceBookingId: bookingId,
+                    targetBookingId,
+                    sourceFolioId,
+                    targetFolioId,
+                    routedCount,
+                    transactions: routedTransactions,
+                    source: 'Folio Routing'
+                }
+            });
             await targetBooking.save();
 
             // Remove transactions from source booking
@@ -877,6 +990,22 @@ exports.routeFolioTransactions = async (req, res) => {
         }
 
         // Save source booking
+        pushAuditTrail(sourceBooking, {
+            action: 'FOLIO_TRANSACTION_ROUTED_OUT',
+            description: `${routedCount} transaction(s) routed from folio ${sourceFolioId} to ${targetFolioId}`,
+            performedBy: actor,
+            metadata: {
+                sourceBookingId: bookingId,
+                targetBookingId: targetBookingId || bookingId,
+                sourceFolioId,
+                targetFolioId,
+                routedCount,
+                transactions: routedTransactions,
+                crossBookingRoute: Boolean(isCrossBookingRoute),
+                source: 'Folio Routing'
+            }
+        });
+
         await sourceBooking.save();
 
         res.status(200).json({
