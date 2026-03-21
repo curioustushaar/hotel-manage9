@@ -638,11 +638,12 @@
 }
 
 .pos-toast {
-    background: #000;
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
     color: white;
     padding: 12px 20px;
     border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 22px rgba(21, 128, 61, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     font-weight: 600;
     font-size: 14px;
     animation: slideIn 0.3s ease-out;
@@ -1054,7 +1055,7 @@
 }
 
 .pos-note-textarea::placeholder {
-    color: #10b981;
+    color: #6b7280;
 }
 
 .pos-note-char-count {
