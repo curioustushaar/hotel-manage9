@@ -135,28 +135,39 @@ const CashierSection = () => {
 
             if (data.success) {
                 console.log(`[CashierSection] Fetched ${data.data.length} pending orders:`, data.data);
-                const mappedOrders = data.data.map(order => ({
-                    id: order._id,
-                    type: (order.orderType === 'Table Order' || order.orderType === 'Dine-In' || order.orderType === 'Direct Payment') ? 'Table' :
-                        (order.orderType === 'Room Service' || order.orderType === 'Post to Room' || order.orderType === 'Room Order') ? 'Room' :
-                            (order.orderType === 'Take Away' || order.orderType === 'Delivery' || order.orderType === 'Online') ? order.orderType : 'Table',
-                    name: (order.orderType === 'Table Order' || order.orderType === 'Dine-In' || order.orderType === 'Direct Payment') ? `Table ${order.tableNumber || 'Walk-In'}` :
-                        (order.orderType === 'Room Service' || order.orderType === 'Post to Room' || order.orderType === 'Room Order') ? `Room ${order.roomNumber || 'Unknown'}` :
-                            (order.orderType === 'Take Away' || order.orderType === 'Delivery' || order.orderType === 'Online') ? order.orderType : `Table ${order.tableNumber || ''}`,
-                    guest: `${order.guestName || 'Guest'}${order.guestPhone ? ` - ${order.guestPhone}` : ''}`,
-                    amount: order.finalAmount || 0,
-                    status: 'Pending',
-                    time: order.createdAt ? new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now',
-                    items: (order.items || []).map(item => ({
-                        name: item.name,
-                        qty: item.quantity,
-                        price: item.price,
-                        amount: item.subtotal
-                    })),
-                    billNo: `${settings.invoicePrefix || settings.billingInvoicePrefix || '#'}${order._id.toString().substr(-6).toUpperCase()}`,
-                    kotInfo: `KOT - ${order._id.toString().substr(-4)}`,
-                    notes: order.notes || ''
-                }));
+                const mappedOrders = data.data.map(order => {
+                    // Prefer actual table label from Table View (including merged names)
+                    // and fall back to tableNumber only when table name is unavailable.
+                    const rawTableName =
+                        (order.tableId && typeof order.tableId === 'object' && order.tableId.tableName)
+                        || order.tableName
+                        || '';
+                    const cleanTableName = String(rawTableName).replace(/_MERGED_/g, '').trim();
+                    const tableLabel = cleanTableName || (order.tableNumber ? String(order.tableNumber) : 'Walk-In');
+
+                    return {
+                        id: order._id,
+                        type: (order.orderType === 'Table Order' || order.orderType === 'Dine-In' || order.orderType === 'Direct Payment') ? 'Table' :
+                            (order.orderType === 'Room Service' || order.orderType === 'Post to Room' || order.orderType === 'Room Order') ? 'Room' :
+                                (order.orderType === 'Take Away' || order.orderType === 'Delivery' || order.orderType === 'Online') ? order.orderType : 'Table',
+                        name: (order.orderType === 'Table Order' || order.orderType === 'Dine-In' || order.orderType === 'Direct Payment') ? tableLabel :
+                            (order.orderType === 'Room Service' || order.orderType === 'Post to Room' || order.orderType === 'Room Order') ? `Room ${order.roomNumber || 'Unknown'}` :
+                                (order.orderType === 'Take Away' || order.orderType === 'Delivery' || order.orderType === 'Online') ? order.orderType : `Table ${order.tableNumber || ''}`,
+                        guest: `${order.guestName || 'Guest'}${order.guestPhone ? ` - ${order.guestPhone}` : ''}`,
+                        amount: order.finalAmount || 0,
+                        status: 'Pending',
+                        time: order.createdAt ? new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now',
+                        items: (order.items || []).map(item => ({
+                            name: item.name,
+                            qty: item.quantity,
+                            price: item.price,
+                            amount: item.subtotal
+                        })),
+                        billNo: `${settings.invoicePrefix || settings.billingInvoicePrefix || '#'}${order._id.toString().substr(-6).toUpperCase()}`,
+                        kotInfo: `KOT - ${order._id.toString().substr(-4)}`,
+                        notes: order.notes || ''
+                    };
+                });
 
                 setOrders(mappedOrders);
                 setStats(prev => ({
