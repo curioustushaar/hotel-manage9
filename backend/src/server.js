@@ -107,12 +107,30 @@ const syncTableIndexes = async () => {
 };
 
 // Connect to database and seed admin
-connectDB()
-    .then(() => seedAdmin())
-    .then(() => syncTableIndexes())
-    .catch(err => {
-        console.error('Failed to connect to MongoDB:', err);
-    });
+const isVercelRuntime = process.env.NODE_ENV === 'production' && !!process.env.VERCEL;
+
+if (!isVercelRuntime) {
+    connectDB()
+        .then(() => seedAdmin())
+        .then(() => syncTableIndexes())
+        .catch(err => {
+            console.error('Failed to connect to MongoDB:', err);
+        });
+}
+
+// In serverless, connect lazily per request to avoid cold-start crashes.
+app.use('/api', (req, res, next) => {
+    connectDB()
+        .then(() => next())
+        .catch((err) => {
+            console.error('API DB connection error:', err.message);
+            return res.status(500).json({
+                success: false,
+                message: 'Database connection failed',
+                error: err.message
+            });
+        });
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
