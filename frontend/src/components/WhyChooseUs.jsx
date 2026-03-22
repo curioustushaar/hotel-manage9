@@ -21,7 +21,9 @@ const WhyChooseUs = () => {
             <div className="why-layout">
 
                 {/* C CENTER (BIGGER NOW) */}
-                <img src={cCenter} alt="Center Dashboard" className="c-center" />
+                <div className="c-center-wrap">
+                    <img src={cCenter} alt="Center Dashboard" className="c-center" />
+                </div>
 
                 {/* LEFT SIDE CARDS */}
                 <div className="why-card card-top-left">

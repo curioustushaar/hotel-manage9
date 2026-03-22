@@ -73,7 +73,13 @@ function Navbar() {
             <img src={Logo} alt="Bireena Atithi" className="navbar-logo" />
           </Link>
 
-          <button className="hamburger" onClick={toggleSidebar} aria-label="Open menu">
+          <button
+            className="hamburger"
+            onClick={toggleSidebar}
+            aria-label={sidebarActive ? 'Close menu' : 'Open menu'}
+            aria-expanded={sidebarActive}
+            aria-controls="sidebarNav"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>

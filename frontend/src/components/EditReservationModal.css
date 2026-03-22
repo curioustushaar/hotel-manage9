@@ -964,7 +964,7 @@
 }
 
 /* Billing Summary Grid */
-.billing-summary-grid {
+.edit-modal-card .billing-summary-grid {
     display: flex;
     flex-direction: column;
     gap: 8px;

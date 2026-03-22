@@ -1,6 +1,7 @@
 .about-page {
     width: 100%;
     position: relative;
+    overflow-x: hidden;
     background: linear-gradient(to bottom,
             #ffffff 0%,
             #fff5f7 30%,
@@ -264,6 +265,7 @@
     gap: 40px;
     max-width: 1100px;
     margin: 0 auto;
+    width: 100%;
 }
 
 .team-card {
@@ -329,12 +331,25 @@
 @media (max-width: 768px) {
     .team-grid {
         grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
+    }
+
+    .about-team {
+        padding: 70px 14px;
     }
 }
 
 @media (max-width: 480px) {
     .team-grid {
         grid-template-columns: 1fr;
+    }
+
+    .team-card {
+        width: 100%;
+    }
+
+    .about-container {
+        padding: 0 14px;
     }
 }
 
@@ -466,6 +481,7 @@
     border-radius: 40px 40px 0 0;
     position: relative;
     z-index: 1;
+    box-sizing: border-box;
 }
 
 .about-cta h2 {
@@ -496,21 +512,82 @@
 /* ================= RESPONSIVE ================= */
 
 @media (max-width: 900px) {
-    .timeline::before {
-        left: 15px;
+    .timeline-container::before {
+        left: 22px;
         transform: none;
+        top: 0;
     }
 
-    .timeline-item {
+    .timeline-content {
+        gap: 18px;
+    }
+
+    .timeline-item,
+    .timeline-item.left,
+    .timeline-item.right {
         width: 100%;
-        left: 0 !important;
-        padding-left: 50px;
-        padding-right: 20px;
-        text-align: left !important;
+        align-self: stretch;
+        justify-content: flex-start;
+        padding-left: 54px;
+        padding-right: 0;
+        min-height: auto;
     }
 
-    .timeline-item::before {
-        left: 15px !important;
+    .timeline-item:not(:first-child) {
+        margin-top: 0;
+    }
+
+    .timeline-item.left .timeline-dot,
+    .timeline-item.right .timeline-dot {
+        left: 22px;
         transform: translate(-50%, -50%);
+    }
+
+    .timeline-card {
+        width: 100%;
+        max-width: 520px;
+        padding: 22px;
+    }
+}
+
+@media (max-width: 600px) {
+    .timeline-item,
+    .timeline-item.left,
+    .timeline-item.right {
+        padding-left: 42px;
+    }
+
+    .timeline-container::before {
+        left: 16px;
+    }
+
+    .timeline-item.left .timeline-dot,
+    .timeline-item.right .timeline-dot {
+        left: 16px;
+        width: 14px;
+        height: 14px;
+        border-width: 3px;
+    }
+
+    .timeline-card {
+        padding: 20px;
+        border-radius: 16px;
+    }
+}
+
+@media (max-width: 768px) {
+    .about-cta {
+        width: calc(100% - 24px);
+        margin: 0 auto;
+        padding: 44px 16px;
+        border-radius: 28px 28px 0 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .about-cta {
+        width: calc(100% - 16px);
+        padding: 36px 14px;
+        border-radius: 24px 24px 0 0;
     }
 }

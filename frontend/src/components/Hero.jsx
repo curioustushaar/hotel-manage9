@@ -9,7 +9,7 @@ const Hero = () => {
             <ParticlesBackground />
             <div className="container hero-flex">
 
-                <div className="hero-text">
+                <div className="hero-text hero-left">
                     <h1 className="hero-title">
                         <span className="line line-1">
                             Smart Hotel Management Software
@@ -19,7 +19,7 @@ const Hero = () => {
                         </span>
                     </h1>
 
-                    <p className="hero-description hero-animate" style={{ fontSize: "20px", lineHeight: "1.4" }}>
+                    <p className="hero-description hero-animate">
                         Simplify your hotel operations with our powerful and easy-to-use software.
                         Manage reservations, room services, billing, and KOT efficiently. <br />
                         Streamline daily tasks, track bookings in real-time, and enhance guest experience.
@@ -32,7 +32,7 @@ const Hero = () => {
                     </div>
                 </div>
 
-                <div className="hero-img-container hero-img-animate">
+                <div className="hero-img-container hero-right hero-img-animate">
                     <img src={HeroImage} alt="Hotel Management Dashboard" className="hero-banner-img" />
                 </div>
 
