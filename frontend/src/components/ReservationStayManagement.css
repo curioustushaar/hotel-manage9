@@ -1450,15 +1450,16 @@
     max-width: 100%;
     margin: 0 auto;
     padding: 0;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .form-container {
     display: grid;
-    grid-template-columns: 1fr 290px;
+    grid-template-columns: minmax(0, 1fr);
     gap: 1.5rem;
     margin-bottom: 1.5rem;
     align-items: flex-start;
+    width: 100%;
 }
 
 .reservation-header {
@@ -1471,15 +1472,14 @@
     padding: 10px 0;
     margin-bottom: 2rem;
     width: 100%;
-    margin-left: 15px;
-    /* Offset to prevent cutting off on the left */
+    margin-left: 0;
 }
 
 .back-btn {
     display: inline-flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 101px;
+    padding: 10px 20px;
     background: #ffffff;
     border: none;
     border-radius: 100px;
@@ -1529,6 +1529,7 @@
     flex-direction: column;
     gap: 0;
     width: 100%;
+    min-width: 0;
 }
 
 .locked-input {
@@ -1573,7 +1574,7 @@
 
 .form-grid-2 {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.9rem;
 }
 
@@ -2351,17 +2352,27 @@
 @media (max-width: 1024px) {
     .form-container {
         grid-template-columns: 1fr;
+        gap: 1rem;
     }
 
     .billing-summary-panel {
         position: static;
         top: auto;
     }
+
+    .form-section {
+        padding: 1rem;
+    }
+
+    .back-btn {
+        padding: 9px 16px;
+        font-size: 0.9rem;
+    }
 }
 
 @media (max-width: 768px) {
     .reservation-management-container {
-        padding: 1rem;
+        padding: 0.75rem;
     }
 
     .reservation-cards-grid {
@@ -2378,10 +2389,52 @@
 
     .form-actions {
         flex-direction: column;
+        gap: 0.65rem;
     }
 
     .form-actions .btn {
         width: 100%;
+        margin-right: 0 !important;
+    }
+
+    .form-main h1 {
+        font-size: 1.15rem;
+    }
+
+    .section-title {
+        font-size: 0.8rem;
+        line-height: 1.35;
+    }
+}
+
+@media (max-width: 576px) {
+    .reservation-management-container {
+        padding: 0.55rem;
+    }
+
+    .form-container {
+        margin-bottom: 1rem;
+    }
+
+    .form-section {
+        padding: 0.8rem 0.75rem;
+        border-radius: 0.5rem;
+    }
+
+    .form-row label {
+        font-size: 0.68rem;
+    }
+
+    .form-row input,
+    .form-row select,
+    .form-row textarea {
+        font-size: 0.78rem;
+        padding: 0.5rem 0.65rem;
+    }
+
+    .back-btn {
+        width: 100%;
+        justify-content: center;
     }
 }
 
@@ -3015,6 +3068,238 @@ select:disabled {
     font-weight: 600;
 }
 
+/* ============================================================
+   DASHBOARD RESPONSIVE OVERRIDES (FINAL)
+   ============================================================ */
+
+.reservation-management-container .header-title h2 {
+    font-size: clamp(1.35rem, 2.2vw, 2rem) !important;
+    line-height: 1.25 !important;
+    display: block !important;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: normal;
+}
+
+.reservation-management-container .header-title p {
+    margin-left: 0;
+    max-width: 760px;
+}
+
+.reservation-management-container>.reservation-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 1.5rem;
+    width: 100%;
+}
+
+.reservation-management-container .header-title {
+    display: block !important;
+    width: 100%;
+    min-width: 0;
+    text-align: left !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
+}
+
+.reservation-management-container .header-title>* {
+    display: block;
+}
+
+.reservation-management-container .header-title h2,
+.reservation-management-container .header-title p,
+.reservation-management-container .search-container {
+    text-align: left !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
+    justify-self: start;
+    align-self: flex-start;
+}
+
+.reservation-management-container .search-container {
+    width: 100%;
+    max-width: 620px;
+}
+
+.reservation-management-container .search-ref-input {
+    min-width: 0;
+    font-size: 0.9rem !important;
+}
+
+.reservation-content-layout {
+    min-width: 0;
+}
+
+.reservation-cards-grid,
+.reservation-cards-list {
+    min-width: 0;
+}
+
+@media (max-width: 1200px) {
+    .reservation-management-container {
+        padding: 1.25rem 24px 2rem 24px;
+    }
+
+    .reservation-cards-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .reservation-cards-grid.with-details,
+    .reservation-cards-list.with-details {
+        width: 100%;
+    }
+
+    .reservation-details-panel {
+        width: 100%;
+        min-width: 0;
+        max-height: none;
+        position: static;
+        top: auto;
+    }
+
+    .reservation-content-layout {
+        flex-direction: column;
+    }
+
+    .reservation-cards-list .reservation-card {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px 12px;
+        padding: 14px;
+    }
+
+    .reservation-cards-list .reservation-card .res-card-financials,
+    .reservation-cards-list .reservation-card .room-breakdown-container,
+    .reservation-cards-list .reservation-card .res-card-contact,
+    .reservation-cards-list .reservation-card .res-card-footer {
+        grid-column: 1 / -1;
+    }
+
+    .reservation-cards-list .reservation-card .res-card-footer {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 992px) {
+    .reservation-management-container {
+        padding: 1rem 14px 1.5rem 14px;
+    }
+
+    .reservation-header {
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .header-actions {
+        justify-content: flex-start;
+        width: 100%;
+        gap: 0.6rem;
+    }
+
+    .header-actions .btn {
+        width: auto !important;
+        min-width: 160px;
+        padding: 0.7rem 1rem;
+    }
+
+    .tabs-toolbar {
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .tab-btn {
+        padding: 0.85rem 0.9rem;
+        font-size: 0.72rem;
+    }
+
+    .view-toggle-container {
+        justify-content: flex-start;
+    }
+
+    .reservation-cards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .reservation-cards-list .reservation-card {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .reservation-management-container .header-title h2 {
+        font-size: 1.18rem !important;
+    }
+
+    .reservation-management-container .header-title p {
+        font-size: 0.78rem;
+        line-height: 1.45;
+        max-width: 100%;
+    }
+
+    .reservation-management-container .search-container {
+        max-width: 100%;
+        margin: 0.9rem 0 0.8rem 0;
+    }
+
+    .reservation-management-container .search-ref-input {
+        padding: 10px 12px 10px 38px !important;
+        font-size: 0.82rem !important;
+    }
+
+    .tabs-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .reservation-tabs {
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+
+    .reservation-tabs::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .view-toggle-container {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .view-toggle {
+        width: 100%;
+        max-width: 220px;
+    }
+
+    .reservation-cards-list .reservation-card {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 576px) {
+    .header-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .header-actions .btn {
+        width: 100% !important;
+        min-width: 0;
+        font-size: 0.72rem;
+        padding: 0.68rem 0.9rem;
+    }
+
+    .tab-btn {
+        font-size: 0.68rem;
+        padding: 0.75rem 0.75rem;
+    }
+
+    .reservation-management-container .search-ref-input::placeholder {
+        font-size: 0.74rem;
+    }
+}
+
 .history-table .room-type {
     color: #1e293b;
     font-weight: 600;
@@ -3030,6 +3315,68 @@ select:disabled {
 
 .history-table .amount.paid {
     color: #15803d;
+}
+
+/* ============================================================
+   SIDE-BY-SIDE DETAILS LOCK (IMAGE-2 STYLE)
+   Keep details panel beside cards and top-aligned at all sizes.
+   ============================================================ */
+
+.reservation-content-layout {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    gap: 1rem;
+    width: 100%;
+    min-width: 0;
+}
+
+.reservation-cards-grid.with-details,
+.reservation-cards-list.with-details {
+    width: calc(100% - 430px) !important;
+    min-width: 620px;
+}
+
+.reservation-details-panel {
+    width: 420px !important;
+    min-width: 420px !important;
+    position: sticky !important;
+    top: 0 !important;
+    max-height: calc(100vh - 110px);
+}
+
+@media (max-width: 1200px) {
+    .reservation-content-layout {
+        flex-direction: row !important;
+        overflow-x: auto;
+        padding-bottom: 6px;
+    }
+
+    .reservation-cards-grid.with-details,
+    .reservation-cards-list.with-details {
+        width: calc(100% - 390px) !important;
+        min-width: 560px;
+    }
+
+    .reservation-details-panel {
+        width: 380px !important;
+        min-width: 380px !important;
+        position: sticky !important;
+        top: 0 !important;
+        max-height: calc(100vh - 110px);
+    }
+}
+
+@media (max-width: 768px) {
+    .reservation-cards-grid.with-details,
+    .reservation-cards-list.with-details {
+        min-width: 500px;
+    }
+
+    .reservation-details-panel {
+        width: 340px !important;
+        min-width: 340px !important;
+    }
 }
 
 .history-table .amount.overdue {

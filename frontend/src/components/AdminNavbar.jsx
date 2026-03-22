@@ -76,7 +76,7 @@ const AdminNavbar = ({
 
                 {/* 5. Sync Icon */}
                 {user?.role === 'admin' && (
-                    <button className="top-icon-btn" title="Sync Data" onClick={() => alert('Syncing...')}>
+                    <button className="top-icon-btn sync-btn" title="Sync Data" onClick={() => alert('Syncing...')}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="23 4 23 10 17 10"></polyline>
                             <polyline points="1 20 1 14 7 14"></polyline>

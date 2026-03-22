@@ -3,6 +3,7 @@
   background-color: #f8fafc;
   min-height: 100vh;
   font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
 }
 
 /* --- Navigation & Tabs --- */
@@ -117,7 +118,7 @@
 /* --- KDS Grid --- */
 .orders-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
   gap: 8px;
 }
 
@@ -567,17 +568,115 @@
 
 @media (max-width: 900px) {
   .orders-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
 }
 
 @media (max-width: 600px) {
   .orders-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
   }
 
   .view-order-container {
     padding: 12px;
+  }
+}
+
+@media (max-width: 992px) {
+  .view-order-container {
+    padding: 14px;
+  }
+
+  .view-order-tabs {
+    width: 100%;
+    border-radius: 14px;
+    padding: 8px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .tab-btn {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 140px;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .view-order-filters {
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .search-wrapper,
+  .filter-search-input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .orders-grid {
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .orders-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+
+  .order-card {
+    height: auto;
+    min-height: 318px;
+  }
+
+  .item-list {
+    max-height: 120px;
+  }
+
+  .status-actions {
+    gap: 4px;
+    padding: 5px;
+  }
+
+  .status-btn {
+    font-size: 0.68rem;
+    padding: 6px 2px;
+  }
+
+  .card-footer {
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .action-btn {
+    font-size: 0.72rem;
+    min-height: 30px;
+    padding: 5px 6px;
+  }
+
+  .filter-pill {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .orders-grid {
+    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+    gap: 8px;
+  }
+
+  .tab-btn {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .header-table {
+    max-width: 62%;
+  }
+
+  .status-strip {
+    font-size: 0.64rem;
   }
 }
 

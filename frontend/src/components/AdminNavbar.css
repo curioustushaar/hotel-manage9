@@ -15,6 +15,34 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+@media (max-width: 1200px) {
+    .top-bar {
+        height: 52px;
+        padding: 0 12px;
+    }
+
+    .top-bar-logo-img {
+        height: 36px;
+    }
+
+    .top-icon-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+    }
+
+    .top-icon-btn svg {
+        width: 17px;
+        height: 17px;
+    }
+
+    .profile-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+    }
+}
+
 /* Sidebar affects navbar position - shift it and resize */
 .top-bar.sidebar-open {
     left: 260px;
@@ -53,14 +81,22 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    min-width: 0;
 }
 
 .top-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    cursor: pointer;
     width: 40px;
     height: 40px;
     border-radius: 10px;
     color: #64748b;
     transition: all 0.2s;
+    flex-shrink: 0;
 }
 
 .top-icon-btn:hover {
@@ -87,6 +123,7 @@
     position: relative;
     margin-left: 10px;
     /* Push a bit to right corner */
+    flex-shrink: 0;
 }
 
 .profile-trigger {
@@ -94,6 +131,7 @@
     align-items: center;
     gap: 6px;
     cursor: pointer;
+    min-width: 0;
 }
 
 .profile-avatar {
@@ -185,11 +223,82 @@
     background: #fef2f2;
 }
 
-@media (max-width: 500px) {
-    .top-bar-right {
-        display: none !important;
+@media (max-width: 992px) {
+    .top-bar {
+        padding: 0 14px;
     }
-    .top-bar-logo {
-        font-size: 16px !important;
+
+    .top-bar-left {
+        gap: 10px;
+    }
+
+    .top-bar-logo-img {
+        height: 42px;
+    }
+
+    .top-bar-right {
+        gap: 8px;
+    }
+
+    .top-icon-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .profile-avatar {
+        width: 34px;
+        height: 34px;
+        font-size: 13px;
+    }
+
+    .top-bar-right .role-badge {
+        display: none;
+    }
+}
+
+@media (max-width: 576px) {
+    .top-bar {
+        padding: 0 10px;
+    }
+
+    .top-bar-left {
+        gap: 8px;
+    }
+
+    .top-bar-logo-img {
+        height: 38px;
+    }
+
+    .top-bar-right {
+        gap: 6px;
+    }
+
+    .top-icon-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+    }
+
+    .top-icon-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .sync-btn {
+        display: none;
+    }
+
+    .profile-dropdown-wrapper {
+        margin-left: 2px;
+    }
+
+    .profile-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+    }
+
+    .profile-caret {
+        display: none;
     }
 }

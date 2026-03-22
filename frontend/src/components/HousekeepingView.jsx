@@ -11,6 +11,7 @@ const HousekeepingView = () => {
     const [toastMessage, setToastMessage] = useState('');
     const [viewType, setViewType] = useState('list'); // 'list' or 'grid'
     const [pendingMarkedRooms, setPendingMarkedRooms] = useState({});
+    const [isMobileView, setIsMobileView] = useState(() => window.innerWidth <= 768);
 
     // Fetch pending tasks on mount
     useEffect(() => {
@@ -50,6 +51,16 @@ const HousekeepingView = () => {
             return () => clearTimeout(timer);
         }
     }, [showToast]);
+
+    // Keep layout responsive when viewport changes.
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobileView(window.innerWidth <= 768);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Filter tasks based on search query
     const filteredTasks = tasks.filter(task =>
@@ -177,7 +188,7 @@ const HousekeepingView = () => {
             </div>
 
             {/* Table / Grid View */}
-            {viewType === 'list' ? (
+            {viewType === 'list' && !isMobileView ? (
                 <div className="housekeeping-table-container">
                     <table className="housekeeping-table">
                         <thead>
@@ -233,6 +244,44 @@ const HousekeepingView = () => {
                             )}
                         </tbody>
                     </table>
+                </div>
+            ) : viewType === 'list' && isMobileView ? (
+                <div className="housekeeping-mobile-list">
+                    {loading ? (
+                        <div className="grid-loading">Loading tasks...</div>
+                    ) : filteredTasks.length > 0 ? (
+                        filteredTasks.map((task, index) => (
+                            <div key={task._id} className="mobile-list-card">
+                                <div className="mobile-list-card-top">
+                                    <div className="mobile-list-room">Room {task.roomNumber}</div>
+                                    <span className="card-status dirty">Needs Cleaning</span>
+                                </div>
+                                <div className="mobile-list-meta">
+                                    <span>S.No: {index + 1}</span>
+                                    <span>{new Date(task.createdAt).toLocaleString()}</span>
+                                </div>
+                                <div className="mobile-list-actions">
+                                    <button
+                                        className={`card-action-btn pending ${pendingMarkedRooms[String(task.roomNumber)] ? 'is-dimmed' : ''}`}
+                                        onClick={() => handleMarkPending(task._id, task.roomNumber)}
+                                        disabled={!!pendingMarkedRooms[String(task.roomNumber)]}
+                                    >
+                                        ⏳ Pending
+                                    </button>
+                                    <button
+                                        className="card-action-btn"
+                                        onClick={() => handleMarkClean(task._id, task.roomNumber)}
+                                    >
+                                        ✨ Mark Clean
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="grid-empty">
+                            {searchQuery ? 'No matching rooms found' : 'All rooms are clean! ✨'}
+                        </div>
+                    )}
                 </div>
             ) : (
                 <div className="housekeeping-grid-container">
