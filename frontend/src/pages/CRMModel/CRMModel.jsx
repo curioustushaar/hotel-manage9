@@ -1,10 +1,58 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/SettingsContext';
 import API_URL from '../../config/api';
 import { Users, User, Calendar, DollarSign, Plus, Edit2, Search, Briefcase, FileText, CheckCircle, X, Shield, Trash2, Check, Lock } from 'lucide-react';
 import './CRMModel.css';
+
+const CompactDropdown = ({ value, options, onChange, placeholder = 'Select', className = '' }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const ddRef = useRef(null);
+
+    useEffect(() => {
+        const handleOutside = (event) => {
+            if (ddRef.current && !ddRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleOutside);
+        return () => document.removeEventListener('mousedown', handleOutside);
+    }, []);
+
+    const selected = options.find(opt => opt.value === value);
+
+    return (
+        <div className={`crm-compact-dd ${className}`} ref={ddRef}>
+            <button
+                type="button"
+                className="crm-compact-dd-trigger"
+                onClick={() => setIsOpen(prev => !prev)}
+                aria-expanded={isOpen}
+            >
+                <span>{selected?.label || placeholder}</span>
+                <span className={`crm-compact-dd-arrow ${isOpen ? 'open' : ''}`}>▼</span>
+            </button>
+            {isOpen && (
+                <div className="crm-compact-dd-menu">
+                    {options.map((option) => (
+                        <button
+                            key={option.value}
+                            type="button"
+                            className={`crm-compact-dd-option ${option.value === value ? 'active' : ''}`}
+                            onClick={() => {
+                                onChange(option.value);
+                                setIsOpen(false);
+                            }}
+                        >
+                            {option.label}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 const CRMModel = () => {
     const { user } = useAuth();
@@ -129,6 +177,18 @@ const CRMModel = () => {
 
     const currentShift = getCurrentShift();
 
+    const SHIFT_OPTION_LIST = [
+        { value: 'Morning', label: '🌅 Morning (6AM - 2PM)' },
+        { value: 'Evening', label: '🌇 Evening (2PM - 10PM)' },
+        { value: 'Night', label: '🌙 Night (10PM - 6AM)' },
+    ];
+
+    const ATTENDANCE_OPTION_LIST = [
+        { value: 'Present', label: '✅ Present' },
+        { value: 'Absent', label: '❌ Absent' },
+        { value: 'On Leave', label: '⏸️ On Leave' },
+    ];
+
     useEffect(() => {
         fetchStaff();
     }, []);
@@ -159,8 +219,8 @@ const CRMModel = () => {
     };
 
     // When role changes, auto-assign default permissions
-    const handleRoleChange = (e) => {
-        const newRole = e.target.value;
+    const handleRoleChange = (roleOrEvent) => {
+        const newRole = typeof roleOrEvent === 'string' ? roleOrEvent : roleOrEvent.target.value;
         const defaultPerms = ROLE_DEFAULT_PERMISSIONS[newRole] || [];
         setFormData({ ...formData, role: newRole, permissions: defaultPerms });
     };
@@ -339,7 +399,7 @@ const CRMModel = () => {
                     <p className="crm-date">Today: {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} | Current Shift: <strong>{currentShift}</strong> ({SHIFT_TIMINGS[currentShift].label})</p>
                 </div>
                 <div className="crm-header-actions">
-                    <div className="crm-user-badge">
+                    <div className="crm-user-badge crm-user-badge-themed">
                         <span className="crm-user-role">Admin</span>
                         <strong className="crm-user-name">{user?.name || user?.username || 'Administrator'}</strong>
                     </div>
@@ -348,32 +408,32 @@ const CRMModel = () => {
 
             {/* Stats */}
             <div className="crm-stats-grid">
-                <div className="crm-stat-card">
-                    <div className="crm-stat-icon-wrapper" style={{ background: '#ffe4e6', color: '#e11d48' }}><Users size={24} /></div>
+                <div className="crm-stat-card crm-stat-card-rose">
+                    <div className="crm-stat-icon-wrapper crm-stat-icon-rose"><Users size={24} /></div>
                     <div className="crm-stat-content">
                         <h3 className="crm-stat-value">{totalStaff}</h3>
                         <p className="crm-stat-label">Total Staff</p>
                         <span className="crm-stat-subtext">Active Employees</span>
                     </div>
                 </div>
-                <div className="crm-stat-card">
-                    <div className="crm-stat-icon-wrapper" style={{ background: '#dcfce7', color: '#166534' }}><CheckCircle size={24} /></div>
+                <div className="crm-stat-card crm-stat-card-amber">
+                    <div className="crm-stat-icon-wrapper crm-stat-icon-amber"><CheckCircle size={24} /></div>
                     <div className="crm-stat-content">
                         <h3 className="crm-stat-value">{presentToday}</h3>
                         <p className="crm-stat-label">Present Today</p>
                         <span className="crm-stat-subtext">Out of {totalStaff} Staff</span>
                     </div>
                 </div>
-                <div className="crm-stat-card">
-                    <div className="crm-stat-icon-wrapper" style={{ background: '#fef3c7', color: '#92400e' }}><Calendar size={24} /></div>
+                <div className="crm-stat-card crm-stat-card-slate">
+                    <div className="crm-stat-icon-wrapper crm-stat-icon-slate"><Calendar size={24} /></div>
                     <div className="crm-stat-content">
                         <h3 className="crm-stat-value">{onLeave}</h3>
                         <p className="crm-stat-label">On Leave</p>
                         <span className="crm-stat-subtext">Today</span>
                     </div>
                 </div>
-                <div className="crm-stat-card">
-                    <div className="crm-stat-icon-wrapper" style={{ background: '#ffedd5', color: '#c2410c' }}><DollarSign size={24} /></div>
+                <div className="crm-stat-card crm-stat-card-blue">
+                    <div className="crm-stat-icon-wrapper crm-stat-icon-blue"><DollarSign size={24} /></div>
                     <div className="crm-stat-content">
                         <h3 className="crm-stat-value">{cs}{totalPayroll.toLocaleString('en-IN')}</h3>
                         <p className="crm-stat-label">Total Payroll</p>
@@ -413,166 +473,176 @@ const CRMModel = () => {
                             <Search size={16} />
                             <input type="text" placeholder="Search staff..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))} className="crm-search-input" />
                         </div>
-                        <select className="crm-filter-select" value={filterRole} onChange={(e) => setFilterRole(e.target.value)}>
-                            <option value="All">All Roles</option>
-                            {[...new Set([
-                                ...roleOptions.map(r => r.value),
-                                ...staffData.map(s => s.role).filter(Boolean)
-                            ])].map(role => (
-                                <option key={role} value={role}>{role.charAt(0).toUpperCase() + role.slice(1)}</option>
-                            ))}
-                        </select>
+                        <CompactDropdown
+                            className="crm-filter-select-dd"
+                            value={filterRole}
+                            onChange={setFilterRole}
+                            options={[
+                                { value: 'All', label: 'All Roles' },
+                                ...[...new Set([
+                                    ...roleOptions.map(r => r.value),
+                                    ...staffData.map(s => s.role).filter(Boolean)
+                                ])].map(role => ({ value: role, label: role.charAt(0).toUpperCase() + role.slice(1) }))
+                            ]}
+                            placeholder="All Roles"
+                        />
                     </div>
                 </div>
 
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Loading staff data...</div>
                 ) : (
-                    <table className="crm-staff-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Staff</th>
-                                <th>Role</th>
-                                <th>Permission</th>
-                                <th>Shift</th>
-                                <th>Attendance</th>
-                                <th>Salary</th>
-                                <th>Performance</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {currentStaff.length > 0 ? (
-                                currentStaff.map((staff, index) => (
-                                    <tr key={staff._id}>
-                                        <td>{indexOfFirstItem + index + 1}</td>
-                                        <td>
-                                            <div className="staff-profile-cell">
-                                                <img src={staff.image || `https://ui-avatars.com/api/?name=${staff.name}&background=random`} alt={staff.name} className="staff-avatar" />
-                                                <div className="staff-name-block">
-                                                    <span className="staff-name-text">{staff.name}</span>
-                                                    <span className="staff-email-text">{staff.username}</span>
+                    <div className="crm-table-scroll">
+                        <table className="crm-staff-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Staff</th>
+                                    <th>Role</th>
+                                    <th>Permission</th>
+                                    <th>Shift</th>
+                                    <th>Attendance</th>
+                                    <th>Salary</th>
+                                    <th>Performance</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {currentStaff.length > 0 ? (
+                                    currentStaff.map((staff, index) => (
+                                        <tr key={staff._id}>
+                                            <td>{indexOfFirstItem + index + 1}</td>
+                                            <td>
+                                                <div className="staff-profile-cell">
+                                                    <img src={staff.image || `https://ui-avatars.com/api/?name=${staff.name}&background=random`} alt={staff.name} className="staff-avatar" />
+                                                    <div className="staff-name-block">
+                                                        <span className="staff-name-text">{staff.name}</span>
+                                                        <span className="staff-email-text">{staff.username}</span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span className={`role-badge role-${(staff.role || 'staff').toLowerCase()}`}>
-                                                {staff.role || 'staff'}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div className="permission-tags">
-                                                {staff.permissions && staff.permissions.length > 0 ? (
-                                                    <>
-                                                        {staff.permissions.slice(0, 2).map((perm, i) => (
-                                                            <span key={i} className="permission-tag">{perm}</span>
+                                            </td>
+                                            <td>
+                                                <span className={`role-badge role-${(staff.role || 'staff').toLowerCase()}`}>
+                                                    {staff.role || 'staff'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div className="permission-tags">
+                                                    {staff.permissions && staff.permissions.length > 0 ? (
+                                                        <>
+                                                            {staff.permissions.slice(0, 2).map((perm, i) => (
+                                                                <span key={i} className="permission-tag">{perm}</span>
+                                                            ))}
+                                                            {staff.permissions.length > 2 && (
+                                                                <span className="permission-tag more-tag" title={staff.permissions.slice(2).join(', ')} onClick={() => setShowPermissionsViewModal(true)}>
+                                                                    +{staff.permissions.length - 2}
+                                                                </span>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <span className="no-permission">No permissions</span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            {/* Shift - Functional dropdown */}
+                                            <td>
+                                                <CompactDropdown
+                                                    className="crm-inline-shift-dd"
+                                                    value={staff.shift || 'Morning'}
+                                                    onChange={(newShift) => handleShiftChange(staff._id, newShift)}
+                                                    options={SHIFT_OPTION_LIST.map(opt => ({
+                                                        value: opt.value,
+                                                        label: opt.label.replace(/^[^ ]+\s/, '')
+                                                    }))}
+                                                />
+                                            </td>
+                                            {/* Attendance - Shift-aware */}
+                                            <td>
+                                                {canMarkAttendance(staff) ? (
+                                                    <div className="inline-attendance">
+                                                        {['Present', 'Absent', 'On Leave'].map(status => (
+                                                            <button
+                                                                key={status}
+                                                                className={`att-btn ${staff.attendanceStatus === status ? 'active' : ''} ${status.toLowerCase().replace(' ', '-')}`}
+                                                                onClick={() => handleAttendanceChange(staff._id, status)}
+                                                                title={status}
+                                                            >
+                                                                {status === 'Present' ? '✓' : status === 'Absent' ? '✗' : '⏸'}
+                                                            </button>
                                                         ))}
-                                                        {staff.permissions.length > 2 && (
-                                                            <span className="permission-tag more-tag" title={staff.permissions.slice(2).join(', ')} onClick={() => setShowPermissionsViewModal(true)}>
-                                                                +{staff.permissions.length - 2}
-                                                            </span>
-                                                        )}
-                                                    </>
+                                                        <span className={`att-label ${(staff.attendanceStatus || 'absent').toLowerCase().replace(' ', '-')}`}>
+                                                            {staff.attendanceStatus || 'Absent'}
+                                                        </span>
+                                                    </div>
                                                 ) : (
-                                                    <span className="no-permission">No permissions</span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        {/* Shift - Functional dropdown */}
-                                        <td>
-                                            <select className="inline-shift-select" value={staff.shift || 'Morning'} onChange={(e) => handleShiftChange(staff._id, e.target.value)}>
-                                                <option value="Morning">Morning</option>
-                                                <option value="Evening">Evening</option>
-                                                <option value="Night">Night</option>
-                                            </select>
-                                        </td>
-                                        {/* Attendance - Shift-aware */}
-                                        <td>
-                                            {canMarkAttendance(staff) ? (
-                                                <div className="inline-attendance">
-                                                    {['Present', 'Absent', 'On Leave'].map(status => (
-                                                        <button
-                                                            key={status}
-                                                            className={`att-btn ${staff.attendanceStatus === status ? 'active' : ''} ${status.toLowerCase().replace(' ', '-')}`}
-                                                            onClick={() => handleAttendanceChange(staff._id, status)}
-                                                            title={status}
-                                                        >
-                                                            {status === 'Present' ? '✓' : status === 'Absent' ? '✗' : '⏸'}
-                                                        </button>
-                                                    ))}
-                                                    <span className={`att-label ${(staff.attendanceStatus || 'absent').toLowerCase().replace(' ', '-')}`}>
-                                                        {staff.attendanceStatus || 'Absent'}
-                                                    </span>
-                                                </div>
-                                            ) : (
-                                                <div className="attendance-locked">
-                                                    <span className={`status-badge status-${(staff.attendanceStatus || 'absent').toLowerCase().replace(' ', '-')}`}>
-                                                        {staff.attendanceStatus || 'Absent'}
-                                                    </span>
-                                                    <span className="shift-lock-hint">🔒 {staff.shift || 'Morning'} shift</span>
-                                                </div>
-                                            )}
-                                        </td>
-                                        {/* Salary - Clickable */}
-                                        <td>
-                                            <span className="salary-cell" onClick={() => { setSalaryEditStaff(staff); setSalaryEditValue(staff.salary || 0); setShowSalaryModal(true); }} title="Click to edit salary">
-                                                {cs}{(staff.salary || 0).toLocaleString()}
-                                                <Edit2 size={12} className="salary-edit-icon" />
-                                            </span>
-                                        </td>
-                                        {/* Performance - Interactive Stars */}
-                                        <td>{renderStars(staff)}</td>
-                                        {/* Actions */}
-                                        <td>
-                                            <div className="action-buttons">
-                                                <button
-                                                    className={`action-icon-btn tick-btn ${staff.attendanceStatus === 'Present' ? 'active-present' : ''}`}
-                                                    onClick={() => handleAttendanceChange(staff._id, staff.attendanceStatus === 'Present' ? 'Absent' : 'Present')}
-                                                    title={staff.attendanceStatus === 'Present' ? 'Mark Absent' : 'Mark Present'}
-                                                >
-                                                    <Check size={16} />
-                                                </button>
-                                                <button className="action-icon-btn edit-btn" onClick={() => openEditModal(staff)} title="Edit">
-                                                    <Edit2 size={16} />
-                                                </button>
-                                                <button
-                                                    className="action-icon-btn delete-btn"
-                                                    onClick={() => setShowDeleteConfirm(showDeleteConfirm?._id === staff._id ? null : staff)}
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                                {showDeleteConfirm?._id === staff._id && (
-                                                    <div className="crm-delete-inline-warning">
-                                                        <span>Are you sure want to delete?</span>
-                                                        <div className="crm-delete-inline-actions">
-                                                            <button
-                                                                type="button"
-                                                                className="crm-delete-inline-yes"
-                                                                onClick={() => handleDeleteStaff(staff._id)}
-                                                            >
-                                                                Yes
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                className="crm-delete-inline-no"
-                                                                onClick={() => setShowDeleteConfirm(null)}
-                                                            >
-                                                                No
-                                                            </button>
-                                                        </div>
+                                                    <div className="attendance-locked">
+                                                        <span className={`status-badge status-${(staff.attendanceStatus || 'absent').toLowerCase().replace(' ', '-')}`}>
+                                                            {staff.attendanceStatus || 'Absent'}
+                                                        </span>
+                                                        <span className="shift-lock-hint">🔒 {staff.shift || 'Morning'} shift</span>
                                                     </div>
                                                 )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '30px' }}>No staff members found.</td></tr>
-                            )}
-                        </tbody>
-                    </table>
+                                            </td>
+                                            {/* Salary - Clickable */}
+                                            <td>
+                                                <span className="salary-cell" onClick={() => { setSalaryEditStaff(staff); setSalaryEditValue(staff.salary || 0); setShowSalaryModal(true); }} title="Click to edit salary">
+                                                    {cs}{(staff.salary || 0).toLocaleString()}
+                                                    <Edit2 size={12} className="salary-edit-icon" />
+                                                </span>
+                                            </td>
+                                            {/* Performance - Interactive Stars */}
+                                            <td>{renderStars(staff)}</td>
+                                            {/* Actions */}
+                                            <td>
+                                                <div className="action-buttons">
+                                                    <button
+                                                        className={`action-icon-btn tick-btn ${staff.attendanceStatus === 'Present' ? 'active-present' : ''}`}
+                                                        onClick={() => handleAttendanceChange(staff._id, staff.attendanceStatus === 'Present' ? 'Absent' : 'Present')}
+                                                        title={staff.attendanceStatus === 'Present' ? 'Mark Absent' : 'Mark Present'}
+                                                    >
+                                                        <Check size={16} />
+                                                    </button>
+                                                    <button className="action-icon-btn edit-btn" onClick={() => openEditModal(staff)} title="Edit">
+                                                        <Edit2 size={16} />
+                                                    </button>
+                                                    <button
+                                                        className="action-icon-btn delete-btn"
+                                                        onClick={() => setShowDeleteConfirm(showDeleteConfirm?._id === staff._id ? null : staff)}
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                    {showDeleteConfirm?._id === staff._id && (
+                                                        <div className="crm-delete-inline-warning">
+                                                            <span>Are you sure want to delete?</span>
+                                                            <div className="crm-delete-inline-actions">
+                                                                <button
+                                                                    type="button"
+                                                                    className="crm-delete-inline-yes"
+                                                                    onClick={() => handleDeleteStaff(staff._id)}
+                                                                >
+                                                                    Yes
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    className="crm-delete-inline-no"
+                                                                    onClick={() => setShowDeleteConfirm(null)}
+                                                                >
+                                                                    No
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr><td colSpan="9" style={{ textAlign: 'center', padding: '30px' }}>No staff members found.</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
 
                 {/* Pagination */}
@@ -648,9 +718,12 @@ const CRMModel = () => {
                                     <div className="form-group">
                                         <label>Role *</label>
                                         <div className="role-input-wrapper">
-                                            <select name="role" className="form-input" value={formData.role} onChange={handleRoleChange}>
-                                                {roleOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
-                                            </select>
+                                            <CompactDropdown
+                                                className="crm-form-dd"
+                                                value={formData.role}
+                                                onChange={handleRoleChange}
+                                                options={roleOptions.map(opt => ({ value: opt.value, label: opt.label }))}
+                                            />
                                             {showCustomRoleInput ? (
                                                 <div className="custom-role-input-row">
                                                     <input
@@ -742,11 +815,12 @@ const CRMModel = () => {
                                     </div>
                                     <div className="form-group">
                                         <label>Shift *</label>
-                                        <select name="shift" className="form-input" value={formData.shift} onChange={handleInputChange}>
-                                            <option value="Morning">🌅 Morning (6AM - 2PM)</option>
-                                            <option value="Evening">🌇 Evening (2PM - 10PM)</option>
-                                            <option value="Night">🌙 Night (10PM - 6AM)</option>
-                                        </select>
+                                        <CompactDropdown
+                                            className="crm-form-dd"
+                                            value={formData.shift}
+                                            onChange={(newShift) => handleInputChange({ target: { name: 'shift', value: newShift } })}
+                                            options={SHIFT_OPTION_LIST}
+                                        />
                                     </div>
                                     <div className="form-group">
                                         <label>Salary ({cs} / Month)</label>
@@ -754,11 +828,12 @@ const CRMModel = () => {
                                     </div>
                                     <div className="form-group">
                                         <label>Attendance Status</label>
-                                        <select name="attendanceStatus" className="form-input" value={formData.attendanceStatus} onChange={handleInputChange}>
-                                            <option value="Present">✅ Present</option>
-                                            <option value="Absent">❌ Absent</option>
-                                            <option value="On Leave">⏸️ On Leave</option>
-                                        </select>
+                                        <CompactDropdown
+                                            className="crm-form-dd"
+                                            value={formData.attendanceStatus}
+                                            onChange={(newStatus) => handleInputChange({ target: { name: 'attendanceStatus', value: newStatus } })}
+                                            options={ATTENDANCE_OPTION_LIST}
+                                        />
                                     </div>
                                     <div className="form-group">
                                         <label>Performance (0-5)</label>
@@ -851,11 +926,12 @@ const CRMModel = () => {
                                             <span className="staff-name">{staff.name}</span>
                                             <span className="staff-role">{staff.role}</span>
                                         </div>
-                                        <select className="crm-select-input" value={staff.shift || 'Morning'} onChange={(e) => handleQuickUpdate(staff._id, 'shift', e.target.value)}>
-                                            <option value="Morning">🌅 Morning (6AM - 2PM)</option>
-                                            <option value="Evening">🌇 Evening (2PM - 10PM)</option>
-                                            <option value="Night">🌙 Night (10PM - 6AM)</option>
-                                        </select>
+                                        <CompactDropdown
+                                            className="crm-shift-modal-dd"
+                                            value={staff.shift || 'Morning'}
+                                            onChange={(newShift) => handleQuickUpdate(staff._id, 'shift', newShift)}
+                                            options={SHIFT_OPTION_LIST}
+                                        />
                                     </div>
                                 ))}
                             </div>

@@ -714,6 +714,18 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [printType, setPrintType] = useState('');
     const [printBooking, setPrintBooking] = useState(null);
     const [showPrintMenu, setShowPrintMenu] = useState(false);
+    const printMenuRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutsidePrintMenu = (event) => {
+            if (printMenuRef.current && !printMenuRef.current.contains(event.target)) {
+                setShowPrintMenu(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutsidePrintMenu);
+        return () => document.removeEventListener('mousedown', handleClickOutsidePrintMenu);
+    }, []);
 
     // Room Categories (using facility types from above)
     const roomCategories = useMemo(() => {
@@ -2131,53 +2143,38 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                                         />
                                     </div>
 
-                                    <div className="relative">
+                                    <div className="print-menu-wrap" ref={printMenuRef}>
                                         <button
-                                            style={{
-                                                display: 'flex', alignItems: 'center', gap: '8px',
-                                                padding: '8px 16px', background: 'linear-gradient(135deg, #E31E24 0%, #b91c1c 100%)',
-                                                color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700',
-                                                fontSize: '13px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(220,38,38,0.3)'
-                                            }}
+                                            className={`print-menu-trigger ${showPrintMenu ? 'active' : ''}`}
                                             onClick={() => setShowPrintMenu(!showPrintMenu)}
                                         >
-                                            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                                            Print
-                                            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+                                            <svg className="print-menu-icon" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                                            <span>Print</span>
+                                            <span className={`print-menu-arrow ${showPrintMenu ? 'open' : ''}`}>▼</span>
                                         </button>
                                         {showPrintMenu && (
-                                            <div style={{
-                                                position: 'absolute', right: 0, top: 'calc(100% + 6px)',
-                                                background: '#fff', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-                                                border: '1px solid #f1f5f9', zIndex: 50, minWidth: '200px', overflow: 'hidden', padding: '6px'
-                                            }}>
+                                            <div className="print-menu-dropdown">
                                                 {[
                                                     { action: 'print-summary', icon: '📄', label: 'Print Summary', color: '#2563eb' },
                                                     { action: 'print-invoice', icon: '🧾', label: 'Print Invoice', color: '#16a34a' },
                                                     { action: 'print-grc', icon: '📋', label: 'Print GRC', color: '#9333ea' },
                                                     { action: 'print-grc-all', icon: '🗂️', label: 'Print GRC All', color: '#b45309' },
                                                 ].map((item, i) => (
-                                                    <button key={item.action}
-                                                        style={{
-                                                            display: 'flex', alignItems: 'center', gap: '10px',
-                                                            width: '100%', padding: '10px 12px', border: 'none',
-                                                            background: 'transparent', cursor: 'pointer', borderRadius: '8px',
-                                                            fontSize: '13px', fontWeight: '600', color: '#374151',
-                                                            transition: 'background 0.15s', textAlign: 'left'
-                                                        }}
-                                                        onMouseEnter={e => e.currentTarget.style.background = '#fef2f2'}
-                                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                                    <button
+                                                        key={item.action}
+                                                        className="print-menu-item"
                                                         onClick={() => {
                                                             setShowPrintMenu(false);
                                                             handleMoreOptionsAction(item.action, selectedReservation);
                                                         }}
                                                     >
-                                                        <span style={{
-                                                            width: '28px', height: '28px', borderRadius: '8px',
-                                                            background: `${item.color}15`, display: 'flex',
-                                                            alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0
-                                                        }}>{item.icon}</span>
-                                                        {item.label}
+                                                        <span
+                                                            className="print-menu-item-icon"
+                                                            style={{ background: `${item.color}15` }}
+                                                        >
+                                                            {item.icon}
+                                                        </span>
+                                                        <span className="print-menu-item-label">{item.label}</span>
                                                     </button>
                                                 ))}
                                             </div>

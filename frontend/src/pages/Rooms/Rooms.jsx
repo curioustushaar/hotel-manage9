@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import API_URL from '../../config/api';
@@ -40,6 +40,19 @@ const Rooms = () => {
     const [customRoomTypes, setCustomRoomTypes] = useState([]);
     const [isAddingRoomType, setIsAddingRoomType] = useState(false);
     const [newRoomType, setNewRoomType] = useState('');
+    const [showFloorFilterDropdown, setShowFloorFilterDropdown] = useState(false);
+    const [showRoomTypeFilterDropdown, setShowRoomTypeFilterDropdown] = useState(false);
+    const [showBedTypeFilterDropdown, setShowBedTypeFilterDropdown] = useState(false);
+    const [showStatusFilterDropdown, setShowStatusFilterDropdown] = useState(false);
+    const [showAddFloorDropdown, setShowAddFloorDropdown] = useState(false);
+    const [showEditFloorDropdown, setShowEditFloorDropdown] = useState(false);
+
+    const floorFilterDropdownRef = useRef(null);
+    const roomTypeFilterDropdownRef = useRef(null);
+    const bedTypeFilterDropdownRef = useRef(null);
+    const statusFilterDropdownRef = useRef(null);
+    const addFloorDropdownRef = useRef(null);
+    const editFloorDropdownRef = useRef(null);
 
     // Load rooms from MongoDB API
     useEffect(() => {
@@ -133,6 +146,32 @@ const Rooms = () => {
         const timer = setTimeout(() => setPendingDeleteRoomId(null), 5000);
         return () => clearTimeout(timer);
     }, [pendingDeleteRoomId]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (floorFilterDropdownRef.current && !floorFilterDropdownRef.current.contains(event.target)) {
+                setShowFloorFilterDropdown(false);
+            }
+            if (roomTypeFilterDropdownRef.current && !roomTypeFilterDropdownRef.current.contains(event.target)) {
+                setShowRoomTypeFilterDropdown(false);
+            }
+            if (bedTypeFilterDropdownRef.current && !bedTypeFilterDropdownRef.current.contains(event.target)) {
+                setShowBedTypeFilterDropdown(false);
+            }
+            if (statusFilterDropdownRef.current && !statusFilterDropdownRef.current.contains(event.target)) {
+                setShowStatusFilterDropdown(false);
+            }
+            if (addFloorDropdownRef.current && !addFloorDropdownRef.current.contains(event.target)) {
+                setShowAddFloorDropdown(false);
+            }
+            if (editFloorDropdownRef.current && !editFloorDropdownRef.current.contains(event.target)) {
+                setShowEditFloorDropdown(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Save draft form data to localStorage whenever it changes
     useEffect(() => {
@@ -357,6 +396,11 @@ const Rooms = () => {
         return roomType.replace('Room', '').trim();
     };
 
+    const floorFilterLabel = filters.floor === 'All' ? 'Floor: All' : filters.floor;
+    const roomTypeFilterLabel = filters.roomType === 'All' ? 'Room Type: All' : filters.roomType;
+    const bedTypeFilterLabel = filters.bedType === 'All' ? 'Bed Type: All' : filters.bedType;
+    const statusFilterLabel = filters.status === 'All' ? 'Status: All' : filters.status;
+
     return (
         <div className="rooms-page">
             <style>{`
@@ -463,36 +507,121 @@ const Rooms = () => {
                 </div>
 
                 <div className="filters-row" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <select className="filter-select" value={filters.floor} onChange={(e) => setFilters({ ...filters, floor: e.target.value })}>
-                        <option value="All">Floor: All</option>
-                        {floors.map(floor => (
-                            <option key={floor._id} value={floor.name}>{floor.name}</option>
-                        ))}
-                    </select>
+                    <div className="filter-dropdown" ref={floorFilterDropdownRef}>
+                        <button
+                            type="button"
+                            className="filter-dropdown-trigger"
+                            onClick={() => setShowFloorFilterDropdown((prev) => !prev)}
+                            aria-expanded={showFloorFilterDropdown}
+                        >
+                            <span>{floorFilterLabel}</span>
+                            <span className={`filter-dropdown-arrow ${showFloorFilterDropdown ? 'open' : ''}`}>▼</span>
+                        </button>
+                        {showFloorFilterDropdown && (
+                            <div className="filter-dropdown-options">
+                                <button type="button" className="filter-dropdown-option" onClick={() => { setFilters({ ...filters, floor: 'All' }); setShowFloorFilterDropdown(false); }}>
+                                    Floor: All
+                                </button>
+                                {floors.map((floor) => (
+                                    <button
+                                        type="button"
+                                        key={floor._id}
+                                        className="filter-dropdown-option"
+                                        onClick={() => { setFilters({ ...filters, floor: floor.name }); setShowFloorFilterDropdown(false); }}
+                                    >
+                                        {floor.name}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
-                    <select className="filter-select" value={filters.roomType} onChange={(e) => setFilters({ ...filters, roomType: e.target.value })}>
-                        <option value="All">Room Type: All</option>
-                        {roomTypes.map(type => (
-                            <option key={type._id} value={type.name}>{type.name}</option>
-                        ))}
-                    </select>
+                    <div className="filter-dropdown" ref={roomTypeFilterDropdownRef}>
+                        <button
+                            type="button"
+                            className="filter-dropdown-trigger"
+                            onClick={() => setShowRoomTypeFilterDropdown((prev) => !prev)}
+                            aria-expanded={showRoomTypeFilterDropdown}
+                        >
+                            <span>{roomTypeFilterLabel}</span>
+                            <span className={`filter-dropdown-arrow ${showRoomTypeFilterDropdown ? 'open' : ''}`}>▼</span>
+                        </button>
+                        {showRoomTypeFilterDropdown && (
+                            <div className="filter-dropdown-options">
+                                <button type="button" className="filter-dropdown-option" onClick={() => { setFilters({ ...filters, roomType: 'All' }); setShowRoomTypeFilterDropdown(false); }}>
+                                    Room Type: All
+                                </button>
+                                {roomTypes.map((type) => (
+                                    <button
+                                        type="button"
+                                        key={type._id}
+                                        className="filter-dropdown-option"
+                                        onClick={() => { setFilters({ ...filters, roomType: type.name }); setShowRoomTypeFilterDropdown(false); }}
+                                    >
+                                        {type.name}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
-                    <select className="filter-select" value={filters.bedType} onChange={(e) => setFilters({ ...filters, bedType: e.target.value })}>
-                        <option value="All">Bed Type: All</option>
-                        {bedTypes.map(type => (
-                            <option key={type._id} value={type.name}>{type.name}</option>
-                        ))}
-                    </select>
+                    <div className="filter-dropdown" ref={bedTypeFilterDropdownRef}>
+                        <button
+                            type="button"
+                            className="filter-dropdown-trigger"
+                            onClick={() => setShowBedTypeFilterDropdown((prev) => !prev)}
+                            aria-expanded={showBedTypeFilterDropdown}
+                        >
+                            <span>{bedTypeFilterLabel}</span>
+                            <span className={`filter-dropdown-arrow ${showBedTypeFilterDropdown ? 'open' : ''}`}>▼</span>
+                        </button>
+                        {showBedTypeFilterDropdown && (
+                            <div className="filter-dropdown-options">
+                                <button type="button" className="filter-dropdown-option" onClick={() => { setFilters({ ...filters, bedType: 'All' }); setShowBedTypeFilterDropdown(false); }}>
+                                    Bed Type: All
+                                </button>
+                                {bedTypes.map((type) => (
+                                    <button
+                                        type="button"
+                                        key={type._id}
+                                        className="filter-dropdown-option"
+                                        onClick={() => { setFilters({ ...filters, bedType: type.name }); setShowBedTypeFilterDropdown(false); }}
+                                    >
+                                        {type.name}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
-
-
-                    <select className="filter-select" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
-                        <option value="All">Status: All</option>
-                        <option value="Available">Available</option>
-                        <option value="Booked">Booked</option>
-                        <option value="Occupied">Occupied</option>
-                        <option value="Under Maintenance">Maintenance</option>
-                    </select>
+                    <div className="filter-dropdown" ref={statusFilterDropdownRef}>
+                        <button
+                            type="button"
+                            className="filter-dropdown-trigger"
+                            onClick={() => setShowStatusFilterDropdown((prev) => !prev)}
+                            aria-expanded={showStatusFilterDropdown}
+                        >
+                            <span>{statusFilterLabel}</span>
+                            <span className={`filter-dropdown-arrow ${showStatusFilterDropdown ? 'open' : ''}`}>▼</span>
+                        </button>
+                        {showStatusFilterDropdown && (
+                            <div className="filter-dropdown-options">
+                                <button type="button" className="filter-dropdown-option" onClick={() => { setFilters({ ...filters, status: 'All' }); setShowStatusFilterDropdown(false); }}>
+                                    Status: All
+                                </button>
+                                {statusOptions.map((status) => (
+                                    <button
+                                        type="button"
+                                        key={status}
+                                        className="filter-dropdown-option"
+                                        onClick={() => { setFilters({ ...filters, status }); setShowStatusFilterDropdown(false); }}
+                                    >
+                                        {status === 'Under Maintenance' ? 'Maintenance' : status}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -695,18 +824,34 @@ const Rooms = () => {
 
                                 <div className="payment-field-group">
                                     <label className="field-label-premium">FLOOR *</label>
-                                    <div className="premium-input-wrapper">
+                                    <div className="premium-input-wrapper" ref={addFloorDropdownRef}>
                                         <div className="input-icon-prefix">🏢</div>
-                                        <select
-                                            value={formData.floor || ''}
-                                            onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
-                                            required
+                                        <button
+                                            type="button"
+                                            className="premium-dropdown-trigger"
+                                            onClick={() => setShowAddFloorDropdown((prev) => !prev)}
+                                            aria-expanded={showAddFloorDropdown}
                                         >
-                                            <option value="">-- Select Floor --</option>
-                                            {floors.map(floor => (
-                                                <option key={floor._id} value={floor.name}>{floor.name}</option>
-                                            ))}
-                                        </select>
+                                            <span>{formData.floor || '-- Select Floor --'}</span>
+                                            <span className={`filter-dropdown-arrow ${showAddFloorDropdown ? 'open' : ''}`}>▼</span>
+                                        </button>
+                                        {showAddFloorDropdown && (
+                                            <div className="premium-dropdown-options">
+                                                <button type="button" className="premium-dropdown-option" onClick={() => { setFormData({ ...formData, floor: '' }); setShowAddFloorDropdown(false); }}>
+                                                    -- Select Floor --
+                                                </button>
+                                                {floors.map((floor) => (
+                                                    <button
+                                                        type="button"
+                                                        key={floor._id}
+                                                        className="premium-dropdown-option"
+                                                        onClick={() => { setFormData({ ...formData, floor: floor.name }); setShowAddFloorDropdown(false); }}
+                                                    >
+                                                        {floor.name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -860,16 +1005,34 @@ const Rooms = () => {
 
                             <div className="form-group">
                                 <label>FLOOR *</label>
-                                <select
-                                    className="form-input"
-                                    value={formData.floor || ''}
-                                    onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
-                                >
-                                    <option value="">-- Select Floor --</option>
-                                    {floors.map(floor => (
-                                        <option key={floor._id} value={floor.name}>{floor.name}</option>
-                                    ))}
-                                </select>
+                                <div className="edit-floor-dropdown" ref={editFloorDropdownRef}>
+                                    <button
+                                        type="button"
+                                        className="edit-floor-dropdown-trigger"
+                                        onClick={() => setShowEditFloorDropdown((prev) => !prev)}
+                                        aria-expanded={showEditFloorDropdown}
+                                    >
+                                        <span>{formData.floor || '-- Select Floor --'}</span>
+                                        <span className={`filter-dropdown-arrow ${showEditFloorDropdown ? 'open' : ''}`}>▼</span>
+                                    </button>
+                                    {showEditFloorDropdown && (
+                                        <div className="edit-floor-dropdown-options">
+                                            <button type="button" className="edit-floor-dropdown-option" onClick={() => { setFormData({ ...formData, floor: '' }); setShowEditFloorDropdown(false); }}>
+                                                -- Select Floor --
+                                            </button>
+                                            {floors.map((floor) => (
+                                                <button
+                                                    type="button"
+                                                    key={floor._id}
+                                                    className="edit-floor-dropdown-option"
+                                                    onClick={() => { setFormData({ ...formData, floor: floor.name }); setShowEditFloorDropdown(false); }}
+                                                >
+                                                    {floor.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="form-group">

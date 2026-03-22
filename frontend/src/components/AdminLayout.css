@@ -10,7 +10,7 @@
 .main-content {
     position: absolute;
     left: 260px;
-    top: 60px;
+    top: var(--admin-topbar-height, 60px);
     right: 0;
     bottom: 0;
     margin-left: 0 !important;
@@ -28,13 +28,13 @@
 
 @media (max-width: 1200px) {
     .main-content {
-        top: 52px;
+        top: var(--admin-topbar-height, 52px);
     }
 }
 
 @media (max-width: 576px) {
     .main-content {
-        top: 50px;
+        top: var(--admin-topbar-height, 50px);
     }
 }
 

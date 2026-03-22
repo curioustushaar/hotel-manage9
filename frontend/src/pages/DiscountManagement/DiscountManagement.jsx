@@ -24,7 +24,9 @@ const DiscountManagement = () => {
     const [openMenuId, setOpenMenuId] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [showAppliesTo, setShowAppliesTo] = useState(false);
+    const [showDiscountTypeDropdown, setShowDiscountTypeDropdown] = useState(false);
     const menuRef = useRef(null);
+    const discountTypeRef = useRef(null);
 
     const [applyToOptions, setApplyToOptions] = useState(() => buildLinkedAppliesToOptions(getAllChargeOptions()));
     const [isAddingApplyTo, setIsAddingApplyTo] = useState(false);
@@ -97,6 +99,10 @@ const DiscountManagement = () => {
         const handleClickOutside = (event) => {
             if (menuRef.current && !menuRef.current.contains(event.target)) {
                 setOpenMenuId(null);
+            }
+
+            if (discountTypeRef.current && !discountTypeRef.current.contains(event.target)) {
+                setShowDiscountTypeDropdown(false);
             }
         };
 
@@ -449,14 +455,41 @@ const DiscountManagement = () => {
                                     {/* Discount Type */}
                                     <div className="payment-field-group">
                                         <label className="field-label-premium">DISCOUNT TYPE <span className="required">*</span></label>
-                                        <select
-                                            className="premium-input"
-                                            value={formData.type}
-                                            onChange={(e) => setFormData({ ...formData, type: e.target.value, value: '' })}
-                                        >
-                                            <option value="PERCENTAGE">Percentage (%)</option>
-                                            <option value="FLAT">Flat Amount ({cs})</option>
-                                        </select>
+                                        <div className="discount-type-dropdown" ref={discountTypeRef}>
+                                            <button
+                                                type="button"
+                                                className="premium-input discount-type-trigger"
+                                                onClick={() => setShowDiscountTypeDropdown((prev) => !prev)}
+                                            >
+                                                <span>{formData.type === 'PERCENTAGE' ? 'Percentage (%)' : `Flat Amount (${cs})`}</span>
+                                                <span className={`discount-type-arrow ${showDiscountTypeDropdown ? 'open' : ''}`}>▼</span>
+                                            </button>
+
+                                            {showDiscountTypeDropdown && (
+                                                <div className="discount-type-options">
+                                                    <button
+                                                        type="button"
+                                                        className="discount-type-option"
+                                                        onClick={() => {
+                                                            setFormData({ ...formData, type: 'PERCENTAGE', value: '' });
+                                                            setShowDiscountTypeDropdown(false);
+                                                        }}
+                                                    >
+                                                        Percentage (%)
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="discount-type-option"
+                                                        onClick={() => {
+                                                            setFormData({ ...formData, type: 'FLAT', value: '' });
+                                                            setShowDiscountTypeDropdown(false);
+                                                        }}
+                                                    >
+                                                        Flat Amount ({cs})
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Discount Value */}

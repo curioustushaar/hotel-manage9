@@ -182,6 +182,31 @@
     box-shadow: 0 8px 24px rgba(0,0,0,0.08);
 }
 
+.rr-card-1 {
+    background: #dae7ff;
+    border-color: #bdd2f6;
+}
+
+.rr-card-2 {
+    background: #e1f4e8;
+    border-color: #c2e7d1;
+}
+
+.rr-card-3 {
+    background: #f8edc6;
+    border-color: #f1dd92;
+}
+
+.rr-card-4 {
+    background: #f7dde0;
+    border-color: #f0c9cf;
+}
+
+.rr-card-5 {
+    background: #ede7fb;
+    border-color: #d8cdf4;
+}
+
 .rr-card-icon {
     width: 50px;
     height: 50px;
@@ -192,15 +217,15 @@
     flex-shrink: 0;
 }
 
-.rr-card-1 .rr-card-icon { background: linear-gradient(135deg, #dbeafe, #bfdbfe); color: #2563eb; }
+.rr-card-1 .rr-card-icon { background: #a8c6f7; color: #2563eb; }
 .rr-card-1:hover { border-color: #93c5fd; }
-.rr-card-2 .rr-card-icon { background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #16a34a; }
+.rr-card-2 .rr-card-icon { background: #a7dfbf; color: #16a34a; }
 .rr-card-2:hover { border-color: #86efac; }
-.rr-card-3 .rr-card-icon { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #d97706; }
+.rr-card-3 .rr-card-icon { background: #efdc85; color: #d97706; }
 .rr-card-3:hover { border-color: #fcd34d; }
-.rr-card-4 .rr-card-icon { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #E31E24; }
+.rr-card-4 .rr-card-icon { background: #f0bcc3; color: #ef1e2a; }
 .rr-card-4:hover { border-color: #fca5a5; }
-.rr-card-5 .rr-card-icon { background: linear-gradient(135deg, #ede9fe, #ddd6fe); color: #7c3aed; }
+.rr-card-5 .rr-card-icon { background: #d4ccf0; color: #7c3aed; }
 .rr-card-5:hover { border-color: #c4b5fd; }
 
 .rr-card-content { display: flex; flex-direction: column; }
@@ -214,7 +239,7 @@
 
 .rr-card-label {
     font-size: 11px;
-    color: #888;
+    color: #5b667a;
     font-weight: 600;
     margin-top: 4px;
     text-transform: uppercase;
