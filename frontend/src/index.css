@@ -131,9 +131,11 @@ body {
 
 /* ---------- COMMON ---------- */
 .container {
-  width: 90%;
-  max-width: 1200px;
+  width: 100%;
+  max-width: 1360px;
   margin: auto;
+  padding: 0 20px;
+  box-sizing: border-box;
 }
 
 /* ---------- NAVBAR ---------- */

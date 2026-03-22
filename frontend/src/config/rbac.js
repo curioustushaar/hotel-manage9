@@ -470,7 +470,7 @@ const MODULE_LABEL_MAP = {
  * Works for ALL roles — checks the permissions[] array assigned via CRM/Settings
  */
 const _hasCustomPermission = (user, module) => {
-    const userPermissions = user.permissions || [];
+    const userPermissions = Array.isArray(user?.permissions) ? user.permissions : [];
     if (userPermissions.length === 0) return false;
 
     const labels = MODULE_LABEL_MAP[module];
