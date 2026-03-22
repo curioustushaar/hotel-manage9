@@ -147,7 +147,7 @@
 
 
 /* Tabs */
-.tabs-toolbar {
+.reservation-management-container .tabs-toolbar {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
@@ -156,7 +156,7 @@
     border-bottom: 2px solid #e5e7eb;
 }
 
-.reservation-tabs {
+.reservation-management-container .reservation-tabs {
     display: flex;
     gap: 0.25rem;
     margin-bottom: 0;
@@ -167,7 +167,7 @@
     flex: 1;
 }
 
-.tab-btn {
+.reservation-management-container .tab-btn {
     padding: 1.125rem 1.5rem;
     background: none;
     border: none;
@@ -183,12 +183,12 @@
     position: relative;
 }
 
-.tab-btn:hover {
+.reservation-management-container .tab-btn:hover {
     color: #dc3545;
     background-color: rgba(220, 53, 69, 0.02);
 }
 
-.tab-btn.active {
+.reservation-management-container .tab-btn.active {
     color: #dc3545;
     border-bottom-color: #dc3545;
     font-weight: 800;
@@ -196,7 +196,7 @@
 }
 
 /* View Toggle Container */
-.view-toggle-container {
+.reservation-management-container .view-toggle-container {
     display: flex;
     justify-content: flex-end;
     margin-bottom: 0.5rem;
@@ -204,7 +204,7 @@
     flex-shrink: 0;
 }
 
-.view-toggle {
+.reservation-management-container .view-toggle {
     display: flex;
     gap: 5px;
     background: #f3f4f6;
@@ -212,7 +212,7 @@
     border-radius: 8px;
 }
 
-.view-toggle-btn {
+.reservation-management-container .view-toggle-btn {
     background: transparent;
     border: none;
     padding: 8px 12px;
@@ -225,17 +225,17 @@
     color: #6b7280;
 }
 
-.view-toggle-btn:hover {
+.reservation-management-container .view-toggle-btn:hover {
     background: rgba(220, 53, 69, 0.1);
     color: #dc3545;
 }
 
-.view-toggle-btn.active {
+.reservation-management-container .view-toggle-btn.active {
     background: #dc3545;
     color: white;
 }
 
-.view-toggle-btn svg {
+.reservation-management-container .view-toggle-btn svg {
     width: 20px;
     height: 20px;
 }
@@ -912,13 +912,13 @@
 }
 
 @media (max-width: 768px) {
-    .tabs-toolbar {
+    .reservation-management-container .tabs-toolbar {
         flex-direction: column;
         align-items: stretch;
         gap: 0.75rem;
     }
 
-    .reservation-tabs {
+    .reservation-management-container .reservation-tabs {
         width: 100%;
     }
 
@@ -926,13 +926,13 @@
         grid-template-columns: 1fr;
     }
 
-    .view-toggle-container {
+    .reservation-management-container .view-toggle-container {
         justify-content: center;
         margin-top: 0;
         margin-bottom: 0.75rem;
     }
 
-    .view-toggle {
+    .reservation-management-container .view-toggle {
         width: 100%;
         max-width: 300px;
     }
@@ -3203,17 +3203,17 @@ select:disabled {
         padding: 0.7rem 1rem;
     }
 
-    .tabs-toolbar {
+    .reservation-management-container .tabs-toolbar {
         gap: 0.75rem;
         margin-bottom: 1rem;
     }
 
-    .tab-btn {
+    .reservation-management-container .tab-btn {
         padding: 0.85rem 0.9rem;
         font-size: 0.72rem;
     }
 
-    .view-toggle-container {
+    .reservation-management-container .view-toggle-container {
         justify-content: flex-start;
     }
 
@@ -3247,27 +3247,27 @@ select:disabled {
         font-size: 0.82rem !important;
     }
 
-    .tabs-toolbar {
+    .reservation-management-container .tabs-toolbar {
         flex-direction: column;
         align-items: stretch;
     }
 
-    .reservation-tabs {
+    .reservation-management-container .reservation-tabs {
         width: 100%;
         overflow-x: auto;
         padding-bottom: 4px;
     }
 
-    .reservation-tabs::-webkit-scrollbar {
+    .reservation-management-container .reservation-tabs::-webkit-scrollbar {
         height: 4px;
     }
 
-    .view-toggle-container {
+    .reservation-management-container .view-toggle-container {
         justify-content: center;
         width: 100%;
     }
 
-    .view-toggle {
+    .reservation-management-container .view-toggle {
         width: 100%;
         max-width: 220px;
     }
@@ -3290,9 +3290,38 @@ select:disabled {
         padding: 0.68rem 0.9rem;
     }
 
-    .tab-btn {
+    .reservation-management-container .tab-btn {
         font-size: 0.68rem;
         padding: 0.75rem 0.75rem;
+    }
+
+    .reservation-management-container .tabs-toolbar {
+        border-bottom: none;
+    }
+
+    .reservation-management-container .reservation-tabs {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.4rem;
+        overflow: visible;
+        padding-bottom: 0;
+    }
+
+    .reservation-management-container .tab-btn {
+        width: 100%;
+        min-height: 44px;
+        white-space: normal;
+        text-align: center;
+        line-height: 1.2;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        border-bottom-width: 1px;
+        background: #ffffff;
+    }
+
+    .reservation-management-container .tab-btn.active {
+        border-color: #dc3545;
+        background: rgba(220, 53, 69, 0.08);
     }
 
     .reservation-management-container .search-ref-input::placeholder {
