@@ -3,6 +3,8 @@
     background: #f8fafc;
     min-height: calc(100vh - 150px);
     font-family: 'Inter', sans-serif;
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 .outlet-header {
@@ -145,6 +147,7 @@
     grid-template-columns: 1fr 1fr;
     gap: 20px;
     width: 100%;
+    max-width: 100%;
 }
 
 .dashboard-section {
@@ -154,6 +157,10 @@
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
     border: 1px solid #f1f5f9;
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .dashboard-section.full-width {
@@ -176,6 +183,7 @@
     font-size: 18px;
     font-weight: 700;
     color: #334155;
+    min-width: 0;
 }
 
 .stats-row {
@@ -183,6 +191,9 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 16px;
     margin-bottom: 24px;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
 }
 
 .status-card {
@@ -190,6 +201,9 @@
     border-radius: 12px;
     text-align: center;
     transition: transform 0.3s ease;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .status-card:hover {
@@ -399,12 +413,165 @@
     font-weight: 600;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1100px) {
+    .outlet-status-container {
+        padding: 14px;
+    }
+
+    .outlet-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .outlet-header .title-section h1 {
+        font-size: 1.2rem;
+    }
+
+    .outlet-header .title-section p {
+        font-size: 0.8rem;
+    }
+
+    .status-type-filters {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        width: 100%;
+    }
+
+    .status-filter-btn {
+        min-width: 0;
+        width: 100%;
+        padding: 8px 10px;
+        font-size: 12px;
+        white-space: normal;
+        text-align: center;
+    }
+
     .outlet-grid {
         grid-template-columns: 1fr;
     }
 
     .dashboard-section.full-width {
         grid-column: span 1;
+    }
+
+    .dashboard-section {
+        padding: 14px;
+        border-radius: 12px;
+    }
+
+    .stats-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .section-header {
+        margin-bottom: 14px;
+    }
+
+    .section-header h3 {
+        font-size: 1rem;
+    }
+
+    .stats-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .status-card {
+        padding: 14px 12px;
+    }
+
+    .status-value {
+        font-size: 1.5rem;
+    }
+
+    .prep-time-metric {
+        padding: 14px;
+    }
+
+    .metric-details .value {
+        font-size: 1.05rem;
+    }
+
+    .indicators-row {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+
+    .indicator-col {
+        text-align: left;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .indicator-tag {
+        min-width: 86px;
+        text-align: center;
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .operational-tips {
+        align-items: flex-start;
+        padding: 12px;
+    }
+
+    .operational-tips p {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 600px) {
+    .status-type-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stats-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .status-card {
+        padding: 12px 8px;
+    }
+
+    .status-value {
+        font-size: 1.2rem;
+    }
+
+    .status-label {
+        font-size: 10px;
+        letter-spacing: 0.2px;
+    }
+
+    .section-header h3 {
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 420px) {
+    .status-filter-btn {
+        font-size: 11px;
+        padding: 8px 6px;
+    }
+
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+
+    .status-label {
+        font-size: 9px;
     }
 }

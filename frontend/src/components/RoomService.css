@@ -497,3 +497,186 @@
 .rs-progress-segment-wrap:active {
     transform: scale(0.95);
 }
+
+/* --- Responsive No-Overlap Hardening --- */
+@media (max-width: 1200px) {
+    .rs-management-wrapper {
+        padding: 18px;
+    }
+
+    .rs-top-header {
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .rs-header-main-right {
+        margin-left: auto;
+    }
+
+    .rs-controls-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .rs-search-container {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .rs-filter-pills {
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+        flex-wrap: nowrap;
+    }
+
+    .rs-pill-btn {
+        flex: 0 0 auto;
+        padding: 9px 18px;
+    }
+
+    .rs-cards-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 992px) {
+    .rs-management-wrapper {
+        padding: 12px;
+    }
+
+    .rs-main-title {
+        font-size: 20px;
+        line-height: 1.2;
+        word-break: break-word;
+    }
+
+    .rs-active-ops {
+        font-size: 11px;
+    }
+
+    .rs-orders-count-badge {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    .rs-bell-btn,
+    .rs-back-circle-btn {
+        width: 38px;
+        height: 38px;
+    }
+
+    .rs-cards-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .rs-order-details-summary {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .rs-card-footer {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .rs-bill-details-btn,
+    .rs-place-order-footer-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .rs-top-header {
+        align-items: flex-start;
+    }
+
+    .rs-header-main-left {
+        width: 100%;
+        align-items: flex-start;
+    }
+
+    .rs-title-section {
+        min-width: 0;
+    }
+
+    .rs-header-main-right {
+        width: 100%;
+        margin-left: 0;
+        justify-content: space-between;
+    }
+
+    .rs-search-field {
+        font-size: 14px;
+        padding: 11px 40px 11px 42px;
+    }
+
+    .rs-pill-btn {
+        font-size: 12px;
+        padding: 8px 14px;
+    }
+
+    .rs-room-num-box {
+        font-size: 18px;
+    }
+
+    .rs-room-type-name {
+        font-size: 12px;
+        line-height: 1.3;
+    }
+
+    .rs-guest-name-val,
+    .rs-detail-val,
+    .rs-category-tag {
+        word-break: break-word;
+    }
+
+    .rs-page-footer {
+        margin-top: 20px;
+        text-align: left;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 576px) {
+    .rs-management-wrapper {
+        padding: 10px;
+    }
+
+    .rs-main-title {
+        font-size: 18px;
+    }
+
+    .rs-active-ops {
+        font-size: 10px;
+    }
+
+    .rs-orders-count-badge {
+        padding: 7px 10px;
+        font-size: 11px;
+    }
+
+    .rs-order-status-tag {
+        font-size: 11px;
+    }
+
+    .rs-operation-card {
+        padding: 12px;
+        border-radius: 12px;
+    }
+
+    .rs-progress-label {
+        font-size: 9px;
+    }
+
+    .rs-time-lapsed {
+        font-size: 11px;
+    }
+}

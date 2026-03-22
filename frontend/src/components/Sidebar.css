@@ -7,12 +7,14 @@
     flex-direction: column;
     position: fixed;
     height: 100vh;
+    height: 100dvh;
     left: 0;
     top: 0;
     z-index: 100;
     /* transition: all 0.3s ease; removed for snappiness */
     padding-top: 10px;
     overflow: hidden;
+    padding-bottom: 8px;
 }
 
 .sidebar.closed {
@@ -57,7 +59,9 @@
 
 .sidebar-nav {
     flex: 1;
+    min-height: 0;
     padding: 10px 10px;
+    padding-bottom: 10px;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: none;
@@ -201,7 +205,7 @@
 /* Logout Button */
 .logout-btn {
     width: calc(100% - 30px);
-    margin: 20px auto;
+    margin: 8px auto 10px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -219,6 +223,18 @@
     /* transition: all 0.3s ease; removed for snappiness */
     box-shadow: 0 4px 6px rgba(227, 30, 36, 0.3);
     /* Soft red shadow */
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    z-index: 1;
+    flex-shrink: 0;
+}
+
+@media (max-height: 760px) {
+    .sidebar-nav {
+        padding-bottom: 8px;
+    }
 }
 
 .logout-btn:hover {

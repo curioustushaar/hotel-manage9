@@ -13,6 +13,7 @@
     top: 60px;
     right: 0;
     bottom: 0;
+    margin-left: 0 !important;
     overflow-y: auto;
     overflow-x: hidden;
     transition: none; /* Disabled to match sidebar snappiness and prevent flickering */
@@ -22,6 +23,19 @@
 
 .main-content.full-width {
     left: 0;
+    margin-left: 0 !important;
+}
+
+@media (max-width: 1200px) {
+    .main-content {
+        top: 52px;
+    }
+}
+
+@media (max-width: 576px) {
+    .main-content {
+        top: 50px;
+    }
 }
 
 .main-content.no-padding .layout-content {
@@ -53,11 +67,12 @@
     margin-bottom: 20px;
 }
 
-/* Responsive: sidebar collapses on small screens */
-@media (max-width: 768px) {
+/* Responsive: sidebar collapses on mobile and tablet screens */
+@media (max-width: 1200px) {
     .main-content {
         left: 0;
         right: 0;
+        margin-left: 0 !important;
     }
     
     .main-content.full-width {

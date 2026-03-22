@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import API_URL from '../config/api';
 import '../pages/FoodMenu/FoodMenu.css'; // Import FoodMenu styles
+import './ItemStockStatus.css';
 import { useSettings } from '../context/SettingsContext';
 
 // Replaced ItemStockStatus with Food Menu Management features
@@ -14,6 +15,7 @@ const ItemStockStatus = () => {
     const [filterCategory, setFilterCategory] = useState('All Categories');
     const [currentPage, setCurrentPage] = useState(1);
     const [pendingDeleteItemId, setPendingDeleteItemId] = useState(null);
+    const [isMobileView, setIsMobileView] = useState(() => window.innerWidth <= 768);
     const itemsPerPage = 7;
 
     const categories = [
@@ -45,6 +47,12 @@ const ItemStockStatus = () => {
         const timer = setTimeout(() => setPendingDeleteItemId(null), 5000);
         return () => clearTimeout(timer);
     }, [pendingDeleteItemId]);
+
+    useEffect(() => {
+        const onResize = () => setIsMobileView(window.innerWidth <= 768);
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
 
     const fetchMenuItems = async () => {
         try {
@@ -135,7 +143,7 @@ const ItemStockStatus = () => {
     const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
 
     return (
-        <div className="food-menu-container">
+        <div className="food-menu-container item-stock-status-page">
             {/* Header - Compact */}
             <div className="food-menu-header" style={{ padding: '10px 20px', marginBottom: '10px' }}>
                 <div className="header-left">
@@ -182,129 +190,188 @@ const ItemStockStatus = () => {
                         </div>
                     </div>
 
-                    {/* Table */}
-                    <div className="table-container">
-                        <table className="items-table" style={{ fontSize: '0.85rem', width: '100%' }}>
-                            <thead>
-                                <tr style={{ background: '#f1f1f1' }}>
-                                    <th style={{ padding: '8px' }}>#</th>
-                                    <th style={{ padding: '8px' }}>Code</th>
-                                    <th style={{ padding: '8px' }}>Item Name</th>
-                                    <th style={{ padding: '8px' }}>Category</th>
-                                    <th style={{ padding: '8px' }}>Description</th>
-                                    <th style={{ padding: '8px' }}>Price</th>
-                                    <th style={{ padding: '8px' }}>Stock</th>
-                                    <th style={{ padding: '8px' }}>Status</th>
-                                    <th style={{ padding: '8px' }}>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {currentItems.map((item, index) => (
-                                    <tr key={item._id}>
-                                        <td>{indexOfFirstItem + index + 1}</td>
-                                        <td><span className="code-badge">{item.foodCode || '-'}</span></td>
-                                        <td>{item.itemName}</td>
-                                        <td>{getCategoryWithIcon(item.category)}</td>
-                                        <td>{item.description || '---'}</td>
-                                        <td>{cs}{item.price.toFixed(2)}</td>
-                                        <td>
+                    {/* Table / Mobile Cards */}
+                    {isMobileView ? (
+                        <div className="item-stock-mobile-list">
+                            {currentItems.map((item, index) => (
+                                <div key={item._id} className="item-stock-mobile-card">
+                                    <div className="item-stock-mobile-top">
+                                        <span className="item-stock-mobile-index">#{indexOfFirstItem + index + 1}</span>
+                                        <span className={`status-badge ${item.status.toLowerCase()}`}>{item.status}</span>
+                                    </div>
+                                    <div className="item-stock-mobile-name">{item.itemName}</div>
+                                    <div className="item-stock-mobile-grid">
+                                        <div><strong>Code:</strong> {item.foodCode || '-'}</div>
+                                        <div><strong>Category:</strong> {getCategoryWithIcon(item.category)}</div>
+                                        <div><strong>Price:</strong> {cs}{item.price.toFixed(2)}</div>
+                                        <div>
+                                            <strong>Stock:</strong>{' '}
                                             <span className={`stock-badge ${item.quantity > 0 ? 'in-stock' : 'out-of-stock-text'}`}>
                                                 {item.quantity || 0}
                                             </span>
-                                        </td>
-                                        <td>
-                                            <span className={`status-badge ${item.status.toLowerCase()}`}>
-                                                {item.status}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div className="action-buttons" style={{ position: 'relative' }}>
-                                                <button
-                                                    className="action-btn edit-btn"
-                                                    onClick={() => setEditingItem(item)}
-                                                    title="Edit"
-                                                >
-                                                    ✏️
-                                                </button>
-                                                <button
-                                                    className="action-btn toggle-btn"
-                                                    onClick={() => handleToggleStatus(item._id, item.status)}
-                                                    title="Toggle Status"
-                                                >
-                                                    🔄
-                                                </button>
-                                                <button
-                                                    className="action-btn delete-btn"
-                                                    onClick={() => setPendingDeleteItemId(item._id)}
-                                                    title="Delete"
-                                                >
-                                                    🗑️
-                                                </button>
+                                        </div>
+                                        <div className="item-stock-mobile-desc"><strong>Description:</strong> {item.description || '---'}</div>
+                                    </div>
+                                    <div className="item-stock-mobile-actions">
+                                        <button
+                                            className="action-btn edit-btn"
+                                            onClick={() => setEditingItem(item)}
+                                            title="Edit"
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            className="action-btn toggle-btn"
+                                            onClick={() => handleToggleStatus(item._id, item.status)}
+                                            title="Toggle Status"
+                                        >
+                                            🔄
+                                        </button>
+                                        <button
+                                            className="action-btn delete-btn"
+                                            onClick={() => setPendingDeleteItemId(item._id)}
+                                            title="Delete"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
 
-                                                {pendingDeleteItemId === item._id && (
-                                                    <div style={{
-                                                        position: 'absolute',
-                                                        right: 0,
-                                                        bottom: 'calc(100% + 8px)',
-                                                        padding: '8px 10px',
-                                                        borderRadius: '10px',
-                                                        border: '1px solid #fecaca',
-                                                        background: '#fff1f2',
-                                                        color: '#991b1b',
-                                                        fontSize: '12px',
-                                                        fontWeight: 700,
-                                                        display: 'inline-flex',
-                                                        flexDirection: 'column',
-                                                        alignItems: 'flex-start',
-                                                        gap: '8px',
-                                                        minWidth: '190px',
-                                                        boxShadow: '0 12px 24px rgba(239, 68, 68, 0.2)',
-                                                        zIndex: 9999
-                                                    }}>
-                                                        <span>Are you sure want to delete?</span>
-                                                        <div style={{ display: 'inline-flex', gap: '6px' }}>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleDeleteItem(item._id)}
-                                                                style={{
-                                                                    border: 'none',
-                                                                    borderRadius: '6px',
-                                                                    padding: '4px 10px',
-                                                                    background: '#dc2626',
-                                                                    color: '#fff',
-                                                                    cursor: 'pointer',
-                                                                    fontWeight: 700,
-                                                                    fontSize: '12px'
-                                                                }}
-                                                            >
-                                                                Yes
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setPendingDeleteItemId(null)}
-                                                                style={{
-                                                                    border: 'none',
-                                                                    borderRadius: '6px',
-                                                                    padding: '4px 10px',
-                                                                    background: '#fee2e2',
-                                                                    color: '#7f1d1d',
-                                                                    cursor: 'pointer',
-                                                                    fontWeight: 700,
-                                                                    fontSize: '12px'
-                                                                }}
-                                                            >
-                                                                No
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )}
+                                    {pendingDeleteItemId === item._id && (
+                                        <div className="item-stock-mobile-confirm">
+                                            <span>Are you sure want to delete?</span>
+                                            <div className="item-stock-mobile-confirm-actions">
+                                                <button type="button" onClick={() => handleDeleteItem(item._id)}>Yes</button>
+                                                <button type="button" onClick={() => setPendingDeleteItemId(null)}>No</button>
                                             </div>
-                                        </td>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="table-container">
+                            <table className="items-table" style={{ fontSize: '0.85rem', width: '100%' }}>
+                                <thead>
+                                    <tr style={{ background: '#f1f1f1' }}>
+                                        <th style={{ padding: '8px' }}>#</th>
+                                        <th style={{ padding: '8px' }}>Code</th>
+                                        <th style={{ padding: '8px' }}>Item Name</th>
+                                        <th style={{ padding: '8px' }}>Category</th>
+                                        <th style={{ padding: '8px' }}>Description</th>
+                                        <th style={{ padding: '8px' }}>Price</th>
+                                        <th style={{ padding: '8px' }}>Stock</th>
+                                        <th style={{ padding: '8px' }}>Status</th>
+                                        <th style={{ padding: '8px' }}>Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    {currentItems.map((item, index) => (
+                                        <tr key={item._id}>
+                                            <td>{indexOfFirstItem + index + 1}</td>
+                                            <td><span className="code-badge">{item.foodCode || '-'}</span></td>
+                                            <td>{item.itemName}</td>
+                                            <td>{getCategoryWithIcon(item.category)}</td>
+                                            <td>{item.description || '---'}</td>
+                                            <td>{cs}{item.price.toFixed(2)}</td>
+                                            <td>
+                                                <span className={`stock-badge ${item.quantity > 0 ? 'in-stock' : 'out-of-stock-text'}`}>
+                                                    {item.quantity || 0}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className={`status-badge ${item.status.toLowerCase()}`}>
+                                                    {item.status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div className="action-buttons" style={{ position: 'relative' }}>
+                                                    <button
+                                                        className="action-btn edit-btn"
+                                                        onClick={() => setEditingItem(item)}
+                                                        title="Edit"
+                                                    >
+                                                        ✏️
+                                                    </button>
+                                                    <button
+                                                        className="action-btn toggle-btn"
+                                                        onClick={() => handleToggleStatus(item._id, item.status)}
+                                                        title="Toggle Status"
+                                                    >
+                                                        🔄
+                                                    </button>
+                                                    <button
+                                                        className="action-btn delete-btn"
+                                                        onClick={() => setPendingDeleteItemId(item._id)}
+                                                        title="Delete"
+                                                    >
+                                                        🗑️
+                                                    </button>
+
+                                                    {pendingDeleteItemId === item._id && (
+                                                        <div style={{
+                                                            position: 'absolute',
+                                                            right: 0,
+                                                            bottom: 'calc(100% + 8px)',
+                                                            padding: '8px 10px',
+                                                            borderRadius: '10px',
+                                                            border: '1px solid #fecaca',
+                                                            background: '#fff1f2',
+                                                            color: '#991b1b',
+                                                            fontSize: '12px',
+                                                            fontWeight: 700,
+                                                            display: 'inline-flex',
+                                                            flexDirection: 'column',
+                                                            alignItems: 'flex-start',
+                                                            gap: '8px',
+                                                            minWidth: '190px',
+                                                            boxShadow: '0 12px 24px rgba(239, 68, 68, 0.2)',
+                                                            zIndex: 9999
+                                                        }}>
+                                                            <span>Are you sure want to delete?</span>
+                                                            <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDeleteItem(item._id)}
+                                                                    style={{
+                                                                        border: 'none',
+                                                                        borderRadius: '6px',
+                                                                        padding: '4px 10px',
+                                                                        background: '#dc2626',
+                                                                        color: '#fff',
+                                                                        cursor: 'pointer',
+                                                                        fontWeight: 700,
+                                                                        fontSize: '12px'
+                                                                    }}
+                                                                >
+                                                                    Yes
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setPendingDeleteItemId(null)}
+                                                                    style={{
+                                                                        border: 'none',
+                                                                        borderRadius: '6px',
+                                                                        padding: '4px 10px',
+                                                                        background: '#fee2e2',
+                                                                        color: '#7f1d1d',
+                                                                        cursor: 'pointer',
+                                                                        fontWeight: 700,
+                                                                        fontSize: '12px'
+                                                                    }}
+                                                                >
+                                                                    No
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
 
                     {/* Pagination */}
                     <div className="pagination">

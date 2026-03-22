@@ -762,6 +762,193 @@
     border-bottom: 1px solid #e5e7eb;
 }
 
+/* ============================================
+   MOBILE/TABLET RESPONSIVE HARDENING
+   ============================================ */
+
+@media (max-width: 1024px) {
+    .edit-modal-overlay {
+        padding: 10px;
+        align-items: flex-start;
+    }
+
+    .edit-modal-card {
+        width: 100%;
+        max-width: 100%;
+        max-height: calc(100vh - 20px);
+        border-radius: 10px;
+    }
+
+    .edit-modal-header {
+        padding: 10px 12px 8px 12px;
+    }
+
+    .booking-summary-modal {
+        padding: 8px 12px;
+        gap: 8px;
+        align-items: stretch;
+    }
+
+    .summary-info-row {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 10px;
+        padding-bottom: 4px;
+    }
+
+    .summary-col {
+        min-width: 90px;
+        flex: 0 0 auto;
+    }
+
+    .modal-tabs-section .reservation-tabs-container {
+        padding: 0 10px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex-wrap: nowrap;
+        scrollbar-width: thin;
+    }
+
+    .modal-tabs-section .reservation-tab-btn {
+        font-size: 0.72rem;
+        padding: 8px 10px;
+        white-space: nowrap;
+        flex: 0 0 auto;
+    }
+
+    .modal-content-area .folio-operations-container {
+        display: flex;
+        flex-direction: column;
+        min-height: auto;
+    }
+
+    .modal-content-area .room-folio-sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+        padding: 10px;
+    }
+
+    .modal-content-area .room-folio-list {
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 4px;
+    }
+
+    .modal-content-area .room-folio-item {
+        min-width: 140px;
+        margin-bottom: 0;
+        flex: 0 0 auto;
+    }
+
+    .modal-content-area .folio-main-content {
+        padding: 12px;
+    }
+
+    .modal-content-area .folio-action-buttons {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 8px;
+        padding-bottom: 4px;
+    }
+
+    .modal-content-area .folio-action-btn {
+        white-space: nowrap;
+        flex: 0 0 auto;
+        padding: 8px 12px;
+        font-size: 0.76rem;
+    }
+
+    .modal-content-area .folio-table-container {
+        overflow-x: auto;
+    }
+
+    .modal-content-area .folio-charges-table {
+        min-width: 720px;
+    }
+
+    .modal-content-area .folio-summary-section {
+        padding: 12px;
+    }
+
+    .modal-content-area .summary-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+}
+
+@media (max-width: 576px) {
+    .edit-modal-overlay {
+        padding: 0;
+    }
+
+    .edit-modal-card {
+        border-radius: 0;
+        max-height: 100vh;
+        min-height: 100vh;
+    }
+
+    .edit-modal-close {
+        top: 8px;
+        right: 8px;
+        width: 26px;
+        height: 26px;
+        font-size: 0.95rem;
+    }
+
+    .guest-avatar-circle {
+        width: 34px;
+        height: 34px;
+        font-size: 1rem;
+    }
+
+    .guest-name-modal {
+        font-size: 0.9rem;
+        max-width: 200px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .guest-phone-modal {
+        font-size: 0.66rem;
+    }
+
+    .btn-check-in-modal {
+        width: 100%;
+        padding: 8px 12px;
+    }
+
+    .inline-checkin-confirm {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .booking-details-container,
+    .guest-details-container,
+    .room-charges-container,
+    .audit-trail-container {
+        padding: 12px;
+    }
+
+    .details-section {
+        padding: 12px;
+    }
+
+    .details-grid,
+    .guest-profile-card .details-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+}
+
 .details-table th {
     background-color: #f3f4f6;
     font-weight: 600;

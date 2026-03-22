@@ -77,6 +77,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
     };
 
     const [selectedCategory, setSelectedCategory] = useState('');
+    const [isCategoryCollapsed, setIsCategoryCollapsed] = useState(false);
     const [customCategories, setCustomCategories] = useState([]);
     const [cart, setCart] = useState([]);
     const [searchName, setSearchName] = useState('');
@@ -807,8 +808,25 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                         />
                     </div>
 
+                    <div className="pos-sidebar-toggle" role="group" aria-label="Category panel controls">
+                        <button
+                            type="button"
+                            className={`pos-toggle-btn ${!isCategoryCollapsed ? 'active' : ''}`}
+                            onClick={() => setIsCategoryCollapsed(false)}
+                        >
+                            Open
+                        </button>
+                        <button
+                            type="button"
+                            className={`pos-toggle-btn ${isCategoryCollapsed ? 'active' : ''}`}
+                            onClick={() => setIsCategoryCollapsed(true)}
+                        >
+                            Cut
+                        </button>
+                    </div>
+
                     {/* Content Area: Sidebar + Grid */}
-                    <div className="pos-content-area">
+                    <div className={`pos-content-area ${isCategoryCollapsed ? 'sidebar-collapsed' : ''}`}>
                         {/* B. Category Sidebar */}
                         <div className="pos-category-sidebar">
                             <div className="pos-category-list">
@@ -828,82 +846,97 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                             </button>
                         </div>
 
-                        {/* C. Food Items Grid */}
-                        <div className="pos-food-grid-container">
-                            {loading ? (
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    height: '300px',
-                                    fontSize: '18px',
-                                    color: '#666'
-                                }}>
-                                    Loading menu items...
-                                </div>
-                            ) : currentItems.length === 0 ? (
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    height: '300px',
-                                    fontSize: '16px',
-                                    color: '#999'
-                                }}>
-                                    No items available in this category
-                                </div>
-                            ) : (
-                                currentItems.map(item => {
-                                    // Find current quantity in cart
-                                    const cartItem = cart.find(x => x.id === item.id);
-                                    const inCartQty = cartItem ? cartItem.quantity : 0;
-                                    const isOutOfStock = item.status === 'Inactive';
+                        <div className="pos-grid-zone">
+                            <div className="pos-category-navbar" role="tablist" aria-label="Category quick nav">
+                                {categories.map(cat => (
+                                    <button
+                                        key={cat.id}
+                                        type="button"
+                                        className={`pos-category-nav-item ${selectedCategory === cat.id ? 'active' : ''}`}
+                                        onClick={() => setSelectedCategory(cat.id)}
+                                    >
+                                        {cat.icon} {cat.name}
+                                    </button>
+                                ))}
+                            </div>
 
-                                    return (
-                                        <div
-                                            key={item.id}
-                                            className={`pos-food-card ${inCartQty > 0 ? 'has-qty' : ''} ${isOutOfStock ? 'out-of-stock' : ''}`}
-                                            onClick={() => !isOutOfStock && addToCart(item)}
-                                        >
-                                            {/* Food Image */}
-                                            <div className="pos-card-image-wrapper">
-                                                {resolveMenuImage(item.image) ? (
-                                                    <img
-                                                        src={resolveMenuImage(item.image)}
-                                                        alt={item.name}
-                                                        className="pos-card-image"
-                                                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                                                    />
-                                                ) : null}
-                                                <div className="pos-card-image-placeholder" style={resolveMenuImage(item.image) ? { display: 'none' } : {}}>
-                                                    <span>🍽️</span>
+                            {/* C. Food Items Grid */}
+                            <div className="pos-food-grid-container">
+                                {loading ? (
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        height: '300px',
+                                        fontSize: '18px',
+                                        color: '#666'
+                                    }}>
+                                        Loading menu items...
+                                    </div>
+                                ) : currentItems.length === 0 ? (
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        height: '300px',
+                                        fontSize: '16px',
+                                        color: '#999'
+                                    }}>
+                                        No items available in this category
+                                    </div>
+                                ) : (
+                                    currentItems.map(item => {
+                                        // Find current quantity in cart
+                                        const cartItem = cart.find(x => x.id === item.id);
+                                        const inCartQty = cartItem ? cartItem.quantity : 0;
+                                        const isOutOfStock = item.status === 'Inactive';
+
+                                        return (
+                                            <div
+                                                key={item.id}
+                                                className={`pos-food-card ${inCartQty > 0 ? 'has-qty' : ''} ${isOutOfStock ? 'out-of-stock' : ''}`}
+                                                onClick={() => !isOutOfStock && addToCart(item)}
+                                            >
+                                                {/* Food Image */}
+                                                <div className="pos-card-image-wrapper">
+                                                    {resolveMenuImage(item.image) ? (
+                                                        <img
+                                                            src={resolveMenuImage(item.image)}
+                                                            alt={item.name}
+                                                            className="pos-card-image"
+                                                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                                                        />
+                                                    ) : null}
+                                                    <div className="pos-card-image-placeholder" style={resolveMenuImage(item.image) ? { display: 'none' } : {}}>
+                                                        <span>🍽️</span>
+                                                    </div>
+                                                    {inCartQty > 0 && (
+                                                        <div className="pos-card-badge">Qty: {inCartQty}</div>
+                                                    )}
+                                                    {isOutOfStock && (
+                                                        <div className="out-of-stock-badge">Out of Stock</div>
+                                                    )}
                                                 </div>
-                                                {inCartQty > 0 && (
-                                                    <div className="pos-card-badge">Qty: {inCartQty}</div>
-                                                )}
-                                                {isOutOfStock && (
-                                                    <div className="out-of-stock-badge">Out of Stock</div>
-                                                )}
-                                            </div>
-                                            {/* Card Body */}
-                                            <div className="pos-card-body">
-                                                <div className="pos-card-code">#{item.code || item.id.substring(0, 6)}</div>
-                                                <div className="pos-card-name">{item.name}</div>
-                                                {item.description && (
-                                                    <div className="pos-card-description">{item.description}</div>
-                                                )}
-                                            </div>
-                                            {/* Card Footer */}
-                                            <div className="pos-card-footer">
-                                                <div className="pos-card-qty-available">
-                                                    {isOutOfStock ? 'Unavailable' : 'Available'}
+                                                {/* Card Body */}
+                                                <div className="pos-card-body">
+                                                    <div className="pos-card-code">#{item.code || item.id.substring(0, 6)}</div>
+                                                    <div className="pos-card-name">{item.name}</div>
+                                                    {item.description && (
+                                                        <div className="pos-card-description">{item.description}</div>
+                                                    )}
                                                 </div>
-                                                <div className="pos-card-price">{cs}{item.price}</div>
+                                                {/* Card Footer */}
+                                                <div className="pos-card-footer">
+                                                    <div className="pos-card-qty-available">
+                                                        {isOutOfStock ? 'Unavailable' : 'Available'}
+                                                    </div>
+                                                    <div className="pos-card-price">{cs}{item.price}</div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    );
-                                })
-                            )}
+                                        );
+                                    })
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1045,11 +1078,11 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                         >
                             <span style={{ fontSize: '16px' }}>📝</span>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#047857', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bill Comment</div>
+                                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bill Comment</div>
                                 {billComment ? (
                                     <div style={{ fontSize: '0.85rem', color: '#047857', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{billComment}</div>
                                 ) : (
-                                    <div style={{ fontSize: '0.8rem', color: '#10b981', fontStyle: 'italic' }}>Tap to add comment...</div>
+                                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>Tap to add comment...</div>
                                 )}
                             </div>
                             {billComment && <span style={{ color: '#047857', fontWeight: '700', fontSize: '14px' }}>✓</span>}
@@ -1074,11 +1107,11 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                         >
                             <span style={{ fontSize: '16px' }}>🍳</span>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#047857', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Special Note (Kitchen)</div>
+                                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Special Note (Kitchen)</div>
                                 {kotNote ? (
                                     <div style={{ fontSize: '0.85rem', color: '#047857', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{kotNote}</div>
                                 ) : (
-                                    <div style={{ fontSize: '0.8rem', color: '#10b981', fontStyle: 'italic' }}>Tap to add kitchen note...</div>
+                                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic' }}>Tap to add kitchen note...</div>
                                 )}
                             </div>
                             {kotNote && <span style={{ color: '#047857', fontWeight: '700', fontSize: '14px' }}>✓</span>}

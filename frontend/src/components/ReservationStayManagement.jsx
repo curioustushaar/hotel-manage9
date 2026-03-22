@@ -900,6 +900,12 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         const targetReservation = bookingSpec || selectedReservation;
         if (!targetReservation) return;
 
+        // Keep check-in inside page flow (no popup drawer).
+        if (actionType === 'check-in') {
+            handleEditReservation(targetReservation);
+            return;
+        }
+
         // NEW: Intercept View Invoice action to open modal directly
         if (actionType === 'view-invoice') {
             console.log('📦 handleMoreOptionsAction: Intercepting view-invoice...');

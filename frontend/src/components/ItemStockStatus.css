@@ -381,3 +381,187 @@ input:checked+.slider:before {
     cursor: pointer;
     color: white;
 }
+
+/* Scoped responsive overrides for View Order -> Item Current Stock */
+.item-stock-status-page {
+    width: 100%;
+}
+
+.item-stock-status-page .food-menu-content {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.item-stock-status-page .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.item-stock-status-page .items-table {
+    min-width: 900px;
+}
+
+.item-stock-status-page .pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.item-stock-status-page .pagination-controls {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 992px) {
+    .item-stock-status-page .food-menu-header {
+        padding: 10px 12px !important;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .item-stock-status-page .header-right {
+        width: 100%;
+    }
+
+    .item-stock-status-page .header-right .search-box {
+        width: 100%;
+    }
+
+    .item-stock-status-page .food-menu-content {
+        padding: 0 12px !important;
+    }
+
+    .item-stock-status-page .list-header {
+        justify-content: flex-start !important;
+    }
+
+    .item-stock-status-page .filter-section {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .item-stock-status-page .filter-section .category-filter {
+        min-width: 200px;
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .item-stock-status-page .food-menu-header h1 {
+        font-size: 1rem !important;
+    }
+
+    .item-stock-status-page .items-table {
+        min-width: 820px;
+    }
+
+    .item-stock-status-page .items-table th,
+    .item-stock-status-page .items-table td {
+        white-space: nowrap;
+    }
+
+    .item-stock-status-page .action-buttons {
+        gap: 6px;
+    }
+}
+
+.item-stock-mobile-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 10px;
+}
+
+.item-stock-mobile-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 10px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.item-stock-mobile-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.item-stock-mobile-index {
+    font-size: 12px;
+    font-weight: 700;
+    color: #6b7280;
+}
+
+.item-stock-mobile-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.item-stock-mobile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    font-size: 12px;
+    color: #374151;
+}
+
+.item-stock-mobile-desc {
+    grid-column: 1 / -1;
+}
+
+.item-stock-mobile-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+}
+
+.item-stock-mobile-confirm {
+    margin-top: 10px;
+    padding: 8px;
+    border: 1px solid #fecaca;
+    background: #fff1f2;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #991b1b;
+    font-weight: 700;
+}
+
+.item-stock-mobile-confirm-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+}
+
+.item-stock-mobile-confirm-actions button {
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.item-stock-mobile-confirm-actions button:first-child {
+    background: #dc2626;
+    color: #fff;
+}
+
+.item-stock-mobile-confirm-actions button:last-child {
+    background: #fee2e2;
+    color: #7f1d1d;
+}
+
+@media (max-width: 420px) {
+    .item-stock-mobile-grid {
+        grid-template-columns: 1fr;
+    }
+}

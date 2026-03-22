@@ -1989,3 +1989,133 @@
         opacity: 1;
     }
 }
+
+/* =====================================================
+   RESPONSIVE HARDENING (ALL SCREEN FIT)
+   ===================================================== */
+
+@media (max-width: 1200px) {
+    .cashier-container {
+        padding: 16px;
+    }
+
+    .cashier-container .stats-wrapper {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .cashier-container .dashboard-content {
+        grid-template-columns: 220px 1fr 260px;
+        min-height: 0;
+    }
+}
+
+@media (max-width: 992px) {
+    .cashier-container .stats-wrapper {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .cashier-container .dashboard-content {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 0;
+    }
+
+    .cashier-container .orders-list-wrapper,
+    .cashier-container .items-table-modern tbody {
+        max-height: 280px;
+    }
+
+    .cashier-container .payment-modes-modern {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .cashier-container {
+        padding: 12px;
+    }
+
+    .cashier-container .cashier-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .cashier-container .header-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .cashier-container .btn-track,
+    .cashier-container .btn-new-order {
+        justify-content: center;
+        padding: 12px 10px;
+        font-size: 13px;
+    }
+
+    .cashier-container .selected-order-header-modern,
+    .cashier-container .bill-center-header,
+    .cashier-container .bill-items-container-modern,
+    .cashier-container .bill-summary-panel,
+    .cashier-container .payment-right-panel {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .cashier-container .payment-modes-modern {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .cashier-container .print-format-dropdown {
+        width: 100%;
+        left: 0;
+        right: 0;
+    }
+
+    .cashier-container .add-payment-modal {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 16px 0 0 16px;
+    }
+}
+
+@media (max-width: 576px) {
+    .cashier-container .stats-wrapper,
+    .cashier-container .header-actions,
+    .cashier-container .payment-modes-modern {
+        grid-template-columns: 1fr;
+    }
+
+    .cashier-container .cashier-header h1 {
+        font-size: 20px;
+    }
+
+    .cashier-container .stat-label {
+        font-size: 9px;
+        letter-spacing: 0.4px;
+    }
+
+    .cashier-container .stat-value {
+        font-size: 20px;
+    }
+
+    .cashier-container .quick-actions-modern {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .cashier-container .btn-tender-main,
+    .cashier-container .food-menu-btn,
+    .cashier-container .track-search-btn,
+    .cashier-container .btn-primary,
+    .cashier-container .btn-secondary {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .cashier-container .add-payment-modal {
+        border-radius: 0;
+    }
+}

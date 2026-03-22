@@ -10,16 +10,17 @@ const AdminLayout = ({ children, activeMenu, onMenuClick, onLogout, noPadding = 
     // Auto-close sidebar on mobile/tablet viewports
     useEffect(() => {
         let prevWidth = window.innerWidth;
+        const collapseBreakpoint = 1200;
         const handleResize = () => {
             const currWidth = window.innerWidth;
-            if (currWidth <= 768 && prevWidth > 768) {
+            if (currWidth <= collapseBreakpoint && prevWidth > collapseBreakpoint) {
                 setSidebarOpen(false);
             }
             prevWidth = currWidth;
         };
 
         // Check on initial mount
-        if (window.innerWidth <= 768) {
+        if (window.innerWidth <= collapseBreakpoint) {
             setSidebarOpen(false);
         }
 
