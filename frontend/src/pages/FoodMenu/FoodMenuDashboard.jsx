@@ -19,6 +19,13 @@ const FoodMenuDashboard = () => {
     const [addFormData, setAddFormData] = useState({ itemName: '', price: '', foodCode: '', description: '', category: '', image: '' });
     const [editFormData, setEditFormData] = useState({ itemName: '', price: '', foodCode: '', description: '', category: '', image: '' });
     const [pendingDeleteId, setPendingDeleteId] = useState(null);
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
+
+    useEffect(() => {
+        const onResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
 
     const categories = [
         'All Categories',
@@ -303,7 +310,14 @@ const FoodMenuDashboard = () => {
 
     return (
         <div style={{ padding: '5px 20px 20px 20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+            <div style={{
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                alignItems: isMobile ? 'flex-start' : 'center',
+                justifyContent: 'space-between',
+                gap: isMobile ? '10px' : 0,
+                marginBottom: '15px'
+            }}>
                 <h2 style={{ margin: 0 }}>🍽️ Food Menu Management</h2>
                 <button
                     onClick={() => setShowAddForm(!showAddForm)}
@@ -313,7 +327,8 @@ const FoodMenuDashboard = () => {
                         border: 'none',
                         padding: '10px 20px',
                         borderRadius: '8px',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        width: isMobile ? '100%' : 'auto'
                     }}
                 >
                     {showAddForm ? 'Cancel' : '+ Add Item'}
@@ -455,39 +470,47 @@ const FoodMenuDashboard = () => {
                     color: 'white',
                     padding: '15px 20px',
                     display: 'flex',
-                    justifyContent: 'space-between',
                     alignItems: 'center'
                 }}>
                     <div style={{ fontWeight: 600 }}>📋 ITEMS LIST</div>
-                    <select
-                        value={filterCategory}
-                        onChange={(e) => setFilterCategory(e.target.value)}
-                        style={{
-                            padding: '8px 12px',
-                            borderRadius: '6px',
-                            border: 'none'
-                        }}
-                    >
-                        {categories.map(cat => (
-                            <option key={cat} value={cat}>{cat === 'All Categories' ? '🍽️ All Categories' : getCategoryWithIcon(cat)}</option>
-                        ))}
-                    </select>
                 </div>
 
                 <div style={{ padding: '20px' }}>
-                    <input
-                        type="text"
-                        placeholder="Search items..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
-                        style={{
-                            width: '100%',
-                            padding: '10px',
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '6px',
-                            marginBottom: '15px'
-                        }}
-                    />
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: isMobile ? 'column' : 'row',
+                        justifyContent: 'space-between',
+                        gap: '10px',
+                        marginBottom: '15px'
+                    }}>
+                        <input
+                            type="text"
+                            placeholder="Search items..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
+                            style={{
+                                width: '100%',
+                                padding: '10px',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '8px'
+                            }}
+                        />
+                        <select
+                            value={filterCategory}
+                            onChange={(e) => setFilterCategory(e.target.value)}
+                            style={{
+                                width: isMobile ? '100%' : '260px',
+                                padding: '10px 12px',
+                                borderRadius: '8px',
+                                border: '1px solid #e5e7eb',
+                                background: '#fff'
+                            }}
+                        >
+                            {categories.map(cat => (
+                                <option key={cat} value={cat}>{cat === 'All Categories' ? '🍽️ All Categories' : getCategoryWithIcon(cat)}</option>
+                            ))}
+                        </select>
+                    </div>
 
                     {filteredItems.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
@@ -495,74 +518,124 @@ const FoodMenuDashboard = () => {
                             <p>Click "+ Add Item" to add your first menu item</p>
                         </div>
                     ) : (
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr style={{ backgroundColor: '#fef2f2', textAlign: 'left' }}>
-                                    <th style={{ padding: '12px' }}>#</th>
-                                    <th style={{ padding: '12px' }}>Item Name</th>
-                                    <th style={{ padding: '12px' }}>Category</th>
-                                    <th style={{ padding: '12px' }}>Description</th>
-                                    <th style={{ padding: '12px' }}>Price</th>
-                                    <th style={{ padding: '12px' }}>Status</th>
-                                    <th style={{ padding: '12px' }}>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredItems.map((item, index) => (
-                                    <tr key={item._id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                                        <td style={{ padding: '12px' }}>{index + 1}</td>
-                                        <td style={{ padding: '12px' }}>{item.itemName}</td>
-                                        <td style={{ padding: '12px' }}>{getCategoryWithIcon(item.category)}</td>
-                                        <td style={{ padding: '12px' }}>{item.description || '---'}</td>
-                                        <td style={{ padding: '12px' }}>{cs}{item.price}</td>
-                                        <td style={{ padding: '12px' }}>
-                                            <span style={{
-                                                backgroundColor: item.status === 'Active' ? '#d1fae5' : '#fee2e2',
-                                                color: item.status === 'Active' ? '#065f46' : '#991b1b',
-                                                padding: '4px 12px',
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{
+                                width: '100%',
+                                borderCollapse: 'collapse',
+                                display: isMobile ? 'block' : 'table'
+                            }}>
+                                <thead style={{ display: isMobile ? 'none' : 'table-header-group' }}>
+                                    <tr style={{ backgroundColor: '#fef2f2', textAlign: 'left' }}>
+                                        <th style={{ padding: '12px' }}>#</th>
+                                        <th style={{ padding: '12px' }}>Item Name</th>
+                                        <th style={{ padding: '12px' }}>Category</th>
+                                        <th style={{ padding: '12px' }}>Description</th>
+                                        <th style={{ padding: '12px' }}>Price</th>
+                                        <th style={{ padding: '12px' }}>Status</th>
+                                        <th style={{ padding: '12px' }}>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody style={{ display: isMobile ? 'block' : 'table-row-group' }}>
+                                    {filteredItems.map((item, index) => (
+                                        <tr
+                                            key={item._id}
+                                            style={isMobile ? {
+                                                display: 'block',
+                                                width: '100%',
+                                                marginBottom: '12px',
                                                 borderRadius: '12px',
-                                                fontSize: '12px',
-                                                fontWeight: 600
-                                            }}>
-                                                {item.status}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '12px' }}>
-                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                <button
-                                                    onClick={() => handleEditItem(item)}
-                                                    title="Edit"
-                                                    style={{
-                                                        backgroundColor: '#fef3c7',
-                                                        border: 'none',
-                                                        padding: '6px 12px',
-                                                        borderRadius: '6px',
-                                                        cursor: 'pointer',
-                                                        fontSize: '16px'
-                                                    }}
-                                                >
-                                                    ✏️
-                                                </button>
-                                                <button
-                                                    onClick={() => handleToggleStatus(item)}
-                                                    title={item.status === 'Active' ? 'Deactivate' : 'Activate'}
-                                                    style={{
-                                                        backgroundColor: item.status === 'Active' ? '#dcfce7' : '#fee2e2',
-                                                        border: 'none',
-                                                        padding: '6px 12px',
-                                                        borderRadius: '6px',
-                                                        cursor: 'pointer',
-                                                        fontSize: '16px'
-                                                    }}
-                                                >
-                                                    {item.status === 'Active' ? '✓' : '✗'}
-                                                </button>
-                                                <div style={{ position: 'relative' }}>
+                                                padding: '12px',
+                                                border: '1px solid #fecaca',
+                                                boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+                                                background: '#fff'
+                                            } : { borderBottom: '1px solid #f3f4f6' }}
+                                        >
+                                            <td data-label="#" style={isMobile ? {
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                padding: '8px 0',
+                                                borderBottom: '1px solid #eee'
+                                            } : { padding: '12px' }}>
+                                                {isMobile && <span style={{ fontWeight: 700, color: '#555' }}>#</span>}
+                                                <span>{index + 1}</span>
+                                            </td>
+                                            <td data-label="Item" style={isMobile ? {
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                padding: '8px 0',
+                                                borderBottom: '1px solid #eee'
+                                            } : { padding: '12px' }}>
+                                                {isMobile && <span style={{ fontWeight: 700, color: '#555' }}>Item</span>}
+                                                <span>{item.itemName}</span>
+                                            </td>
+                                            <td data-label="Category" style={isMobile ? {
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                padding: '8px 0',
+                                                borderBottom: '1px solid #eee'
+                                            } : { padding: '12px' }}>
+                                                {isMobile && <span style={{ fontWeight: 700, color: '#555' }}>Category</span>}
+                                                <span>{getCategoryWithIcon(item.category)}</span>
+                                            </td>
+                                            <td data-label="Description" style={isMobile ? {
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'flex-start',
+                                                padding: '8px 0',
+                                                borderBottom: '1px solid #eee',
+                                                gap: '4px'
+                                            } : { padding: '12px' }}>
+                                                {isMobile && <span style={{ fontWeight: 700, color: '#555' }}>Description</span>}
+                                                <span>{item.description || '---'}</span>
+                                            </td>
+                                            <td data-label="Price" style={isMobile ? {
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                padding: '8px 0',
+                                                borderBottom: '1px solid #eee',
+                                                fontWeight: 700,
+                                                color: '#2e7d32'
+                                            } : { padding: '12px', fontWeight: 700, color: '#2e7d32' }}>
+                                                {isMobile && <span style={{ fontWeight: 700, color: '#555' }}>Price</span>}
+                                                <span>{cs}{item.price}</span>
+                                            </td>
+                                            <td data-label="Status" style={isMobile ? {
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                padding: '8px 0',
+                                                borderBottom: '1px solid #eee'
+                                            } : { padding: '12px' }}>
+                                                {isMobile && <span style={{ fontWeight: 700, color: '#555' }}>Status</span>}
+                                                <span style={{
+                                                    backgroundColor: item.status === 'Active' ? '#d1fae5' : '#fee2e2',
+                                                    color: item.status === 'Active' ? '#065f46' : '#991b1b',
+                                                    padding: '4px 12px',
+                                                    borderRadius: '12px',
+                                                    fontSize: '12px',
+                                                    fontWeight: 600
+                                                }}>
+                                                    {item.status}
+                                                </span>
+                                            </td>
+                                            <td data-label="Actions" style={isMobile ? {
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'flex-start',
+                                                padding: '8px 0',
+                                                borderBottom: 'none'
+                                            } : { padding: '12px' }}>
+                                                {isMobile && <span style={{ fontWeight: 700, color: '#555' }}>Actions</span>}
+                                                <div style={{ display: 'flex', gap: '8px' }}>
                                                     <button
-                                                        onClick={() => setPendingDeleteId(item._id)}
-                                                        title="Delete"
+                                                        onClick={() => handleEditItem(item)}
+                                                        title="Edit"
                                                         style={{
-                                                            backgroundColor: '#fef2f2',
+                                                            backgroundColor: '#fef3c7',
                                                             border: 'none',
                                                             padding: '6px 12px',
                                                             borderRadius: '6px',
@@ -570,74 +643,104 @@ const FoodMenuDashboard = () => {
                                                             fontSize: '16px'
                                                         }}
                                                     >
-                                                        🗑️
+                                                        ✏️
                                                     </button>
+                                                    <button
+                                                        onClick={() => handleToggleStatus(item)}
+                                                        title={item.status === 'Active' ? 'Deactivate' : 'Activate'}
+                                                        style={{
+                                                            backgroundColor: item.status === 'Active' ? '#dcfce7' : '#fee2e2',
+                                                            border: 'none',
+                                                            padding: '6px 12px',
+                                                            borderRadius: '6px',
+                                                            cursor: 'pointer',
+                                                            fontSize: '16px'
+                                                        }}
+                                                    >
+                                                        {item.status === 'Active' ? '✓' : '✗'}
+                                                    </button>
+                                                    <div style={{ position: 'relative' }}>
+                                                        <button
+                                                            onClick={() => setPendingDeleteId(item._id)}
+                                                            title="Delete"
+                                                            style={{
+                                                                backgroundColor: '#fef2f2',
+                                                                border: 'none',
+                                                                padding: '6px 12px',
+                                                                borderRadius: '6px',
+                                                                cursor: 'pointer',
+                                                                fontSize: '16px'
+                                                            }}
+                                                        >
+                                                            🗑️
+                                                        </button>
 
-                                                    {pendingDeleteId === item._id && (
-                                                        <div style={{
-                                                            position: 'absolute',
-                                                            bottom: 'calc(100% + 8px)',
-                                                            right: 0,
-                                                            padding: '8px 10px',
-                                                            borderRadius: '10px',
-                                                            border: '1px solid #fecaca',
-                                                            background: '#fff1f2',
-                                                            color: '#991b1b',
-                                                            fontSize: '12px',
-                                                            fontWeight: 700,
-                                                            display: 'inline-flex',
-                                                            flexDirection: 'column',
-                                                            alignItems: 'flex-start',
-                                                            gap: '8px',
-                                                            boxShadow: '0 8px 16px rgba(239, 68, 68, 0.18)',
-                                                            zIndex: 9999
-                                                        }}>
-                                                            <span>Are you sure want to delete?</span>
-                                                            <div style={{ display: 'inline-flex', gap: '6px' }}>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleDeleteItem(item._id)}
-                                                                    style={{
-                                                                        border: 'none',
-                                                                        borderRadius: '6px',
-                                                                        padding: '4px 10px',
-                                                                        background: '#dc2626',
-                                                                        color: '#fff',
-                                                                        cursor: 'pointer',
-                                                                        fontWeight: 700,
-                                                                        fontSize: '12px'
-                                                                    }}
-                                                                    title="Yes"
-                                                                >
-                                                                    Yes
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setPendingDeleteId(null)}
-                                                                    style={{
-                                                                        border: 'none',
-                                                                        borderRadius: '6px',
-                                                                        padding: '4px 10px',
-                                                                        background: '#fee2e2',
-                                                                        color: '#7f1d1d',
-                                                                        cursor: 'pointer',
-                                                                        fontWeight: 700,
-                                                                        fontSize: '12px'
-                                                                    }}
-                                                                    title="No"
-                                                                >
-                                                                    No
-                                                                </button>
+                                                        {pendingDeleteId === item._id && (
+                                                            <div style={{
+                                                                position: 'absolute',
+                                                                bottom: 'calc(100% + 8px)',
+                                                                right: 0,
+                                                                padding: '8px 10px',
+                                                                borderRadius: '10px',
+                                                                border: '1px solid #fecaca',
+                                                                background: '#fff1f2',
+                                                                color: '#991b1b',
+                                                                fontSize: '12px',
+                                                                fontWeight: 700,
+                                                                display: 'inline-flex',
+                                                                flexDirection: 'column',
+                                                                alignItems: 'flex-start',
+                                                                gap: '8px',
+                                                                boxShadow: '0 8px 16px rgba(239, 68, 68, 0.18)',
+                                                                zIndex: 9999
+                                                            }}>
+                                                                <span>Are you sure want to delete?</span>
+                                                                <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleDeleteItem(item._id)}
+                                                                        style={{
+                                                                            border: 'none',
+                                                                            borderRadius: '6px',
+                                                                            padding: '4px 10px',
+                                                                            background: '#dc2626',
+                                                                            color: '#fff',
+                                                                            cursor: 'pointer',
+                                                                            fontWeight: 700,
+                                                                            fontSize: '12px'
+                                                                        }}
+                                                                        title="Yes"
+                                                                    >
+                                                                        Yes
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setPendingDeleteId(null)}
+                                                                        style={{
+                                                                            border: 'none',
+                                                                            borderRadius: '6px',
+                                                                            padding: '4px 10px',
+                                                                            background: '#fee2e2',
+                                                                            color: '#7f1d1d',
+                                                                            cursor: 'pointer',
+                                                                            fontWeight: 700,
+                                                                            fontSize: '12px'
+                                                                        }}
+                                                                        title="No"
+                                                                    >
+                                                                        No
+                                                                    </button>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    )}
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
                 </div>
             </div>

@@ -149,79 +149,79 @@ const ExtraCharge = () => {
 
             {loading ? <div>Loading...</div> : (
                 <div className="table-container">
-                    <table className="common-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Charge Name</th>
-                                <th>Charge Type</th>
-                                <th>Amount</th>
-                                <th>Tax Applicable</th>
-                                <th className="text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {charges.map((charge, index) => (
-                                <tr key={charge._id}>
-                                    <td>{index + 1}</td>
-                                    <td>{charge.name}</td>
-                                    <td>{charge.chargeType}</td>
-                                    <td>{cs} {charge.amount}</td>
-                                    <td>
-                                        <label className="checkbox-container">
-                                            <input type="checkbox" checked={charge.taxApplicable} readOnly />
-                                            <span className="checkmark"></span>
-                                            GST
-                                        </label>
-                                    </td>
-                                    <td className="text-right">
-                                        <div className="action-btns" style={{ position: 'relative' }}>
-                                            <button className="icon-btn edit-btn" onClick={() => handleOpenModal('edit', charge)}>✏️</button>
-                                            <button className="icon-btn delete-btn" onClick={() => handleDelete(charge._id)}>🗑️</button>
-
-                                            {deleteTargetId === charge._id && (
-                                                <div
-                                                    style={{
-                                                        position: 'absolute',
-                                                        top: '110%',
-                                                        right: 0,
-                                                        zIndex: 20,
-                                                        width: '220px',
-                                                        padding: '10px',
-                                                        borderRadius: '10px',
-                                                        border: '1px solid #fecaca',
-                                                        background: '#fff5f5',
-                                                        boxShadow: '0 10px 20px rgba(153, 27, 27, 0.15)',
-                                                        textAlign: 'left'
-                                                    }}
-                                                >
-                                                    <div style={{ color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', marginBottom: '8px' }}>
-                                                        Are you sure want to delete?
-                                                    </div>
-                                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => confirmDelete(charge._id)}
-                                                            style={{ flex: 1, border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
-                                                        >
-                                                            Yes
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setDeleteTargetId(null)}
-                                                            style={{ flex: 1, border: '1px solid #fca5a5', borderRadius: '6px', background: '#fff', color: '#991b1b', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
-                                                        >
-                                                            No
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </td>
+                    <div className="extra-table-wrapper">
+                        <table className="common-table extra-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Charge Name</th>
+                                    <th>Charge Type</th>
+                                    <th>Amount</th>
+                                    <th>Tax Applicable</th>
+                                    <th className="text-right">Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {charges.map((charge, index) => (
+                                    <tr key={charge._id}>
+                                        <td data-label="ID">{index + 1}</td>
+                                        <td data-label="Charge Name">{charge.name}</td>
+                                        <td data-label="Charge Type">{charge.chargeType}</td>
+                                        <td data-label="Amount" className="amount-cell">{cs} {charge.amount}</td>
+                                        <td data-label="Tax Applicable">
+                                            <span className={`badge gst ${charge.taxApplicable ? 'active' : 'inactive'}`}>
+                                                {charge.taxApplicable ? 'GST' : 'No GST'}
+                                            </span>
+                                        </td>
+                                        <td data-label="Actions" className="extra-actions-cell">
+                                            <div className="action-btns" style={{ position: 'relative' }}>
+                                                <button className="icon-btn edit-btn" onClick={() => handleOpenModal('edit', charge)}>✏️</button>
+                                                <button className="icon-btn delete-btn" onClick={() => handleDelete(charge._id)}>🗑️</button>
+
+                                                {deleteTargetId === charge._id && (
+                                                    <div
+                                                        style={{
+                                                            position: 'absolute',
+                                                            top: '110%',
+                                                            right: 0,
+                                                            zIndex: 20,
+                                                            width: '220px',
+                                                            padding: '10px',
+                                                            borderRadius: '10px',
+                                                            border: '1px solid #fecaca',
+                                                            background: '#fff5f5',
+                                                            boxShadow: '0 10px 20px rgba(153, 27, 27, 0.15)',
+                                                            textAlign: 'left'
+                                                        }}
+                                                    >
+                                                        <div style={{ color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', marginBottom: '8px' }}>
+                                                            Are you sure want to delete?
+                                                        </div>
+                                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => confirmDelete(charge._id)}
+                                                                style={{ flex: 1, border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
+                                                            >
+                                                                Yes
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setDeleteTargetId(null)}
+                                                                style={{ flex: 1, border: '1px solid #fca5a5', borderRadius: '6px', background: '#fff', color: '#991b1b', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
+                                                            >
+                                                                No
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                     <div className="table-footer">Showing {charges.length} Extra Charges</div>
                 </div>
             )}

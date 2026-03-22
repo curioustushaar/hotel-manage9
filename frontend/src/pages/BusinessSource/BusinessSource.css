@@ -6,36 +6,57 @@
 }
 
 .business-source-header {
-    background-color: transparent;
-    color: #f83a4d;
+    background-color: #f83a4d;
+    color: white;
     padding: 15px 20px;
+    border-radius: 8px 8px 0 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .business-source-header h2 {
     margin: 0;
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 600;
 }
 
 .add-btn {
-    background-color: #f83a4d;
-    color: white;
-    padding: 10px 20px;
+    background-color: #ffffff;
+    color: #f83a4d;
+    padding: 8px 16px;
     border-radius: 4px;
     font-weight: 600;
     cursor: pointer;
     border: none;
+    transition: background-color 0.2s;
+}
+
+.add-btn:hover {
+    background-color: #f3f4f6;
+}
+
+.business-source-header .add-btn {
+    background-color: #ffffff !important;
+    color: #f83a4d !important;
+    border: 1px solid #ffe4e6;
+}
+
+.business-source-header .add-btn:hover {
+    background-color: #fff1f2 !important;
 }
 
 .table-container {
     background-color: white;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    border-radius: 8px;
+    border-radius: 0 0 8px 8px;
     overflow: hidden;
+}
+
+.business-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
 }
 
 .common-table {
@@ -48,12 +69,30 @@
     color: white;
     padding: 12px 20px;
     text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 2;
 }
 
 .common-table td {
     padding: 12px 20px;
     border-bottom: 1px solid #f3f4f6;
     color: #4b5563;
+    font-size: 14px;
+}
+
+.business-table td::before {
+    content: '';
+}
+
+.common-table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+.business-actions-cell {
+    text-align: right;
 }
 
 .action-btns {
@@ -277,4 +316,69 @@
 
 .add-business-premium .btn-primary:active {
     transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+    .business-source-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .business-source-header .add-btn {
+        width: 100%;
+    }
+
+    .business-table thead {
+        display: none;
+    }
+
+    .business-table,
+    .business-table tbody,
+    .business-table tr,
+    .business-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .business-table tr {
+        margin: 0.75rem;
+        padding: 0.7rem 0.85rem;
+        border-radius: 12px;
+        border: 1px solid #fecaca;
+        background: #ffffff;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+    }
+
+    .business-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 0.62rem 0;
+        border: none;
+        border-bottom: 1px solid #eee;
+        text-align: right;
+    }
+
+    .business-table td:last-child {
+        border-bottom: none;
+    }
+
+    .business-table td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        font-size: 0.74rem;
+    }
+
+    .business-table td.business-actions-cell {
+        align-items: flex-start;
+    }
+
+    .business-table td.business-actions-cell .action-btns {
+        justify-content: flex-end;
+    }
 }

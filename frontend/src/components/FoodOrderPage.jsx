@@ -78,6 +78,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
 
     const [selectedCategory, setSelectedCategory] = useState('');
     const [isCategoryCollapsed, setIsCategoryCollapsed] = useState(false);
+    const [isOrderPanelOpen, setIsOrderPanelOpen] = useState(false);
     const [customCategories, setCustomCategories] = useState([]);
     const [cart, setCart] = useState([]);
     const [searchName, setSearchName] = useState('');
@@ -137,6 +138,21 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
             setSelectedCategory(categories[0].id);
         }
     }, [categories, selectedCategory]);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth > 1024) {
+                setIsOrderPanelOpen(false);
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    const toggleOrderPanel = () => {
+        setIsOrderPanelOpen(prev => !prev);
+    };
 
     // Fetch menu items from API
     useEffect(() => {
@@ -789,6 +805,24 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                     <span style={{ color: '#991b1b', fontWeight: 600 }}>POS is disabled. Order creation is blocked. Enable POS from Company Settings.</span>
                 </div>
             )}
+
+            <button
+                type="button"
+                className={`pos-mobile-cart-btn ${isOrderPanelOpen ? 'hidden' : ''}`}
+                onClick={toggleOrderPanel}
+            >
+                🛒 View Cart ({cart.length})
+            </button>
+
+            {isOrderPanelOpen && (
+                <button
+                    type="button"
+                    className="pos-mobile-overlay"
+                    aria-label="Close cart panel"
+                    onClick={() => setIsOrderPanelOpen(false)}
+                />
+            )}
+
             <div className="pos-container">
                 {/* LEFT PANEL (60%) */}
                 <div className="pos-left-panel">
@@ -806,6 +840,9 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                             value={searchCode}
                             onChange={(e) => setSearchCode(e.target.value.replace(/[^a-zA-Z0-9\\s]/g, ''))}
                         />
+                        <button type="button" className="pos-cart-toggle-inline" onClick={toggleOrderPanel}>
+                            🛒 Cart ({cart.length})
+                        </button>
                     </div>
 
                     <div className="pos-sidebar-toggle" role="group" aria-label="Category panel controls">
@@ -834,7 +871,9 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                                     <div
                                         key={cat.id}
                                         className={`pos-category-item ${selectedCategory === cat.id ? 'active' : ''}`}
-                                        onClick={() => setSelectedCategory(cat.id)}
+                                        onClick={() => {
+                                            setSelectedCategory(cat.id);
+                                        }}
                                     >
                                         {cat.icon} {cat.name}
                                     </div>
@@ -942,7 +981,7 @@ const FoodOrderPage = ({ onClose, room: roomProp }) => {
                 </div>
 
                 {/* RIGHT PANEL (40%) */}
-                <div className={`pos-right-panel ${isDirectAccess ? 'disabled' : ''}`}>
+                <div className={`pos-right-panel ${isDirectAccess ? 'disabled' : ''} ${isOrderPanelOpen ? 'active' : ''}`}>
                     {/* A. Mode Buttons */}
                     <div className="pos-mode-bar">
                         <button

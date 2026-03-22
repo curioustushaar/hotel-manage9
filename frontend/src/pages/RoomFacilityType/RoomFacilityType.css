@@ -6,26 +6,27 @@
 }
 
 .room-facility-type-header {
-    background-color: transparent;
-    color: #f83a4d;
+    background-color: #f83a4d;
+    color: white;
     padding: 15px 20px;
+    border-radius: 8px 8px 0 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 0;
 }
 
 .room-facility-type-header h2 {
     margin: 0;
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 600;
 }
 
 .add-facility-btn {
-    background-color: #f83a4d;
-    color: white;
+    background-color: #ffffff;
+    color: #f83a4d;
     border: none;
-    padding: 10px 20px;
+    padding: 8px 16px;
     border-radius: 4px;
     font-weight: 600;
     cursor: pointer;
@@ -33,14 +34,19 @@
 }
 
 .add-facility-btn:hover {
-    background-color: #E31E24;
+    background-color: #f3f4f6;
 }
 
 .facility-type-table-container {
     background-color: white;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    border-radius: 8px;
+    border-radius: 0 0 8px 8px;
     overflow: hidden;
+}
+
+.facility-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
 }
 
 .facility-type-table {
@@ -49,24 +55,12 @@
 }
 
 .facility-type-table thead tr {
-    background-color: #fef2f2; /* Light red/pink background for header per Image 1? Or keep dark red? Image 1 has light header with red text maybe? Or Red header. Image 1 has RED Header. Let's stick to .room-facility-type-header color which is f83a4d. Wait, table header in Image 1 is light red background with dark red text? NO, Image 1 header is just text. The TABLE HEADER row has a background. In Image 1, the table header row has a light reddish background. */
-    background-color: #fee2e2;
-    color: #991b1b;
-    border-bottom: 1px solid #fecaca;
-}
-
-/* Overriding previous dark red header if needed to match Image 1 strictly. 
-   Image 1 Table Header: Light Red Background, Red Text.
-   Previous CSS had: background-color: #E31E24; color: white;
-   Let's check Image 1 again. 
-   Image 1: Header row background is a very light red/pink. Text is red-ish.
-*/
-.facility-type-table thead tr {
-    background-color: #ffe4e6; /* Rose 100 */
-    color: #be123c; /* Rose 700 */
+    background-color: #E31E24;
+    color: #ffffff;
     text-transform: uppercase;
     font-size: 13px;
     letter-spacing: 0.05em;
+    border-bottom: 1px solid #dc2626;
 }
 
 
@@ -181,11 +175,18 @@
     color: #1f2937;
 }
 
+.facility-tags-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
 .facility-tag {
     background-color: #fee2e2; /* Red 100 */
     color: #991b1b;       /* Red 800 */
     padding: 6px 12px;
-    border-radius: 6px;
+    border-radius: 999px;
     font-size: 13px;
     font-weight: 500;
     display: inline-block;
@@ -404,4 +405,110 @@
 
 .add-facility-premium .btn-primary:active {
     transform: translateY(0);
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .facility-type-table th,
+    .facility-type-table td {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+
+    .facility-tag {
+        padding: 5px 9px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .room-facility-type-container {
+        padding: 0 12px 14px;
+    }
+
+    .room-facility-type-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 14px;
+        margin-bottom: 0;
+    }
+
+    .add-facility-btn {
+        width: 100%;
+        margin-top: 0;
+    }
+
+    .facility-table-wrapper {
+        overflow-x: visible;
+    }
+
+    .facility-type-table thead {
+        display: none;
+    }
+
+    .facility-type-table,
+    .facility-type-table tbody,
+    .facility-type-table tr,
+    .facility-type-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .facility-type-table tbody {
+        padding: 10px;
+    }
+
+    .facility-type-table tr {
+        background: #ffffff;
+        margin-bottom: 12px;
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border: 1px solid #f1f5f9;
+    }
+
+    .facility-type-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+        text-align: right;
+    }
+
+    .facility-type-table td:last-child {
+        border-bottom: none;
+    }
+
+    .facility-type-table td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        color: #555;
+        text-align: left;
+        margin-right: 10px;
+    }
+
+    .facility-tags-wrap {
+        justify-content: flex-end;
+        max-width: 60%;
+    }
+
+    .facility-tag {
+        padding: 4px 9px;
+        font-size: 11px;
+    }
+
+    .facility-actions-cell .action-btns {
+        justify-content: flex-end !important;
+    }
+
+    .facility-actions-cell .inline-delete-wrap {
+        position: static;
+    }
+
+    .facility-actions-cell .inline-delete-confirm {
+        right: 0;
+        left: auto;
+        min-width: 190px;
+    }
 }

@@ -103,7 +103,6 @@ const Sidebar = ({ isOpen, activeMenu, onMenuClick, onLogout, toggleSidebar }) =
                 { id: 'customer-identity', label: 'Customer Identity', iconVal: <Icons.Dot /> },
                 { id: 'booking-source', label: 'Booking Source', iconVal: <Icons.Dot /> },
                 { id: 'business-source', label: 'Business Source', iconVal: <Icons.Dot /> },
-                { id: 'hotel-customer', label: 'Hotel Customer', iconVal: <Icons.Dot /> },
                 { id: 'maintenance-block', label: 'Maintenance Block', iconVal: <Icons.Dot /> },
                 { id: 'company', label: 'Company', iconVal: <Icons.Dot /> },
                 { id: MODULES.FOOD_MENU, label: 'Food Menu', iconVal: <Icons.Dot /> }

@@ -6,36 +6,57 @@
 }
 
 .customer-identity-header {
-    background-color: transparent;
-    color: #f83a4d;
+    background-color: #f83a4d;
+    color: white;
     padding: 15px 20px;
+    border-radius: 8px 8px 0 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .customer-identity-header h2 {
     margin: 0;
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 600;
 }
 
 .add-btn {
-    background-color: #f83a4d;
-    color: white;
-    padding: 10px 20px;
+    background-color: #ffffff;
+    color: #f83a4d;
+    padding: 8px 16px;
     border-radius: 4px;
     font-weight: 600;
     cursor: pointer;
     border: none;
+    transition: background-color 0.2s;
+}
+
+.add-btn:hover {
+    background-color: #f3f4f6;
+}
+
+.customer-identity-header .add-btn {
+    background-color: #ffffff !important;
+    color: #f83a4d !important;
+    border: 1px solid #ffe4e6;
+}
+
+.customer-identity-header .add-btn:hover {
+    background-color: #fff1f2 !important;
 }
 
 .table-container {
     background-color: white;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    border-radius: 8px;
+    border-radius: 0 0 8px 8px;
     overflow: hidden;
+}
+
+.identity-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
 }
 
 .common-table {
@@ -48,18 +69,53 @@
     color: white;
     padding: 12px 20px;
     text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 2;
 }
 
 .common-table td {
     padding: 12px 20px;
     border-bottom: 1px solid #f3f4f6;
     color: #4b5563;
+    font-size: 14px;
+}
+
+.common-table td::before {
+    content: '';
 }
 
 .checkbox-display input {
     height: 18px;
     width: 18px;
     accent-color: #E31E24;
+}
+
+.status-badge {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.status-badge.yes {
+    background: #e6f7ee;
+    color: #2e7d32;
+}
+
+.status-badge.no {
+    background: #ffe5e5;
+    color: #d32f2f;
+}
+
+.mobile-badge {
+    display: none;
 }
 
 .action-btns {
@@ -340,4 +396,93 @@
 
 .add-id-premium .btn-primary:active {
     transform: translateY(0);
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .common-table th,
+    .common-table td {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 768px) {
+    .customer-identity-container {
+        padding: 0 12px 14px;
+        min-height: 100%;
+    }
+
+    .customer-identity-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 14px;
+    }
+
+    .add-btn {
+        width: 100%;
+        margin-top: 0;
+    }
+
+    .identity-table-wrapper {
+        overflow-x: visible;
+    }
+
+    .identity-table thead {
+        display: none;
+    }
+
+    .identity-table,
+    .identity-table tbody,
+    .identity-table tr,
+    .identity-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .identity-table tbody {
+        padding: 10px;
+    }
+
+    .identity-table tr {
+        background: white;
+        margin-bottom: 12px;
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border: 1px solid #f1f5f9;
+    }
+
+    .identity-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+        text-align: right;
+    }
+
+    .identity-table td:last-child {
+        border-bottom: none;
+    }
+
+    .identity-table td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        color: #555;
+        text-align: left;
+        margin-right: 10px;
+    }
+
+    .desktop-checkbox {
+        display: none;
+    }
+
+    .mobile-badge {
+        display: inline-flex;
+    }
+
+    .identity-actions-cell .action-btns {
+        justify-content: flex-end !important;
+    }
 }

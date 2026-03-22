@@ -123,42 +123,44 @@ const ReservationType = () => {
                 {loading ? (
                     <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>
                 ) : (
-                    <table className="reservation-type-table">
-                        <thead>
-                            <tr>
-                                <th style={{ width: '60px' }}>ID</th>
-                                <th>Reservation Type</th>
-                                <th>Description</th>
-                                <th style={{ width: '120px', textAlign: 'right' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {reservationTypes.map((type, index) => (
-                                <tr key={type._id}>
-                                    <td>{index + 1}</td>
-                                    <td>{type.name}</td>
-                                    <td>{type.description || '-'}</td>
-                                    <td style={{ textAlign: 'right' }}>
-                                        <div className="action-btns" style={{ justifyContent: 'flex-end' }}>
-                                            <button className="icon-button" onClick={() => handleOpenModal('edit', type)}>✏️</button>
-                                            <div className="inline-delete-wrap">
-                                                <button className="icon-button" onClick={() => handleDeleteClick(type._id)} disabled={deletingId === type._id}>🗑️</button>
-                                                {pendingDeleteId === type._id && (
-                                                    <div className="inline-delete-confirm">
-                                                        <span>Are you sure want to delete?</span>
-                                                        <div className="inline-delete-actions">
-                                                            <button className="inline-delete-yes" onClick={() => confirmDelete(type._id)}>Yes</button>
-                                                            <button className="inline-delete-no" onClick={() => setPendingDeleteId(null)}>No</button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </td>
+                    <div className="reservation-table-wrapper">
+                        <table className="reservation-type-table">
+                            <thead>
+                                <tr>
+                                    <th style={{ width: '60px' }}>ID</th>
+                                    <th>Reservation Type</th>
+                                    <th>Description</th>
+                                    <th style={{ width: '120px', textAlign: 'right' }}>Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {reservationTypes.map((type, index) => (
+                                    <tr key={type._id}>
+                                        <td data-label="ID">{index + 1}</td>
+                                        <td data-label="Reservation Type">{type.name}</td>
+                                        <td data-label="Description" className="reservation-description-cell">{type.description || '-'}</td>
+                                        <td data-label="Actions" className="reservation-actions-cell">
+                                            <div className="action-btns" style={{ justifyContent: 'flex-end' }}>
+                                                <button className="icon-button" onClick={() => handleOpenModal('edit', type)}>✏️</button>
+                                                <div className="inline-delete-wrap">
+                                                    <button className="icon-button" onClick={() => handleDeleteClick(type._id)} disabled={deletingId === type._id}>🗑️</button>
+                                                    {pendingDeleteId === type._id && (
+                                                        <div className="inline-delete-confirm">
+                                                            <span>Are you sure want to delete?</span>
+                                                            <div className="inline-delete-actions">
+                                                                <button className="inline-delete-yes" onClick={() => confirmDelete(type._id)}>Yes</button>
+                                                                <button className="inline-delete-no" onClick={() => setPendingDeleteId(null)}>No</button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
                 <div className="table-footer">
                     <span>Showing {reservationTypes.length} Reservation Types</span>

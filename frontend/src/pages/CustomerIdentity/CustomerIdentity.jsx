@@ -140,7 +140,8 @@ const CustomerIdentity = () => {
 
             {loading ? <div>Loading...</div> : (
                 <div className="table-container">
-                    <table className="common-table">
+                    <div className="identity-table-wrapper">
+                        <table className="common-table identity-table">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -153,19 +154,25 @@ const CustomerIdentity = () => {
                         <tbody>
                             {identities.map((item, index) => (
                                 <tr key={item._id}>
-                                    <td>{index + 1}</td>
-                                    <td>{item.name}</td>
-                                    <td>
-                                        <div className="checkbox-display">
+                                    <td data-label="ID">{index + 1}</td>
+                                    <td data-label="Identity Type">{item.name}</td>
+                                    <td data-label="Required" className="identity-status-cell">
+                                        <div className="checkbox-display desktop-checkbox">
                                             <input type="checkbox" checked={item.requiredByLaw} readOnly />
                                         </div>
+                                        <span className={`status-badge mobile-badge ${item.requiredByLaw ? 'yes' : 'no'}`}>
+                                            {item.requiredByLaw ? '✔ Yes' : '❌ No'}
+                                        </span>
                                     </td>
-                                    <td>
-                                        <div className="checkbox-display">
+                                    <td data-label="Reservation" className="identity-status-cell">
+                                        <div className="checkbox-display desktop-checkbox">
                                             <input type="checkbox" checked={item.usedForReservations} readOnly />
                                         </div>
+                                        <span className={`status-badge mobile-badge ${item.usedForReservations ? 'yes' : 'no'}`}>
+                                            {item.usedForReservations ? '✔ Yes' : '❌ No'}
+                                        </span>
                                     </td>
-                                    <td className="text-right">
+                                    <td data-label="Actions" className="text-right identity-actions-cell">
                                         <div className="action-btns" style={{ position: 'relative' }}>
                                             <button className="icon-btn edit-btn" onClick={() => handleOpenModal('edit', item)}>✏️</button>
                                             <button className="icon-btn delete-btn" onClick={() => handleDelete(item._id)}>🗑️</button>
@@ -212,7 +219,8 @@ const CustomerIdentity = () => {
                                 </tr>
                             ))}
                         </tbody>
-                    </table>
+                        </table>
+                    </div>
                     <div className="table-footer">Showing {identities.length} Identity Types</div>
                 </div>
             )}

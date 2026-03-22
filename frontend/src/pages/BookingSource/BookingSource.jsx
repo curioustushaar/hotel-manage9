@@ -136,69 +136,78 @@ const BookingSource = () => {
 
             {loading ? <div>Loading...</div> : (
                 <div className="table-container">
-                    <table className="common-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Booking Source</th>
-                                <th>Type</th>
-                                <th className="text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {sources.map((source, index) => (
-                                <tr key={source._id}>
-                                    <td>{index + 1}</td>
-                                    <td>{source.name}</td>
-                                    <td>{source.type}</td>
-                                    <td className="text-right">
-                                        <div className="action-btns" style={{ position: 'relative' }}>
-                                            <button className="icon-btn edit-btn" onClick={() => handleOpenModal('edit', source)}>✏️</button>
-                                            <button className="icon-btn delete-btn" onClick={() => handleDelete(source._id)}>🗑️</button>
-
-                                            {deleteTargetId === source._id && (
-                                                <div
-                                                    style={{
-                                                        position: 'absolute',
-                                                        top: '110%',
-                                                        right: 0,
-                                                        zIndex: 20,
-                                                        width: '220px',
-                                                        padding: '10px',
-                                                        borderRadius: '10px',
-                                                        border: '1px solid #fecaca',
-                                                        background: '#fff5f5',
-                                                        boxShadow: '0 10px 20px rgba(153, 27, 27, 0.15)',
-                                                        textAlign: 'left'
-                                                    }}
-                                                >
-                                                    <div style={{ color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', marginBottom: '8px' }}>
-                                                        Are you sure want to delete?
-                                                    </div>
-                                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => confirmDelete(source._id)}
-                                                            style={{ flex: 1, border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
-                                                        >
-                                                            Yes
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setDeleteTargetId(null)}
-                                                            style={{ flex: 1, border: '1px solid #fca5a5', borderRadius: '6px', background: '#fff', color: '#991b1b', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
-                                                        >
-                                                            No
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </td>
+                    <div className="booking-table-wrapper">
+                        <table className="common-table booking-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Booking Source</th>
+                                    <th>Type</th>
+                                    <th className="text-right">Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {sources.map((source, index) => {
+                                    const sourceType = (source.type || '').toLowerCase();
+                                    const typeClass = sourceType.includes('ota') ? 'ota' : 'direct';
+
+                                    return (
+                                        <tr key={source._id}>
+                                            <td data-label="ID">{index + 1}</td>
+                                            <td data-label="Source">{source.name}</td>
+                                            <td data-label="Type">
+                                                <span className={`badge ${typeClass}`}>{source.type}</span>
+                                            </td>
+                                            <td data-label="Actions" className="booking-actions-cell">
+                                                <div className="action-btns" style={{ position: 'relative' }}>
+                                                    <button className="icon-btn edit-btn" onClick={() => handleOpenModal('edit', source)}>✏️</button>
+                                                    <button className="icon-btn delete-btn" onClick={() => handleDelete(source._id)}>🗑️</button>
+
+                                                    {deleteTargetId === source._id && (
+                                                        <div
+                                                            style={{
+                                                                position: 'absolute',
+                                                                top: '110%',
+                                                                right: 0,
+                                                                zIndex: 20,
+                                                                width: '220px',
+                                                                padding: '10px',
+                                                                borderRadius: '10px',
+                                                                border: '1px solid #fecaca',
+                                                                background: '#fff5f5',
+                                                                boxShadow: '0 10px 20px rgba(153, 27, 27, 0.15)',
+                                                                textAlign: 'left'
+                                                            }}
+                                                        >
+                                                            <div style={{ color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', marginBottom: '8px' }}>
+                                                                Are you sure want to delete?
+                                                            </div>
+                                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => confirmDelete(source._id)}
+                                                                    style={{ flex: 1, border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
+                                                                >
+                                                                    Yes
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setDeleteTargetId(null)}
+                                                                    style={{ flex: 1, border: '1px solid #fca5a5', borderRadius: '6px', background: '#fff', color: '#991b1b', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
+                                                                >
+                                                                    No
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                     <div className="table-footer">Showing {sources.length} Booking Sources</div>
                 </div>
             )}

@@ -114,57 +114,68 @@ const RoomFacilityType = () => {
                 {loading ? (
                     <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>
                 ) : (
-                    <table className="facility-type-table">
-                        <thead>
-                            <tr>
-                                <th style={{ width: '80px' }}>ID</th>
-                                <th>FACILITY</th>
-                                <th>FACILITY TYPE</th>
-                                <th style={{ width: '150px', textAlign: 'right' }}>ACTION</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {facilityTypes.map((facility, index) => (
-                                <tr key={facility._id}>
-                                    <td>{index + 1}</td>
-                                    <td>
-                                        <span className="facility-name">{facility.name}</span>
-                                    </td>
-                                    <td>
-                                        <span className="facility-description">
-                                            {facility.description ? (
-                                                <span className="facility-tag">{facility.description}</span>
-                                            ) : (
-                                                <span className="text-muted">-</span>
-                                            )}
-                                        </span>
-                                    </td>
-                                    <td style={{ textAlign: 'right' }}>
-                                        <div className="action-btns" style={{ justifyContent: 'flex-end' }}>
-                                            <button className="icon-button" onClick={() => handleOpenModal('edit', facility)}>✏️</button>
-                                            <div className="inline-delete-wrap">
-                                                <button className="icon-button" onClick={() => handleDeleteClick(facility._id)} disabled={deletingId === facility._id}>🗑️</button>
-                                                {pendingDeleteId === facility._id && (
-                                                    <div className="inline-delete-confirm">
-                                                        <span>Are you sure want to delete?</span>
-                                                        <div className="inline-delete-actions">
-                                                            <button className="inline-delete-yes" onClick={() => confirmDelete(facility._id)}>Yes</button>
-                                                            <button className="inline-delete-no" onClick={() => setPendingDeleteId(null)}>No</button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {facilityTypes.length === 0 && (
+                    <div className="facility-table-wrapper">
+                        <table className="facility-type-table">
+                            <thead>
                                 <tr>
-                                    <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>No facilities found</td>
+                                    <th style={{ width: '80px' }}>ID</th>
+                                    <th>FACILITY</th>
+                                    <th>FACILITY TYPE</th>
+                                    <th style={{ width: '150px', textAlign: 'right' }}>ACTION</th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {facilityTypes.map((facility, index) => {
+                                    const parsedTags = (facility.description || '')
+                                        .split(',')
+                                        .map(tag => tag.trim())
+                                        .filter(Boolean);
+
+                                    return (
+                                        <tr key={facility._id}>
+                                            <td data-label="ID">{index + 1}</td>
+                                            <td data-label="Facility">
+                                                <span className="facility-name">{facility.name}</span>
+                                            </td>
+                                            <td data-label="Facility Type">
+                                                {parsedTags.length > 0 ? (
+                                                    <div className="facility-tags-wrap">
+                                                        {parsedTags.map((tag, idx) => (
+                                                            <span className="facility-tag" key={`${facility._id}-tag-${idx}`}>{tag}</span>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-muted">-</span>
+                                                )}
+                                            </td>
+                                            <td data-label="Action" className="facility-actions-cell">
+                                                <div className="action-btns" style={{ justifyContent: 'flex-end' }}>
+                                                    <button className="icon-button" onClick={() => handleOpenModal('edit', facility)}>✏️</button>
+                                                    <div className="inline-delete-wrap">
+                                                        <button className="icon-button" onClick={() => handleDeleteClick(facility._id)} disabled={deletingId === facility._id}>🗑️</button>
+                                                        {pendingDeleteId === facility._id && (
+                                                            <div className="inline-delete-confirm">
+                                                                <span>Are you sure want to delete?</span>
+                                                                <div className="inline-delete-actions">
+                                                                    <button className="inline-delete-yes" onClick={() => confirmDelete(facility._id)}>Yes</button>
+                                                                    <button className="inline-delete-no" onClick={() => setPendingDeleteId(null)}>No</button>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                {facilityTypes.length === 0 && (
+                                    <tr>
+                                        <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>No facilities found</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
                 <div className="table-footer">
                     <span>Showing {facilityTypes.length} Facility Types</span>

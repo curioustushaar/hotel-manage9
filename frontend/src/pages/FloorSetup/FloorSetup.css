@@ -44,6 +44,11 @@
     overflow: hidden;
 }
 
+.floor-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
 .floor-table {
     width: 100%;
     border-collapse: collapse;
@@ -59,6 +64,9 @@
     text-align: left;
     font-size: 14px;
     font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 2;
 }
 
 .floor-table td {
@@ -66,6 +74,10 @@
     border-bottom: 1px solid #f3f4f6;
     color: #4b5563;
     font-size: 14px;
+}
+
+.floor-table td::before {
+    content: '';
 }
 
 .floor-table tbody tr:hover {
@@ -297,4 +309,97 @@
 
 .add-floor-premium .btn-primary:active {
     transform: translateY(0);
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .floor-table th,
+    .floor-table td {
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+
+    .floor-setup-header {
+        padding: 12px 14px;
+    }
+}
+
+@media (max-width: 768px) {
+    .floor-setup-container {
+        padding: 0 12px 14px;
+    }
+
+    .floor-setup-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 14px;
+    }
+
+    .add-floor-btn {
+        width: 100%;
+        margin-top: 0;
+    }
+
+    .floor-table-wrapper {
+        overflow-x: visible;
+    }
+
+    .floor-table thead {
+        display: none;
+    }
+
+    .floor-table,
+    .floor-table tbody,
+    .floor-table tr,
+    .floor-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .floor-table tbody {
+        padding: 10px;
+    }
+
+    .floor-table tr {
+        background: #ffffff;
+        margin-bottom: 12px;
+        border-radius: 10px;
+        padding: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+    }
+
+    .floor-table td {
+        padding: 9px 6px;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: right;
+    }
+
+    .floor-table td:last-child {
+        border-bottom: none;
+    }
+
+    .floor-table td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        color: #374151;
+        text-align: left;
+        margin-right: 10px;
+    }
+
+    .floor-actions-cell {
+        align-items: flex-start;
+    }
+
+    .floor-actions-cell .action-btns {
+        justify-content: flex-end !important;
+        position: static !important;
+    }
+
+    .table-footer {
+        padding: 10px 14px;
+    }
 }
