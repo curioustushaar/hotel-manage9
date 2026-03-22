@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -1476,7 +1476,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             return (
                 <div className="reservation-management-container">
                     <div className="error-alert">Unknown Permission: You do not have access to Room Service.</div>
-                    <button className="back-btn" onClick={() => setView('dashboard')}>
+                    <button className="reservation-back-btn" onClick={() => setView('dashboard')}>
                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                         <span>Back to Dashboard</span>
                     </button>
@@ -1486,8 +1486,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         return (
             <div className="reservation-management-container">
                 <div className="reservation-header">
-                    <div className="form-top-nav">
-                        <button className="back-btn" onClick={() => setView('dashboard')}>
+                    <div className="reservation-form-top-nav">
+                        <button className="reservation-back-btn" onClick={() => setView('dashboard')}>
                             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                             <span>Back to Dashboard</span>
                         </button>
@@ -1504,7 +1504,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             return (
                 <div className="reservation-management-container">
                     <div className="error-alert">Unknown Permission: You do not have access to Housekeeping.</div>
-                    <button className="back-btn" onClick={() => setView('dashboard')}>
+                    <button className="reservation-back-btn" onClick={() => setView('dashboard')}>
                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                         <span>Back to Dashboard</span>
                     </button>
@@ -1514,8 +1514,8 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         return (
             <div className="reservation-management-container">
                 <div className="reservation-header">
-                    <div className="form-top-nav">
-                        <button className="back-btn" onClick={() => setView('dashboard')}>
+                    <div className="reservation-form-top-nav">
+                        <button className="reservation-back-btn" onClick={() => setView('dashboard')}>
                             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                             <span>Back to Dashboard</span>
                         </button>
@@ -1531,7 +1531,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             return (
                 <div className="reservation-management-container">
                     <div className="error-alert">Unknown Permission: You do not have access to create New Reservations.</div>
-                    <button className="back-btn" onClick={() => setView('dashboard')}>
+                    <button className="reservation-back-btn" onClick={() => setView('dashboard')}>
                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                         <span>Back to Dashboard</span>
                     </button>
@@ -1552,9 +1552,9 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                         </motion.div>
                     </div>
                 )}
-                <div className="reservation-header">
-                    <div className="form-top-nav">
-                        <button className="back-btn" onClick={() => { resetForm(); setView('dashboard'); }}>
+                <div className="reservation-header form-view-header-compact">
+                    <div className="reservation-form-top-nav">
+                        <button className="reservation-back-btn" onClick={() => { resetForm(); setView('dashboard'); }}>
                             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                             <span>Back to Dashboard</span>
                         </button>

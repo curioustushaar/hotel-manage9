@@ -1466,7 +1466,7 @@
     width: 100%;
 }
 
-.form-top-nav {
+.reservation-form-top-nav {
     display: flex;
     align-items: center;
     padding: 10px 0;
@@ -1475,7 +1475,24 @@
     margin-left: 0;
 }
 
-.back-btn {
+.reservation-management-container .reservation-form-top-nav {
+    padding-left: 6px;
+    padding-right: 6px;
+    box-sizing: border-box;
+}
+
+.reservation-header.form-view-header-compact {
+    gap: 0.35rem;
+    margin-bottom: 0.6rem;
+}
+
+.reservation-header.form-view-header-compact .reservation-form-top-nav {
+    margin-bottom: 0.35rem;
+    padding-top: 4px;
+    padding-bottom: 2px;
+}
+
+.reservation-back-btn {
     display: inline-flex;
     align-items: center;
     gap: 12px;
@@ -1499,18 +1516,23 @@
     /* Prevent wrapping at all costs */
 }
 
-.back-btn span {
+.reservation-management-container .reservation-back-btn {
+    margin-left: 0;
+    max-width: 100%;
+}
+
+.reservation-back-btn span {
     display: inline-block;
 }
 
-.back-btn:hover {
+.reservation-back-btn:hover {
     color: #1e293b;
     background-color: #ffffff;
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
 }
 
-.back-btn svg {
+.reservation-back-btn svg {
     width: 20px;
     height: 20px;
     stroke-width: 3;
@@ -1519,7 +1541,7 @@
     transition: transform 0.3s ease;
 }
 
-.back-btn:hover svg {
+.reservation-back-btn:hover svg {
     transform: translateX(-4px);
 }
 
@@ -2364,7 +2386,7 @@
         padding: 1rem;
     }
 
-    .back-btn {
+    .reservation-back-btn {
         padding: 9px 16px;
         font-size: 0.9rem;
     }
@@ -2432,7 +2454,7 @@
         padding: 0.5rem 0.65rem;
     }
 
-    .back-btn {
+    .reservation-back-btn {
         width: 100%;
         justify-content: center;
     }
@@ -2946,7 +2968,7 @@
     min-height: 100vh;
 }
 
-.edit-reservation-view .back-btn {
+.edit-reservation-view .reservation-back-btn {
     margin-bottom: 20px;
 }
 
@@ -2958,7 +2980,7 @@
 
 .reservation-management-container {
     max-width: 100%;
-    padding: 0;
+    padding: 2rem 60px 2.5rem 60px;
 }
 
 .edit-reservation-view .reservation-management-container {
