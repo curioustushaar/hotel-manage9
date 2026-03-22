@@ -146,73 +146,86 @@ const ComplimentaryService = () => {
 
             {loading ? <div>Loading...</div> : (
                 <div className="table-container">
-                    <table className="common-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Service Name</th>
-                                <th>Category</th>
-                                <th>Linked With</th>
-                                <th>Quantity Limit</th>
-                                <th className="text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {services.map((service, index) => (
-                                <tr key={service._id}>
-                                    <td>{index + 1}</td>
-                                    <td>{service.name}</td>
-                                    <td>{service.category}</td>
-                                    <td>{service.linkedWith}</td>
-                                    <td>{service.quantityLimit}</td>
-                                    <td className="text-right">
-                                        <div className="action-btns" style={{ position: 'relative' }}>
-                                            <button className="icon-btn edit-btn" onClick={() => handleOpenModal('edit', service)}>✏️</button>
-                                            <button className="icon-btn delete-btn" onClick={() => handleDelete(service._id)}>🗑️</button>
-
-                                            {deleteTargetId === service._id && (
-                                                <div
-                                                    style={{
-                                                        position: 'absolute',
-                                                        top: '110%',
-                                                        right: 0,
-                                                        zIndex: 20,
-                                                        width: '220px',
-                                                        padding: '10px',
-                                                        borderRadius: '10px',
-                                                        border: '1px solid #fecaca',
-                                                        background: '#fff5f5',
-                                                        boxShadow: '0 10px 20px rgba(153, 27, 27, 0.15)',
-                                                        textAlign: 'left'
-                                                    }}
-                                                >
-                                                    <div style={{ color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', marginBottom: '8px' }}>
-                                                        Are you sure want to delete?
-                                                    </div>
-                                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => confirmDelete(service._id)}
-                                                            style={{ flex: 1, border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
-                                                        >
-                                                            Yes
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setDeleteTargetId(null)}
-                                                            style={{ flex: 1, border: '1px solid #fca5a5', borderRadius: '6px', background: '#fff', color: '#991b1b', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
-                                                        >
-                                                            No
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </td>
+                    <div className="service-table-wrapper">
+                        <table className="common-table service-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Service Name</th>
+                                    <th>Category</th>
+                                    <th>Linked With</th>
+                                    <th>Quantity Limit</th>
+                                    <th className="text-right">Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {services.map((service, index) => {
+                                    const quantityValue = String(service.quantityLimit || '').toLowerCase();
+                                    const quantityBadgeClass = quantityValue === 'unlimited' ? 'green unlimited' : 'gray limited';
+
+                                    return (
+                                        <tr key={service._id}>
+                                            <td data-label="ID">{index + 1}</td>
+                                            <td data-label="Service">{service.name}</td>
+                                            <td data-label="Category">
+                                                <span className="badge blue">{service.category}</span>
+                                            </td>
+                                            <td data-label="Linked With">
+                                                <span className="badge gray">{service.linkedWith}</span>
+                                            </td>
+                                            <td data-label="Quantity">
+                                                <span className={`badge ${quantityBadgeClass}`}>{service.quantityLimit}</span>
+                                            </td>
+                                            <td data-label="Actions" className="service-actions-cell">
+                                                <div className="action-btns" style={{ position: 'relative' }}>
+                                                    <button className="icon-btn edit-btn" onClick={() => handleOpenModal('edit', service)}>✏️</button>
+                                                    <button className="icon-btn delete-btn" onClick={() => handleDelete(service._id)}>🗑️</button>
+
+                                                    {deleteTargetId === service._id && (
+                                                        <div
+                                                            style={{
+                                                                position: 'absolute',
+                                                                top: '110%',
+                                                                right: 0,
+                                                                zIndex: 20,
+                                                                width: '220px',
+                                                                padding: '10px',
+                                                                borderRadius: '10px',
+                                                                border: '1px solid #fecaca',
+                                                                background: '#fff5f5',
+                                                                boxShadow: '0 10px 20px rgba(153, 27, 27, 0.15)',
+                                                                textAlign: 'left'
+                                                            }}
+                                                        >
+                                                            <div style={{ color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', marginBottom: '8px' }}>
+                                                                Are you sure want to delete?
+                                                            </div>
+                                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => confirmDelete(service._id)}
+                                                                    style={{ flex: 1, border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
+                                                                >
+                                                                    Yes
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setDeleteTargetId(null)}
+                                                                    style={{ flex: 1, border: '1px solid #fca5a5', borderRadius: '6px', background: '#fff', color: '#991b1b', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
+                                                                >
+                                                                    No
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                     <div className="table-footer">Showing {services.length} Complimentary Services</div>
                 </div>
             )}

@@ -222,92 +222,93 @@ const MaintenanceBlock = () => {
 
             {loading ? <div>Loading...</div> : (
                 <div className="table-container">
-                    <table className="common-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Room</th>
-                                <th>Block Type</th>
-                                <th>Block Duration</th>
-                                <th>Status</th>
-                                <th>Reason</th>
-                                <th className="text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredBlocks.map((block, index) => (
-                                <tr key={block._id}>
-                                    <td>{index + 1}</td>
-                                    <td>{block.room}</td>
-                                    <td>{block.blockType}</td>
-                                    <td>
-                                        {block.startDate} - {block.endDate}
-                                    </td>
-                                    <td>
-                                        <span className={getStatusClass(block.status)}>
-                                            {block.status === 'In Progress' && '🟠 '}
-                                            {block.status === 'Blocked' && '🔴 '}
-                                            {block.status === 'Completed' && '🟢 '}
-                                            {block.status}
-                                        </span>
-                                    </td>
-                                    <td className="reason-cell">{block.reason}</td>
-                                    <td className="text-right">
-                                        <div className="action-btns" style={{ position: 'relative' }}>
-                                            {/* Status Actions */}
-                                            {block.status === 'Blocked' && (
-                                                <button className="icon-btn action-start" title="Start Progress" onClick={() => handleStatusUpdate(block._id, 'In Progress')}>🔧</button>
-                                            )}
-                                            {block.status === 'In Progress' && (
-                                                <button className="icon-btn action-complete" title="Mark Completed" onClick={() => handleStatusUpdate(block._id, 'Completed')}>✅</button>
-                                            )}
-
-                                            <button className="icon-btn edit-btn" onClick={() => handleOpenModal('edit', block)}>✏️</button>
-                                            <button className="icon-btn delete-btn" onClick={() => handleDelete(block._id)}>🗑️</button>
-
-                                            {deleteTargetId === block._id && (
-                                                <div
-                                                    style={{
-                                                        position: 'absolute',
-                                                        top: '110%',
-                                                        right: 0,
-                                                        zIndex: 20,
-                                                        width: '220px',
-                                                        padding: '10px',
-                                                        borderRadius: '10px',
-                                                        border: '1px solid #fecaca',
-                                                        background: '#fff5f5',
-                                                        boxShadow: '0 10px 20px rgba(153, 27, 27, 0.15)',
-                                                        textAlign: 'left'
-                                                    }}
-                                                >
-                                                    <div style={{ color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', marginBottom: '8px' }}>
-                                                        Are you sure want to delete?
-                                                    </div>
-                                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => confirmDelete(block._id)}
-                                                            style={{ flex: 1, border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
-                                                        >
-                                                            Yes
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setDeleteTargetId(null)}
-                                                            style={{ flex: 1, border: '1px solid #fca5a5', borderRadius: '6px', background: '#fff', color: '#991b1b', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
-                                                        >
-                                                            No
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </td>
+                    <div className="maintenance-table-wrapper">
+                        <table className="common-table maintenance-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Room</th>
+                                    <th>Block Type</th>
+                                    <th>Block Duration</th>
+                                    <th>Status</th>
+                                    <th>Reason</th>
+                                    <th className="text-right">Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {filteredBlocks.map((block, index) => (
+                                    <tr key={block._id}>
+                                        <td data-label="ID">{index + 1}</td>
+                                        <td data-label="Room">{block.room}</td>
+                                        <td data-label="Block Type">{block.blockType}</td>
+                                        <td data-label="Duration" className="duration-cell">
+                                            {block.startDate} - {block.endDate}
+                                        </td>
+                                        <td data-label="Status">
+                                            <span className={getStatusClass(block.status)}>
+                                                {block.status === 'In Progress' && '🟠 '}
+                                                {block.status === 'Blocked' && '🔴 '}
+                                                {block.status === 'Completed' && '🟢 '}
+                                                {block.status}
+                                            </span>
+                                        </td>
+                                        <td data-label="Reason" className="reason-cell">{block.reason}</td>
+                                        <td data-label="Actions" className="maintenance-actions-cell">
+                                            <div className="action-btns" style={{ position: 'relative' }}>
+                                                {block.status === 'Blocked' && (
+                                                    <button className="icon-btn action-start" title="Start Progress" onClick={() => handleStatusUpdate(block._id, 'In Progress')}>🔧</button>
+                                                )}
+                                                {block.status === 'In Progress' && (
+                                                    <button className="icon-btn action-complete" title="Mark Completed" onClick={() => handleStatusUpdate(block._id, 'Completed')}>✅</button>
+                                                )}
+
+                                                <button className="icon-btn edit-btn" onClick={() => handleOpenModal('edit', block)}>✏️</button>
+                                                <button className="icon-btn delete-btn" onClick={() => handleDelete(block._id)}>🗑️</button>
+
+                                                {deleteTargetId === block._id && (
+                                                    <div
+                                                        style={{
+                                                            position: 'absolute',
+                                                            top: '110%',
+                                                            right: 0,
+                                                            zIndex: 20,
+                                                            width: '220px',
+                                                            padding: '10px',
+                                                            borderRadius: '10px',
+                                                            border: '1px solid #fecaca',
+                                                            background: '#fff5f5',
+                                                            boxShadow: '0 10px 20px rgba(153, 27, 27, 0.15)',
+                                                            textAlign: 'left'
+                                                        }}
+                                                    >
+                                                        <div style={{ color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', marginBottom: '8px' }}>
+                                                            Are you sure want to delete?
+                                                        </div>
+                                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => confirmDelete(block._id)}
+                                                                style={{ flex: 1, border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
+                                                            >
+                                                                Yes
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setDeleteTargetId(null)}
+                                                                style={{ flex: 1, border: '1px solid #fca5a5', borderRadius: '6px', background: '#fff', color: '#991b1b', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
+                                                            >
+                                                                No
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                     <div className="table-footer">Showing {filteredBlocks.length} Maintenance Blocks</div>
                 </div>
             )

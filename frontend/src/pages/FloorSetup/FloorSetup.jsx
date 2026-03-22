@@ -163,69 +163,71 @@ const FloorSetup = () => {
                 {loading ? (
                     <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>
                 ) : (
-                    <table className="floor-table">
-                        <thead>
-                            <tr>
-                                <th style={{ width: '80px' }}>ID</th>
-                                <th>Floor Name</th>
-                                <th>Room Count</th>
-                                <th style={{ width: '150px', textAlign: 'right' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {floors.map((floor, index) => (
-                                <tr key={floor._id}>
-                                    <td>{index + 1}</td>
-                                    <td>{floor.name}</td>
-                                    <td>{floor.roomCount || 0}</td>
-                                    <td style={{ textAlign: 'right' }}>
-                                        <div className="action-btns" style={{ justifyContent: 'flex-end', position: 'relative' }}>
-                                            <button className="icon-button" onClick={() => handleOpenModal('edit', floor)}>✏️</button>
-                                            <button className="icon-button" onClick={() => handleDelete(floor._id)}>🗑️</button>
-
-                                            {deleteTargetId === floor._id && (
-                                                <div
-                                                    style={{
-                                                        position: 'absolute',
-                                                        top: '110%',
-                                                        right: 0,
-                                                        zIndex: 20,
-                                                        width: '220px',
-                                                        padding: '10px',
-                                                        borderRadius: '10px',
-                                                        border: '1px solid #fecaca',
-                                                        background: '#fff5f5',
-                                                        boxShadow: '0 10px 20px rgba(153, 27, 27, 0.15)',
-                                                        textAlign: 'left'
-                                                    }}
-                                                >
-                                                    <div style={{ color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', marginBottom: '8px' }}>
-                                                        Are you sure want to delete?
-                                                    </div>
-                                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => confirmDelete(floor._id)}
-                                                            style={{ flex: 1, border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
-                                                        >
-                                                            Yes
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setDeleteTargetId(null)}
-                                                            style={{ flex: 1, border: '1px solid #fca5a5', borderRadius: '6px', background: '#fff', color: '#991b1b', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
-                                                        >
-                                                            No
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </td>
+                    <div className="floor-table-wrapper">
+                        <table className="floor-table">
+                            <thead>
+                                <tr>
+                                    <th style={{ width: '80px' }}>ID</th>
+                                    <th>Floor Name</th>
+                                    <th>Room Count</th>
+                                    <th style={{ width: '150px', textAlign: 'right' }}>Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {floors.map((floor, index) => (
+                                    <tr key={floor._id}>
+                                        <td data-label="ID">{index + 1}</td>
+                                        <td data-label="Floor Name">{floor.name}</td>
+                                        <td data-label="Room Count">{floor.roomCount || 0}</td>
+                                        <td data-label="Actions" className="floor-actions-cell">
+                                            <div className="action-btns" style={{ justifyContent: 'flex-end', position: 'relative' }}>
+                                                <button className="icon-button" onClick={() => handleOpenModal('edit', floor)}>✏️</button>
+                                                <button className="icon-button" onClick={() => handleDelete(floor._id)}>🗑️</button>
+
+                                                {deleteTargetId === floor._id && (
+                                                    <div
+                                                        style={{
+                                                            position: 'absolute',
+                                                            top: '110%',
+                                                            right: 0,
+                                                            zIndex: 20,
+                                                            width: '220px',
+                                                            padding: '10px',
+                                                            borderRadius: '10px',
+                                                            border: '1px solid #fecaca',
+                                                            background: '#fff5f5',
+                                                            boxShadow: '0 10px 20px rgba(153, 27, 27, 0.15)',
+                                                            textAlign: 'left'
+                                                        }}
+                                                    >
+                                                        <div style={{ color: '#991b1b', fontWeight: 700, fontSize: '0.8rem', marginBottom: '8px' }}>
+                                                            Are you sure want to delete?
+                                                        </div>
+                                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => confirmDelete(floor._id)}
+                                                                style={{ flex: 1, border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
+                                                            >
+                                                                Yes
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setDeleteTargetId(null)}
+                                                                style={{ flex: 1, border: '1px solid #fca5a5', borderRadius: '6px', background: '#fff', color: '#991b1b', padding: '6px 8px', fontWeight: 700, cursor: 'pointer' }}
+                                                            >
+                                                                No
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
                 <div className="table-footer">
                     <span>Showing {floors.length} Floors</span>

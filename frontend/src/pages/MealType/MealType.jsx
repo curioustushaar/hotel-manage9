@@ -153,56 +153,74 @@ const MealType = () => {
                 {loading ? (
                     <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>
                 ) : (
-                    <table className="meal-type-table">
-                        <thead>
-                            <tr>
-                                <th style={{ width: '60px' }}>ID</th>
-                                <th>Meal Type</th>
-                                <th>Short Code</th>
-                                <th>Price</th>
-                                <th>Included Meals</th>
-                                <th>Chargeable</th>
-                                <th style={{ width: '120px', textAlign: 'right' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {mealTypes.map((meal, index) => (
-                                <tr key={meal._id}>
-                                    <td>{index + 1}</td>
-                                    <td>{meal.name}</td>
-                                    <td>{meal.shortCode}</td>
-                                    <td>{cs} {meal.price || 0}</td>
-                                    <td>
-                                        {meal.includedMeals.length > 0 ? meal.includedMeals.map(m => (
-                                            <div key={m} className="meal-tag">✓ {m}</div>
-                                        )) : <span style={{ color: '#9ca3af' }}>No Meal</span>}
-                                    </td>
-                                    <td>
-                                        {meal.chargeableMeals.length > 0 ? meal.chargeableMeals.map(m => (
-                                            <div key={m} className="meal-tag">✓ {m}</div>
-                                        )) : <span style={{ color: '#9ca3af' }}>No</span>}
-                                    </td>
-                                    <td style={{ textAlign: 'right' }}>
-                                        <div className="action-btns" style={{ justifyContent: 'flex-end' }}>
-                                            <button className="icon-button" onClick={() => handleOpenModal('edit', meal)}>✏️</button>
-                                            <div className="inline-delete-wrap">
-                                                <button className="icon-button" onClick={() => handleDeleteClick(meal._id)} disabled={deletingId === meal._id}>🗑️</button>
-                                                {pendingDeleteId === meal._id && (
-                                                    <div className="inline-delete-confirm">
-                                                        <span>Are you sure want to delete?</span>
-                                                        <div className="inline-delete-actions">
-                                                            <button className="inline-delete-yes" onClick={() => confirmDelete(meal._id)}>Yes</button>
-                                                            <button className="inline-delete-no" onClick={() => setPendingDeleteId(null)}>No</button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </td>
+                    <div className="meal-table-wrapper">
+                        <table className="meal-type-table">
+                            <thead>
+                                <tr>
+                                    <th style={{ width: '60px' }}>ID</th>
+                                    <th>Meal Type</th>
+                                    <th>Short Code</th>
+                                    <th>Price</th>
+                                    <th>Included Meals</th>
+                                    <th>Chargeable</th>
+                                    <th style={{ width: '120px', textAlign: 'right' }}>Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {mealTypes.map((meal, index) => (
+                                    <tr key={meal._id}>
+                                        <td data-label="ID">{index + 1}</td>
+                                        <td data-label="Meal Type">{meal.name}</td>
+                                        <td data-label="Short Code">{meal.shortCode}</td>
+                                        <td data-label="Price">{cs} {meal.price || 0}</td>
+                                        <td data-label="Included Meals">
+                                            {(meal.includedMeals || []).length > 0 ? (
+                                                <div className="meal-badges">
+                                                    {meal.includedMeals.map((m) => (
+                                                        <span key={m} className="meal-badge green">{m}</span>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="meal-badges">
+                                                    <span className="meal-badge neutral">No Meal</span>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td data-label="Chargeable">
+                                            {(meal.chargeableMeals || []).length > 0 ? (
+                                                <div className="meal-badges">
+                                                    {meal.chargeableMeals.map((m) => (
+                                                        <span key={m} className="meal-badge red">{m}</span>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="meal-badges">
+                                                    <span className="meal-badge red">No</span>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td data-label="Actions" className="meal-actions-cell">
+                                            <div className="action-btns" style={{ justifyContent: 'flex-end' }}>
+                                                <button className="icon-button" onClick={() => handleOpenModal('edit', meal)}>✏️</button>
+                                                <div className="inline-delete-wrap">
+                                                    <button className="icon-button" onClick={() => handleDeleteClick(meal._id)} disabled={deletingId === meal._id}>🗑️</button>
+                                                    {pendingDeleteId === meal._id && (
+                                                        <div className="inline-delete-confirm">
+                                                            <span>Are you sure want to delete?</span>
+                                                            <div className="inline-delete-actions">
+                                                                <button className="inline-delete-yes" onClick={() => confirmDelete(meal._id)}>Yes</button>
+                                                                <button className="inline-delete-no" onClick={() => setPendingDeleteId(null)}>No</button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
                 <div className="table-footer">
                     <span>Showing {mealTypes.length} Meal Types</span>
