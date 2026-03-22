@@ -1991,54 +1991,133 @@
 }
 
 /* =====================================================
-   RESPONSIVE HARDENING (ALL SCREEN FIT)
+   RESPONSIVE LAYOUT PLAN
+   Desktop: 3 column
+   Laptop: 3 column compact
+   Tablet: 2 column flow (left, center, payment full-width)
+   Mobile: 1 column
+   Small mobile: payment slide panel
    ===================================================== */
 
+.cashier-container .btn-open-payment {
+    display: none;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.cashier-container .payment-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.cashier-container .payment-drawer-close {
+    display: none;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+}
+
+.cashier-container .payment-drawer-backdrop {
+    display: none;
+}
+
+/* 1) Main layout */
+.cashier-container .dashboard-content {
+    grid-template-columns: 300px 1fr 350px;
+    gap: 15px;
+    height: calc(100vh - 230px);
+}
+
+/* 6) Cards responsive */
+.cashier-container .stats-wrapper {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+}
+
+/* 2) Laptop view */
 @media (max-width: 1200px) {
     .cashier-container {
         padding: 16px;
     }
 
-    .cashier-container .stats-wrapper {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
     .cashier-container .dashboard-content {
-        grid-template-columns: 220px 1fr 260px;
-        min-height: 0;
+        grid-template-columns: 250px 1fr 300px;
+        gap: 12px;
+        min-height: 480px;
     }
 }
 
-@media (max-width: 992px) {
+/* Card wrapping at medium */
+@media (max-width: 1000px) {
     .cashier-container .stats-wrapper {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
+}
 
+/* 3) Tablet view */
+@media (max-width: 992px) {
     .cashier-container .dashboard-content {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
         height: auto;
         min-height: 0;
     }
 
-    .cashier-container .orders-list-wrapper,
-    .cashier-container .items-table-modern tbody {
-        max-height: 280px;
+    .cashier-container .orders-sidebar {
+        grid-column: 1 / -1;
+        order: 1;
     }
 
-    .cashier-container .payment-modes-modern {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+    .cashier-container .bill-center-panel {
+        grid-column: 1 / -1;
+        order: 2;
+    }
+
+    .cashier-container .payment-right-panel {
+        grid-column: 1 / -1;
+        order: 3;
+    }
+
+    .cashier-container .orders-list-wrapper,
+    .cashier-container .items-table-modern tbody {
+        max-height: 300px;
     }
 }
 
-@media (max-width: 768px) {
+/* 4) Mobile view */
+@media (max-width: 600px) {
     .cashier-container {
-        padding: 12px;
+        padding: 10px;
+        overflow-x: hidden;
     }
 
     .cashier-container .cashier-header {
         flex-direction: column;
         align-items: stretch;
-        gap: 10px;
+        gap: 8px;
+    }
+
+    .cashier-container .cashier-header h1 {
+        font-size: 18px;
     }
 
     .cashier-container .header-actions {
@@ -2048,148 +2127,29 @@
         gap: 8px;
     }
 
-    .cashier-container .btn-track,
-    .cashier-container .btn-new-order {
-        justify-content: center;
-        padding: 12px 10px;
-        font-size: 13px;
-    }
-
-    .cashier-container .selected-order-header-modern,
-    .cashier-container .bill-center-header,
-    .cashier-container .bill-items-container-modern,
-    .cashier-container .bill-summary-panel,
-    .cashier-container .payment-right-panel {
-        padding-left: 14px;
-        padding-right: 14px;
-    }
-
-    .cashier-container .payment-modes-modern {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .cashier-container .print-format-dropdown {
-        width: 100%;
-        left: 0;
-        right: 0;
-    }
-
-    .cashier-container .add-payment-modal {
-        width: 100%;
-        max-width: 100%;
-        border-radius: 16px 0 0 16px;
-    }
-}
-
-@media (max-width: 576px) {
-    .cashier-container .stats-wrapper,
-    .cashier-container .header-actions,
-    .cashier-container .payment-modes-modern {
+    .cashier-container .dashboard-content {
         grid-template-columns: 1fr;
-    }
-
-    .cashier-container .cashier-header h1 {
-        font-size: 20px;
-    }
-
-    .cashier-container .stat-label {
-        font-size: 9px;
-        letter-spacing: 0.4px;
-    }
-
-    .cashier-container .stat-value {
-        font-size: 20px;
-    }
-
-    .cashier-container .quick-actions-modern {
-        display: grid;
-        grid-template-columns: 1fr;
-    }
-
-    .cashier-container .btn-tender-main,
-    .cashier-container .food-menu-btn,
-    .cashier-container .track-search-btn,
-    .cashier-container .btn-primary,
-    .cashier-container .btn-secondary {
-        width: 100%;
-        min-height: 44px;
-    }
-
-    .cashier-container .add-payment-modal {
-        border-radius: 0;
-    }
-}
-
-/* =====================================================
-   STATIC LAYOUT MODE (DESKTOP-LIKE ON MOBILE/TABLET)
-   Keep the same visual structure at all angles; shrink sizes.
-   ===================================================== */
-
-@media (max-width: 1024px) {
-    .cashier-container {
-        padding: 10px;
-        overflow-x: auto;
-        overflow-y: auto;
-    }
-
-    .cashier-container .cashier-dashboard {
-        min-width: 980px;
-        gap: 12px;
-    }
-
-    .cashier-container .cashier-header {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
         gap: 10px;
     }
 
-    .cashier-container .cashier-header h1 {
-        font-size: 18px;
+    .cashier-container .orders-sidebar {
+        order: 1;
     }
 
-    .cashier-container .header-actions {
-        display: flex;
-        width: auto;
-        gap: 8px;
+    .cashier-container .bill-center-panel {
+        order: 2;
     }
 
-    .cashier-container .btn-track,
-    .cashier-container .btn-new-order {
-        padding: 8px 14px;
-        font-size: 11px;
-        border-radius: 18px;
+    .cashier-container .payment-right-panel {
+        order: 3;
     }
 
     .cashier-container .stats-wrapper {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 10px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .cashier-container .stat-card {
-        padding: 10px 12px;
-        border-radius: 10px;
-    }
-
-    .cashier-container .stat-label {
-        font-size: 8px;
-        margin-bottom: 5px;
-    }
-
-    .cashier-container .stat-value {
-        font-size: 14px;
-    }
-
-    .cashier-container .dashboard-content {
-        grid-template-columns: 210px minmax(420px, 1fr) 240px;
-        gap: 12px;
-        height: calc(100vh - 190px);
-        min-height: 440px;
-    }
-
-    .cashier-container .sidebar-header,
-    .cashier-container .bill-center-header,
     .cashier-container .selected-order-header-modern,
+    .cashier-container .bill-center-header,
     .cashier-container .bill-items-container-modern,
     .cashier-container .bill-summary-panel,
     .cashier-container .payment-right-panel {
@@ -2197,44 +2157,67 @@
         padding-right: 12px;
     }
 
-    .cashier-container .payment-modes-modern {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 6px;
+    /* 7) Buttons mobile friendly */
+    .cashier-container .header-actions button,
+    .cashier-container .btn-tender-main,
+    .cashier-container .quick-actions-modern .q-btn,
+    .cashier-container .food-menu-btn,
+    .cashier-container .track-search-btn,
+    .cashier-container .btn-primary,
+    .cashier-container .btn-secondary {
+        width: 100%;
     }
 
-    .cashier-container .mode-btn-modern,
-    .cashier-container .q-btn {
-        font-size: 10px;
-        padding: 8px 6px;
-    }
 
-    .cashier-container .btn-tender-main {
-        min-height: 38px;
-        font-size: 13px;
-        padding: 10px;
-    }
-
-    .cashier-container .quick-actions-modern {
-        display: flex;
-        gap: 6px;
+    /* 8) Inputs responsive */
+    .cashier-container input,
+    .cashier-container select {
+        width: 100%;
     }
 }
 
-@media (max-width: 576px) {
-    .cashier-container .cashier-dashboard {
-        min-width: 920px;
+/* 5) Mobile: keep payment panel as normal last block */
+@media (max-width: 600px) {
+    .cashier-container .btn-open-payment,
+    .cashier-container .payment-drawer-close,
+    .cashier-container .payment-drawer-backdrop {
+        display: none !important;
     }
 
-    .cashier-container .dashboard-content {
-        grid-template-columns: 190px minmax(390px, 1fr) 220px;
-        min-height: 420px;
+    .cashier-container .payment-right-panel {
+        position: static;
+        right: auto;
+        top: auto;
+        height: auto;
+        width: 100%;
+        max-width: 100%;
+        transform: none;
+        transition: none;
+        z-index: auto;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-card);
+        overflow: visible;
     }
 
-    .cashier-container .stat-value {
-        font-size: 13px;
+    .cashier-container .payment-modes-modern {
+        grid-template-columns: 1fr 1fr;
     }
 
-    .cashier-container .cashier-header h1 {
-        font-size: 16px;
+    .cashier-container .quick-actions-modern {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Restore auto-width buttons on larger screens */
+@media (min-width: 601px) {
+    .cashier-container .header-actions button,
+    .cashier-container .btn-tender-main,
+    .cashier-container .quick-actions-modern .q-btn,
+    .cashier-container .food-menu-btn,
+    .cashier-container .track-search-btn,
+    .cashier-container .btn-primary,
+    .cashier-container .btn-secondary {
+        width: auto;
     }
 }
