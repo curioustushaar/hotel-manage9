@@ -67,8 +67,8 @@
     margin-bottom: 20px;
 }
 
-/* Responsive: sidebar collapses on mobile and tablet screens */
-@media (max-width: 1200px) {
+/* Responsive: sidebar overlays content on tablet/mobile to avoid wide empty gap */
+@media (max-width: 1024px) {
     .main-content {
         left: 0;
         right: 0;
@@ -77,5 +77,6 @@
     
     .main-content.full-width {
         left: 0;
+        margin-left: 0 !important;
     }
 }

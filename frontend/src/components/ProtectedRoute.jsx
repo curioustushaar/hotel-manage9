@@ -8,6 +8,8 @@ import { hasModuleAccess } from '../config/rbac';
  */
 const ProtectedRoute = ({ children, module, role }) => {
     const { user, isAuthenticated, loading } = useAuth();
+    const safeUser = user && typeof user === 'object' ? user : null;
+    const authenticated = typeof isAuthenticated === 'function' ? isAuthenticated() : !!safeUser;
 
     // Show loading state while checking authentication
     if (loading) {
@@ -31,12 +33,12 @@ const ProtectedRoute = ({ children, module, role }) => {
     }
 
     // Redirect to login if not authenticated
-    if (!isAuthenticated()) {
+    if (!authenticated) {
         return <Navigate to="/login" replace />;
     }
 
     // If role is specified, check if user has that role
-    if (role && user.role !== role) {
+    if (role && safeUser?.role !== role) {
         return (
             <div style={{
                 display: 'flex',
@@ -52,7 +54,7 @@ const ProtectedRoute = ({ children, module, role }) => {
                 <div style={{ fontSize: '80px', marginBottom: '30px' }}>🚫</div>
                 <h1 style={{ fontSize: '32px', marginBottom: '15px' }}>Access Denied</h1>
                 <p style={{ fontSize: '18px', marginBottom: '30px', opacity: 0.9 }}>
-                    Your role (<strong>{user.role}</strong>) does not have access to this page.
+                    Your role (<strong>{safeUser?.role || 'unknown'}</strong>) does not have access to this page.
                 </p>
                 <button
                     onClick={() => window.history.back()}
@@ -75,7 +77,14 @@ const ProtectedRoute = ({ children, module, role }) => {
     // If module is specified, check if user has access
     if (module) {
         const modulesToCheck = Array.isArray(module) ? module : [module];
-        const hasAccess = modulesToCheck.some(m => hasModuleAccess(user, m));
+        let hasAccess = false;
+
+        try {
+            hasAccess = modulesToCheck.some(m => hasModuleAccess(safeUser, m));
+        } catch (error) {
+            console.error('ProtectedRoute permission check failed:', error);
+            hasAccess = false;
+        }
 
         if (!hasAccess) {
             return (
@@ -96,7 +105,7 @@ const ProtectedRoute = ({ children, module, role }) => {
                         You don't have permission to access this module.
                     </p>
                     <p style={{ fontSize: '16px', opacity: 0.8 }}>
-                        Your Role: <strong>{user.role}</strong>
+                        Your Role: <strong>{safeUser?.role || 'unknown'}</strong>
                     </p>
                     <button
                         onClick={() => window.history.back()}

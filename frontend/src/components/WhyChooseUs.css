@@ -41,35 +41,41 @@
 }
 
 /* 4️⃣ C CENTER (BIGGER NOW) */
-.c-center {
+.c-center-wrap {
     position: absolute;
     width: 650px;
-    /* increased from 580px */
-    height: auto;
+    height: 408px;
     left: 50%;
     transform: translateX(-50%);
     top: 10px;
-    /* reduced top margin */
     z-index: 2;
+    overflow: hidden;
+    border-radius: 18px;
     background: transparent !important;
     box-shadow: none !important;
     border: none !important;
-    animation: floatCenter 4s ease-in-out infinite;
 }
 
-/* Floating animation only for center */
-@keyframes floatCenter {
-    0% {
-        transform: translate(-50%, 0px);
-    }
+.c-center-wrap::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 64px;
+    background: #f8f9fb;
+    pointer-events: none;
+    z-index: 3;
+}
 
-    50% {
-        transform: translate(-50%, -8px);
-    }
-
-    100% {
-        transform: translate(-50%, 0px);
-    }
+.c-center {
+    width: 100%;
+    height: auto;
+    display: block;
+    clip-path: inset(0 0 70px 0);
+    transform: translateZ(0);
+    filter: none !important;
+    image-rendering: -webkit-optimize-contrast;
 }
 
 /* 5️⃣ COMMON CARD SIZE (ALL SMALL CARDS EQUAL) */
@@ -151,8 +157,13 @@
 
 /* Responsive */
 @media (max-width: 1200px) {
-    .c-center {
+    .c-center-wrap {
         width: 420px;
+        height: 272px;
+    }
+
+    .c-center-wrap::after {
+        height: 48px;
     }
 
     .why-card {
@@ -185,15 +196,24 @@
         min-height: auto;
     }
 
-    .c-center {
+    .c-center-wrap {
         position: relative;
         top: auto;
         left: auto;
         transform: none;
         width: 90%;
         max-width: 400px;
+        height: auto;
         margin-bottom: 40px;
-        animation: none;
+    }
+
+    .c-center {
+        width: 100%;
+        clip-path: inset(0 0 58px 0);
+    }
+
+    .c-center-wrap::after {
+        height: 42px;
     }
 
     .why-card {

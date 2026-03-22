@@ -802,6 +802,19 @@
     }
     .sr-filters-bar {
         flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    .sr-filter-group {
+        width: 100%;
+    }
+    .sr-filter-group select {
+        width: 100%;
+        min-width: 0;
+    }
+    .sr-filters-bar .sr-btn-primary {
+        width: 100%;
+        justify-content: center;
     }
     .sr-attendance-grid,
     .sr-payroll-summary {
@@ -815,5 +828,11 @@
     }
     .sr-tabs {
         flex-direction: column;
+    }
+}
+
+@media (max-width: 992px) {
+    .sr-filters-bar {
+        align-items: stretch;
     }
 }

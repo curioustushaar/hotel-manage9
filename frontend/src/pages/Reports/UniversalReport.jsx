@@ -82,6 +82,7 @@ const UniversalReport = ({ type }) => {
     const [filters, setFilters] = useState({});
     const [reportData, setReportData] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [openFilterDropdown, setOpenFilterDropdown] = useState(null);
 
     // Report configurations
     const reportConfig = {
@@ -143,6 +144,29 @@ const UniversalReport = ({ type }) => {
 
     const [activeTab, setActiveTab] = useState((reportConfig[type] || reportConfig['reports-sales']).tabs[0]);
 
+    const getFilterOptionList = (filterName) => {
+        const optionList = [];
+
+        if (filterName !== 'Metric') {
+            optionList.push({
+                value: 'All',
+                label: filterName === 'Status' ? 'All Status' : `All ${filterName}s`
+            });
+        }
+
+        getOptionsForFilter(filterName).forEach((opt) => {
+            if (typeof opt === 'object' && opt?.value !== undefined) {
+                optionList.push({ value: opt.value, label: opt.label || String(opt.value) });
+                return;
+            }
+
+            if (opt === 'All') return;
+            optionList.push({ value: opt, label: String(opt) });
+        });
+
+        return optionList;
+    };
+
     const getDynamicConfig = () => {
         let base = reportConfig[type] || reportConfig['reports-sales'];
         if (type === 'reports-billing') {
@@ -196,7 +220,18 @@ const UniversalReport = ({ type }) => {
     // Reset active tab when type changes
     useEffect(() => {
         setActiveTab(config.tabs[0]);
+        setOpenFilterDropdown(null);
     }, [type]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            const insideFilter = event.target.closest('.control-group-header.responsive-filter-group');
+            if (!insideFilter) setOpenFilterDropdown(null);
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     useEffect(() => {
         if (type === 'reports-kitchen') {
@@ -1383,20 +1418,53 @@ const UniversalReport = ({ type }) => {
                     {config.filters.map(filter => (
                         <div className="control-group-header" key={filter}>
                             <label>{filter}</label>
-                            <select
-                                value={filters[filter] || (type === 'reports-analytics' && filter === 'Metric' ? 'All Metrics' : 'All')}
-                                onChange={(e) => setFilters({ ...filters, [filter]: e.target.value })}
-                            >
-                                {filter !== 'Metric' && (
-                                    <option value="All">
-                                        {filter === 'Status' ? 'All Status' : `All ${filter}s`}
-                                    </option>
-                                )}
-                                {getOptionsForFilter(filter).map((opt, idx) => {
-                                    if (typeof opt === 'object') return <option key={opt.value} value={opt.value}>{opt.label}</option>;
-                                    return opt === 'All' ? null : <option key={idx} value={opt}>{opt}</option>;
-                                })}
-                            </select>
+                            <div className={`control-group-header responsive-filter-group ${openFilterDropdown === filter ? 'open' : ''}`} data-filter={filter}>
+                                {(() => {
+                                    const selectedValue = filters[filter] || (type === 'reports-analytics' && filter === 'Metric' ? 'All Metrics' : 'All');
+                                    const options = getFilterOptionList(filter);
+                                    const selectedOption = options.find(opt => String(opt.value) === String(selectedValue));
+                                    const selectedLabel = selectedOption?.label || String(selectedValue || 'Select');
+                                    const isOpen = openFilterDropdown === filter;
+
+                                    return (
+                                        <>
+                                            <button
+                                                type="button"
+                                                className={`responsive-select-trigger ${isOpen ? 'open' : ''}`}
+                                                onClick={() => setOpenFilterDropdown(isOpen ? null : filter)}
+                                                aria-expanded={isOpen}
+                                                aria-label={`${filter} options`}
+                                            >
+                                                <span>{selectedLabel}</span>
+                                                <span className="responsive-select-caret">▾</span>
+                                            </button>
+
+                                            {isOpen && (
+                                                <div className="responsive-select-menu" role="listbox" aria-label={`${filter} list`}>
+                                                    {options.map((opt) => {
+                                                        const isActive = String(selectedValue) === String(opt.value);
+                                                        return (
+                                                            <button
+                                                                key={`${filter}-${opt.value}`}
+                                                                type="button"
+                                                                className={`responsive-select-option ${isActive ? 'active' : ''}`}
+                                                                onClick={() => {
+                                                                    setFilters({ ...filters, [filter]: opt.value });
+                                                                    setOpenFilterDropdown(null);
+                                                                }}
+                                                                role="option"
+                                                                aria-selected={isActive}
+                                                            >
+                                                                {opt.label}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </>
+                                    );
+                                })()}
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -1486,7 +1554,7 @@ const UniversalReport = ({ type }) => {
                 )}
 
                 {type === 'reports-analytics' && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0px', marginBottom: '24px' }}>
+                    <div className="analytics-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0px', marginBottom: '24px' }}>
                         <div className="summary-stat-card report-tone-blue">
                             <div className="stat-info">
                                 <span className="stat-value">{analyticsSummary.totalMetrics}</span>
@@ -1517,7 +1585,7 @@ const UniversalReport = ({ type }) => {
                 {type === 'reports-billing' && (
                     <>
                         {/* Summary Cards */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0px', marginBottom: '24px' }}>
+                        <div className="billing-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0px', marginBottom: '24px' }}>
                             <div className="summary-stat-card billing-summary-card billing-summary-card-1">
                                 <div className="stat-icon billing-summary-icon">🧾</div>
                                 <div className="stat-info">
@@ -1544,7 +1612,7 @@ const UniversalReport = ({ type }) => {
                         {activeTab === 'Overview' && (
                             <>
                         {/* Payment Method + Order Type Breakdown */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0px', marginBottom: '24px' }}>
+                        <div className="billing-breakdown-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0px', marginBottom: '24px' }}>
                             <div className="overview-container-card">
                                 <h3 style={{ margin: '0 0 16px', fontSize: '15px', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <span style={{ background: '#e0e7ff', borderRadius: '8px', padding: '4px 8px' }}>💳</span> Payment Method
@@ -1749,7 +1817,7 @@ const UniversalReport = ({ type }) => {
                     <div className="summary-overview-section" style={{ marginTop: '24px' }}>
                         <h2 className="section-title">DISCOUNT BREAKDOWN</h2>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0px', marginBottom: '18px' }}>
+                        <div className="discount-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0px', marginBottom: '18px' }}>
                             <div className="summary-stat-card report-tone-rose">
                                 <div className="stat-info">
                                     <span className="stat-label">Total Discount</span>
@@ -1826,7 +1894,7 @@ const UniversalReport = ({ type }) => {
                 {type === 'reports-gst' && (
                     <div className="summary-overview-section" style={{ marginTop: '24px' }}>
                         <h2 className="section-title">GST OVERVIEW</h2>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0px', marginBottom: '16px' }}>
+                        <div className="gst-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0px', marginBottom: '16px' }}>
                             <div className="summary-stat-card report-tone-primary"><div className="stat-info"><span className="stat-label">Taxable Value</span><span className="stat-value">{cs}{(gstInsights.totals?.taxableValue || 0).toFixed(2)}</span></div></div>
                             <div className="summary-stat-card report-tone-rose"><div className="stat-info"><span className="stat-label">Total Tax</span><span className="stat-value">{cs}{(gstInsights.totals?.totalTax || 0).toFixed(2)}</span></div></div>
                             <div className="summary-stat-card report-tone-blue"><div className="stat-info"><span className="stat-label">CGST</span><span className="stat-value">{cs}{(gstInsights.totals?.cgst || 0).toFixed(2)}</span></div></div>
@@ -1869,7 +1937,7 @@ const UniversalReport = ({ type }) => {
                     </div>
                 )}
 
-                <div className="report-actions" style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <div className="report-actions" style={{ marginTop: '20px' }}>
                     <button onClick={() => handleExport('Excel')}>Export Excel</button>
                     <button onClick={() => handleExport('PDF')}>Export PDF</button>
                     <button onClick={() => handleExport('Print')}>Print</button>
