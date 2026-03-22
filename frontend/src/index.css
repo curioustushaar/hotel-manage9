@@ -124,6 +124,117 @@ body {
   background: #ffffff;
 }
 
+/* Compact admin dropdown system: keep triggers and lists uniformly small across the app */
+body:not(.public-page) {
+  --compact-dd-height: 34px;
+  --compact-dd-radius: 8px;
+  --compact-dd-font: 12px;
+  --compact-dd-pad-y: 6px;
+  --compact-dd-pad-x: 10px;
+}
+
+body:not(.public-page) select,
+body:not(.public-page) .crm-select-input,
+body:not(.public-page) .inline-shift-select,
+body:not(.public-page) .type-dropdown,
+body:not(.public-page) .filter-select,
+body:not(.public-page) .premium-dropdown-select {
+  min-height: var(--compact-dd-height) !important;
+  height: var(--compact-dd-height) !important;
+  max-height: var(--compact-dd-height) !important;
+  padding: var(--compact-dd-pad-y) 28px var(--compact-dd-pad-y) var(--compact-dd-pad-x) !important;
+  font-size: var(--compact-dd-font) !important;
+  line-height: 1.15 !important;
+  border-radius: var(--compact-dd-radius) !important;
+  background-position: calc(100% - 10px) 50% !important;
+  background-size: 9px 9px !important;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+body:not(.public-page) select option {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+/* Compact custom dropdown panels */
+body:not(.public-page) .gms-filter-menu,
+body:not(.public-page) .perm-dropdown-list,
+body:not(.public-page) .filter-dropdown-options,
+body:not(.public-page) .premium-dropdown-options,
+body:not(.public-page) .edit-floor-dropdown-options,
+body:not(.public-page) .custom-type-dropdown-options,
+body:not(.public-page) .crm-compact-dd-menu,
+body:not(.public-page) .action-menu-dropdown,
+body:not(.public-page) .print-format-dropdown,
+body:not(.public-page) .select-dropdown-options-premium,
+body:not(.public-page) .responsive-select-menu,
+body:not(.public-page) .filter-options {
+  max-height: 180px !important;
+  overflow-y: auto !important;
+  border-radius: 10px !important;
+}
+
+/* Compact list rows inside custom dropdown panels */
+body:not(.public-page) .gms-filter-option,
+body:not(.public-page) .perm-dropdown-item,
+body:not(.public-page) .filter-dropdown-option,
+body:not(.public-page) .premium-dropdown-option,
+body:not(.public-page) .edit-floor-dropdown-option,
+body:not(.public-page) .crm-compact-dd-option,
+body:not(.public-page) .action-menu-dropdown .menu-item,
+body:not(.public-page) .print-format-dropdown .menu-item,
+body:not(.public-page) .custom-type-dropdown-options .menu-item,
+body:not(.public-page) .responsive-select-menu .menu-item,
+body:not(.public-page) .filter-options .menu-item {
+  min-height: 30px !important;
+  padding: 6px 10px !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+}
+
+@media (max-width: 768px) {
+  body:not(.public-page) {
+    --compact-dd-height: 32px;
+    --compact-dd-radius: 7px;
+    --compact-dd-font: 11px;
+    --compact-dd-pad-y: 5px;
+    --compact-dd-pad-x: 9px;
+  }
+
+  body:not(.public-page) .gms-filter-menu,
+  body:not(.public-page) .perm-dropdown-list,
+  body:not(.public-page) .filter-dropdown-options,
+  body:not(.public-page) .premium-dropdown-options,
+  body:not(.public-page) .edit-floor-dropdown-options,
+  body:not(.public-page) .custom-type-dropdown-options,
+  body:not(.public-page) .crm-compact-dd-menu,
+  body:not(.public-page) .action-menu-dropdown,
+  body:not(.public-page) .print-format-dropdown,
+  body:not(.public-page) .select-dropdown-options-premium,
+  body:not(.public-page) .responsive-select-menu,
+  body:not(.public-page) .filter-options {
+    max-height: 160px !important;
+  }
+
+  body:not(.public-page) .gms-filter-option,
+  body:not(.public-page) .perm-dropdown-item,
+  body:not(.public-page) .filter-dropdown-option,
+  body:not(.public-page) .premium-dropdown-option,
+  body:not(.public-page) .edit-floor-dropdown-option,
+  body:not(.public-page) .crm-compact-dd-option,
+  body:not(.public-page) .action-menu-dropdown .menu-item,
+  body:not(.public-page) .print-format-dropdown .menu-item,
+  body:not(.public-page) .custom-type-dropdown-options .menu-item,
+  body:not(.public-page) .responsive-select-menu .menu-item,
+  body:not(.public-page) .filter-options .menu-item {
+    min-height: 28px !important;
+    padding: 5px 9px !important;
+    font-size: 11px !important;
+  }
+}
+
 .landing-page {
   background: linear-gradient(to bottom, #ffffff 0%, #f5f6f8 100%);
 }

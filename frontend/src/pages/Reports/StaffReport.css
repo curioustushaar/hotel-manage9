@@ -179,6 +179,26 @@
     box-shadow: 0 8px 24px rgba(0,0,0,0.08);
 }
 
+.sr-card-total {
+    background: #f7dde0;
+    border-color: #f0c9cf;
+}
+
+.sr-card-active {
+    background: #f4efe7;
+    border-color: #efd9c4;
+}
+
+.sr-card-performance {
+    background: #eceef3;
+    border-color: #d7dce7;
+}
+
+.sr-card-top {
+    background: #dae7ff;
+    border-color: #bdd2f6;
+}
+
 .sr-card-icon {
     width: 52px;
     height: 52px;
@@ -189,13 +209,13 @@
     flex-shrink: 0;
 }
 
-.sr-card-total .sr-card-icon { background: linear-gradient(135deg, #dbeafe, #bfdbfe); color: #2563eb; }
+.sr-card-total .sr-card-icon { background: #f3b9c1; color: #e73143; }
 .sr-card-total:hover { border-color: #93c5fd; }
-.sr-card-active .sr-card-icon { background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #16a34a; }
+.sr-card-active .sr-card-icon { background: #f2d5b8; color: #ea580c; }
 .sr-card-active:hover { border-color: #86efac; }
-.sr-card-performance .sr-card-icon { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #d97706; }
+.sr-card-performance .sr-card-icon { background: #c9ced7; color: #6b7280; }
 .sr-card-performance:hover { border-color: #fcd34d; }
-.sr-card-top .sr-card-icon { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #E31E24; }
+.sr-card-top .sr-card-icon { background: #a8c6f7; color: #2563eb; }
 .sr-card-top:hover { border-color: #fca5a5; }
 
 .sr-card-content {
@@ -223,7 +243,7 @@
 
 .sr-card-label {
     font-size: 12px;
-    color: #888;
+    color: #5b667a;
     font-weight: 600;
     margin-top: 4px;
     text-transform: uppercase;

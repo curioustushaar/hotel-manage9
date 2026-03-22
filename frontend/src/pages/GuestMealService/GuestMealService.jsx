@@ -135,6 +135,10 @@ const GuestMealService = () => {
     const [typeFilter, setTypeFilter] = useState('All');
     const [locationFilter, setLocationFilter] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
+    const [showTypeFilterDropdown, setShowTypeFilterDropdown] = useState(false);
+    const [showLocationFilterDropdown, setShowLocationFilterDropdown] = useState(false);
+    const typeFilterDropdownRef = useRef(null);
+    const locationFilterDropdownRef = useRef(null);
 
     // Modals
     const [showAddTableModal, setShowAddTableModal] = useState(false);
@@ -283,6 +287,12 @@ const GuestMealService = () => {
             }
             if (locationDropdownRef.current && !locationDropdownRef.current.contains(e.target)) {
                 setShowLocationDropdown(false);
+            }
+            if (typeFilterDropdownRef.current && !typeFilterDropdownRef.current.contains(e.target)) {
+                setShowTypeFilterDropdown(false);
+            }
+            if (locationFilterDropdownRef.current && !locationFilterDropdownRef.current.contains(e.target)) {
+                setShowLocationFilterDropdown(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -2020,6 +2030,8 @@ const GuestMealService = () => {
                                 setStatusFilter('All');
                                 setTypeFilter('All');
                                 setLocationFilter('All');
+                                setShowTypeFilterDropdown(false);
+                                setShowLocationFilterDropdown(false);
                                 setSearchQuery('');
                                 setIsTimeFilterActive(false);
                             }}
@@ -2067,7 +2079,11 @@ const GuestMealService = () => {
                     {['All', 'Available', 'Running', 'Billed', 'Reserved'].map(status => (
                         <button
                             key={status}
-                            onClick={() => setStatusFilter(status)}
+                            onClick={() => {
+                                setStatusFilter(status);
+                                setShowTypeFilterDropdown(false);
+                                setShowLocationFilterDropdown(false);
+                            }}
                             style={{
                                 padding: '8px 16px', borderRadius: '10px', border: '1px solid #e5e7eb',
                                 background: statusFilter === status ? '#E31E24' : '#fff',
@@ -2079,33 +2095,95 @@ const GuestMealService = () => {
                             {status}
                         </button>
                     ))}
-                    <div style={{ width: '1px', background: '#e5e7eb', height: '24px', margin: '0 8px' }}></div>
-                    <select
-                        value={typeFilter}
-                        onChange={(e) => setTypeFilter(e.target.value)}
-                        style={{ padding: '8px 16px', borderRadius: '10px', border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', fontWeight: '600', outline: 'none', fontSize: '0.85rem' }}
-                    >
-                        <option value="All">All Types</option>
-                        {tableTypes.map(type => (
-                            <option key={type} value={type}>{type}</option>
-                        ))}
-                    </select>
+                    <div className="gms-filter-separator" style={{ width: '1px', background: '#e5e7eb', height: '24px', margin: '0 8px' }}></div>
+                    <div className="gms-filter-dropdown" ref={typeFilterDropdownRef}>
+                        <button
+                            type="button"
+                            className="gms-filter-trigger"
+                            onClick={() => {
+                                setShowTypeFilterDropdown(prev => !prev);
+                                setShowLocationFilterDropdown(false);
+                            }}
+                            aria-expanded={showTypeFilterDropdown}
+                        >
+                            <span>{typeFilter === 'All' ? 'All Types' : typeFilter}</span>
+                            <span className={`gms-filter-arrow ${showTypeFilterDropdown ? 'open' : ''}`}>▼</span>
+                        </button>
+                        {showTypeFilterDropdown && (
+                            <div className="gms-filter-menu">
+                                <button
+                                    type="button"
+                                    className={`gms-filter-option ${typeFilter === 'All' ? 'active' : ''}`}
+                                    onClick={() => {
+                                        setTypeFilter('All');
+                                        setShowTypeFilterDropdown(false);
+                                    }}
+                                >
+                                    All Types
+                                </button>
+                                {tableTypes.map(type => (
+                                    <button
+                                        type="button"
+                                        key={type}
+                                        className={`gms-filter-option ${typeFilter === type ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setTypeFilter(type);
+                                            setShowTypeFilterDropdown(false);
+                                        }}
+                                    >
+                                        {type}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
-                    <select
-                        value={locationFilter}
-                        onChange={(e) => setLocationFilter(e.target.value)}
-                        style={{ padding: '8px 16px', borderRadius: '10px', border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', fontWeight: '600', outline: 'none', fontSize: '0.85rem' }}
-                    >
-                        <option value="All">All Locations</option>
-                        {[...new Set([
-                            ...tableLocations,
-                            ...tables.map(t => t.location || 'Main Hall')
-                        ])]
-                            .filter(loc => String(loc || '').trim())
-                            .map(loc => (
-                                <option key={loc} value={loc}>{loc}</option>
-                            ))}
-                    </select>
+                    <div className="gms-filter-dropdown" ref={locationFilterDropdownRef}>
+                        <button
+                            type="button"
+                            className="gms-filter-trigger"
+                            onClick={() => {
+                                setShowLocationFilterDropdown(prev => !prev);
+                                setShowTypeFilterDropdown(false);
+                            }}
+                            aria-expanded={showLocationFilterDropdown}
+                        >
+                            <span>{locationFilter === 'All' ? 'All Locations' : locationFilter}</span>
+                            <span className={`gms-filter-arrow ${showLocationFilterDropdown ? 'open' : ''}`}>▼</span>
+                        </button>
+                        {showLocationFilterDropdown && (
+                            <div className="gms-filter-menu">
+                                <button
+                                    type="button"
+                                    className={`gms-filter-option ${locationFilter === 'All' ? 'active' : ''}`}
+                                    onClick={() => {
+                                        setLocationFilter('All');
+                                        setShowLocationFilterDropdown(false);
+                                    }}
+                                >
+                                    All Locations
+                                </button>
+                                {[...new Set([
+                                    ...tableLocations,
+                                    ...tables.map(t => t.location || 'Main Hall')
+                                ])]
+                                    .filter(loc => String(loc || '').trim())
+                                    .map(loc => (
+                                        <button
+                                            type="button"
+                                            key={loc}
+                                            className={`gms-filter-option ${locationFilter === loc ? 'active' : ''}`}
+                                            onClick={() => {
+                                                setLocationFilter(loc);
+                                                setShowLocationFilterDropdown(false);
+                                            }}
+                                        >
+                                            {loc}
+                                        </button>
+                                    ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div >
 

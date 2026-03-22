@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -143,14 +143,20 @@ const AdminDashboard = () => {
 
     // Generate Room QR states
     const [selectedStore, setSelectedStore] = useState('Testing 3.0');
+    const [showQRStoreDropdown, setShowQRStoreDropdown] = useState(false);
     const [selectedQRCategory, setSelectedQRCategory] = useState('');
     const [selectedQRRoom, setSelectedQRRoom] = useState('');
+    const [showQRCategoryDropdown, setShowQRCategoryDropdown] = useState(false);
+    const [showQRRoomDropdown, setShowQRRoomDropdown] = useState(false);
     const [qrSearchTable, setQRSearchTable] = useState('');
     const [qrRoomsData, setQRRoomsData] = useState([]);
     const [filteredQRRooms, setFilteredQRRooms] = useState([]);
     const [showQRModal, setShowQRModal] = useState(false);
     const [qrModalData, setQRModalData] = useState(null);
     const [qrLoading, setQRLoading] = useState(false);
+    const qrCategoryDropdownRef = useRef(null);
+    const qrRoomDropdownRef = useRef(null);
+    const qrStoreDropdownRef = useRef(null);
 
     // Room type categories
     const statusOptions = ['All Status', 'Available', 'Booked', 'Occupied', 'Under Maintenance'];
@@ -376,6 +382,23 @@ const AdminDashboard = () => {
 
         setFilteredQRRooms(filtered);
     }, [rooms, qrSearchTable, selectedQRCategory, selectedQRRoom]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (qrStoreDropdownRef.current && !qrStoreDropdownRef.current.contains(event.target)) {
+                setShowQRStoreDropdown(false);
+            }
+            if (qrCategoryDropdownRef.current && !qrCategoryDropdownRef.current.contains(event.target)) {
+                setShowQRCategoryDropdown(false);
+            }
+            if (qrRoomDropdownRef.current && !qrRoomDropdownRef.current.contains(event.target)) {
+                setShowQRRoomDropdown(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Function to get user initials
     const getUserInitials = (name) => {
@@ -954,54 +977,137 @@ const AdminDashboard = () => {
                             <div className="qr-filters-row">
                                 <div className="qr-filter-group">
                                     <label>Select Store</label>
-                                    <select
-                                        className="qr-select"
-                                        value={selectedStore}
-                                        onChange={(e) => setSelectedStore(e.target.value)}
-                                    >
-                                        <option value="Testing 3.0">Testing 3.0</option>
-                                        <option value="Store 1">Store 1</option>
-                                        <option value="Store 2">Store 2</option>
-                                    </select>
+                                    <div className="qr-custom-select-wrapper" ref={qrStoreDropdownRef}>
+                                        <button
+                                            type="button"
+                                            className="qr-select qr-custom-select"
+                                            onClick={() => {
+                                                setShowQRStoreDropdown((prev) => !prev);
+                                                setShowQRCategoryDropdown(false);
+                                                setShowQRRoomDropdown(false);
+                                            }}
+                                        >
+                                            <span>{selectedStore}</span>
+                                            <span className={`qr-custom-arrow ${showQRStoreDropdown ? 'open' : ''}`}>▼</span>
+                                        </button>
+
+                                        {showQRStoreDropdown && (
+                                            <div className="qr-custom-options">
+                                                {['Testing 3.0', 'Store 1', 'Store 2'].map((store) => (
+                                                    <button
+                                                        key={store}
+                                                        type="button"
+                                                        className="qr-custom-option"
+                                                        onClick={() => {
+                                                            setSelectedStore(store);
+                                                            setShowQRStoreDropdown(false);
+                                                        }}
+                                                    >
+                                                        {store}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="qr-filters-row qr-filters-row-multi">
                                 <div className="qr-filter-group">
                                     <label>Category</label>
-                                    <select
-                                        className="qr-select"
-                                        value={selectedQRCategory}
-                                        onChange={(e) => {
-                                            setSelectedQRCategory(e.target.value);
-                                            setSelectedQRRoom('');
-                                        }}
-                                    >
-                                        <option value="">Select Category</option>
-                                        {[...new Set(rooms.map(room => room.roomType))].map(type => (
-                                            <option key={type} value={type}>{type}</option>
-                                        ))}
-                                    </select>
+                                    <div className="qr-custom-select-wrapper" ref={qrCategoryDropdownRef}>
+                                        <button
+                                            type="button"
+                                            className="qr-select qr-custom-select"
+                                            onClick={() => {
+                                                setShowQRCategoryDropdown((prev) => !prev);
+                                                setShowQRRoomDropdown(false);
+                                            }}
+                                        >
+                                            <span>{selectedQRCategory || 'Select Category'}</span>
+                                            <span className={`qr-custom-arrow ${showQRCategoryDropdown ? 'open' : ''}`}>▼</span>
+                                        </button>
+
+                                        {showQRCategoryDropdown && (
+                                            <div className="qr-custom-options">
+                                                <button
+                                                    type="button"
+                                                    className="qr-custom-option"
+                                                    onClick={() => {
+                                                        setSelectedQRCategory('');
+                                                        setSelectedQRRoom('');
+                                                        setShowQRCategoryDropdown(false);
+                                                    }}
+                                                >
+                                                    Select Category
+                                                </button>
+                                                {[...new Set(rooms.map(room => room.roomType))].map(type => (
+                                                    <button
+                                                        key={type}
+                                                        type="button"
+                                                        className="qr-custom-option"
+                                                        onClick={() => {
+                                                            setSelectedQRCategory(type);
+                                                            setSelectedQRRoom('');
+                                                            setShowQRCategoryDropdown(false);
+                                                        }}
+                                                    >
+                                                        {type}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className="qr-filter-group">
                                     <label>Room</label>
-                                    <select
-                                        className="qr-select"
-                                        value={selectedQRRoom}
-                                        onChange={(e) => setSelectedQRRoom(e.target.value)}
-                                        disabled={!selectedQRCategory}
-                                    >
-                                        <option value="">Select Room</option>
-                                        {rooms
-                                            .filter(room => !selectedQRCategory || room.roomType === selectedQRCategory)
-                                            .map(room => (
-                                                <option key={room._id} value={room.roomNumber}>
-                                                    {room.roomNumber}
-                                                </option>
-                                            ))
-                                        }
-                                    </select>
+                                    <div className="qr-custom-select-wrapper" ref={qrRoomDropdownRef}>
+                                        <button
+                                            type="button"
+                                            className="qr-select qr-custom-select"
+                                            onClick={() => {
+                                                if (!selectedQRCategory) return;
+                                                setShowQRRoomDropdown((prev) => !prev);
+                                                setShowQRCategoryDropdown(false);
+                                            }}
+                                            disabled={!selectedQRCategory}
+                                        >
+                                            <span>{selectedQRRoom || 'Select Room'}</span>
+                                            <span className={`qr-custom-arrow ${showQRRoomDropdown ? 'open' : ''}`}>▼</span>
+                                        </button>
+
+                                        {showQRRoomDropdown && selectedQRCategory && (
+                                            <div className="qr-custom-options">
+                                                <button
+                                                    type="button"
+                                                    className="qr-custom-option"
+                                                    onClick={() => {
+                                                        setSelectedQRRoom('');
+                                                        setShowQRRoomDropdown(false);
+                                                    }}
+                                                >
+                                                    Select Room
+                                                </button>
+                                                {rooms
+                                                    .filter(room => !selectedQRCategory || room.roomType === selectedQRCategory)
+                                                    .map(room => (
+                                                        <button
+                                                            key={room._id}
+                                                            type="button"
+                                                            className="qr-custom-option"
+                                                            onClick={() => {
+                                                                setSelectedQRRoom(room.roomNumber);
+                                                                setShowQRRoomDropdown(false);
+                                                            }}
+                                                        >
+                                                            {room.roomNumber}
+                                                        </button>
+                                                    ))
+                                                }
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className="qr-filter-group qr-search-group">

@@ -54,31 +54,57 @@
 
 .nav-btn {
     padding: 8px 18px;
-    background: #a12c2c;
-    /* Red color from image */
-    color: white;
+    background: #eff3fb;
+    color: #1f3258;
     border: none;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid rgba(255, 255, 255, 0.3);
     cursor: pointer;
     font-size: 13.5px;
-    font-weight: 500;
-    transition: background 0.2s;
+    font-weight: 700;
+    transition: background 0.2s, transform 0.2s;
 }
 
 .nav-btn:hover {
-    background: #8e2323;
+    transform: translateY(-1px);
 }
 
 .nav-btn.active {
-    background: #8e2323;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 
 .nav-btn:first-child {
     border-radius: 4px 0 0 4px;
 }
 
+.nav-btn-reservation {
+    background: #dae7ff;
+    color: #1d4ed8;
+}
+
+.nav-btn-reservation:hover {
+    background: #c6dafd;
+}
+
+.nav-btn-view {
+    background: #f8edc6;
+    color: #b45309;
+}
+
+.nav-btn-view:hover {
+    background: #f3e1a5;
+}
+
+.nav-btn-room-service {
+    background: #ede7fb;
+    color: #6d28d9;
+}
+
+.nav-btn-room-service:hover {
+    background: #dfd6f6;
+}
+
 .nav-gear-btn {
-    background: #a12c2c;
+    background: #f7dde0;
     color: white;
     border: none;
     padding: 8px 12px;
@@ -86,6 +112,12 @@
     cursor: pointer;
     display: flex;
     align-items: center;
+    color: #b91c1c;
+    font-weight: 700;
+}
+
+.nav-gear-btn:hover {
+    background: #f2c8ce;
 }
 
 /* Status Filters Bar */

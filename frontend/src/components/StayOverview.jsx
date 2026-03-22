@@ -32,6 +32,10 @@ const StayOverview = () => {
         navigate('/admin/reservation-stay-management', { state: { viewMode: 'roomservice' } });
     };
 
+    const handleNavigateToCRMModel = () => {
+        navigate('/admin/crm-model');
+    };
+
     // Date navigation handlers
     const handleToday = () => {
         const today = new Date();
@@ -400,10 +404,10 @@ const StayOverview = () => {
                 </div>
 
                 <div className="nav-buttons-group">
-                    <button className="nav-btn" onClick={handleNavigateToReservation}>Reservation</button>
-                    <button className="nav-btn" onClick={handleNavigateToViewReservation}>View Reservation</button>
-                    <button className="nav-btn" onClick={handleNavigateToRoomService}>Room Service</button>
-                    <button className="nav-gear-btn">
+                    <button className="nav-btn nav-btn-reservation" onClick={handleNavigateToReservation}>Reservation</button>
+                    <button className="nav-btn nav-btn-view" onClick={handleNavigateToViewReservation}>View Reservation</button>
+                    <button className="nav-btn nav-btn-room-service" onClick={handleNavigateToRoomService}>Room Service</button>
+                    <button className="nav-gear-btn" onClick={handleNavigateToCRMModel} title="Open CRM Model">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
                         <span style={{ marginLeft: '4px' }}>◆</span>
                     </button>
@@ -426,9 +430,6 @@ const StayOverview = () => {
                 </div>
                 <div className="status-pill overdue">
                     OVER DUE <span className="count-circle">{stats.overdue}</span>
-                </div>
-                <div className="status-pill checkout">
-                    CHECKOUT <span className="count-circle">{stats.checkout}</span>
                 </div>
                 <div className="status-pill dirty">
                     DIRTY <span className="count-circle">{stats.dirty}</span>

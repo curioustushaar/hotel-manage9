@@ -165,6 +165,78 @@
     box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
+.filter-dropdown {
+    position: relative;
+    min-width: 180px;
+}
+
+.filter-dropdown-trigger {
+    width: 100%;
+    min-height: 42px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+    color: #111827;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.filter-dropdown-trigger:focus {
+    outline: none;
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.filter-dropdown-arrow {
+    font-size: 11px;
+    color: #6b7280;
+    transition: transform 0.2s ease;
+}
+
+.filter-dropdown-arrow.open {
+    transform: rotate(180deg);
+}
+
+.filter-dropdown-options {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 100%;
+    max-height: 220px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+    z-index: 40;
+    padding: 6px;
+}
+
+.filter-dropdown-option {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: #111827;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.filter-dropdown-option:hover {
+    background: #fef2f2;
+    color: #be123c;
+}
+
 /* Rooms Grid - 6 CARDS PER ROW */
 .rooms-grid {
     display: grid !important;
@@ -831,7 +903,8 @@ select.form-input option:checked {
     }
 
     .search-box,
-    .filter-select {
+    .filter-select,
+    .filter-dropdown {
         width: 100%;
     }
 
@@ -1063,6 +1136,117 @@ select.form-input option:checked {
 .premium-input-wrapper select {
     cursor: pointer;
     appearance: none;
+}
+
+.premium-dropdown-trigger {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    color: #111827;
+    min-height: 42px;
+    padding: 10px 12px 10px 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+}
+
+.premium-dropdown-options {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    max-height: 220px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #f1d1d8;
+    border-radius: 12px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+    z-index: 120;
+    padding: 6px;
+}
+
+.premium-dropdown-option {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: #111827;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.premium-dropdown-option:hover {
+    background: #fff1f2;
+    color: #be123c;
+}
+
+.edit-floor-dropdown {
+    position: relative;
+}
+
+.edit-floor-dropdown-trigger {
+    width: 100%;
+    min-height: 48px;
+    border: 2px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    color: #111827;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.edit-floor-dropdown-trigger:focus {
+    outline: none;
+    border-color: #1e40af;
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+}
+
+.edit-floor-dropdown-options {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    max-height: 220px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+    z-index: 120;
+    padding: 6px;
+}
+
+.edit-floor-dropdown-option {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: #111827;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: left;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.edit-floor-dropdown-option:hover {
+    background: #fef2f2;
+    color: #be123c;
 }
 
 .amount-input-container {
