@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const tenantStorage = new AsyncLocalStorage();
 
 const TENANT_HEADER = 'x-hotel-id';
+const ALT_TENANT_HEADER = 'x-tenant-id';
 const TENANT_DB_HEADER = 'x-tenant-db';
 
 const normalizeTenantId = (value) => {
@@ -11,8 +12,23 @@ const normalizeTenantId = (value) => {
     return String(value).trim() || null;
 };
 
+const readTenantIdFromHeaders = (headers = {}) => {
+    return normalizeTenantId(headers[TENANT_HEADER] || headers[ALT_TENANT_HEADER]);
+};
+
+const attachTenantContextToRequest = (req, context = {}) => {
+    req.tenantId = context.hotelId || null;
+    req.tenantDbName = context.dbName || null;
+    req.tenantContext = {
+        hotelId: req.tenantId,
+        dbName: req.tenantDbName,
+        role: context.role || null,
+        userId: context.userId || null
+    };
+};
+
 const runTenantContext = (req, res, next) => {
-    const headerTenantId = normalizeTenantId(req.headers[TENANT_HEADER]);
+    const headerTenantId = readTenantIdFromHeaders(req.headers);
     const headerDbName = normalizeTenantId(req.headers[TENANT_DB_HEADER]);
     const defaultHotelId = normalizeTenantId(process.env.DEFAULT_HOTEL_ID);
     const defaultDbName = normalizeTenantId(process.env.DEFAULT_TENANT_DB);
@@ -25,13 +41,14 @@ const runTenantContext = (req, res, next) => {
             userId: null
         },
         () => {
+            const store = tenantStorage.getStore();
+
             // If auth token is present, hydrate role/hotelId early even on non-protected routes.
             const authHeader = req.headers.authorization;
             if (authHeader && authHeader.startsWith('Bearer ')) {
                 const token = authHeader.split(' ')[1];
                 try {
                     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-                    const store = tenantStorage.getStore();
                     if (store) {
                         store.userId = decoded.id || null;
                         store.role = decoded.role || null;
@@ -46,6 +63,8 @@ const runTenantContext = (req, res, next) => {
                     // Ignore invalid token here; auth middleware handles auth errors.
                 }
             }
+
+            attachTenantContextToRequest(req, store || {});
 
             next();
         }
@@ -75,6 +94,8 @@ module.exports = {
     runTenantContext,
     setTenantContextFromUser,
     getTenantContext,
+    attachTenantContextToRequest,
     TENANT_HEADER,
+    ALT_TENANT_HEADER,
     TENANT_DB_HEADER
 };

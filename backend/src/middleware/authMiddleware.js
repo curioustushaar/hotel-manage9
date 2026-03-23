@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { setTenantContextFromUser } = require('./tenantContext');
+const { setTenantContextFromUser, getTenantContext, attachTenantContextToRequest } = require('./tenantContext');
 
 const protect = async (req, res, next) => {
     let token;
@@ -15,6 +15,7 @@ const protect = async (req, res, next) => {
             req.user = await User.findById(decoded.id).select('-password');
             if (req.user) {
                 setTenantContextFromUser(req.user);
+                attachTenantContextToRequest(req, getTenantContext() || {});
             }
             next();
         } catch (error) {

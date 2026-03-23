@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { ROLES } from '../config/rbac';
 import API_URL from '../config/api';
+import { getTenantRequestHeaders } from '../utils/tenantRequest';
 
 const AuthContext = createContext(null);
 
@@ -17,10 +18,7 @@ axios.interceptors.request.use(
         if (savedUser) {
             try {
                 const parsedUser = JSON.parse(savedUser);
-                const { token } = parsedUser;
-                if (token) {
-                    config.headers.Authorization = `Bearer ${token}`;
-                }
+                config.headers = getTenantRequestHeaders(config.headers || {}, parsedUser);
             } catch (error) {
                 console.error('Error parsing authUser for token:', error);
             }
