@@ -157,18 +157,75 @@ exports.getBillingReport = async (req, res) => {
         });
 
         // Format Table Data
-        const tableData = orders.map(order => ({
-            billNo: `#${order._id.toString().substr(-6).toUpperCase()}`,
-            date: new Date(order.createdAt).toLocaleDateString(),
-            tableNo: order.tableNumber || order.roomNumber || 'W-In',
-            items: (order.items || []).map(i => `${i.name || i.itemName || 'Item'} (x${i.quantity || i.qty || 1})`).join(', '),
-            amount: order.subtotal || 0,
-            tax: order.tax || 0,
-            discount: order.discountAmount || 0,
-            total: order.finalAmount || order.totalAmount || 0,
-            payment: order.paymentMethod || 'Pending',
-            staff: order.guestName || 'Staff'
-        }));
+        const tableData = orders.map(order => {
+            const billNo = `#${order._id.toString().substr(-6).toUpperCase()}`;
+            const printableItems = (order.items || []).map(item => {
+                const qty = Number(item.quantity || item.qty || 1);
+                const price = Number(item.price || item.rate || item.total || item.subtotal || 0);
+                const amount = Number(item.subtotal || item.total || price * qty || 0);
+
+                return {
+                    name: item.name || item.itemName || 'Item',
+                    qty,
+                    price,
+                    amount
+                };
+            });
+
+            const subtotal = Number(order.subtotal || 0);
+            const taxAmount = Number(order.tax || 0);
+            const serviceCharge = Number(
+                order.serviceChargeAmount ??
+                (order.billing && (order.billing.serviceChargeAmount ?? order.billing.serviceCharge)) ??
+                0
+            );
+            const discountAmount = Number(order.discountAmount || 0);
+            const grossTotal = subtotal + taxAmount + serviceCharge;
+            const finalAmount = Number(order.finalAmount || order.totalAmount || grossTotal - discountAmount);
+            const netPayable = Math.max(0, grossTotal - discountAmount);
+            const paymentMethod = order.paymentMethod || 'Pending';
+            const orderType = getNormalizedOrderType(order.orderType) || order.orderType || 'Dine-In';
+            const guestName = order.guestName || 'Guest';
+            const tableNo = order.tableNumber || order.roomNumber || 'W-In';
+
+            return {
+                billNo,
+                orderId: order._id.toString(),
+                date: new Date(order.createdAt).toLocaleDateString(),
+                tableNo,
+                items: printableItems.map(i => `${i.name} (x${i.qty})`).join(', '),
+                amount: subtotal,
+                tax: taxAmount,
+                discount: discountAmount,
+                total: finalAmount,
+                payment: paymentMethod,
+                staff: guestName,
+                orderType,
+                guestName,
+                roomNumber: order.roomNumber || '',
+                tableNumber: order.tableNumber || '',
+                printData: {
+                    billNo,
+                    orderId: order._id.toString(),
+                    createdAt: order.createdAt,
+                    guest: guestName,
+                    orderType,
+                    tableNumber: order.tableNumber || '',
+                    roomNumber: order.roomNumber || '',
+                    items: printableItems,
+                    subtotal,
+                    tax: taxAmount,
+                    serviceCharge,
+                    discount: discountAmount,
+                    discountMeta: order.discountMeta || null,
+                    taxRate: Number(order.taxRate || 0),
+                    finalAmount,
+                    netPayable,
+                    paymentMethod,
+                    notes: order.notes || ''
+                }
+            };
+        });
 
         // Top Selling Items
         const topSelling = Object.entries(itemSales)

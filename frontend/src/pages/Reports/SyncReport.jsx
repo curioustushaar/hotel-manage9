@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import API_URL from '../../config/api';
+import ReportPrintDropdown from '../../components/ReportPrintDropdown';
 import './SyncReport.css';
 
 const COLLECTION_LABELS = {
@@ -229,10 +230,13 @@ export default function SyncReport() {
                         <p>Last synced: <LastSyncTime /></p>
                     </div>
                 </div>
-                <button className="sr2-refresh-btn" onClick={fetchStatus} disabled={loading}>
-                    <span className={loading ? 'sr2-spin' : ''}>↻</span>
-                    {loading ? 'Refreshing...' : 'Refresh'}
-                </button>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <ReportPrintDropdown label="Print" />
+                    <button className="sr2-refresh-btn" onClick={fetchStatus} disabled={loading}>
+                        <span className={loading ? 'sr2-spin' : ''}>↻</span>
+                        {loading ? 'Refreshing...' : 'Refresh'}
+                    </button>
+                </div>
             </div>
 
             {/* ── Stat Cards ── */}

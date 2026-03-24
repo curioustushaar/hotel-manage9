@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './FoodPaymentReport.css';
 import API_URL from '../../config/api';
 import { useSettings } from '../../context/SettingsContext';
+import ReportPrintDropdown from '../../components/ReportPrintDropdown';
 
 const FoodPaymentReport = () => {
     const { getCurrencySymbol } = useSettings();
@@ -256,8 +257,9 @@ const FoodPaymentReport = () => {
     return (
         <div className="food-payment-report">
             {/* Header Section */}
-            <div className="report-header">
+            <div className="report-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
                 <h1>Food Payment Report</h1>
+                <ReportPrintDropdown buttonClass="export-csv-btn" label="Print" />
             </div>
 
             {/* Tabs Section */}

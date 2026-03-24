@@ -6,6 +6,7 @@ import soundManager from '../../utils/soundManager';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import API_URL from '../../config/api';
+import ReportPrintDropdown, { PRINT_FORMATS } from '../../components/ReportPrintDropdown';
 
 const ROOM_SECTION_DEFAULT_STATUSES = ['Available', 'Booked', 'Occupied', 'Under Maintenance'];
 
@@ -73,7 +74,7 @@ const sortRowsLatestFirst = (rows) => {
 
 const UniversalReport = ({ type }) => {
     const { user } = useAuth();
-    const { getCurrencySymbol } = useSettings();
+    const { settings, getCurrencySymbol, formatDate } = useSettings();
     const cs = getCurrencySymbol();
     const [dateRange, setDateRange] = useState({
         from: new Date().toISOString().split('T')[0],
@@ -83,6 +84,7 @@ const UniversalReport = ({ type }) => {
     const [reportData, setReportData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [openFilterDropdown, setOpenFilterDropdown] = useState(null);
+    const [rowPrintMenu, setRowPrintMenu] = useState(null);
 
     // Report configurations
     const reportConfig = {
@@ -897,7 +899,21 @@ const UniversalReport = ({ type }) => {
                     val4: item.checkOut,
                     val5: item.nights,
                     val6: `${cs}${parseFloat(item.amount).toFixed(2)}`,
-                    rawAmount: item.amount
+                    rawAmount: item.amount,
+                    printPayload: {
+                        billNo: item.roomNo ? `Room ${item.roomNo}` : 'Room Receipt',
+                        guest: item.guestName || 'Guest',
+                        orderType: 'Room Stay',
+                        roomNumber: item.roomNo,
+                        items: [],
+                        subtotal: Number(item.amount || 0),
+                        tax: 0,
+                        serviceCharge: 0,
+                        discount: 0,
+                        finalAmount: Number(item.amount || 0),
+                        netPayable: Number(item.amount || 0),
+                        notes: `Nights: ${item.nights || 0}`
+                    }
                 }));
                 setReportData(mappedData);
 
@@ -1091,17 +1107,18 @@ const UniversalReport = ({ type }) => {
                     }));
                 } else {
                     mappedData = tableData.map((item, idx) => ({
-                        id: idx,
+                        id: item.orderId || idx,
                         val1: item.billNo,
                         val2: item.date,
                         val3: item.tableNo,
                         val4: item.items,
-                        val5: `${cs}${item.amount.toFixed(2)}`,
-                        val6: `${cs}${(item.tax || 0).toFixed(2)}`,
-                        val7: `${cs}${item.discount.toFixed(2)}`,
-                        val8: `${cs}${item.total.toFixed(2)}`,
+                        val5: `${cs}${Number(item.amount || 0).toFixed(2)}`,
+                        val6: `${cs}${Number(item.tax || 0).toFixed(2)}`,
+                        val7: `${cs}${Number(item.discount || 0).toFixed(2)}`,
+                        val8: `${cs}${Number(item.total || 0).toFixed(2)}`,
                         val9: item.payment,
-                        val10: item.staff
+                        val10: item.staff,
+                        printPayload: item.printData || null
                     }));
                 }
 
@@ -1189,29 +1206,266 @@ const UniversalReport = ({ type }) => {
         URL.revokeObjectURL(url);
     };
 
-    const handleGenerate = () => {
-        soundManager.play('click');
-        if (type === 'reports-sales') fetchSalesReport(true);
-        else if (type === 'reports-payments') fetchPaymentReport(true);
-        else if (type === 'reports-analytics') fetchAnalyticsReport(true);
-        else if (type === 'reports-gst') fetchGstReport(true);
-        else if (type === 'reports-rooms') fetchRoomReport(true);
-        else if (type === 'reports-kitchen') fetchKitchenReport(true);
-        else if (type === 'reports-billing') fetchBillingReport(true);
-        else if (type === 'reports-reservations') fetchReservationReport(true);
+    const fetchCurrentTab = async (isManual = false) => {
+        if (type === 'reports-sales') return fetchSalesReport(isManual);
+        if (type === 'reports-payments') return fetchPaymentReport(isManual);
+        if (type === 'reports-analytics') return fetchAnalyticsReport(isManual);
+        if (type === 'reports-gst') return fetchGstReport(isManual);
+        if (type === 'reports-rooms') return fetchRoomReport(isManual);
+        if (type === 'reports-kitchen') return fetchKitchenReport(isManual);
+        if (type === 'reports-billing') return fetchBillingReport(isManual);
+        if (type === 'reports-reservations') return fetchReservationReport(isManual);
+        return null;
     };
 
-    const handleExport = (format) => {
+    const handleGenerate = async () => {
+        soundManager.play('click');
+        await fetchCurrentTab(true);
+    };
+
+    const handleExport = async (format) => {
         soundManager.play('success');
+
+        // Ensure current tab data is loaded for the selected date range before exporting/printing
+        if (!sortedReportData || sortedReportData.length === 0) {
+            await fetchCurrentTab(false);
+        }
+
         if (format === 'Excel') {
-            if (sortedReportData.length === 0) {
-                alert("No data available to export.");
+            if (!sortedReportData || sortedReportData.length === 0) {
+                alert("No data available to export for the selected dates.");
                 return;
             }
             downloadCSV(sortedReportData, `${config.title.replace(/\s+/g, '_')}_${activeTab.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
-        } else {
+        } else if (format === 'PDF') {
             window.print();
         }
+    };
+
+    const showRowActions = (type === 'reports-billing' && activeTab === 'Detailed Bills') || type === 'reports-rooms';
+
+    const getRowPrintPayload = (row) => {
+        if (!row || typeof row !== 'object') return null;
+        if (row.printPayload) return row.printPayload;
+        if (row.printData) return row.printData;
+        return null;
+    };
+
+    const openBillPrintWindow = (payload, formatKey) => {
+        const fmt = PRINT_FORMATS.find(f => f.key === formatKey) || PRINT_FORMATS[0];
+        const isNarrow = ['thermal', '3inch', '2inch'].includes(fmt.key);
+        const fontSize = fmt.key === '2inch' ? '9px' : fmt.key === '3inch' ? '10px' : '11px';
+        const logoSize = isNarrow ? '16px' : '24px';
+        const windowWidth = isNarrow ? 360 : 760;
+
+        const billNo = payload.billNo || payload.orderId || 'Bill';
+        const guest = payload.guest || payload.guestName || 'Guest';
+        const source = payload.tableNumber
+            ? `Table ${payload.tableNumber}`
+            : payload.roomNumber
+                ? `Room ${payload.roomNumber}`
+                : payload.orderType || 'Billing';
+
+        const itemList = Array.isArray(payload.items) && payload.items.length > 0
+            ? payload.items
+            : [{ name: 'Item', qty: 1, amount: Number(payload.netPayable || payload.finalAmount || payload.total || 0) }];
+
+        const subtotal = Number(payload.subtotal ?? 0);
+        const taxAmount = Number(payload.tax ?? payload.taxAmount ?? 0);
+        const serviceCharge = Number(
+            payload.serviceCharge
+            ?? payload.serviceChargeAmount
+            ?? payload.billing?.serviceCharge
+            ?? payload.billing?.serviceChargeAmount
+            ?? 0
+        );
+        const discountAmount = Number(payload.discount ?? payload.discountAmount ?? 0);
+        const taxRate = Number(payload.taxRate ?? settings?.foodGst ?? 0);
+        const serviceRate = Number(settings?.serviceCharge ?? payload.serviceChargeRate ?? 0);
+        const grandTotal = Number(payload.finalAmount ?? payload.total ?? (subtotal + taxAmount + serviceCharge));
+        const netPayable = Number(payload.netPayable ?? grandTotal - discountAmount);
+        const discountMeta = payload.discountMeta || {};
+        const discountType = String(discountMeta.type || discountMeta.kind || payload.discountType || 'PERCENTAGE').toUpperCase();
+        const discountValue = Number(discountMeta.value || payload.discountValue || discountAmount || 0);
+        const discountLabel = discountType === 'PERCENTAGE'
+            ? `${discountValue.toFixed(0)}%`
+            : `${cs}${discountValue.toFixed(2)}`;
+        const discountSource = discountMeta.source || payload.discountSource || '';
+
+        const printedDate = formatDate ? formatDate(new Date().toISOString()) : new Date().toLocaleDateString();
+        const printedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        const companyAddress = [settings?.address, settings?.city, settings?.state, settings?.pin]
+            .filter(Boolean)
+            .join(', ');
+
+        const logoNode = settings?.logoUrl
+            ? `<img src="${settings.logoUrl}" alt="logo" style="max-height: ${logoSize}; object-fit: contain; margin-bottom: 6px;" />`
+            : `<div class="logo-area">${settings?.name || 'Hotel'}</div>`;
+
+        const itemRows = itemList.map(item => {
+            const qty = Number(item.qty || item.quantity || 1);
+            const amount = Number(item.amount || item.total || item.subtotal || 0);
+            return `
+                <tr>
+                    <td class="col-item">${item.name || item.itemName || 'Item'}</td>
+                    <td class="col-qty">${qty}</td>
+                    <td class="col-amt">${cs} ${amount.toFixed(2)}</td>
+                </tr>`;
+        }).join('');
+
+        const html = `<!DOCTYPE html>
+        <html>
+            <head>
+                <title>Invoice ${billNo}</title>
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Libre+Barcode+39+Text&display=swap" rel="stylesheet">
+                <style>
+                    @page { size: ${fmt.pageSize}; margin: ${isNarrow ? '0' : '10mm'}; }
+                    body {
+                        font-family: ${fmt.key === 'dotmatrix' ? "'Courier New', monospace" : "'Inter', sans-serif"};
+                        width: ${fmt.bodyWidth};
+                        margin: ${isNarrow ? '4mm' : '10mm'} auto;
+                        background: white;
+                        color: #000;
+                        font-size: ${fontSize};
+                        line-height: 1.4;
+                    }
+                    .header { text-align: center; margin-bottom: 12px; }
+                    .logo-area { font-size: ${logoSize}; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 2px; }
+                    .subtitle { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #444; margin-bottom: 8px; }
+                    .contact-info { font-size: 9px; color: #666; line-height: 1.2; }
+                    .divider { border-top: 1px dashed #ccc; margin: 10px 0; }
+                    .bill-info { margin-bottom: 10px; }
+                    .info-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+                    .info-label { color: #666; }
+                    .info-value { font-weight: 700; }
+                    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+                    th { text-align: left; border-bottom: 1.5px solid #000; padding: 6px 0; font-size: 10px; text-transform: uppercase; }
+                    td { padding: 8px 0; vertical-align: top; border-bottom: 0.5px solid #eee; }
+                    .col-qty { text-align: center; width: 10%; }
+                    .col-amt { text-align: right; width: 30%; }
+                    .col-item { width: 60%; font-weight: 500; }
+                    .totals { margin-top: 8px; }
+                    .total-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 10px; }
+                    .grand-total {
+                        display: flex;
+                        justify-content: space-between;
+                        margin-top: 8px;
+                        padding: 10px 0;
+                        border-top: 2px solid #000;
+                        border-bottom: 2.5px double #000;
+                        font-size: 15px;
+                        font-weight: 800;
+                    }
+                    .footer { margin-top: 20px; text-align: center; }
+                    .thanks { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+                    .visit-again { font-size: 9px; color: #666; }
+                    .barcode {
+                        text-align: center;
+                        margin-top: 15px;
+                        font-family: 'Libre Barcode 39 Text', cursive;
+                        font-size: 32px;
+                        opacity: 0.8;
+                    }
+                    .timestamp { font-size: 8px; color: #999; margin-top: 15px; text-align: center; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    ${logoNode}
+                    <div class="subtitle">Premium Hospitality</div>
+                    <div class="contact-info">
+                        ${companyAddress || 'Hotel Address'}<br>
+                        ${settings?.phone ? 'Ph: ' + settings.phone + ' | ' : ''}GSTIN: ${settings?.gstNumber || 'N/A'}
+                    </div>
+                </div>
+                <div class="divider"></div>
+                <div class="bill-info">
+                    <div class="info-row">
+                        <span class="info-label">Bill No:</span>
+                        <span class="info-value">${billNo}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Guest:</span>
+                        <span class="info-value">${guest}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Source:</span>
+                        <span class="info-value">${source}</span>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-item">Item Description</th>
+                            <th class="col-qty">Qty</th>
+                            <th class="col-amt">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>${itemRows}</tbody>
+                </table>
+                <div class="totals">
+                    <div class="total-row">
+                        <span>Subtotal</span>
+                        <span>${cs} ${subtotal.toFixed(2)}</span>
+                    </div>
+                    ${taxAmount > 0 ? `<div class="total-row">
+                        <span>Food GST (${taxRate.toFixed(0)}%)</span>
+                        <span>${cs} ${taxAmount.toFixed(2)}</span>
+                    </div>` : ''}
+                    ${serviceCharge > 0 ? `<div class="total-row">
+                        <span>Service Charge (${serviceRate.toFixed(0)}%)</span>
+                        <span>${cs} ${serviceCharge.toFixed(2)}</span>
+                    </div>` : ''}
+                    <div class="total-row">
+                        <span>Grand Total</span>
+                        <span>${cs} ${grandTotal.toFixed(2)}</span>
+                    </div>
+                    ${discountAmount > 0 ? `<div class="total-row">
+                        <span>Discount${discountSource ? ` (${discountSource} - ${discountLabel})` : ` (${discountLabel})`}</span>
+                        <span>- ${cs} ${discountAmount.toFixed(2)}</span>
+                    </div>` : ''}
+                    <div class="grand-total">
+                        <span>NET PAYABLE</span>
+                        <span>${cs} ${netPayable.toFixed(2)}</span>
+                    </div>
+                </div>
+                ${payload.notes ? `
+                <div class="divider"></div>
+                <div style="font-style: italic; background: #f8f9fa; padding: 5px; border-left: 3px solid #000; font-size: 10px; margin-top: 10px;">
+                    <strong>Note:</strong> ${payload.notes}
+                </div>` : ''}
+                <div class="footer">
+                    <div class="thanks">${settings?.thankYouMessage || 'Thank You!'}</div>
+                    <div class="visit-again">We hope to see you again soon.</div>
+                    <div class="barcode">${String(billNo).replace('#', '')}</div>
+                </div>
+                <div class="timestamp">
+                    Printed on: ${printedDate} ${printedTime}
+                </div>
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        setTimeout(() => window.close(), 500);
+                    }
+                </script>
+            </body>
+        </html>`;
+
+        const printWindow = window.open('', '_blank', `height=600,width=${windowWidth}`);
+        if (!printWindow) return;
+        printWindow.document.write(html);
+        printWindow.document.close();
+    };
+
+    const handleRowPrint = (row, formatKey) => {
+        setRowPrintMenu(null);
+        const payload = getRowPrintPayload(row);
+        if (!payload) {
+            alert('Print data unavailable for this row. Please regenerate the report.');
+            return;
+        }
+        openBillPrintWindow(payload, formatKey);
     };
 
     const sortedReportData = useMemo(() => sortRowsLatestFirst(reportData), [reportData]);
@@ -1940,7 +2194,7 @@ const UniversalReport = ({ type }) => {
                 <div className="report-actions" style={{ marginTop: '20px' }}>
                     <button onClick={() => handleExport('Excel')}>Export Excel</button>
                     <button onClick={() => handleExport('PDF')}>Export PDF</button>
-                    <button onClick={() => handleExport('Print')}>Print</button>
+                    <ReportPrintDropdown label="Print" />
                 </div>
 
                 {config.columns.length > 0 && (
@@ -1951,20 +2205,84 @@ const UniversalReport = ({ type }) => {
                                 <thead>
                                     <tr>
                                         {config.columns.map((col, idx) => <th key={idx}>{col}</th>)}
+                                        {showRowActions && <th style={{ width: '60px' }}></th>}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {sortedReportData.length > 0 ? (
-                                        sortedReportData.map((row, idx) => (
+                                        sortedReportData.map((row, idx) => {
+                                            const rowKey = row.id ?? idx;
+                                            return (
                                             <tr key={idx}>
                                                 {config.columns.map((_, i) => (
                                                     <td key={i}>{row[`val${i + 1}`]}</td>
                                                 ))}
-                                            </tr>
-                                        ))
+                                                {showRowActions && (
+                                                    <td style={{ position: 'relative', textAlign: 'right' }}>
+                                                        <button
+                                                            aria-label="Print"
+                                                            onClick={() => setRowPrintMenu(rowKey === rowPrintMenu ? null : rowKey)}
+                                                            style={{
+                                                                border: '1px solid #e2e8f0',
+                                                                background: '#fff',
+                                                                borderRadius: '6px',
+                                                                padding: '6px 8px',
+                                                                cursor: 'pointer',
+                                                                fontWeight: 700
+                                                            }}
+                                                        >
+                                                            ⋮
+                                                        </button>
+                                                        {rowPrintMenu === rowKey && (
+                                                            <div
+                                                                style={{
+                                                                    position: 'absolute',
+                                                                    right: 0,
+                                                                    top: 'calc(100% + 6px)',
+                                                                    minWidth: '160px',
+                                                                    background: '#fff',
+                                                                    border: '1px solid #e2e8f0',
+                                                                    borderRadius: '8px',
+                                                                    boxShadow: '0 10px 24px rgba(0,0,0,0.12)',
+                                                                    zIndex: 10,
+                                                                    padding: '8px',
+                                                                    maxHeight: '220px',
+                                                                    overflowY: PRINT_FORMATS.length > 3 ? 'auto' : 'visible'
+                                                                }}
+                                                            >
+                                                                <div style={{ fontSize: '11px', color: '#475569', fontWeight: 800, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Print Format</div>
+                                                                {PRINT_FORMATS.map(fmt => (
+                                                                    <button
+                                                                        key={fmt.key}
+                                                                        onClick={() => handleRowPrint(row, fmt.key)}
+                                                                        style={{
+                                                                            width: '100%',
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            gap: '8px',
+                                                                            padding: '8px',
+                                                                            borderRadius: '6px',
+                                                                            border: '1px solid transparent',
+                                                                            background: '#f8fafc',
+                                                                            cursor: 'pointer',
+                                                                            fontWeight: 700,
+                                                                            marginBottom: '6px'
+                                                                        }}
+                                                                    >
+                                                                        <span>{fmt.icon}</span>
+                                                                        <span>{fmt.label}</span>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                )}
+                                                          </tr>
+                                                          );
+                                                      })
                                     ) : (
                                         <tr>
-                                            <td colSpan={config.columns.length} style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                                            <td colSpan={config.columns.length + (showRowActions ? 1 : 0)} style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
                                                 {loading ? 'Fetching data...' : 'No data generated. Click "Generate Report" to view results.'}
                                             </td>
                                         </tr>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import API_URL from '../../config/api';
 import { useSettings } from '../../context/SettingsContext';
+import ReportPrintDropdown from '../../components/ReportPrintDropdown';
 import './CashierReport.css';
 
 const CashierReport = () => {
@@ -132,6 +133,7 @@ const CashierReport = () => {
             <div className="cashier-report-header">
                 <h1 className="cashier-report-title">Cashier Report</h1>
                 <div className="header-actions">
+                    <ReportPrintDropdown buttonClass="generate-report-btn" label="Print" />
                     <button className="generate-report-btn" onClick={handleGenerateReport} disabled={loading}>
                         {loading ? 'Loading...' : 'Generate Report'}
                     </button>
