@@ -534,6 +534,25 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
         };
 
         const selectedFormat = printFormats.find((f) => f.key === printType) || printFormats[0];
+        const isSmallRoll = ['thermal', '3inch', '2inch'].includes(printType);
+        const isDotMatrix = printType === 'dotmatrix';
+        const paperWidth = isSmallRoll ? selectedFormat.bodyWidth : (isDotMatrix ? '100%' : 'min(100%, 760px)');
+        const pageMargin = isSmallRoll ? '4mm' : '10mm';
+        const paperPadding = isSmallRoll ? '8px' : '16px';
+        const paperRadius = isSmallRoll ? '4px' : '8px';
+        const bodyBg = (isSmallRoll || isDotMatrix) ? '#fff' : '#f3f4f6';
+        const paperBorder = isDotMatrix ? '#9ca3af' : '#d1d5db';
+        const paperShadow = (isSmallRoll || isDotMatrix) ? 'none' : '0 6px 30px rgba(0, 0, 0, 0.08)';
+        const baseFont = isDotMatrix ? "'Courier New', monospace" : "'Segoe UI', Tahoma, sans-serif";
+        const headingFont = isDotMatrix ? "'Courier New', monospace" : "Georgia, 'Times New Roman', serif";
+        const metaColumns = isSmallRoll ? '1fr' : '1fr 1fr';
+        const metaFontSize = isSmallRoll ? '11px' : '13px';
+        const lineAmountWidth = isSmallRoll ? '90px' : '130px';
+        const totalAmountWidth = isSmallRoll ? '110px' : '150px';
+        const hotelNameSize = isSmallRoll ? '24px' : '34px';
+        const titleSize = isSmallRoll ? '24px' : '36px';
+        const thanksSize = isSmallRoll ? '16px' : '20px';
+        const baseFontSize = isSmallRoll ? '11px' : '12px';
 
         const tx = currentFolioTransactions.map((t) => {
             const text = `${t.particulars || ''} ${t.description || ''} ${t.notes || ''} ${t.tag || ''}`;
@@ -720,6 +739,12 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
             const rows = [];
             const baseFromTotals = Math.max(0, item.amountAbs - (toNum(gst) || 0) - (toNum(service) || 0) + (toNum(discount) || 0));
             const baseAmount = gross !== null ? gross : baseFromTotals;
+            const pctText = (amount, base, fallbackPct) => {
+                const pct = fallbackPct && fallbackPct > 0 ? fallbackPct : (base > 0 ? (toNum(amount) / base) * 100 : 0);
+                if (!pct) return '';
+                const pctStr = pct >= 1 ? pct.toFixed(2).replace(/\.00$/, '') : pct.toFixed(2);
+                return ` (${pctStr}%)`;
+            };
             
             // Show quantity + gross/base
             if (qty !== null) {
@@ -739,12 +764,13 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
             
             // Combined GST when separate not present
             if (gst !== null) {
+                const gstPct = pctText(gst, baseAmount, (sectionName === 'Food' || sectionName === 'Restaurant Bill') ? taxCfg.foodGstPercent : (sectionName === 'Room Charges' ? taxCfg.roomGstPercent : null));
                 if (sectionName === 'Food' || sectionName === 'Restaurant Bill') {
-                    rows.push(`<div class="line muted"><span>Food GST</span><span>${money(gst)}</span></div>`);
+                    rows.push(`<div class="line muted"><span>Food GST</span><span>${money(gst)}${gstPct}</span></div>`);
                 } else if (sectionName === 'Room Charges') {
-                    rows.push(`<div class="line muted"><span>Room GST</span><span>${money(gst)}</span></div>`);
+                    rows.push(`<div class="line muted"><span>Room GST</span><span>${money(gst)}${gstPct}</span></div>`);
                 } else {
-                    rows.push(`<div class="line muted"><span>GST</span><span>${money(gst)}</span></div>`);
+                    rows.push(`<div class="line muted"><span>GST</span><span>${money(gst)}${gstPct}</span></div>`);
                 }
             }
             
@@ -759,11 +785,13 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
 
             if (service !== null) {
                 const label = (sectionName === 'Food' || sectionName === 'Restaurant Bill') ? 'Restaurant Service Charge' : (sectionName === 'Room Charges' ? 'Room Service Charge' : 'Service Charge');
-                rows.push(`<div class="line muted"><span>${label}</span><span>${money(service)}</span></div>`);
+                const svcPct = pctText(service, baseAmount, (sectionName === 'Food' || sectionName === 'Restaurant Bill') ? taxCfg.foodServicePercent : (sectionName === 'Room Charges' ? taxCfg.roomServicePercent : null));
+                rows.push(`<div class="line muted"><span>${label}</span><span>${money(service)}${svcPct}</span></div>`);
             }
             
             if (discount !== null && discount >= 0) {
-                rows.push(`<div class="line muted"><span>Discount</span><span class="discount-badge-value">- ${money(discount)}</span></div>`);
+                const discPct = pctText(discount, baseAmount, null);
+                rows.push(`<div class="line muted"><span>Discount</span><span class="discount-badge-value">- ${money(discount)}${discPct}</span></div>`);
             }
             
             return rows.join('');
@@ -792,7 +820,6 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
                     <div class="section-title">${esc(title)}</div>
                     ${itemRows}
                     <div class="section-summary">
-                        <div class="line muted"><span>Discount</span><span class="discount-badge-value">- ${money(Math.max(0, sectionDiscount))}</span></div>
                         <div class="line total"><span>${esc(title.toUpperCase())} TOTAL</span><span>${money(calc.total)}</span></div>
                     </div>
                 </div>
@@ -801,42 +828,42 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
 
         const content = `<!DOCTYPE html><html><head><title>Guest Folio - ${esc(roomNo)}</title>
             <style>
-                @page { size: ${selectedFormat.pageSize}; margin: 10mm; }
+                @page { size: ${selectedFormat.pageSize}; margin: ${pageMargin}; }
                 * { box-sizing: border-box; }
                 body {
                     margin: 0;
                     color: #1f2937;
-                    background: #f3f4f6;
-                    font-family: 'Segoe UI', Tahoma, sans-serif;
-                    font-size: 12px;
+                    background: ${bodyBg};
+                    font-family: ${baseFont};
+                    font-size: ${baseFontSize};
                     line-height: 1.35;
                 }
                 .paper {
-                    width: min(100%, 760px);
-                    margin: 10px auto;
+                    width: ${paperWidth};
+                    margin: ${isSmallRoll ? '0 auto' : '10px auto'};
                     background: #fff;
-                    border: 1px solid #d1d5db;
-                    border-radius: 8px;
-                    padding: 16px;
-                    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.08);
+                    border: 1px solid ${paperBorder};
+                    border-radius: ${paperRadius};
+                    padding: ${paperPadding};
+                    box-shadow: ${paperShadow};
                 }
-                .hotel-block { text-align: center; border-bottom: 1px solid #d1d5db; padding-bottom: 8px; margin-bottom: 10px; }
-                .hotel-name { margin: 0; font-size: 34px; font-family: Georgia, 'Times New Roman', serif; color: #2f2f2f; }
-                .hotel-meta { margin: 2px 0; color: #4b5563; font-size: 13px; }
-                .folio-title { margin: 8px 0 10px; text-align: center; font-size: 36px; font-family: Georgia, 'Times New Roman', serif; color: #2f2f2f; }
-                .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin-bottom: 10px; font-size: 13px; }
+                .hotel-block { text-align: center; border-bottom: 1px solid ${paperBorder}; padding-bottom: ${isSmallRoll ? '6px' : '8px'}; margin-bottom: ${isSmallRoll ? '8px' : '10px'}; }
+                .hotel-name { margin: 0; font-size: ${hotelNameSize}; font-family: ${headingFont}; color: #2f2f2f; }
+                .hotel-meta { margin: 2px 0; color: #4b5563; font-size: ${isSmallRoll ? '11px' : '13px'}; }
+                .folio-title { margin: 8px 0 10px; text-align: center; font-size: ${titleSize}; font-family: ${headingFont}; color: #2f2f2f; }
+                .meta-grid { display: grid; grid-template-columns: ${metaColumns}; gap: 6px 16px; margin-bottom: ${isSmallRoll ? '8px' : '10px'}; font-size: ${metaFontSize}; }
                 .meta-grid .meta-item { display: flex; justify-content: space-between; border-bottom: 1px dashed #e5e7eb; padding: 3px 0; gap: 8px; }
                 .meta-grid .meta-item span:first-child { color: #4b5563; }
                 .meta-grid .meta-item span:last-child { font-weight: 700; }
-                .section-card { border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
-                .section-title { background: #f3f4f6; padding: 8px 10px; font-size: 15px; font-weight: 700; }
-                .entry-card { padding: 8px 10px; border-bottom: 1px solid #f3f4f6; }
+                .section-card { border: 1px solid ${paperBorder}; border-radius: ${paperRadius}; margin-bottom: ${isSmallRoll ? '8px' : '10px'}; overflow: hidden; }
+                .section-title { background: ${isDotMatrix ? '#f8fafc' : '#f3f4f6'}; padding: ${isSmallRoll ? '6px 8px' : '8px 10px'}; font-size: ${isSmallRoll ? '13px' : '15px'}; font-weight: 700; }
+                .entry-card { padding: ${isSmallRoll ? '6px 8px' : '8px 10px'}; border-bottom: 1px solid ${isDotMatrix ? '#e5e7eb' : '#f3f4f6'}; }
                 .entry-card:last-of-type { border-bottom: 1px dashed #e5e7eb; }
-                .line { display: flex; justify-content: space-between; gap: 10px; margin: 2px 0; align-items: center; }
-                .line span:last-child { text-align: right; min-width: 130px; font-variant-numeric: tabular-nums; }
+                .line { display: flex; justify-content: space-between; gap: 8px; margin: 2px 0; align-items: center; }
+                .line span:last-child { text-align: right; min-width: ${lineAmountWidth}; font-variant-numeric: tabular-nums; }
                 .line.head { font-weight: 700; color: #111827; }
                 .line.head em { font-style: normal; color: #6b7280; font-size: 11px; margin-left: 6px; font-weight: 500; }
-                .line.muted { color: #4b5563; font-size: 12px; }
+                .line.muted { color: #4b5563; font-size: ${isSmallRoll ? '11px' : '12px'}; }
                 .line.total { font-weight: 800; border-top: 1px dashed #cbd5e1; padding-top: 4px; margin-top: 4px; color: #111827; }
                 .line.discount-text span:last-child {
                     color: #b91c1c;
@@ -853,22 +880,22 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
                     min-width: auto;
                     display: inline-block;
                 }
-                .section-summary { padding: 8px 10px; background: #fafafa; }
+                .section-summary { padding: ${isSmallRoll ? '6px 8px' : '8px 10px'}; background: #fafafa; }
                 .totals-card {
-                    border: 1px solid #d1d5db;
-                    border-radius: 8px;
-                    padding: 10px;
-                    margin-top: 10px;
+                    border: 1px solid ${paperBorder};
+                    border-radius: ${paperRadius};
+                    padding: ${isSmallRoll ? '8px' : '10px'};
+                    margin-top: ${isSmallRoll ? '8px' : '10px'};
                     background: #fcfcfc;
                 }
-                .totals-card .line span:last-child { min-width: 150px; }
-                .grand { color: #b91c1c; font-size: 16px; font-weight: 900; border-top: 2px solid #d1d5db; margin-top: 6px; padding-top: 6px; }
+                .totals-card .line span:last-child { min-width: ${totalAmountWidth}; }
+                .grand { color: #b91c1c; font-size: ${isSmallRoll ? '14px' : '16px'}; font-weight: 900; border-top: 2px solid ${paperBorder}; margin-top: 6px; padding-top: 6px; }
                 .paid-row { color: #047857; font-weight: 800; }
                 .due-row { color: #b91c1c; font-weight: 800; }
-                .thanks { text-align: center; margin-top: 10px; font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-size: 20px; color: #374151; }
+                .thanks { text-align: center; margin-top: 10px; font-family: ${headingFont}; font-style: italic; font-size: ${thanksSize}; color: #374151; }
                 @media print {
                     body { background: #fff; }
-                    .paper { width: 100%; margin: 0; border: 0; border-radius: 0; box-shadow: none; padding: 0; }
+                    .paper { width: ${paperWidth}; max-width: ${paperWidth}; margin: 0 auto; border: 0; border-radius: 0; box-shadow: none; padding: ${paperPadding}; }
                 }
             </style>
         </head><body>
