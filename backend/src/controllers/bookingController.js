@@ -260,8 +260,7 @@ exports.addBooking = async (req, res) => {
         const newStatus = bookingData.status === 'Checked-in' ? 'Occupied' : 'Booked';
         for (const room of roomsToUpdate) {
             if (room) {
-                room.status = newStatus;
-                await room.save();
+                await Room.updateOne({ _id: room._id }, { $set: { status: newStatus } });
             }
         }
 
@@ -334,8 +333,7 @@ exports.updateBooking = async (req, res) => {
         if (req.body.roomNumber && req.body.roomNumber !== oldRoomNumber) {
             const oldRoom = await Room.findOne({ roomNumber: oldRoomNumber });
             if (oldRoom) {
-                oldRoom.status = 'Available';
-                await oldRoom.save();
+                await Room.updateOne({ _id: oldRoom._id }, { $set: { status: 'Available' } });
             }
         }
 
@@ -344,14 +342,18 @@ exports.updateBooking = async (req, res) => {
         const room = await Room.findOne({ roomNumber: currentRoomNumber });
 
         if (room) {
+            let nextRoomStatus = null;
             if (booking.status === 'Checked-in') {
-                room.status = 'Occupied';
+                nextRoomStatus = 'Occupied';
             } else if (booking.status === 'Upcoming') {
-                room.status = 'Booked';
+                nextRoomStatus = 'Booked';
             } else if (booking.status === 'Checked-out' || booking.status === 'Cancelled') {
-                room.status = 'Available';
+                nextRoomStatus = 'Available';
             }
-            await room.save();
+
+            if (nextRoomStatus) {
+                await Room.updateOne({ _id: room._id }, { $set: { status: nextRoomStatus } });
+            }
         }
 
         res.status(200).json({
@@ -387,8 +389,7 @@ exports.deleteBooking = async (req, res) => {
         const room = await Room.findOne({ roomNumber: roomNumber });
 
         if (room) {
-            room.status = 'Available';
-            await room.save();
+            await Room.updateOne({ _id: room._id }, { $set: { status: 'Available' } });
         }
 
         res.status(200).json({

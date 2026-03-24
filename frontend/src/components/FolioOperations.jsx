@@ -503,14 +503,18 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
     ];
 
     // Print full folio statement
-    const handlePrintFolio = async () => {
+    const handlePrintFolio = async (printType = 'a4') => {
         if (!currentFolioTransactions.length) return;
 
         const selectedFolioData = folioList.find(f => f.id === selectedRoom);
         const guestName = selectedFolioData?.guestName || reservation?.guestName || '';
         const roomNo = selectedFolioData?.roomNumber || reservation?.roomNumber || '';
         const hotelName = settings?.name || 'Hotel';
-        const address = [settings?.address, settings?.city, settings?.state].filter(Boolean).join(' ');
+        const address = [settings?.address, settings?.city, settings?.state, settings?.pin].filter(Boolean).join(', ');
+        const gstNumber = settings?.gstNumber || '';
+        const panNumber = settings?.panNumber || '';
+        const phoneNumber = settings?.phone || settings?.contactNumber || '-';
+        const emailAddr = settings?.email || settings?.supportEmail || '-';
 
         const toNum = (v) => {
             const n = Number(v);
@@ -529,14 +533,31 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
             return null;
         };
 
+        const selectedFormat = printFormats.find((f) => f.key === printType) || printFormats[0];
+
         const tx = currentFolioTransactions.map((t) => {
-            const text = `${t.particulars || ''} ${t.description || ''} ${t.notes || ''}`;
+            const text = `${t.particulars || ''} ${t.description || ''} ${t.notes || ''} ${t.tag || ''}`;
+            const qty = parseTaggedAmount(text, ['Qty', 'Quantity']);
+            const gross = parseTaggedAmount(text, ['Gross', 'Amount']);
+            const cgst = parseTaggedAmount(text, ['CGST']);
+            const sgst = parseTaggedAmount(text, ['SGST']);
+            const gst = parseTaggedAmount(text, ['GST', 'Tax']) || (cgst && sgst ? cgst + sgst : null);
+            const discount = parseTaggedAmount(text, ['Discount']);
+            const service = parseTaggedAmount(text, ['Service', 'Charge']);
+            
             return {
                 ...t,
                 amountAbs: Math.abs(toNum(t.amount)),
                 typeLc: String(t.type || '').toLowerCase(),
                 textLc: text.toLowerCase(),
                 textRaw: text,
+                qtyInfo: qty,
+                grossInfo: gross,
+                cgstInfo: cgst,
+                sgstInfo: sgst,
+                gstInfo: gst,
+                discountInfo: discount,
+                serviceInfo: service,
             };
         });
 
@@ -544,17 +565,21 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
         const isDiscount = (t) => t.typeLc === 'discount';
         const isRoom = (t) => t.typeLc === 'charge' && /room\s*(tariff|charge|rent|stay|night)/i.test(t.textLc);
         const isFood = (t) => t.typeLc === 'charge' && (/food|meal|restaurant|kot|paneer|roti|breakfast|lunch|dinner|snack|beverage|table|bill\s*#/i.test(t.textLc));
-        const isAdd = (t) => t.typeLc === 'charge' && !isRoom(t) && !isFood(t);
+        const isLaundry = (t) => t.typeLc === 'charge' && /laundry|wash|washing|iron|ironing|dry\s*clean/i.test(t.textLc);
+        const isAdd = (t) => t.typeLc === 'charge' && !isRoom(t) && !isFood(t) && !isLaundry(t);
 
         const roomTx = tx.filter(isRoom);
         const foodTx = tx.filter(isFood);
+        const laundryTx = tx.filter(isLaundry);
         const addTx = tx.filter(isAdd);
         const discountTx = tx.filter(isDiscount);
         const paymentTx = tx.filter(isPayment);
 
         const taxCfg = {
-            foodGstPercent: (toNum(settings?.cgst) + toNum(settings?.sgst)) || toNum(settings?.foodGst) || 0,
-            servicePercent: toNum(settings?.roomServiceCharge ?? settings?.serviceCharge) || 0,
+            foodGstPercent: toNum(settings?.foodGst) || (toNum(settings?.cgst) + toNum(settings?.sgst)) || 0,
+            foodServicePercent: toNum(settings?.serviceCharge) || 0,
+            roomGstPercent: toNum(settings?.roomGst) || (toNum(settings?.cgst) + toNum(settings?.sgst)) || 0,
+            roomServicePercent: toNum(settings?.roomServiceCharge ?? settings?.serviceCharge) || 0,
         };
 
         const extractOrderCode = (text) => {
@@ -596,7 +621,6 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
                     const gst = toNum(linkedOrder.tax);
                     const service = toNum(linkedOrder.serviceChargeAmount);
                     const discount = toNum(linkedOrder.discountAmount);
-                    // Make base align with folio line amount so printed equation resolves exactly to posted folio total.
                     const base = Math.max(0, row.amountAbs - gst - service + discount);
                     acc.gross += base;
                     acc.gst += gst;
@@ -607,20 +631,29 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
 
                 const gross = parseTaggedAmount(row.textRaw, ['Gross', 'Amount']);
                 const gstTag = parseTaggedAmount(row.textRaw, ['GST', 'Tax']);
-                const serviceTag = parseTaggedAmount(row.textRaw, ['Service', 'Service Charge']);
+                const serviceTag = sectionType === 'laundry' ? 0 : parseTaggedAmount(row.textRaw, ['Service', 'Service Charge']);
                 const discount = parseTaggedAmount(row.textRaw, ['Discount']) || 0;
                 const finalTag = parseTaggedAmount(row.textRaw, ['Final', 'Net']);
 
                 let gst = gstTag || 0;
                 let service = serviceTag || 0;
 
-                // If cashier percentages are available and bill contains gross/final info, infer split without altering folio total.
-                if (sectionType === 'food' && (gross !== null || finalTag !== null) && gst === 0 && service === 0 && (taxCfg.foodGstPercent > 0 || taxCfg.servicePercent > 0)) {
+                // Food inference: use configured GST+service percents when explicit split missing.
+                if (sectionType === 'food' && (gross !== null || finalTag !== null) && gst === 0 && service === 0 && (taxCfg.foodGstPercent > 0 || taxCfg.foodServicePercent > 0)) {
                     const targetBeforeDiscount = Math.max(0, row.amountAbs + discount);
-                    const denom = 1 + (taxCfg.foodGstPercent / 100) + (taxCfg.servicePercent / 100);
+                    const denom = 1 + (taxCfg.foodGstPercent / 100) + (taxCfg.foodServicePercent / 100);
                     const inferredBase = denom > 0 ? targetBeforeDiscount / denom : targetBeforeDiscount;
                     gst = inferredBase * (taxCfg.foodGstPercent / 100);
-                    service = inferredBase * (taxCfg.servicePercent / 100);
+                    service = inferredBase * (taxCfg.foodServicePercent / 100);
+                }
+
+                // Room inference: use configured room GST + room service when split missing.
+                if (sectionType === 'room' && (gross !== null || finalTag !== null) && gst === 0 && service === 0 && (taxCfg.roomGstPercent > 0 || taxCfg.roomServicePercent > 0)) {
+                    const targetBeforeDiscount = Math.max(0, row.amountAbs + discount);
+                    const denom = 1 + (taxCfg.roomGstPercent / 100) + (taxCfg.roomServicePercent / 100);
+                    const inferredBase = denom > 0 ? targetBeforeDiscount / denom : targetBeforeDiscount;
+                    gst = inferredBase * (taxCfg.roomGstPercent / 100);
+                    service = inferredBase * (taxCfg.roomServicePercent / 100);
                 }
 
                 if (sectionType === 'add' && gross !== null && finalTag !== null && gst === 0) {
@@ -649,11 +682,13 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
 
         const roomCalc = buildSectionBreakdown(roomTx, 'room');
         const foodCalc = buildSectionBreakdown(foodTx, 'food');
+        const laundryCalc = buildSectionBreakdown(laundryTx, 'add');
         const addCalc = buildSectionBreakdown(addTx, 'add');
 
-        const subtotal = roomCalc.base + foodCalc.base + addCalc.base;
-        const gstTotal = roomCalc.gst + foodCalc.gst + addCalc.gst;
-        const serviceTotal = roomCalc.service + foodCalc.service + addCalc.service;
+        const subtotal = roomCalc.base + foodCalc.base + laundryCalc.base + addCalc.base;
+        const gstTotal = roomCalc.gst + foodCalc.gst + laundryCalc.gst + addCalc.gst;
+        const serviceTotal = roomCalc.service + foodCalc.service + laundryCalc.service + addCalc.service;
+        const sectionDiscountTotal = roomCalc.discount + foodCalc.discount + laundryCalc.discount + addCalc.discount;
 
         const paymentSplit = { cash: 0, upi: 0, card: 0, other: 0, total: 0 };
         paymentTx.forEach((p) => {
@@ -666,99 +701,227 @@ const FolioOperations = ({ reservation, onTotalsChange, onRefresh }) => {
 
         const pending = Math.max(0, grandTotal - paymentSplit.total);
         const netPayable = pending;
+        const finalDiscountTotal = sectionDiscountTotal + discountTotal;
+        const preDiscountTotal = subtotal + gstTotal + serviceTotal;
+        const grandTotalFromComponents = Math.max(0, preDiscountTotal - finalDiscountTotal);
 
-        const money = (n) => `${Math.abs(toNum(n)).toFixed(2)}`;
-        const lineRow = (label, value, strong = false) =>
-            `<div class="row ${strong ? 'strong' : ''}"><span>${label}</span><span>${value}</span></div>`;
+        const money = (n) => `${cs}${Math.abs(toNum(n)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const esc = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-        const foodNameLines = foodTx.length
-            ? foodTx.map((i) => lineRow(i.particulars || 'Food', money(i.amountAbs))).join('')
-            : lineRow('No food items', '0.00');
+        const itemSubLines = (item, sectionName) => {
+            const gross = item.grossInfo !== null ? item.grossInfo : parseTaggedAmount(item.textRaw, ['Gross', 'Amount']);
+            const cgst = item.cgstInfo !== null ? item.cgstInfo : parseTaggedAmount(item.textRaw, ['CGST']);
+            const sgst = item.sgstInfo !== null ? item.sgstInfo : parseTaggedAmount(item.textRaw, ['SGST']);
+            let gst = item.gstInfo !== null ? item.gstInfo : parseTaggedAmount(item.textRaw, ['GST', 'Tax']);
+            let service = item.serviceInfo !== null ? item.serviceInfo : parseTaggedAmount(item.textRaw, ['Service', 'Service Charge']);
+            const discount = item.discountInfo !== null ? item.discountInfo : parseTaggedAmount(item.textRaw, ['Discount']);
+            const qty = item.qtyInfo !== null ? item.qtyInfo : parseTaggedAmount(item.textRaw, ['Qty', 'Quantity']);
 
-        const addNameLines = addTx.length
-            ? addTx.map((i) => lineRow(i.particulars || 'Add Charge', money(i.amountAbs))).join('')
-            : lineRow('No add charges', '0.00');
+            const rows = [];
+            const baseFromTotals = Math.max(0, item.amountAbs - (toNum(gst) || 0) - (toNum(service) || 0) + (toNum(discount) || 0));
+            const baseAmount = gross !== null ? gross : baseFromTotals;
+            
+            // Show quantity + gross/base
+            if (qty !== null) {
+                rows.push(`<div class="line muted"><span>Qty. ${qty}, Gross ${money(baseAmount)}</span><span></span></div>`);
+            } else {
+                rows.push(`<div class="line muted"><span>Gross Amount</span><span>${money(baseAmount)}</span></div>`);
+            }
+            
+            // For food/room, show only combined GST (no CGST/SGST rows)
+            if (gst === null) {
+                if (sectionName === 'Food' || sectionName === 'Restaurant Bill') {
+                    gst = baseAmount * (taxCfg.foodGstPercent / 100);
+                } else if (sectionName === 'Room Charges') {
+                    gst = baseAmount * (taxCfg.roomGstPercent / 100);
+                }
+            }
+            
+            // Combined GST when separate not present
+            if (gst !== null) {
+                if (sectionName === 'Food' || sectionName === 'Restaurant Bill') {
+                    rows.push(`<div class="line muted"><span>Food GST</span><span>${money(gst)}</span></div>`);
+                } else if (sectionName === 'Room Charges') {
+                    rows.push(`<div class="line muted"><span>Room GST</span><span>${money(gst)}</span></div>`);
+                } else {
+                    rows.push(`<div class="line muted"><span>GST</span><span>${money(gst)}</span></div>`);
+                }
+            }
+            
+            // Service charge: always compute for room/restaurant; none for laundry/add.
+            if (sectionName === 'Food' || sectionName === 'Restaurant Bill') {
+                service = baseAmount * (taxCfg.foodServicePercent / 100);
+            } else if (sectionName === 'Room Charges') {
+                service = baseAmount * (taxCfg.roomServicePercent / 100);
+            } else if (sectionName === 'Laundry') {
+                service = null;
+            }
 
-        const content = `<!DOCTYPE html><html><head><title>Tax Invoice - ${roomNo}</title>
+            if (service !== null) {
+                const label = (sectionName === 'Food' || sectionName === 'Restaurant Bill') ? 'Restaurant Service Charge' : (sectionName === 'Room Charges' ? 'Room Service Charge' : 'Service Charge');
+                rows.push(`<div class="line muted"><span>${label}</span><span>${money(service)}</span></div>`);
+            }
+            
+            if (discount !== null && discount >= 0) {
+                rows.push(`<div class="line muted"><span>Discount</span><span class="discount-badge-value">- ${money(discount)}</span></div>`);
+            }
+            
+            return rows.join('');
+        };
+
+        const sectionCard = (title, rows, calc, options = {}) => {
+            if (!rows.length && !options.alwaysShow) return '';
+
+            const itemRows = rows.length
+                ? rows.map((item) => {
+                    const primaryLabel = esc(item.particulars || item.description || options.defaultLabel || title);
+                    const itemDate = esc(item.day || item.date || '');
+                    return `
+                        <div class="entry-card">
+                            <div class="line head"><span>${primaryLabel}${itemDate ? ` <em>${itemDate}</em>` : ''}</span><span>${money(item.amountAbs)}</span></div>
+                            ${itemSubLines(item, title)}
+                        </div>
+                    `;
+                }).join('')
+                : `<div class="line muted"><span>No ${esc(title.toLowerCase())} charges</span><span>${money(0)}</span></div>`;
+
+            const sectionDiscount = toNum(calc.discount);
+
+            return `
+                <div class="section-card">
+                    <div class="section-title">${esc(title)}</div>
+                    ${itemRows}
+                    <div class="section-summary">
+                        <div class="line muted"><span>Discount</span><span class="discount-badge-value">- ${money(Math.max(0, sectionDiscount))}</span></div>
+                        <div class="line total"><span>${esc(title.toUpperCase())} TOTAL</span><span>${money(calc.total)}</span></div>
+                    </div>
+                </div>
+            `;
+        };
+
+        const content = `<!DOCTYPE html><html><head><title>Guest Folio - ${esc(roomNo)}</title>
             <style>
-                @page { size: 80mm auto; margin: 4mm; }
-                body { font-family: 'Courier New', monospace; font-size: 12px; color: #111; margin: 0 auto; width: 74mm; }
-                .center { text-align: center; }
-                .row { display: flex; justify-content: space-between; gap: 8px; margin: 2px 0; }
-                .row span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-                .strong { font-weight: 700; }
-                .sep { border-top: 1px dashed #333; margin: 6px 0; }
-                .title { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
-                .muted { color: #333; }
-                .formula { font-size: 11px; color: #333; margin: 1px 0 3px 0; }
-                .section { margin-top: 2px; }
+                @page { size: ${selectedFormat.pageSize}; margin: 10mm; }
+                * { box-sizing: border-box; }
+                body {
+                    margin: 0;
+                    color: #1f2937;
+                    background: #f3f4f6;
+                    font-family: 'Segoe UI', Tahoma, sans-serif;
+                    font-size: 12px;
+                    line-height: 1.35;
+                }
+                .paper {
+                    width: min(100%, 760px);
+                    margin: 10px auto;
+                    background: #fff;
+                    border: 1px solid #d1d5db;
+                    border-radius: 8px;
+                    padding: 16px;
+                    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.08);
+                }
+                .hotel-block { text-align: center; border-bottom: 1px solid #d1d5db; padding-bottom: 8px; margin-bottom: 10px; }
+                .hotel-name { margin: 0; font-size: 34px; font-family: Georgia, 'Times New Roman', serif; color: #2f2f2f; }
+                .hotel-meta { margin: 2px 0; color: #4b5563; font-size: 13px; }
+                .folio-title { margin: 8px 0 10px; text-align: center; font-size: 36px; font-family: Georgia, 'Times New Roman', serif; color: #2f2f2f; }
+                .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin-bottom: 10px; font-size: 13px; }
+                .meta-grid .meta-item { display: flex; justify-content: space-between; border-bottom: 1px dashed #e5e7eb; padding: 3px 0; gap: 8px; }
+                .meta-grid .meta-item span:first-child { color: #4b5563; }
+                .meta-grid .meta-item span:last-child { font-weight: 700; }
+                .section-card { border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+                .section-title { background: #f3f4f6; padding: 8px 10px; font-size: 15px; font-weight: 700; }
+                .entry-card { padding: 8px 10px; border-bottom: 1px solid #f3f4f6; }
+                .entry-card:last-of-type { border-bottom: 1px dashed #e5e7eb; }
+                .line { display: flex; justify-content: space-between; gap: 10px; margin: 2px 0; align-items: center; }
+                .line span:last-child { text-align: right; min-width: 130px; font-variant-numeric: tabular-nums; }
+                .line.head { font-weight: 700; color: #111827; }
+                .line.head em { font-style: normal; color: #6b7280; font-size: 11px; margin-left: 6px; font-weight: 500; }
+                .line.muted { color: #4b5563; font-size: 12px; }
+                .line.total { font-weight: 800; border-top: 1px dashed #cbd5e1; padding-top: 4px; margin-top: 4px; color: #111827; }
+                .line.discount-text span:last-child {
+                    color: #b91c1c;
+                    font-weight: 700;
+                }
+                .line.discount-badge span:last-child,
+                .discount-badge-value {
+                    color: #fff;
+                    background: #b91c1c;
+                    font-weight: 700;
+                    border-radius: 4px;
+                    padding: 2px 8px;
+                    font-size: 11px;
+                    min-width: auto;
+                    display: inline-block;
+                }
+                .section-summary { padding: 8px 10px; background: #fafafa; }
+                .totals-card {
+                    border: 1px solid #d1d5db;
+                    border-radius: 8px;
+                    padding: 10px;
+                    margin-top: 10px;
+                    background: #fcfcfc;
+                }
+                .totals-card .line span:last-child { min-width: 150px; }
+                .grand { color: #b91c1c; font-size: 16px; font-weight: 900; border-top: 2px solid #d1d5db; margin-top: 6px; padding-top: 6px; }
+                .paid-row { color: #047857; font-weight: 800; }
+                .due-row { color: #b91c1c; font-weight: 800; }
+                .thanks { text-align: center; margin-top: 10px; font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-size: 20px; color: #374151; }
+                @media print {
+                    body { background: #fff; }
+                    .paper { width: 100%; margin: 0; border: 0; border-radius: 0; box-shadow: none; padding: 0; }
+                }
             </style>
         </head><body>
-            <div class="center title">TAX INVOICE</div>
-            <div class="row"><span>${new Date().toLocaleString('en-IN')}</span><span>Folio: ${roomNo}</span></div>
-            <div class="sep"></div>
-            <div class="center strong">${hotelName}</div>
-            ${address ? `<div class="center muted">${address}</div>` : ''}
-            <div class="sep"></div>
-            ${lineRow('Guest Name', guestName || '-')}
-            <div class="sep"></div>
+            <div class="paper">
+                <div class="hotel-block">
+                    <h1 class="hotel-name">${esc(hotelName)}</h1>
+                    ${address ? `<p class="hotel-meta">${esc(address)}</p>` : ''}
+                    <p class="hotel-meta">Phone: ${esc(phoneNumber)}${emailAddr ? ` | Email: ${esc(emailAddr)}` : ''}</p>
+                    ${(gstNumber || panNumber) ? `<p class="hotel-meta">${gstNumber ? `GSTIN: ${esc(gstNumber)}` : ''}${gstNumber && panNumber ? ' | ' : ''}${panNumber ? `PAN: ${esc(panNumber)}` : ''}</p>` : ''}
+                </div>
 
-            <div class="section strong">ROOM</div>
-            ${roomTx.length ? roomTx.map((i) => lineRow(i.particulars || 'Room charge', money(i.amountAbs))).join('') : lineRow('Room charge', '0.00')}
-            ${lineRow('Service charge', money(roomCalc.service))}
-            ${lineRow('GST', money(roomCalc.gst))}
-            ${lineRow('Discount', `-${money(roomCalc.discount)}`)}
-            <div class="sep"></div>
-            ${lineRow('ROOM TOTAL', money(roomCalc.total), true)}
-            <div class="formula">ROOM = ${money(roomCalc.base)} + ${money(roomCalc.service)} + ${money(roomCalc.gst)} - ${money(roomCalc.discount)} = ${money(roomCalc.total)}</div>
-            <div class="sep"></div>
+                <h2 class="folio-title">Guest Folio</h2>
 
-            <div class="section strong">FOOD</div>
-            ${foodNameLines}
-            ${lineRow('Food amount', money(foodCalc.base))}
-            ${lineRow('Food GST', money(foodCalc.gst))}
-            ${lineRow('Food service', money(foodCalc.service))}
-            ${lineRow('Food discount', `-${money(foodCalc.discount)}`)}
-            ${lineRow('FOOD TOTAL', money(foodCalc.total), true)}
-            <div class="formula">FOOD = ${money(foodCalc.base)} + ${money(foodCalc.gst)} + ${money(foodCalc.service)} - ${money(foodCalc.discount)} = ${money(foodCalc.total)}</div>
-            <div class="sep"></div>
+                <div class="meta-grid">
+                    <div class="meta-item"><span>Folio No:</span><span>${esc(roomNo || '-')}</span></div>
+                    <div class="meta-item"><span>Date:</span><span>${new Date().toLocaleDateString('en-IN')}</span></div>
+                    <div class="meta-item"><span>Room No:</span><span>${esc(roomNo || '-')}</span></div>
+                    <div class="meta-item"><span>Guest:</span><span>${esc(guestName || '-')}</span></div>
+                </div>
 
-            <div class="section strong">ADD</div>
-            ${addNameLines}
-            ${lineRow('Add amount', money(addCalc.base))}
-            ${lineRow('Add GST', money(addCalc.gst))}
-            ${lineRow('Add discount', `-${money(addCalc.discount)}`)}
-            ${lineRow('ADD TOTAL', money(addCalc.total), true)}
-            <div class="formula">ADD = ${money(addCalc.base)} + ${money(addCalc.gst)} - ${money(addCalc.discount)} = ${money(addCalc.total)}</div>
-            <div class="sep"></div>
+                ${sectionCard('Room Charges', roomTx, roomCalc, { defaultLabel: 'Room Charge', alwaysShow: true })}
+                ${sectionCard('Restaurant Bill', foodTx, foodCalc, { defaultLabel: 'Food Charge', alwaysShow: true })}
+                ${sectionCard('Laundry', laundryTx, laundryCalc, { defaultLabel: 'Laundry Charge' })}
+                ${sectionCard('Additional Charges', addTx, addCalc, { defaultLabel: 'Additional Charge', alwaysShow: true })}
 
-            ${lineRow('Subtotal', money(subtotal))}
-            ${lineRow('GST total', money(gstTotal))}
-            ${lineRow('Service total', money(serviceTotal))}
-            ${lineRow('Discount total', `-${money(discountTotal)}`)}
-            <div class="sep"></div>
-            ${lineRow('GRAND TOTAL', money(grandTotal), true)}
-            <div class="sep"></div>
+                <div class="totals-card">
+                    <div class="line head"><span>Section Totals</span><span></span></div>
+                    ${roomTx.length ? `<div class="line total"><span>ROOM TOTAL</span><span>${money(roomCalc.total)}</span></div>` : ''}
+                    ${foodTx.length ? `<div class="line total"><span>RESTAURANT TOTAL</span><span>${money(foodCalc.total)}</span></div>` : ''}
+                    ${laundryTx.length ? `<div class="line total"><span>LAUNDRY TOTAL</span><span>${money(laundryCalc.total)}</span></div>` : ''}
+                    ${addTx.length ? `<div class="line total"><span>ADDITIONAL TOTAL</span><span>${money(addCalc.total)}</span></div>` : ''}
 
-            ${lineRow('Cash', money(paymentSplit.cash))}
-            ${lineRow('UPI', money(paymentSplit.upi))}
-            ${lineRow('Card', money(paymentSplit.card))}
-            ${lineRow('Other', money(paymentSplit.other))}
-            <div class="sep"></div>
-            ${lineRow('Paid', money(paymentSplit.total), true)}
-            ${lineRow('Pending', money(pending), true)}
-            <div class="sep"></div>
-            ${lineRow('NET PAYABLE', money(netPayable), true)}
-            <div class="sep"></div>
+                    <div class="line grand" style="margin-top:10px; border-top:1px dashed #cbd5e1; padding-top:6px;"><span>Grand Total</span><span>${money(grandTotal)}</span></div>
+                    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #cbd5e1;">
+                        ${paymentSplit.cash > 0 ? `<div class="line"><span>Cash</span><span>${money(paymentSplit.cash)}</span></div>` : ''}
+                        ${paymentSplit.upi > 0 ? `<div class="line"><span>UPI</span><span>${money(paymentSplit.upi)}</span></div>` : ''}
+                        ${paymentSplit.card > 0 ? `<div class="line"><span>Card</span><span>${money(paymentSplit.card)}</span></div>` : ''}
+                        ${paymentSplit.other > 0 ? `<div class="line"><span>Other</span><span>${money(paymentSplit.other)}</span></div>` : ''}
+                    </div>
+                    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #cbd5e1;">
+                        <div class="line paid-row"><span>Paid</span><span>${money(paymentSplit.total)}</span></div>
+                        <div class="line due-row"><span>Remaining</span><span>${money(pending)}</span></div>
+                        <div class="line due-row"><span>Net Payable</span><span>${money(netPayable)}</span></div>
+                    </div>
+                </div>
 
-            ${lineRow('Subtotal', money(subtotal))}
-            ${lineRow('GST total', money(gstTotal))}
-            ${lineRow('Discount total', `-${money(discountTotal)}`)}
-            ${lineRow('Grand Total', money(grandTotal), true)}
+                <div class="thanks">Thank You!</div>
+            </div>
             <script>window.onload=function(){window.print();setTimeout(function(){window.close();},500)}<\/script>
         </body></html>`;
 
-        const w = window.open('', '_blank', 'height=820,width=420');
+        const width = selectedFormat.windowWidth || 980;
+        const w = window.open('', '_blank', `height=900,width=${width}`);
         w.document.write(content);
         w.document.close();
         setShowPrintDrawer(false);

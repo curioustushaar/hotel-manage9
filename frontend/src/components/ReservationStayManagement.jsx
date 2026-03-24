@@ -69,6 +69,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const [showBookingHistory, setShowBookingHistory] = useState(false);
     const [loading, setLoading] = useState(true);
     const [successMessage, setSuccessMessage] = useState('');
+    const [submitError, setSubmitError] = useState('');
     const [fromRoomsPage, setFromRoomsPage] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [cardViewMode, setCardViewMode] = useState('grid'); // 'grid' or 'list'
@@ -1221,6 +1222,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     const resetForm = useCallback(() => {
         setIsEditingMode(false);
         setEditingReservationId(null);
+        setSubmitError('');
         setReservationType('');
         setBookingSource('');
         setBusinessSource('');
@@ -1250,6 +1252,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
     // Handle Save Reservation
     const handleSaveReservation = async (e, status = 'RESERVED') => {
         if (e && e.preventDefault) e.preventDefault();
+        setSubmitError('');
 
         if (selectedGuests.length === 0) {
             alert('Please select at least one guest');
@@ -1263,6 +1266,20 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
 
         if (checkOutDate <= checkInDate) {
             alert('Check-out date must be after check-in date');
+            return;
+        }
+
+        const primaryGuest = selectedGuests[0] || {};
+        const primaryGuestName = (primaryGuest.fullName || primaryGuest.name || primaryGuest.guestName || '').trim();
+        const primaryGuestMobile = (primaryGuest.mobile || primaryGuest.phone || primaryGuest.mobileNumber || '').trim();
+
+        if (!primaryGuestName) {
+            setSubmitError('Primary guest name is required.');
+            return;
+        }
+
+        if (!primaryGuestMobile) {
+            setSubmitError('Primary guest mobile number is required.');
             return;
         }
 
@@ -1281,12 +1298,12 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
         const totalGuests = mappedRooms.reduce((sum, r) => sum + r.adults + r.children, 0);
 
         const bookingData = {
-            guestName: selectedGuests[0].fullName || selectedGuests[0].name || selectedGuests[0].guestName,
-            mobileNumber: selectedGuests[0].mobile || selectedGuests[0].phone || selectedGuests[0].mobileNumber,
-            email: selectedGuests[0].email || selectedGuests[0].guestEmail,
-            idProofType: selectedGuests[0].idProof?.type || selectedGuests[0].idType || 'Aadhaar',
-            idNumber: selectedGuests[0].idProof?.number || selectedGuests[0].idNumber || '',
-            vehicleNumber: selectedGuests[0].vehicleNumber || '',
+            guestName: primaryGuestName,
+            mobileNumber: primaryGuestMobile,
+            email: primaryGuest.email || primaryGuest.guestEmail,
+            idProofType: primaryGuest.idProof?.type || primaryGuest.idType || 'Aadhaar',
+            idNumber: primaryGuest.idProof?.number || primaryGuest.idNumber || '',
+            vehicleNumber: primaryGuest.vehicleNumber || '',
             additionalGuests: selectedGuests.slice(1).map(g => ({
                 name: g.fullName || g.name || g.guestName,
                 mobile: g.mobile || g.phone || g.mobileNumber,
@@ -1357,7 +1374,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                         navigate('/admin/dashboard');
                     }, 1500);
                 } else {
-                    setErrors({ submit: `Error: ${data.message}` });
+                    setSubmitError(`Error: ${data.message || 'Unable to update reservation'}`);
                     return;
                 }
             } else {
@@ -1378,7 +1395,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                     }, 1500);
                 } else {
                     console.error('Server returned error:', data);
-                    setErrors({ submit: `Error creating reservation: ${data.message || 'Unknown error'}` });
+                    setSubmitError(`Error creating reservation: ${data.message || 'Unknown error'}`);
                     return;
                 }
             }
@@ -1386,7 +1403,7 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
             resetForm();
         } catch (error) {
             console.error('Error saving reservation:', error);
-            setErrors({ submit: `Failed to save reservation: ${error.message}` });
+            setSubmitError(`Failed to save reservation: ${error.message}`);
         }
     };
 
@@ -1439,11 +1456,11 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                 await fetchReservationsFromAPI();
                 // Removed success alert
             } else {
-                setErrors({ submit: `Error: ${data.message}` });
+                setSubmitError(`Error: ${data.message || 'Unable to delete reservation'}`);
             }
         } catch (error) {
             console.error('Error deleting reservation:', error);
-            setErrors({ submit: 'Failed to delete reservation' });
+            setSubmitError('Failed to delete reservation');
         }
     };
 
@@ -1550,6 +1567,11 @@ const ReservationStayManagement = ({ viewMode = 'dashboard' }) => {
                             <span className="success-icon">✓</span>
                             {successMessage}
                         </motion.div>
+                    </div>
+                )}
+                {submitError && (
+                    <div className="error-alert" style={{ marginBottom: '12px' }}>
+                        {submitError}
                     </div>
                 )}
                 <div className="reservation-header form-view-header-compact">
